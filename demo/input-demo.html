@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte Framework - Input System Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #1a1a1a;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            user-select: none;
+        }
+
+        .header {
+            background: rgba(0,0,0,0.9);
+            padding: 15px 20px;
+            border-bottom: 2px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .header h1 {
+            color: #f39c12;
+            font-size: 1.5em;
+        }
+
+        .back-link {
+            color: #f39c12;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .game-area {
+            flex: 1;
+            position: relative;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        #gameCanvas {
+            max-width: 100%;
+            max-height: 100%;
+            border: 2px solid #333;
+            touch-action: none;
+        }
+
+        .virtual-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .joystick {
+            width: 120px;
+            height: 120px;
+            border: 3px solid rgba(243, 156, 18, 0.7);
+            border-radius: 50%;
+            position: relative;
+            background: rgba(0, 0, 0, 0.3);
+            pointer-events: all;
+            touch-action: none;
+        }
+
+        .joystick-knob {
+            width: 40px;
+            height: 40px;
+            background: #f39c12;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.1s ease;
+            box-shadow: 0 0 10px rgba(243, 156, 18, 0.5);
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .action-btn {
+            width: 60px;
+            height: 60px;
+            border: 3px solid rgba(243, 156, 18, 0.7);
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.3);
+            color: #f39c12;
+            font-weight: bold;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: all;
+            touch-action: none;
+            user-select: none;
+        }
+
+        .action-btn:active, .action-btn.active {
+            background: rgba(243, 156, 18, 0.3);
+            transform: scale(0.95);
+        }
+
+        .sidebar {
+            width: 320px;
+            background: rgba(40, 40, 40, 0.95);
+            padding: 20px;
+            overflow-y: auto;
+            border-left: 2px solid #333;
+        }
+
+        .info-section {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border-left: 4px solid #f39c12;
+        }
+
+        .info-section h3 {
+            color: #f39c12;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .input-display {
+            font-family: 'Courier New', monospace;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            line-height: 1.4;
+            min-height: 120px;
+            border: 1px solid #444;
+        }
+
+        .instruction {
+            background: rgba(243, 156, 18, 0.1);
+            border-left: 4px solid #f39c12;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+
+        .player {
+            width: 30px;
+            height: 30px;
+            background: #3498db;
+            border: 2px solid #2980b9;
+            border-radius: 5px;
+            position: absolute;
+            transition: transform 0.1s ease;
+        }
+
+        .key-indicator {
+            display: inline-block;
+            padding: 4px 8px;
+            background: rgba(243, 156, 18, 0.2);
+            border: 1px solid #f39c12;
+            border-radius: 3px;
+            margin: 2px;
+            font-size: 0.8em;
+            font-family: 'Courier New', monospace;
+        }
+
+        .key-indicator.active {
+            background: rgba(243, 156, 18, 0.5);
+            color: #000;
+            font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                max-height: 300px;
+                order: -1;
+            }
+            
+            .virtual-controls {
+                display: flex;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .virtual-controls {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <a href="index.html" class="back-link">← Back to Demo Hub</a>
+            <h1>🎯 Input & Controls Demo</h1>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="game-area">
+            <canvas id="gameCanvas" width="800" height="600"></canvas>
+            
+            <!-- Virtual Controls for Mobile -->
+            <div class="virtual-controls">
+                <div class="joystick" id="virtualJoystick">
+                    <div class="joystick-knob" id="joystickKnob"></div>
+                </div>
+                <div class="action-buttons">
+                    <div class="action-btn" id="jumpBtn">A</div>
+                    <div class="action-btn" id="fireBtn">B</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="instruction">
+                <strong>🎮 How to Use:</strong><br>
+                • <strong>Desktop:</strong> WASD/Arrow keys to move, Space to jump, Enter to fire<br>
+                • <strong>Mobile:</strong> Use virtual joystick and action buttons<br>
+                • <strong>Touch:</strong> Tap anywhere to interact<br>
+                • <strong>Gamepad:</strong> Connect a controller for gamepad input
+            </div>
+
+            <div class="info-section">
+                <h3>⌨️ Keyboard Input</h3>
+                <div>
+                    <div class="key-indicator" id="keyW">W</div>
+                    <div class="key-indicator" id="keyA">A</div>
+                    <div class="key-indicator" id="keyS">S</div>
+                    <div class="key-indicator" id="keyD">D</div>
+                    <div class="key-indicator" id="keySpace">SPACE</div>
+                    <div class="key-indicator" id="keyEnter">ENTER</div>
+                </div>
+                <div style="margin-top: 10px;">
+                    <div class="key-indicator" id="keyUp">↑</div>
+                    <div class="key-indicator" id="keyLeft">←</div>
+                    <div class="key-indicator" id="keyDown">↓</div>
+                    <div class="key-indicator" id="keyRight">→</div>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3>🖱️ Mouse & Touch</h3>
+                <div class="input-display" id="mouseDisplay">
+                    Position: (0, 0)<br>
+                    Buttons: None<br>
+                    Touches: 0<br>
+                    Last Gesture: None
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3>🎮 Gamepad Status</h3>
+                <div class="input-display" id="gamepadDisplay">
+                    Connected: No<br>
+                    Buttons: None<br>
+                    Left Stick: (0.0, 0.0)<br>
+                    Right Stick: (0.0, 0.0)
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3>📱 Touch Gestures</h3>
+                <div class="input-display" id="gestureDisplay">
+                    Last Gesture: None<br>
+                    Touch Count: 0<br>
+                    Swipe Direction: None<br>
+                    Pinch Scale: 1.0
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3>🎯 Virtual Controls</h3>
+                <div class="input-display" id="virtualDisplay">
+                    Joystick: (0.0, 0.0)<br>
+                    Jump Button: Released<br>
+                    Fire Button: Released<br>
+                    Control Mode: Auto
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3>🔧 Features Demonstrated</h3>
+                <ul>
+                    <li>Multi-input device support</li>
+                    <li>Touch gesture recognition</li>
+                    <li>Virtual joystick & buttons</li>
+                    <li>Gamepad integration</li>
+                    <li>Input event mapping</li>
+                    <li>Cross-platform compatibility</li>
+                    <li>Real-time input monitoring</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="../dist/index.js"></script>
+    <script>
+
+
+        class InputDemo {
+            constructor() {
+                this.app = null;
+                this.inputManager = null;
+                this.player = { x: 400, y: 300, vx: 0, vy: 0 };
+                this.keys = {};
+                this.mouse = { x: 0, y: 0, buttons: 0 };
+                this.touches = [];
+                this.gamepad = null;
+                this.virtualJoystick = { x: 0, y: 0, active: false };
+                this.virtualButtons = { jump: false, fire: false };
+                
+                this.init();
+                this.setupEventListeners();
+                this.startRenderLoop();
+                this.startInputMonitoring();
+            }
+
+            async init() {
+                try {
+                    // Create GameByte application
+                    this.app = GameByte.create();
+                    
+                    // Get input manager
+                    this.inputManager = this.app.make('input');
+                    
+                    // Initialize canvas
+                    const canvas = document.getElementById('gameCanvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    console.log('Input demo initialized successfully');
+                } catch (error) {
+                    console.error('Failed to initialize input demo:', error);
+                }
+            }
+
+            setupEventListeners() {
+                const canvas = document.getElementById('gameCanvas');
+
+                // Keyboard events
+                document.addEventListener('keydown', (e) => {
+                    this.keys[e.code] = true;
+                    this.updateKeyIndicators();
+                    this.handleKeyInput(e.code, true);
+                });
+
+                document.addEventListener('keyup', (e) => {
+                    this.keys[e.code] = false;
+                    this.updateKeyIndicators();
+                    this.handleKeyInput(e.code, false);
+                });
+
+                // Mouse events
+                canvas.addEventListener('mousemove', (e) => {
+                    const rect = canvas.getBoundingClientRect();
+                    this.mouse.x = e.clientX - rect.left;
+                    this.mouse.y = e.clientY - rect.top;
+                    this.updateMouseDisplay();
+                });
+
+                canvas.addEventListener('mousedown', (e) => {
+                    this.mouse.buttons |= (1 << e.button);
+                    this.updateMouseDisplay();
+                    this.handleClick(this.mouse.x, this.mouse.y);
+                });
+
+                canvas.addEventListener('mouseup', (e) => {
+                    this.mouse.buttons &= ~(1 << e.button);
+                    this.updateMouseDisplay();
+                });
+
+                // Touch events
+                canvas.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.touches = Array.from(e.touches).map(touch => ({
+                        id: touch.identifier,
+                        x: touch.clientX - canvas.getBoundingClientRect().left,
+                        y: touch.clientY - canvas.getBoundingClientRect().top
+                    }));
+                    this.updateTouchDisplay();
+                    this.detectGestures();
+                });
+
+                canvas.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    this.touches = Array.from(e.touches).map(touch => ({
+                        id: touch.identifier,
+                        x: touch.clientX - canvas.getBoundingClientRect().left,
+                        y: touch.clientY - canvas.getBoundingClientRect().top
+                    }));
+                    this.updateTouchDisplay();
+                });
+
+                canvas.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    this.touches = Array.from(e.touches).map(touch => ({
+                        id: touch.identifier,
+                        x: touch.clientX - canvas.getBoundingClientRect().left,
+                        y: touch.clientY - canvas.getBoundingClientRect().top
+                    }));
+                    this.updateTouchDisplay();
+                });
+
+                // Virtual joystick
+                this.setupVirtualJoystick();
+
+                // Virtual buttons
+                this.setupVirtualButtons();
+
+                // Gamepad detection
+                window.addEventListener('gamepadconnected', (e) => {
+                    console.log('Gamepad connected:', e.gamepad);
+                    this.updateGamepadDisplay();
+                });
+
+                window.addEventListener('gamepaddisconnected', (e) => {
+                    console.log('Gamepad disconnected:', e.gamepad);
+                    this.gamepad = null;
+                    this.updateGamepadDisplay();
+                });
+            }
+
+            setupVirtualJoystick() {
+                const joystick = document.getElementById('virtualJoystick');
+                const knob = document.getElementById('joystickKnob');
+                let isDragging = false;
+                let startPos = { x: 0, y: 0 };
+
+                const handleStart = (e) => {
+                    isDragging = true;
+                    this.virtualJoystick.active = true;
+                    const rect = joystick.getBoundingClientRect();
+                    startPos = {
+                        x: rect.left + rect.width / 2,
+                        y: rect.top + rect.height / 2
+                    };
+                    
+                    joystick.style.border = '3px solid #f39c12';
+                };
+
+                const handleMove = (e) => {
+                    if (!isDragging) return;
+
+                    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+                    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+
+                    const deltaX = clientX - startPos.x;
+                    const deltaY = clientY - startPos.y;
+                    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                    const maxDistance = 40; // Half of joystick radius
+
+                    let normalizedX = deltaX / maxDistance;
+                    let normalizedY = deltaY / maxDistance;
+
+                    if (distance > maxDistance) {
+                        normalizedX = (deltaX / distance) * 1;
+                        normalizedY = (deltaY / distance) * 1;
+                    }
+
+                    this.virtualJoystick.x = Math.max(-1, Math.min(1, normalizedX));
+                    this.virtualJoystick.y = Math.max(-1, Math.min(1, normalizedY));
+
+                    const clampedX = this.virtualJoystick.x * maxDistance;
+                    const clampedY = this.virtualJoystick.y * maxDistance;
+
+                    knob.style.transform = `translate(calc(-50% + ${clampedX}px), calc(-50% + ${clampedY}px))`;
+                    this.updateVirtualDisplay();
+                };
+
+                const handleEnd = () => {
+                    if (!isDragging) return;
+                    
+                    isDragging = false;
+                    this.virtualJoystick.active = false;
+                    this.virtualJoystick.x = 0;
+                    this.virtualJoystick.y = 0;
+                    
+                    knob.style.transform = 'translate(-50%, -50%)';
+                    joystick.style.border = '3px solid rgba(243, 156, 18, 0.7)';
+                    this.updateVirtualDisplay();
+                };
+
+                // Mouse events
+                joystick.addEventListener('mousedown', handleStart);
+                document.addEventListener('mousemove', handleMove);
+                document.addEventListener('mouseup', handleEnd);
+
+                // Touch events
+                joystick.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    handleStart(e);
+                });
+                document.addEventListener('touchmove', (e) => {
+                    if (isDragging) {
+                        e.preventDefault();
+                        handleMove(e);
+                    }
+                });
+                document.addEventListener('touchend', handleEnd);
+            }
+
+            setupVirtualButtons() {
+                const jumpBtn = document.getElementById('jumpBtn');
+                const fireBtn = document.getElementById('fireBtn');
+
+                const setupButton = (button, key) => {
+                    const handleStart = () => {
+                        this.virtualButtons[key] = true;
+                        button.classList.add('active');
+                        this.updateVirtualDisplay();
+                        if (key === 'jump') this.handleJump();
+                        if (key === 'fire') this.handleFire();
+                    };
+
+                    const handleEnd = () => {
+                        this.virtualButtons[key] = false;
+                        button.classList.remove('active');
+                        this.updateVirtualDisplay();
+                    };
+
+                    button.addEventListener('mousedown', handleStart);
+                    button.addEventListener('mouseup', handleEnd);
+                    button.addEventListener('mouseleave', handleEnd);
+                    
+                    button.addEventListener('touchstart', (e) => {
+                        e.preventDefault();
+                        handleStart();
+                    });
+                    button.addEventListener('touchend', (e) => {
+                        e.preventDefault();
+                        handleEnd();
+                    });
+                };
+
+                setupButton(jumpBtn, 'jump');
+                setupButton(fireBtn, 'fire');
+            }
+
+            handleKeyInput(code, pressed) {
+                switch (code) {
+                    case 'KeyW':
+                    case 'ArrowUp':
+                        if (pressed) this.player.vy = -5;
+                        else if (this.player.vy < 0) this.player.vy = 0;
+                        break;
+                    case 'KeyS':
+                    case 'ArrowDown':
+                        if (pressed) this.player.vy = 5;
+                        else if (this.player.vy > 0) this.player.vy = 0;
+                        break;
+                    case 'KeyA':
+                    case 'ArrowLeft':
+                        if (pressed) this.player.vx = -5;
+                        else if (this.player.vx < 0) this.player.vx = 0;
+                        break;
+                    case 'KeyD':
+                    case 'ArrowRight':
+                        if (pressed) this.player.vx = 5;
+                        else if (this.player.vx > 0) this.player.vx = 0;
+                        break;
+                    case 'Space':
+                        if (pressed) this.handleJump();
+                        break;
+                    case 'Enter':
+                        if (pressed) this.handleFire();
+                        break;
+                }
+            }
+
+            handleClick(x, y) {
+                // Move player towards click position
+                const dx = x - this.player.x;
+                const dy = y - this.player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance > 10) {
+                    this.player.vx = (dx / distance) * 8;
+                    this.player.vy = (dy / distance) * 8;
+                }
+            }
+
+            handleJump() {
+                // Simple jump effect
+                this.player.vy = -8;
+                console.log('Jump!');
+            }
+
+            handleFire() {
+                // Simple fire effect
+                console.log('Fire!');
+                this.createParticle();
+            }
+
+            createParticle() {
+                // Add a visual effect for firing
+                const canvas = document.getElementById('gameCanvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Create a temporary particle effect
+                setTimeout(() => {
+                    ctx.save();
+                    ctx.fillStyle = '#ff6b6b';
+                    ctx.beginPath();
+                    ctx.arc(this.player.x + 40, this.player.y + 15, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }, 0);
+            }
+
+            updatePlayer() {
+                // Apply virtual joystick input
+                if (this.virtualJoystick.active) {
+                    this.player.vx = this.virtualJoystick.x * 6;
+                    this.player.vy = this.virtualJoystick.y * 6;
+                }
+
+                // Update player position
+                this.player.x += this.player.vx;
+                this.player.y += this.player.vy;
+
+                // Apply friction
+                this.player.vx *= 0.9;
+                this.player.vy *= 0.9;
+
+                // Keep player in bounds
+                const canvas = document.getElementById('gameCanvas');
+                this.player.x = Math.max(15, Math.min(canvas.width - 45, this.player.x));
+                this.player.y = Math.max(15, Math.min(canvas.height - 45, this.player.y));
+            }
+
+            render() {
+                const canvas = document.getElementById('gameCanvas');
+                const ctx = canvas.getContext('2d');
+
+                // Clear canvas
+                ctx.fillStyle = '#222';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Draw grid
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 1;
+                for (let x = 0; x < canvas.width; x += 50) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, canvas.height);
+                    ctx.stroke();
+                }
+                for (let y = 0; y < canvas.height; y += 50) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(canvas.width, y);
+                    ctx.stroke();
+                }
+
+                // Draw player
+                ctx.fillStyle = '#3498db';
+                ctx.fillRect(this.player.x, this.player.y, 30, 30);
+                ctx.strokeStyle = '#2980b9';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(this.player.x, this.player.y, 30, 30);
+
+                // Draw velocity indicator
+                if (Math.abs(this.player.vx) > 0.5 || Math.abs(this.player.vy) > 0.5) {
+                    ctx.strokeStyle = '#e74c3c';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(this.player.x + 15, this.player.y + 15);
+                    ctx.lineTo(
+                        this.player.x + 15 + this.player.vx * 5,
+                        this.player.y + 15 + this.player.vy * 5
+                    );
+                    ctx.stroke();
+                }
+
+                // Draw touch points
+                this.touches.forEach((touch, index) => {
+                    ctx.fillStyle = `hsl(${index * 60}, 70%, 60%)`;
+                    ctx.beginPath();
+                    ctx.arc(touch.x, touch.y, 10, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = 'white';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(touch.id.toString(), touch.x, touch.y + 4);
+                });
+
+                // Draw instructions
+                ctx.fillStyle = 'white';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'left';
+                ctx.fillText('Use WASD/Arrow keys, click, or touch to control the blue square', 10, 30);
+            }
+
+            startRenderLoop() {
+                const render = () => {
+                    this.updatePlayer();
+                    this.render();
+                    requestAnimationFrame(render);
+                };
+                render();
+            }
+
+            startInputMonitoring() {
+                setInterval(() => {
+                    this.updateGamepadInput();
+                    this.updateGamepadDisplay();
+                }, 50);
+            }
+
+            updateKeyIndicators() {
+                const keyMap = {
+                    'KeyW': 'keyW',
+                    'KeyA': 'keyA',
+                    'KeyS': 'keyS',
+                    'KeyD': 'keyD',
+                    'Space': 'keySpace',
+                    'Enter': 'keyEnter',
+                    'ArrowUp': 'keyUp',
+                    'ArrowLeft': 'keyLeft',
+                    'ArrowDown': 'keyDown',
+                    'ArrowRight': 'keyRight'
+                };
+
+                Object.entries(keyMap).forEach(([code, elementId]) => {
+                    const element = document.getElementById(elementId);
+                    if (element) {
+                        element.classList.toggle('active', this.keys[code] || false);
+                    }
+                });
+            }
+
+            updateMouseDisplay() {
+                const buttons = [];
+                if (this.mouse.buttons & 1) buttons.push('Left');
+                if (this.mouse.buttons & 2) buttons.push('Right');
+                if (this.mouse.buttons & 4) buttons.push('Middle');
+
+                document.getElementById('mouseDisplay').innerHTML = `
+                    Position: (${Math.round(this.mouse.x)}, ${Math.round(this.mouse.y)})<br>
+                    Buttons: ${buttons.length ? buttons.join(', ') : 'None'}<br>
+                    Touches: ${this.touches.length}<br>
+                    Last Gesture: ${this.lastGesture || 'None'}
+                `;
+            }
+
+            updateTouchDisplay() {
+                this.updateMouseDisplay();
+            }
+
+            updateGamepadInput() {
+                const gamepads = navigator.getGamepads();
+                this.gamepad = null;
+                
+                for (let i = 0; i < gamepads.length; i++) {
+                    if (gamepads[i]) {
+                        this.gamepad = gamepads[i];
+                        break;
+                    }
+                }
+
+                if (this.gamepad) {
+                    // Handle gamepad input
+                    const leftStickX = this.gamepad.axes[0];
+                    const leftStickY = this.gamepad.axes[1];
+                    
+                    if (Math.abs(leftStickX) > 0.1 || Math.abs(leftStickY) > 0.1) {
+                        this.player.vx = leftStickX * 6;
+                        this.player.vy = leftStickY * 6;
+                    }
+
+                    // Check buttons
+                    if (this.gamepad.buttons[0] && this.gamepad.buttons[0].pressed) {
+                        this.handleJump();
+                    }
+                    if (this.gamepad.buttons[1] && this.gamepad.buttons[1].pressed) {
+                        this.handleFire();
+                    }
+                }
+            }
+
+            updateGamepadDisplay() {
+                if (!this.gamepad) {
+                    document.getElementById('gamepadDisplay').innerHTML = `
+                        Connected: No<br>
+                        Buttons: None<br>
+                        Left Stick: (0.0, 0.0)<br>
+                        Right Stick: (0.0, 0.0)
+                    `;
+                    return;
+                }
+
+                const pressedButtons = [];
+                this.gamepad.buttons.forEach((button, index) => {
+                    if (button.pressed) {
+                        pressedButtons.push(index);
+                    }
+                });
+
+                document.getElementById('gamepadDisplay').innerHTML = `
+                    Connected: Yes (${this.gamepad.id})<br>
+                    Buttons: ${pressedButtons.length ? pressedButtons.join(', ') : 'None'}<br>
+                    Left Stick: (${this.gamepad.axes[0]?.toFixed(2) || '0.0'}, ${this.gamepad.axes[1]?.toFixed(2) || '0.0'})<br>
+                    Right Stick: (${this.gamepad.axes[2]?.toFixed(2) || '0.0'}, ${this.gamepad.axes[3]?.toFixed(2) || '0.0'})
+                `;
+            }
+
+            updateVirtualDisplay() {
+                document.getElementById('virtualDisplay').innerHTML = `
+                    Joystick: (${this.virtualJoystick.x.toFixed(2)}, ${this.virtualJoystick.y.toFixed(2)})<br>
+                    Jump Button: ${this.virtualButtons.jump ? 'Pressed' : 'Released'}<br>
+                    Fire Button: ${this.virtualButtons.fire ? 'Pressed' : 'Released'}<br>
+                    Control Mode: ${this.virtualJoystick.active ? 'Virtual' : 'Auto'}
+                `;
+            }
+
+            detectGestures() {
+                // Simple gesture detection
+                if (this.touches.length === 1) {
+                    this.lastGesture = 'Tap';
+                } else if (this.touches.length === 2) {
+                    this.lastGesture = 'Pinch/Zoom';
+                } else if (this.touches.length > 2) {
+                    this.lastGesture = 'Multi-touch';
+                }
+
+                document.getElementById('gestureDisplay').innerHTML = `
+                    Last Gesture: ${this.lastGesture || 'None'}<br>
+                    Touch Count: ${this.touches.length}<br>
+                    Swipe Direction: None<br>
+                    Pinch Scale: 1.0
+                `;
+            }
+        }
+
+        // Initialize demo when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new InputDemo();
+        });
+    </script>
+</body>
+</html>

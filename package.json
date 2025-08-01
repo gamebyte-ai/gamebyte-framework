@@ -1,0 +1,104 @@
+{
+  "name": "@gamebyte/framework",
+  "version": "1.0.0",
+  "description": "A comprehensive JavaScript game engine framework that unifies 2D and 3D game development with Laravel-inspired architecture",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./2d": {
+      "import": "./dist/renderers/pixi2d.js",
+      "types": "./dist/renderers/pixi2d.d.ts"
+    },
+    "./3d": {
+      "import": "./dist/renderers/three3d.js", 
+      "types": "./dist/renderers/three3d.d.ts"
+    },
+    "./physics2d": {
+      "import": "./dist/physics/matter2d.js",
+      "types": "./dist/physics/matter2d.d.ts"
+    },
+    "./physics3d": {
+      "import": "./dist/physics/cannon3d.js",
+      "types": "./dist/physics/cannon3d.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc && rollup -c",
+    "dev": "tsc --watch",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:integration": "jest --testPathPattern=integration",
+    "test:unit": "jest --testPathPattern=__tests__ --testPathIgnorePatterns=integration",
+    "lint": "eslint src/**/*.ts",
+    "format": "prettier --write src/**/*.ts",
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run clean && npm run build",
+    "demo:build": "npm run build && node scripts/build-demo.js",
+    "demo:serve": "npm run demo:build && echo '🚀 Demo server starting...' && echo '📱 Open: http://localhost:9000' && npx http-server demos/dist -p 9000",
+    "demo:dev": "npm run build && npx http-server . -p 8000 -o /demos/core/"
+  },
+  "keywords": [
+    "game-engine",
+    "javascript",
+    "typescript",
+    "pixi.js",
+    "three.js",
+    "mobile-games",
+    "2d",
+    "3d",
+    "framework"
+  ],
+  "author": "GameByte Team",
+  "license": "MIT",
+  "dependencies": {
+    "eventemitter3": "^5.0.1",
+    "pixi.js": ">=7.0.0",
+    "reflect-metadata": "^0.2.1",
+    "three": ">=0.150.0",
+    "matter-js": "^0.19.0",
+    "cannon-es": "^0.20.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/three": "^0.160.0",
+    "@types/matter-js": "^0.19.0",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "eslint": "^8.56.0",
+    "http-server": "^14.1.1",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "prettier": "^3.2.4",
+    "rimraf": "^5.0.5",
+    "rollup": "^4.9.6",
+    "rollup-plugin-typescript2": "^0.36.0",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "ts-jest": "^29.4.0",
+    "typescript": "^5.3.3"
+  },
+  "peerDependencies": {
+    "pixi.js": ">=7.0.0",
+    "three": ">=0.150.0",
+    "matter-js": ">=0.19.0",
+    "cannon-es": ">=0.20.0"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gamebyte/framework.git"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

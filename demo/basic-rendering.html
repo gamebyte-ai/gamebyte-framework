@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte Framework - Basic Rendering Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #1a1a1a;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(0,0,0,0.9);
+            padding: 15px 20px;
+            border-bottom: 2px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .header h1 {
+            color: #4ecdc4;
+            font-size: 1.5em;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+        }
+
+        .btn-primary {
+            background: #4ecdc4;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #45b7aa;
+            transform: scale(1.05);
+        }
+
+        .btn-secondary {
+            background: #666;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #777;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #gameCanvas {
+            max-width: 100%;
+            max-height: 100%;
+            border: 2px solid #333;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: rgba(40, 40, 40, 0.95);
+            padding: 20px;
+            overflow-y: auto;
+            border-left: 2px solid #333;
+        }
+
+        .info-section {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border-left: 4px solid #4ecdc4;
+        }
+
+        .info-section h3 {
+            color: #4ecdc4;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .info-section p, .info-section ul {
+            font-size: 0.9em;
+            line-height: 1.5;
+            opacity: 0.9;
+        }
+
+        .info-section ul {
+            margin-left: 20px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-good { background: #2ecc71; }
+        .status-warning { background: #f39c12; }
+        .status-error { background: #e74c3c; }
+
+        .back-link {
+            color: #4ecdc4;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        select {
+            padding: 5px 10px;
+            border: 1px solid #666;
+            background: #333;
+            color: white;
+            border-radius: 3px;
+        }
+
+        .error-message {
+            background: rgba(231, 76, 60, 0.1);
+            border: 1px solid #e74c3c;
+            color: #e74c3c;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .success-message {
+            background: rgba(46, 204, 113, 0.1);
+            border: 1px solid #2ecc71;
+            color: #2ecc71;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                max-height: 300px;
+            }
+            
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <a href="index.html" class="back-link">← Back to Demo Hub</a>
+            <h1>🖼️ Basic Rendering Demo</h1>
+        </div>
+        <div class="controls">
+            <select id="rendererSelect">
+                <option value="2D">2D Renderer (Pixi.js)</option>
+                <option value="3D">3D Renderer (Three.js)</option>
+                <option value="HYBRID">Hybrid Mode</option>
+            </select>
+            <button class="btn btn-primary" id="switchRenderer">Switch Renderer</button>
+            <button class="btn btn-secondary" id="addSprite">Add Sprite</button>
+            <button class="btn btn-secondary" id="startAnimation">Start Animation</button>
+            <button class="btn btn-danger" id="clearCanvas">Clear Canvas</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="canvas-container">
+            <canvas id="gameCanvas" width="800" height="600"></canvas>
+        </div>
+
+        <div class="sidebar">
+            <div class="info-section">
+                <h3>📊 Renderer Status</h3>
+                <p><span class="status-indicator status-good"></span><span id="currentRenderer">Loading...</span></p>
+                <p><span class="status-indicator" id="webglStatus"></span><span id="webglText">Checking WebGL...</span></p>
+                <p id="rendererInfo">Initializing...</p>
+            </div>
+
+            <div class="info-section" id="performanceSection">
+                <h3>⚡ Performance</h3>
+                <p>FPS: <span id="fpsCounter">0</span></p>
+                <p>Draw Calls: <span id="drawCalls">0</span></p>
+                <p>Triangles: <span id="triangleCount">0</span></p>
+                <p>Memory: <span id="memoryUsage">Unknown</span></p>
+            </div>
+
+            <div class="info-section">
+                <h3>🎮 Features Demonstrated</h3>
+                <ul>
+                    <li>2D/3D renderer switching</li>
+                    <li>WebGL capability detection</li>
+                    <li>Canvas fallback support</li>
+                    <li>Sprite rendering & animation</li>
+                    <li>Performance monitoring</li>
+                    <li>Memory usage tracking</li>
+                    <li>Mobile-responsive design</li>
+                </ul>
+            </div>
+
+            <div class="info-section">
+                <h3>🔧 Framework Architecture</h3>
+                <p>This demo showcases the GameByte Framework's unified rendering API that abstracts both 2D (Pixi.js) and 3D (Three.js) rendering into a single, consistent interface.</p>
+                <p>The framework automatically detects device capabilities and provides appropriate fallbacks while maintaining developer control over rendering mode selection.</p>
+            </div>
+
+            <div class="info-section">
+                <h3>📱 Mobile Optimization</h3>
+                <ul>
+                    <li>Touch-friendly controls</li>
+                    <li>Responsive canvas sizing</li>
+                    <li>Performance-based quality scaling</li>
+                    <li>Battery optimization</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="../dist/index.js"></script>
+    <script>
+
+        class RenderingDemo {
+            constructor() {
+                this.app = null;
+                this.renderer = null;
+                this.sprites = [];
+                this.animationFrame = null;
+                this.fpsCounter = 0;
+                this.lastTime = 0;
+                this.frameCount = 0;
+                
+                this.init();
+                this.setupEventListeners();
+                this.startPerformanceMonitoring();
+            }
+
+            async init() {
+                try {
+                    // Create GameByte application
+                    this.app = GameByte.create();
+                    
+                    // Initialize with default 2D renderer
+                    await this.initializeRenderer(RenderingMode.RENDERER_2D);
+                    
+                    // Check WebGL support
+                    this.checkWebGLSupport();
+                    
+                    // Update UI
+                    this.updateStatus();
+                    
+                    this.showMessage('Framework initialized successfully!', 'success');
+                } catch (error) {
+                    console.error('Failed to initialize:', error);
+                    this.showMessage(`Initialization failed: ${error.message}`, 'error');
+                }
+            }
+
+            async initializeRenderer(mode) {
+                try {
+                    // Get canvas
+                    const canvas = document.getElementById('gameCanvas');
+                    
+                    // Create renderer through service container
+                    this.renderer = this.app.make('renderer.create')(mode);
+                    
+                    if (this.renderer && this.renderer.initialize) {
+                        await this.renderer.initialize(canvas);
+                        this.currentMode = mode;
+                        
+                        // Clear existing sprites
+                        this.sprites = [];
+                        
+                        // Add some default content
+                        this.addDefaultContent();
+                        
+                        // Start render loop
+                        this.startRenderLoop();
+                    }
+                } catch (error) {
+                    console.error('Renderer initialization failed:', error);
+                    this.showMessage(`Renderer initialization failed: ${error.message}`, 'error');
+                }
+            }
+
+            checkWebGLSupport() {
+                const canvas = document.createElement('canvas');
+                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                
+                const statusElement = document.getElementById('webglStatus');
+                const textElement = document.getElementById('webglText');
+                
+                if (gl) {
+                    statusElement.className = 'status-indicator status-good';
+                    textElement.textContent = 'WebGL Supported';
+                    
+                    // Get WebGL info
+                    const info = {
+                        version: gl.getParameter(gl.VERSION),
+                        vendor: gl.getParameter(gl.VENDOR),
+                        renderer: gl.getParameter(gl.RENDERER)
+                    };
+                    
+                    document.getElementById('rendererInfo').innerHTML = `
+                        WebGL Version: ${info.version}<br>
+                        Vendor: ${info.vendor}<br>
+                        Renderer: ${info.renderer}
+                    `;
+                } else {
+                    statusElement.className = 'status-indicator status-error';
+                    textElement.textContent = 'WebGL Not Supported';
+                    document.getElementById('rendererInfo').textContent = 'Canvas 2D fallback will be used';
+                }
+            }
+
+            addDefaultContent() {
+                // Add some basic sprites/objects to demonstrate rendering
+                for (let i = 0; i < 5; i++) {
+                    this.addSprite();
+                }
+            }
+
+            addSprite() {
+                const canvas = document.getElementById('gameCanvas');
+                const sprite = {
+                    x: Math.random() * (canvas.width - 50),
+                    y: Math.random() * (canvas.height - 50),
+                    width: 50,
+                    height: 50,
+                    color: `hsl(${Math.random() * 360}, 70%, 60%)`,
+                    velocityX: (Math.random() - 0.5) * 4,
+                    velocityY: (Math.random() - 0.5) * 4,
+                    rotation: 0,
+                    rotationSpeed: (Math.random() - 0.5) * 0.1
+                };
+                
+                this.sprites.push(sprite);
+            }
+
+            startRenderLoop() {
+                const render = (currentTime) => {
+                    // Calculate FPS
+                    this.frameCount++;
+                    if (currentTime - this.lastTime >= 1000) {
+                        this.fpsCounter = Math.round(this.frameCount * 1000 / (currentTime - this.lastTime));
+                        this.frameCount = 0;
+                        this.lastTime = currentTime;
+                        document.getElementById('fpsCounter').textContent = this.fpsCounter;
+                    }
+
+                    // Update sprites
+                    this.updateSprites();
+
+                    // Render
+                    if (this.renderer && this.renderer.render) {
+                        this.renderer.render(this.sprites);
+                    } else {
+                        // Fallback to canvas 2D rendering
+                        this.renderCanvas2D();
+                    }
+
+                    // Update performance info
+                    this.updatePerformanceInfo();
+
+                    this.animationFrame = requestAnimationFrame(render);
+                };
+
+                render(performance.now());
+            }
+
+            updateSprites() {
+                const canvas = document.getElementById('gameCanvas');
+                
+                this.sprites.forEach(sprite => {
+                    // Update position
+                    sprite.x += sprite.velocityX;
+                    sprite.y += sprite.velocityY;
+                    sprite.rotation += sprite.rotationSpeed;
+
+                    // Bounce off walls
+                    if (sprite.x <= 0 || sprite.x >= canvas.width - sprite.width) {
+                        sprite.velocityX *= -1;
+                        sprite.x = Math.max(0, Math.min(canvas.width - sprite.width, sprite.x));
+                    }
+                    if (sprite.y <= 0 || sprite.y >= canvas.height - sprite.height) {
+                        sprite.velocityY *= -1;
+                        sprite.y = Math.max(0, Math.min(canvas.height - sprite.height, sprite.y));
+                    }
+                });
+            }
+
+            renderCanvas2D() {
+                const canvas = document.getElementById('gameCanvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Clear canvas
+                ctx.fillStyle = '#222';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Render sprites
+                this.sprites.forEach(sprite => {
+                    ctx.save();
+                    ctx.translate(sprite.x + sprite.width/2, sprite.y + sprite.height/2);
+                    ctx.rotate(sprite.rotation);
+                    ctx.fillStyle = sprite.color;
+                    ctx.fillRect(-sprite.width/2, -sprite.height/2, sprite.width, sprite.height);
+                    
+                    // Add a small border
+                    ctx.strokeStyle = 'white';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(-sprite.width/2, -sprite.height/2, sprite.width, sprite.height);
+                    
+                    ctx.restore();
+                });
+
+                // Add some text
+                ctx.fillStyle = 'white';
+                ctx.font = '16px Arial';
+                ctx.fillText(`${this.currentMode} Renderer - ${this.sprites.length} sprites`, 10, 30);
+            }
+
+            updatePerformanceInfo() {
+                document.getElementById('drawCalls').textContent = this.sprites.length;
+                document.getElementById('triangleCount').textContent = this.sprites.length * 2;
+                
+                // Estimate memory usage
+                if (performance.memory) {
+                    const memory = (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(1);
+                    document.getElementById('memoryUsage').textContent = `${memory} MB`;
+                }
+            }
+
+            updateStatus() {
+                document.getElementById('currentRenderer').textContent = `${this.currentMode} Active`;
+            }
+
+            setupEventListeners() {
+                document.getElementById('switchRenderer').addEventListener('click', async () => {
+                    const select = document.getElementById('rendererSelect');
+                    const newMode = RenderingMode[`RENDERER_${select.value}`] || RenderingMode[select.value];
+                    
+                    if (this.animationFrame) {
+                        cancelAnimationFrame(this.animationFrame);
+                    }
+                    
+                    await this.initializeRenderer(newMode);
+                    this.updateStatus();
+                });
+
+                document.getElementById('addSprite').addEventListener('click', () => {
+                    this.addSprite();
+                });
+
+                document.getElementById('clearCanvas').addEventListener('click', () => {
+                    this.sprites = [];
+                });
+
+                document.getElementById('startAnimation').addEventListener('click', () => {
+                    // Add some animated sprites
+                    for (let i = 0; i < 3; i++) {
+                        setTimeout(() => this.addSprite(), i * 100);
+                    }
+                });
+
+                // Handle window resize
+                window.addEventListener('resize', () => {
+                    this.resizeCanvas();
+                });
+            }
+
+            resizeCanvas() {
+                const canvas = document.getElementById('gameCanvas');
+                const container = canvas.parentElement;
+                
+                // Maintain aspect ratio while fitting in container
+                const maxWidth = container.clientWidth - 40;
+                const maxHeight = container.clientHeight - 40;
+                const aspectRatio = 800 / 600;
+                
+                let newWidth = maxWidth;
+                let newHeight = newWidth / aspectRatio;
+                
+                if (newHeight > maxHeight) {
+                    newHeight = maxHeight;
+                    newWidth = newHeight * aspectRatio;
+                }
+                
+                canvas.style.width = newWidth + 'px';
+                canvas.style.height = newHeight + 'px';
+            }
+
+            startPerformanceMonitoring() {
+                setInterval(() => {
+                    this.updatePerformanceInfo();
+                }, 1000);
+            }
+
+            showMessage(message, type) {
+                const existing = document.querySelector('.error-message, .success-message');
+                if (existing) {
+                    existing.remove();
+                }
+
+                const messageDiv = document.createElement('div');
+                messageDiv.className = type === 'error' ? 'error-message' : 'success-message';
+                messageDiv.textContent = message;
+                
+                document.querySelector('.sidebar').appendChild(messageDiv);
+                
+                setTimeout(() => {
+                    messageDiv.remove();
+                }, 5000);
+            }
+        }
+
+        // Initialize demo when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new RenderingDemo();
+        });
+    </script>
+</body>
+</html>

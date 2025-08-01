@@ -1,0 +1,146 @@
+name: Feature Request
+description: Suggest a new feature or enhancement for GameByte Framework
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! 🚀
+
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: Feature Description
+      description: A clear and concise description of the feature you'd like to see
+      placeholder: Describe the feature...
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem-statement
+    attributes:
+      label: Problem Statement
+      description: Is your feature request related to a problem? Please describe.
+      placeholder: "I'm frustrated when..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution you'd like
+      placeholder: "I would like..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Describe any alternative solutions or features you've considered
+      placeholder: "I've also considered..."
+
+  - type: dropdown
+    id: feature-type
+    attributes:
+      label: Feature Type
+      description: What type of feature is this?
+      options:
+        - Core Framework Enhancement
+        - New Rendering Feature
+        - Performance Improvement
+        - Developer Experience
+        - Documentation
+        - Plugin/Extension
+        - Mobile Optimization
+        - Testing/Debugging Tool
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to you?
+      options:
+        - Critical (blocking my project)
+        - High (would significantly improve my workflow)
+        - Medium (nice to have)
+        - Low (minor improvement)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: game-type
+    attributes:
+      label: Game Type Relevance
+      description: What types of games would benefit from this feature?
+      options:
+        - All game types
+        - Mobile Casual
+        - Hybrid Casual
+        - Hyper Casual
+        - Platformer
+        - Shooter
+        - Puzzle
+        - 2D Games specifically
+        - 3D Games specifically
+        - Other (please specify)
+      multiple: true
+
+  - type: textarea
+    id: use-cases
+    attributes:
+      label: Use Cases
+      description: Describe specific use cases where this feature would be helpful
+      placeholder: |
+        1. When developing a platformer game...
+        2. For mobile optimization...
+        3. During debugging...
+
+  - type: textarea
+    id: api-proposal
+    attributes:
+      label: API Design Proposal (Optional)
+      description: If you have ideas about how the API should look, share them here
+      render: typescript
+      placeholder: |
+        // Example API design
+        import { newFeature } from '@gamebyte/framework';
+        
+        const feature = newFeature({
+          option1: 'value',
+          option2: true
+        });
+
+  - type: textarea
+    id: implementation-notes
+    attributes:
+      label: Implementation Notes (Optional)
+      description: Any thoughts on how this could be implemented?
+      placeholder: "This could be implemented by..."
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add any other context, screenshots, or examples about the feature request
+      placeholder: "Links, images, examples..."
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Checklist
+      description: Please confirm the following
+      options:
+        - label: I have searched existing issues to ensure this feature hasn't been requested before
+          required: true
+        - label: This feature aligns with GameByte Framework's goals and scope
+          required: true
+        - label: I would be interested in helping implement this feature
+          required: false
