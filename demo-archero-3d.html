@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Archero-Style 3D Menu - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            overflow: hidden;
+            background: #000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            touch-action: none;
+        }
+        #game-container {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            height: 100vh;
+        }
+        #three-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        #pixi-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2;
+            pointer-events: auto;
+        }
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 24px;
+            z-index: 100;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">Loading GameByte Framework...</div>
+    <div id="game-container"></div>
+
+    <script>
+        // Function to load script and wait for it
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
+        // Load all dependencies sequentially
+        (async () => {
+            try {
+                document.getElementById('loading').textContent = 'Loading Three.js...';
+                await loadScript('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js');
+                console.log('✅ Three.js loaded');
+
+                document.getElementById('loading').textContent = 'Loading Pixi.js...';
+                await loadScript('https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js');
+                console.log('✅ Pixi.js loaded');
+
+                document.getElementById('loading').textContent = 'Loading GSAP...';
+                await loadScript('https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js');
+                console.log('✅ GSAP loaded');
+
+                document.getElementById('loading').textContent = 'Loading GameByte Framework...';
+                await loadScript('./dist/gamebyte.umd.js');
+                console.log('✅ GameByte Framework loaded');
+
+                document.getElementById('loading').textContent = 'Initializing...';
+
+                // Wait a bit for DOM to be fully ready
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                // Now start the game
+                await initGame();
+            } catch (error) {
+                console.error('❌ Error loading dependencies:', error);
+                document.getElementById('loading').textContent = 'Error loading: ' + error.message;
+            }
+        })();
+
+        async function initGame() {
+            try {
+                // Check if dependencies loaded
+                if (typeof THREE === 'undefined') {
+                    console.error('❌ Three.js not loaded');
+                    document.getElementById('loading').textContent = 'Error: Three.js not loaded';
+                    return;
+                }
+                if (typeof PIXI === 'undefined') {
+                    console.error('❌ Pixi.js not loaded');
+                    document.getElementById('loading').textContent = 'Error: Pixi.js not loaded';
+                    return;
+                }
+                if (typeof gsap === 'undefined') {
+                    console.error('❌ GSAP not loaded');
+                    document.getElementById('loading').textContent = 'Error: GSAP not loaded';
+                    return;
+                }
+
+                // 9:16 aspect ratio (mobile portrait)
+                const ASPECT_RATIO = 9 / 16;
+                const BASE_WIDTH = 1080;
+                const BASE_HEIGHT = 1920;
+
+                // Calculate canvas size
+                function getCanvasSize() {
+                    const windowWidth = window.innerWidth;
+                    const windowHeight = window.innerHeight;
+                    const windowAspect = windowWidth / windowHeight;
+
+                    let width, height;
+                    if (windowAspect > ASPECT_RATIO) {
+                        height = windowHeight;
+                        width = height * ASPECT_RATIO;
+                    } else {
+                        width = windowWidth;
+                        height = width / ASPECT_RATIO;
+                    }
+                    return { width, height };
+                }
+
+                const initialSize = getCanvasSize();
+
+                // =====================================================
+                // THREE.JS - 3D Background Scene
+                // =====================================================
+
+                const threeCanvas = document.createElement('canvas');
+                threeCanvas.id = 'three-canvas';
+                threeCanvas.width = BASE_WIDTH;
+                threeCanvas.height = BASE_HEIGHT;
+                threeCanvas.style.width = initialSize.width + 'px';
+                threeCanvas.style.height = initialSize.height + 'px';
+                document.getElementById('game-container').appendChild(threeCanvas);
+
+                const threeRenderer = new THREE.WebGLRenderer({
+                    canvas: threeCanvas,
+                    antialias: true,
+                    alpha: true
+                });
+                threeRenderer.setSize(BASE_WIDTH, BASE_HEIGHT);
+                threeRenderer.setClearColor(0x000000, 1);
+
+                const scene = new THREE.Scene();
+                const camera = new THREE.PerspectiveCamera(75, BASE_WIDTH / BASE_HEIGHT, 0.1, 1000);
+                camera.position.z = 5;
+
+                // Ambient light
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+                scene.add(ambientLight);
+
+                // Directional light
+                const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+                dirLight.position.set(5, 5, 5);
+                scene.add(dirLight);
+
+                // Section configuration - matches 2D demo
+                const sections = [
+                    { name: 'Shop', color: 0x4a90e2, icon: '🏪', iconColor: 0xFF6B6B },
+                    { name: 'Gear', color: 0x5a67d8, icon: '⚔️', iconColor: 0x9B3BFF },
+                    { name: 'Campaign', color: 0xf6ad55, icon: '🎯', iconColor: 0xFFD700 },
+                    { name: 'Trophy', color: 0x48bb78, icon: '🏆', iconColor: 0x3BFF7B },
+                    { name: 'Chest', color: 0xe53e3e, icon: '🎁', iconColor: 0xFF3B3B }
+                ];
+
+                // Create 3D objects for each section
+                const sectionObjects = [];
+
+                sections.forEach((section, index) => {
+                    const group = new THREE.Group();
+
+                    // Different 3D shapes for each section
+                    let geometry, material, mesh;
+
+                    switch (index) {
+                        case 0: // Shop - Torus
+                            geometry = new THREE.TorusGeometry(1, 0.4, 16, 100);
+                            material = new THREE.MeshStandardMaterial({
+                                color: section.color,
+                                metalness: 0.7,
+                                roughness: 0.3
+                            });
+                            mesh = new THREE.Mesh(geometry, material);
+                            break;
+
+                        case 1: // Gear - Octahedron
+                            geometry = new THREE.OctahedronGeometry(1.2);
+                            material = new THREE.MeshStandardMaterial({
+                                color: section.color,
+                                metalness: 0.8,
+                                roughness: 0.2
+                            });
+                            mesh = new THREE.Mesh(geometry, material);
+                            break;
+
+                        case 2: // Campaign - Dodecahedron (default)
+                            geometry = new THREE.DodecahedronGeometry(1.3);
+                            material = new THREE.MeshStandardMaterial({
+                                color: section.color,
+                                metalness: 0.6,
+                                roughness: 0.4
+                            });
+                            mesh = new THREE.Mesh(geometry, material);
+                            break;
+
+                        case 3: // Trophy - Cone
+                            geometry = new THREE.ConeGeometry(1, 2, 32);
+                            material = new THREE.MeshStandardMaterial({
+                                color: section.color,
+                                metalness: 0.9,
+                                roughness: 0.1
+                            });
+                            mesh = new THREE.Mesh(geometry, material);
+                            break;
+
+                        case 4: // Chest - Box
+                            geometry = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+                            material = new THREE.MeshStandardMaterial({
+                                color: section.color,
+                                metalness: 0.5,
+                                roughness: 0.5
+                            });
+                            mesh = new THREE.Mesh(geometry, material);
+                            break;
+                    }
+
+                    // Add wireframe outline
+                    const wireframe = new THREE.WireframeGeometry(geometry);
+                    const lineMaterial = new THREE.LineBasicMaterial({
+                        color: 0xffffff,
+                        transparent: true,
+                        opacity: 0.2
+                    });
+                    const wireframeMesh = new THREE.LineSegments(wireframe, lineMaterial);
+                    group.add(wireframeMesh);
+
+                    group.add(mesh);
+                    group.visible = false; // Initially hidden
+                    scene.add(group);
+
+                    sectionObjects.push({
+                        group,
+                        mesh,
+                        wireframeMesh
+                    });
+                });
+
+                // Show initial section (Campaign - index 2)
+                let currentSection = 2;
+                sectionObjects[currentSection].group.visible = true;
+
+                // Function to switch 3D scene
+                function switch3DScene(newIndex) {
+                    const oldIndex = currentSection;
+                    currentSection = newIndex;
+
+                    // Hide old
+                    gsap.to(sectionObjects[oldIndex].group.scale, {
+                        x: 0,
+                        y: 0,
+                        z: 0,
+                        duration: 0.3,
+                        ease: 'power2.in',
+                        onComplete: () => {
+                            sectionObjects[oldIndex].group.visible = false;
+                            sectionObjects[oldIndex].group.scale.set(1, 1, 1);
+                        }
+                    });
+
+                    // Show new
+                    sectionObjects[newIndex].group.visible = true;
+                    sectionObjects[newIndex].group.scale.set(0, 0, 0);
+                    gsap.to(sectionObjects[newIndex].group.scale, {
+                        x: 1,
+                        y: 1,
+                        z: 1,
+                        duration: 0.5,
+                        ease: 'elastic.out(1, 0.5)'
+                    });
+
+                    // Camera zoom animation
+                    gsap.to(camera.position, {
+                        z: 4,
+                        duration: 0.2,
+                        ease: 'power2.in',
+                        onComplete: () => {
+                            gsap.to(camera.position, {
+                                z: 5,
+                                duration: 0.3,
+                                ease: 'power2.out'
+                            });
+                        }
+                    });
+                }
+
+                // =====================================================
+                // PIXI.JS - 2D UI Overlay (ArcheroMenu)
+                // =====================================================
+
+                const pixiCanvas = document.createElement('canvas');
+                pixiCanvas.id = 'pixi-canvas';
+                pixiCanvas.width = BASE_WIDTH;
+                pixiCanvas.height = BASE_HEIGHT;
+                pixiCanvas.style.width = initialSize.width + 'px';
+                pixiCanvas.style.height = initialSize.height + 'px';
+                document.getElementById('game-container').appendChild(pixiCanvas);
+
+                const pixiApp = new PIXI.Application();
+                await pixiApp.init({
+                    canvas: pixiCanvas,
+                    width: BASE_WIDTH,
+                    height: BASE_HEIGHT,
+                    backgroundColor: 0x000000,
+                    backgroundAlpha: 0, // Transparent to see Three.js behind
+                    antialias: true,
+                    resolution: window.devicePixelRatio || 1,
+                    autoDensity: true
+                });
+
+                console.log('✅ Pixi.js app initialized');
+
+                const stage = pixiApp.stage;
+
+                // Archero color palette
+                const COLORS = {
+                    navBg: 0x0f1624,
+                    navBgLight: 0x1a2332,
+                    separator: 0x2d3f5f,
+                    activeYellow: 0xFFD700,
+                    activeOrange: 0xFFA500,
+                    red: 0xFF3B3B,
+                    blue: 0x3B7BFF,
+                    purple: 0x9B3BFF,
+                    green: 0x3BFF7B
+                };
+
+                // State management
+                let activeSection = 2; // Campaign is default active (middle)
+                let isAnimating = false;
+
+                // Create main containers
+                const uiContainer = new PIXI.Container();
+                stage.addChild(uiContainer);
+
+                // Create Archero-style bottom navigation
+                const NAV_HEIGHT = 280;
+                const NAV_Y = BASE_HEIGHT - NAV_HEIGHT;
+
+                const navBar = new PIXI.Container();
+                navBar.y = NAV_Y;
+                uiContainer.addChild(navBar);
+
+                // Navy blue gradient background (Archero style)
+                const navBg = new PIXI.Graphics();
+                navBg.rect(0, 0, BASE_WIDTH, NAV_HEIGHT);
+                navBg.fill({
+                    color: COLORS.navBg,
+                    alpha: 1.0
+                });
+                navBar.addChild(navBg);
+
+                // Top separator line (light blue)
+                const separator = new PIXI.Graphics();
+                separator.rect(0, 0, BASE_WIDTH, 3);
+                separator.fill({ color: COLORS.separator });
+                navBar.addChild(separator);
+
+                // Darker overlay for depth
+                const overlay = new PIXI.Graphics();
+                overlay.rect(0, 3, BASE_WIDTH, NAV_HEIGHT - 3);
+                overlay.fill({
+                    color: COLORS.navBgLight,
+                    alpha: 0.5
+                });
+                navBar.addChild(overlay);
+
+                // Navigation buttons
+                const navButtons = [];
+                const BUTTON_SIZE = 180;
+                const ACTIVE_BUTTON_SIZE = 320;
+
+                // Calculate total width and spacing
+                const totalButtonsWidth = ACTIVE_BUTTON_SIZE + (BUTTON_SIZE * (sections.length - 1));
+                const padding = 40;
+                const availableWidth = BASE_WIDTH - (padding * 2);
+                const totalSpacing = availableWidth - totalButtonsWidth;
+                const spacingBetweenButtons = totalSpacing / (sections.length - 1);
+
+                sections.forEach((section, index) => {
+                    const buttonContainer = new PIXI.Container();
+
+                    const isActive = index === activeSection;
+                    buttonContainer.y = isActive ? NAV_HEIGHT / 2 - 40 : NAV_HEIGHT / 2;
+
+                    const size = isActive ? ACTIVE_BUTTON_SIZE : BUTTON_SIZE;
+
+                    // Calculate X position
+                    let xPos = padding;
+                    for (let i = 0; i < index; i++) {
+                        const btnSize = (i === activeSection) ? ACTIVE_BUTTON_SIZE : BUTTON_SIZE;
+                        xPos += btnSize + spacingBetweenButtons;
+                    }
+                    xPos += size / 2;
+                    buttonContainer.x = xPos;
+
+                    // Button background
+                    const btnBg = new PIXI.Graphics();
+                    buttonContainer.addChild(btnBg);
+
+                    // Store button data
+                    const buttonData = {
+                        container: buttonContainer,
+                        bg: btnBg,
+                        section: section,
+                        overlay: null,
+                        icon: null,
+                        label: null
+                    };
+
+                    if (isActive) {
+                        // Active: Gold gradient
+                        const gradient = new PIXI.FillGradient({
+                            type: 'linear',
+                            start: { x: 0, y: 0 },
+                            end: { x: 0, y: 1 },
+                            colorStops: [
+                                { offset: 0, color: 0xFFE55C },
+                                { offset: 0.5, color: 0xFFD700 },
+                                { offset: 1, color: 0xFFA500 }
+                            ]
+                        });
+
+                        btnBg.roundRect(-size/2, -size/2, size, size, 30);
+                        btnBg.fill(gradient);
+
+                        // Shine overlay
+                        const overlayGfx = new PIXI.Graphics();
+                        const overlayWidth = size * 0.92;
+                        const overlayHeight = size * 0.22;
+
+                        const shineGradient = new PIXI.FillGradient({
+                            type: 'linear',
+                            start: { x: 0, y: 0 },
+                            end: { x: 0, y: 1 },
+                            colorStops: [
+                                { offset: 0, color: 0xFFFFFF },
+                                { offset: 0.8, color: 0xFFE55C },
+                                { offset: 1, color: 0xFFD700 }
+                            ]
+                        });
+
+                        overlayGfx.roundRect(-overlayWidth/2, -size/2 + 8, overlayWidth, overlayHeight, 25);
+                        overlayGfx.fill(shineGradient);
+                        overlayGfx.alpha = 0.5;
+                        buttonContainer.addChild(overlayGfx);
+                        buttonData.overlay = overlayGfx;
+                    } else {
+                        // Inactive: Transparent
+                        btnBg.rect(-size/2, -size/2, size, size);
+                        btnBg.fill({ color: 0x000000, alpha: 0.0 });
+                    }
+
+                    // Icon
+                    const icon = new PIXI.Text({
+                        text: section.icon,
+                        style: {
+                            fontSize: isActive ? 140 : 90,
+                            fontFamily: 'system-ui',
+                            stroke: { color: 0x000000, width: 8 },
+                            dropShadow: {
+                                distance: 6,
+                                alpha: 0.8,
+                                blur: 4,
+                                color: 0x000000
+                            }
+                        }
+                    });
+                    icon.anchor.set(0.5);
+                    icon.y = isActive ? -35 : -10;
+                    buttonContainer.addChild(icon);
+                    buttonData.icon = icon;
+
+                    // Label (only for active)
+                    if (isActive) {
+                        const label = new PIXI.Text({
+                            text: section.name,
+                            style: {
+                                fontSize: 40,
+                                fill: 0x4A2F1A,
+                                fontWeight: '900',
+                                stroke: { color: 0xFFE55C, width: 4 },
+                                dropShadow: {
+                                    distance: 3,
+                                    alpha: 0.6,
+                                    blur: 3,
+                                    color: 0x000000
+                                }
+                            }
+                        });
+                        label.anchor.set(0.5);
+                        label.y = 55;
+                        buttonContainer.addChild(label);
+                        buttonData.label = label;
+                    }
+
+                    // Notification badge (random)
+                    if (index !== activeSection && Math.random() > 0.5) {
+                        const badge = new PIXI.Graphics();
+                        badge.circle(size/2 - 20, -size/2 + 20, 18);
+                        badge.fill({ color: COLORS.red });
+                        badge.stroke({ color: 0xFFFFFF, width: 4 });
+
+                        const exclamation = new PIXI.Text({
+                            text: '!',
+                            style: {
+                                fontSize: 24,
+                                fill: 0xFFFFFF,
+                                fontWeight: 'bold'
+                            }
+                        });
+                        exclamation.anchor.set(0.5);
+                        exclamation.position.set(size/2 - 20, -size/2 + 20);
+                        buttonContainer.addChild(badge);
+                        buttonContainer.addChild(exclamation);
+                    }
+
+                    // Make interactive
+                    buttonContainer.eventMode = 'static';
+                    buttonContainer.cursor = 'pointer';
+
+                    buttonContainer.on('pointerdown', () => {
+                        if (!isAnimating && index !== activeSection) {
+                            switchToSection(index);
+                        }
+                    });
+
+                    buttonContainer.on('pointerover', () => {
+                        if (index !== activeSection) {
+                            gsap.to(buttonContainer.scale, { x: 1.1, y: 1.1, duration: 0.2 });
+                        }
+                    });
+
+                    buttonContainer.on('pointerout', () => {
+                        if (index !== activeSection) {
+                            gsap.to(buttonContainer.scale, { x: 1, y: 1, duration: 0.2 });
+                        }
+                    });
+
+                    navButtons.push(buttonData);
+                    navBar.addChild(buttonContainer);
+                });
+
+                // Animation function
+                function switchToSection(newSection) {
+                    if (isAnimating) return;
+                    isAnimating = true;
+
+                    const oldSection = activeSection;
+                    activeSection = newSection;
+
+                    // Switch 3D scene
+                    switch3DScene(newSection);
+
+                    // Animate NEW active button
+                    const newBtn = navButtons[newSection];
+                    newBtn.bg.clear();
+
+                    const gradient = new PIXI.FillGradient({
+                        type: 'linear',
+                        start: { x: 0, y: 0 },
+                        end: { x: 0, y: 1 },
+                        colorStops: [
+                            { offset: 0, color: 0xFFE55C },
+                            { offset: 0.5, color: 0xFFD700 },
+                            { offset: 1, color: 0xFFA500 }
+                        ]
+                    });
+
+                    newBtn.bg.roundRect(-ACTIVE_BUTTON_SIZE/2, -ACTIVE_BUTTON_SIZE/2, ACTIVE_BUTTON_SIZE, ACTIVE_BUTTON_SIZE, 30);
+                    newBtn.bg.fill(gradient);
+
+                    if (!newBtn.overlay) {
+                        const overlayGfx = new PIXI.Graphics();
+                        const overlayWidth = ACTIVE_BUTTON_SIZE * 0.92;
+                        const overlayHeight = ACTIVE_BUTTON_SIZE * 0.22;
+
+                        const shineGradient = new PIXI.FillGradient({
+                            type: 'linear',
+                            start: { x: 0, y: 0 },
+                            end: { x: 0, y: 1 },
+                            colorStops: [
+                                { offset: 0, color: 0xFFFFFF },
+                                { offset: 0.8, color: 0xFFE55C },
+                                { offset: 1, color: 0xFFD700 }
+                            ]
+                        });
+
+                        overlayGfx.roundRect(-overlayWidth/2, -ACTIVE_BUTTON_SIZE/2 + 8, overlayWidth, overlayHeight, 25);
+                        overlayGfx.fill(shineGradient);
+                        overlayGfx.alpha = 0.5;
+                        newBtn.container.addChildAt(overlayGfx, newBtn.container.getChildIndex(newBtn.bg) + 1);
+                        newBtn.overlay = overlayGfx;
+                    }
+
+                    gsap.to(newBtn.container, {
+                        y: NAV_HEIGHT / 2 - 40,
+                        duration: 0.5,
+                        ease: 'elastic.out(1, 0.5)'
+                    });
+
+                    gsap.to(newBtn.container.scale, {
+                        x: 1.0,
+                        y: 1.0,
+                        duration: 0.5,
+                        ease: 'elastic.out(1, 0.5)'
+                    });
+
+                    gsap.to(newBtn.icon, {
+                        y: -35,
+                        duration: 0.3,
+                        ease: 'back.out(2)'
+                    });
+                    gsap.to(newBtn.icon.style, {
+                        fontSize: 140,
+                        duration: 0.3
+                    });
+
+                    if (!newBtn.label) {
+                        const label = new PIXI.Text({
+                            text: newBtn.section.name,
+                            style: {
+                                fontSize: 40,
+                                fill: 0x4A2F1A,
+                                fontWeight: '900',
+                                stroke: { color: 0xFFE55C, width: 4 }
+                            }
+                        });
+                        label.anchor.set(0.5);
+                        label.y = 55;
+                        label.alpha = 0;
+                        newBtn.container.addChild(label);
+                        newBtn.label = label;
+
+                        gsap.to(label, { alpha: 1, duration: 0.3, delay: 0.2 });
+                    }
+
+                    // Animate OLD active button
+                    const oldBtn = navButtons[oldSection];
+                    oldBtn.bg.clear();
+                    oldBtn.bg.rect(-BUTTON_SIZE/2, -BUTTON_SIZE/2, BUTTON_SIZE, BUTTON_SIZE);
+                    oldBtn.bg.fill({ color: 0x000000, alpha: 0.0 });
+
+                    if (oldBtn.overlay) {
+                        oldBtn.container.removeChild(oldBtn.overlay);
+                        oldBtn.overlay = null;
+                    }
+
+                    gsap.to(oldBtn.container, {
+                        y: NAV_HEIGHT / 2,
+                        duration: 0.3,
+                        ease: 'power2.out'
+                    });
+
+                    gsap.to(oldBtn.container.scale, {
+                        x: 1.0,
+                        y: 1.0,
+                        duration: 0.3,
+                        ease: 'power2.out'
+                    });
+
+                    gsap.to(oldBtn.icon, {
+                        y: -10,
+                        duration: 0.3
+                    });
+                    gsap.to(oldBtn.icon.style, {
+                        fontSize: 90,
+                        duration: 0.3
+                    });
+
+                    if (oldBtn.label) {
+                        gsap.to(oldBtn.label, {
+                            alpha: 0,
+                            duration: 0.2,
+                            onComplete: () => {
+                                if (oldBtn.label) {
+                                    oldBtn.container.removeChild(oldBtn.label);
+                                    oldBtn.label = null;
+                                }
+                            }
+                        });
+                    }
+
+                    // Reposition ALL buttons
+                    navButtons.forEach((btn, i) => {
+                        const totalButtonsWidth = ACTIVE_BUTTON_SIZE + (BUTTON_SIZE * (sections.length - 1));
+                        const totalSpacing = availableWidth - totalButtonsWidth;
+                        const spacingBetweenButtons = totalSpacing / (sections.length - 1);
+
+                        let xPos = padding;
+                        for (let j = 0; j < i; j++) {
+                            const btnSize = (j === newSection) ? ACTIVE_BUTTON_SIZE : BUTTON_SIZE;
+                            xPos += btnSize + spacingBetweenButtons;
+                        }
+
+                        const currentSize = (i === newSection) ? ACTIVE_BUTTON_SIZE : BUTTON_SIZE;
+                        xPos += currentSize / 2;
+
+                        gsap.to(btn.container, {
+                            x: xPos,
+                            duration: 0.4,
+                            ease: 'power2.out'
+                        });
+                    });
+
+                    setTimeout(() => { isAnimating = false; }, 500);
+                }
+
+                // Touch/Swipe support
+                let touchStartX = 0;
+                stage.eventMode = 'static';
+                stage.hitArea = new PIXI.Rectangle(0, 0, BASE_WIDTH, BASE_HEIGHT);
+
+                stage.on('pointerdown', (e) => {
+                    if (e.target === stage) {
+                        touchStartX = e.global.x;
+                    }
+                });
+
+                stage.on('pointerup', (e) => {
+                    if (e.target === stage) {
+                        const deltaX = e.global.x - touchStartX;
+                        if (Math.abs(deltaX) > 100) {
+                            if (deltaX < 0 && activeSection < sections.length - 1) {
+                                switchToSection(activeSection + 1);
+                            } else if (deltaX > 0 && activeSection > 0) {
+                                switchToSection(activeSection - 1);
+                            }
+                        }
+                    }
+                });
+
+                // =====================================================
+                // ANIMATION LOOP
+                // =====================================================
+
+                function animate() {
+                    requestAnimationFrame(animate);
+
+                    // Rotate 3D objects
+                    sectionObjects.forEach((obj, index) => {
+                        if (obj.group.visible) {
+                            obj.mesh.rotation.x += 0.005;
+                            obj.mesh.rotation.y += 0.01;
+                            obj.wireframeMesh.rotation.x += 0.005;
+                            obj.wireframeMesh.rotation.y += 0.01;
+                        }
+                    });
+
+                    // Render Three.js
+                    threeRenderer.render(scene, camera);
+
+                    // Pixi.js auto-renders with app.ticker
+                }
+
+                // Resize handler
+                window.addEventListener('resize', () => {
+                    const newSize = getCanvasSize();
+                    threeCanvas.style.width = newSize.width + 'px';
+                    threeCanvas.style.height = newSize.height + 'px';
+                    pixiCanvas.style.width = newSize.width + 'px';
+                    pixiCanvas.style.height = newSize.height + 'px';
+                });
+
+                document.getElementById('loading').style.display = 'none';
+
+                // Start animation loop
+                animate();
+
+                console.log('✨ Archero-style 3D menu loaded!');
+                console.log('📱 Swipe or tap to navigate');
+
+            } catch (error) {
+                console.error('❌ Error initializing game:', error);
+                document.getElementById('loading').textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

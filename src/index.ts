@@ -262,6 +262,19 @@ export { UIProgressBar } from './ui/components/UIProgressBar';
 export { TopBar, TopBarItemType } from './ui/components/TopBar';
 export type { TopBarConfig, TopBarItemConfig, TopBarTheme } from './ui/components/TopBar';
 
+// UI Menu Components
+export { ArcheroMenu, ARCHERO_COLORS } from './ui/menus/ArcheroMenu';
+export type {
+  MenuSection,
+  ArcheroMenuOptions,
+  ArcheroMenuStyleConfig,
+  ArcheroMenuCallbacks,
+  GradientConfig,
+  ShineGradientConfig,
+  SectionStyleOverride,
+  ButtonData
+} from './ui/menus/ArcheroMenu';
+
 // UI Screen Components
 export { BaseUIScreen } from './ui/screens/BaseUIScreen';
 export { SplashScreen } from './ui/screens/SplashScreen';

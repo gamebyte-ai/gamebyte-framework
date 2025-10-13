@@ -34,7 +34,12 @@
       "Bash(done)",
       "Bash(for demo in test-ui-modern.html test-ui-umd.html test-umd-simple.html test-3d-simple.html test-graphics-api.html)",
       "Bash(do echo -n \"$demo: \")",
-      "Bash(awk:*)"
+      "Bash(awk:*)",
+      "Bash(ffmpeg:*)",
+      "Read(//tmp/**)",
+      "Bash(lsof:*)",
+      "Bash(git checkout:*)",
+      "WebFetch(domain:pixijs.com)"
     ],
     "deny": []
   }
