@@ -2,6 +2,16 @@
 
 Thank you for your interest in contributing to GameByte Framework! This document provides guidelines and information for contributors.
 
+## ⚠️ MANDATORY: Architecture Guidelines
+
+**Before contributing, you MUST read:**
+
+👉 **[ARCHITECTURE_GUIDELINES.md](./ARCHITECTURE_GUIDELINES.md)** 👈
+
+**Key principle:** NO CODE should directly depend on Pixi.js or Three.js except renderer implementations. All components MUST use the framework's abstraction layer.
+
+**Pull requests violating architecture guidelines will be rejected.**
+
 ## Code of Conduct
 
 This project adheres to a Code of Conduct. By participating, you are expected to uphold this code. Please report unacceptable behavior to conduct@gamebyte-framework.dev.

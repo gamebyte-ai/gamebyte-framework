@@ -259,11 +259,12 @@ describe('LRUCache', () => {
       await sizeCache.set('large', createMockAsset('large', 2048)); // Largest
       await sizeCache.set('small2', createMockAsset('small2', 512));
       await sizeCache.set('medium', createMockAsset('medium', 1024));
+      // Total so far: 512 + 2048 + 512 + 1024 = 4096 bytes
 
-      // Act - Add item that forces eviction
-      await sizeCache.set('new', createMockAsset('new', 1024));
+      // Act - Add item that forces eviction (needs 2048 bytes, only 1024 available)
+      await sizeCache.set('new', createMockAsset('new', 2048));
 
-      // Assert - 'large' should be evicted (largest size)
+      // Assert - 'large' should be evicted (largest size = 2048)
       expect(await sizeCache.has('small1')).toBe(true);
       expect(await sizeCache.has('large')).toBe(false);
       expect(await sizeCache.has('small2')).toBe(true);

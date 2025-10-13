@@ -144,6 +144,9 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
       return cached as LoadedAsset<T>;
     }
 
+    // Cache miss - emit event
+    this.emit('cache:miss', config.id);
+
     // Check if already in queue
     const existingEntry = this.loadingQueue.find(e => e.config.id === config.id);
     if (existingEntry) {
@@ -151,21 +154,28 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
     }
 
     // Add to loading queue
-    const promise = new Promise<LoadedAsset<T>>((resolve, reject) => {
-      const entry: LoadingQueueEntry = {
-        config: this.optimizeAssetConfig(config),
-        priority: config.options?.priority || AssetPriority.NORMAL,
-        resolve: resolve as (asset: LoadedAsset) => void,
-        reject: reject as (error: Error) => void,
-        retries: 0,
-        promise: null as any, // Will be set right after
-      };
-      entry.promise = promise as Promise<LoadedAsset>;
+    // Create entry first without promise
+    const entry: LoadingQueueEntry = {
+      config: this.optimizeAssetConfig(config),
+      priority: config.options?.priority || AssetPriority.NORMAL,
+      resolve: null as any,
+      reject: null as any,
+      retries: 0,
+      promise: null as any,
+    };
 
-      this.loadingQueue.push(entry);
-      this.sortLoadingQueue();
-      this.processQueue();
+    // Now create the promise and set resolve/reject on entry
+    const promise = new Promise<LoadedAsset<T>>((resolve, reject) => {
+      entry.resolve = resolve as (asset: LoadedAsset) => void;
+      entry.reject = reject as (error: Error) => void;
     });
+
+    // Set the promise on the entry AFTER it's created
+    entry.promise = promise as Promise<LoadedAsset>;
+
+    this.loadingQueue.push(entry);
+    this.sortLoadingQueue();
+    this.processQueue();
 
     return promise;
   }

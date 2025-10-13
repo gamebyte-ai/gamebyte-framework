@@ -6,6 +6,7 @@ import {
   AudioEvents
 } from '../../contracts/Audio';
 import { Vector3 } from '../../contracts/Physics';
+import { GameByteAudioSource } from '../core/GameByteAudioSource';
 
 /**
  * Sound effect pool for efficient memory management
@@ -526,7 +527,6 @@ export class GameByteSFXSystem extends EventEmitter<AudioEvents> implements SFXS
   private createSourceFromBuffer(buffer: AudioBuffer, name: string): AudioSource {
     // Implementation depends on your AudioSource constructor
     // This is a simplified version
-    const { GameByteAudioSource } = require('../core/GameByteAudioSource');
     return new GameByteAudioSource(
       `${name}_${Date.now()}`,
       buffer,

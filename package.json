@@ -15,7 +15,7 @@
       "types": "./dist/renderers/pixi2d.d.ts"
     },
     "./3d": {
-      "import": "./dist/renderers/three3d.js", 
+      "import": "./dist/renderers/three3d.js",
       "types": "./dist/renderers/three3d.d.ts"
     },
     "./physics2d": {
@@ -28,7 +28,7 @@
     }
   },
   "scripts": {
-    "build": "tsc && rollup -c",
+    "build": "tsc && rollup -c && rollup -c rollup.umd.config.js",
     "dev": "tsc --watch",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -38,10 +38,7 @@
     "lint": "eslint src/**/*.ts",
     "format": "prettier --write src/**/*.ts",
     "clean": "rimraf dist",
-    "prepublishOnly": "npm run clean && npm run build",
-    "demo:build": "npm run build && node scripts/build-demo.js",
-    "demo:serve": "npm run demo:build && echo '🚀 Demo server starting...' && echo '📱 Open: http://localhost:9000' && npx http-server demos/dist -p 9000",
-    "demo:dev": "npm run build && npx http-server . -p 8000 -o /demos/core/"
+    "prepublishOnly": "npm run clean && npm run build"
   },
   "keywords": [
     "game-engine",
@@ -57,19 +54,24 @@
   "author": "GameByte Team",
   "license": "MIT",
   "dependencies": {
+    "cannon-es": ">=0.20.0",
     "eventemitter3": "^5.0.1",
+    "matter-js": ">=0.19.0",
     "pixi.js": ">=7.0.0",
     "reflect-metadata": "^0.2.1",
-    "three": ">=0.150.0",
-    "matter-js": "^0.19.0",
-    "cannon-es": "^0.20.0"
+    "three": ">=0.150.0"
   },
   "devDependencies": {
+    "@babel/core": "^7.28.4",
+    "@babel/preset-env": "^7.28.3",
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-node-resolve": "^15.2.3",
     "@types/jest": "^29.5.14",
-    "@types/three": "^0.160.0",
     "@types/matter-js": "^0.19.0",
+    "@types/three": "^0.169.0",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
+    "babel-jest": "^30.2.0",
     "eslint": "^8.56.0",
     "http-server": "^14.1.1",
     "jest": "^29.7.0",
@@ -78,16 +80,14 @@
     "rimraf": "^5.0.5",
     "rollup": "^4.9.6",
     "rollup-plugin-typescript2": "^0.36.0",
-    "@rollup/plugin-node-resolve": "^15.2.3",
-    "@rollup/plugin-commonjs": "^25.0.7",
     "ts-jest": "^29.4.0",
     "typescript": "^5.3.3"
   },
   "peerDependencies": {
-    "pixi.js": ">=7.0.0",
-    "three": ">=0.150.0",
+    "cannon-es": ">=0.20.0",
     "matter-js": ">=0.19.0",
-    "cannon-es": ">=0.20.0"
+    "pixi.js": ">=7.0.0",
+    "three": ">=0.150.0"
   },
   "files": [
     "dist/**/*",

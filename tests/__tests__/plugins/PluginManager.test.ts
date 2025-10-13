@@ -177,15 +177,14 @@ describe('PluginManager', () => {
   describe('plugin loading', () => {
     it('should load a plugin successfully', async () => {
       // Arrange
-      const provider = new MockServiceProvider();
       const config: PluginConfig = {
         name: 'test-plugin',
         version: '1.0.0',
-        provider: () => provider
+        provider: MockServiceProvider
       };
 
       pluginManager.register(config);
-      
+
       const loadSpy = jest.fn();
       pluginManager.on('plugin:loaded', loadSpy);
 
@@ -193,30 +192,33 @@ describe('PluginManager', () => {
       await pluginManager.load('test-plugin');
 
       // Assert
+      const plugin = pluginManager.getPlugin('test-plugin');
+      const provider = plugin!.provider as MockServiceProvider;
       expect(provider.registerCalled).toBe(true);
       expect(app.make('mock-service')).toBe('mock-service-value');
       expect(loadSpy).toHaveBeenCalledWith('test-plugin', expect.any(Object));
-      
-      const plugin = pluginManager.getPlugin('test-plugin');
       expect(plugin!.loaded).toBe(true);
     });
 
     it('should load dependencies before loading plugin', async () => {
       // Arrange
-      const baseProvider = new MockServiceProvider('base-service');
-      const dependentProvider = new DependentServiceProvider();
+      class BaseServiceProvider extends MockServiceProvider {
+        constructor() {
+          super('base-service');
+        }
+      }
 
       const baseConfig: PluginConfig = {
         name: 'base-plugin',
         version: '1.0.0',
-        provider: () => baseProvider
+        provider: BaseServiceProvider
       };
 
       const dependentConfig: PluginConfig = {
         name: 'dependent-plugin',
         version: '1.0.0',
         dependencies: ['base-plugin'],
-        provider: () => dependentProvider
+        provider: DependentServiceProvider
       };
 
       pluginManager.register(baseConfig);
@@ -226,6 +228,8 @@ describe('PluginManager', () => {
       await pluginManager.load('dependent-plugin');
 
       // Assert
+      const basePlugin = pluginManager.getPlugin('base-plugin');
+      const baseProvider = basePlugin!.provider as MockServiceProvider;
       expect(baseProvider.registerCalled).toBe(true);
       expect(pluginManager.isLoaded('base-plugin')).toBe(true);
       expect(pluginManager.isLoaded('dependent-plugin')).toBe(true);
@@ -259,16 +263,17 @@ describe('PluginManager', () => {
 
     it('should not load already loaded plugin', async () => {
       // Arrange
-      const provider = new MockServiceProvider();
       const config: PluginConfig = {
         name: 'test-plugin',
         version: '1.0.0',
-        provider: () => provider
+        provider: MockServiceProvider
       };
 
       pluginManager.register(config);
       await pluginManager.load('test-plugin');
-      
+
+      const plugin = pluginManager.getPlugin('test-plugin');
+      const provider = plugin!.provider as MockServiceProvider;
       provider.registerCalled = false; // Reset
 
       // Act
@@ -282,16 +287,15 @@ describe('PluginManager', () => {
   describe('plugin unloading', () => {
     it('should unload a plugin successfully', async () => {
       // Arrange
-      const provider = new MockServiceProvider();
       const config: PluginConfig = {
         name: 'test-plugin',
         version: '1.0.0',
-        provider: () => provider
+        provider: MockServiceProvider
       };
 
       pluginManager.register(config);
       await pluginManager.load('test-plugin');
-      
+
       const unloadSpy = jest.fn();
       pluginManager.on('plugin:unloaded', unloadSpy);
 

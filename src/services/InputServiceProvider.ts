@@ -119,7 +119,9 @@ export class InputServiceProvider extends AbstractServiceProvider {
     this.setupContextManagement(app, inputManager);
 
     // Setup input recording and debugging (development mode)
-    if (process.env.NODE_ENV === 'development') {
+    // Check if in development mode (browser-safe check)
+    const isDevelopment = typeof process !== 'undefined' && process.env?.NODE_ENV === 'development';
+    if (isDevelopment) {
       this.setupInputDebugging(inputManager);
     }
 

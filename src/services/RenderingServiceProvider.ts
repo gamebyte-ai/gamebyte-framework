@@ -2,6 +2,7 @@ import { AbstractServiceProvider } from '../contracts/ServiceProvider';
 import { GameByte } from '../core/GameByte';
 import { RendererFactory } from '../rendering/RendererFactory';
 import { RenderingMode } from '../contracts/Renderer';
+import { GraphicsEngine } from '../graphics/GraphicsEngine';
 
 /**
  * Service provider for rendering services.
@@ -45,11 +46,21 @@ export class RenderingServiceProvider extends AbstractServiceProvider {
   boot(app: GameByte): void {
     // Set up global rendering configuration
     const container = app.getContainer();
-    
+
+    // Initialize GraphicsEngine with default rendering mode
+    // This will be called when renderer is created
+    app.on('renderer:initialized', (renderer: any) => {
+      const mode = renderer.mode;
+      if (!GraphicsEngine.isInitialized()) {
+        GraphicsEngine.initialize(mode);
+        console.log(`✅ GraphicsEngine initialized with ${mode === RenderingMode.RENDERER_2D ? '2D' : '3D'} renderer`);
+      }
+    });
+
     // Register renderer event listeners if needed
     if (container.bound('renderer')) {
       const renderer = app.make('renderer');
-      
+
       renderer.on('error', (error: Error) => {
         app.emit('renderer:error', error);
       });

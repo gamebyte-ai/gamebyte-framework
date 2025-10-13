@@ -17,7 +17,24 @@
       "Bash(rm:*)",
       "Bash(npx jest:*)",
       "Bash(npx http-server:*)",
-      "Bash(touch:*)"
+      "Bash(touch:*)",
+      "Bash(mv:*)",
+      "Bash(cp:*)",
+      "WebFetch(domain:localhost)",
+      "Bash(curl:*)",
+      "Bash(npx rollup:*)",
+      "Bash(pkill:*)",
+      "Bash(npm pack:*)",
+      "WebSearch",
+      "Bash(tree:*)",
+      "Bash(npm update:*)",
+      "Bash(cat:*)",
+      "Bash(for demo in test-ui-modern.html test-ui-umd.html test-umd-simple.html test-3d-simple.html)",
+      "Bash(do echo \"Testing $demo:\")",
+      "Bash(done)",
+      "Bash(for demo in test-ui-modern.html test-ui-umd.html test-umd-simple.html test-3d-simple.html test-graphics-api.html)",
+      "Bash(do echo -n \"$demo: \")",
+      "Bash(awk:*)"
     ],
     "deny": []
   }

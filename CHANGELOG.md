@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Contributing guidelines and code standards
 - Release procedures and versioning workflow
 - Interactive demo with live examples
+- Conceptual GameByte V2 docs: API reference, Tetris quickstart, and extensibility guide
 
 ## [0.1.0] - 2025-01-XX (Initial Release)
 

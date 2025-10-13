@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - UI Components Demo (UMD)</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        #game-container {
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        #info {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            color: #fff;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            max-width: 250px;
+            backdrop-filter: blur(10px);
+        }
+        .info-title {
+            font-weight: bold;
+            color: #4ecca3;
+            margin-bottom: 8px;
+        }
+        .info-item {
+            margin: 4px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="info">
+            <div class="info-title">🎮 UI Components Demo</div>
+            <div class="info-item">✅ TopBar with resources</div>
+            <div class="info-item">✅ Animated progress bars</div>
+            <div class="info-item">✅ Countdown timer</div>
+            <div class="info-item">💡 Click anywhere to add points!</div>
+        </div>
+    </div>
+
+    <!-- Load dependencies from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8.14.0/dist/pixi.min.js"></script>
+
+    <!-- Load GameByte UMD Build -->
+    <script src="./dist/gamebyte.umd.js"></script>
+
+    <script>
+        const { createGame, BaseScene, TopBar, TopBarItemType } = GameByteFramework;
+
+        let game, sceneManager, renderer;
+
+        // UI Demo Scene
+        class UIComponentsScene extends BaseScene {
+            constructor() {
+                super('ui-demo', 'UI Components Demo');
+                this.topBar = null;
+                this.score = 0;
+                this.coins = 1000;
+                this.lives = 3;
+                this.gems = 50;
+                this.timeRemaining = 60;
+                this.progressBars = [];
+            }
+
+            async initialize() {
+                await super.initialize();
+                console.log('✅ Scene initializing...');
+
+                // Create background
+                const background = new PIXI.Graphics();
+                background.beginFill(0x1a1a2e);
+                background.drawRect(0, 0, 800, 600);
+                background.endFill();
+                this.container.addChild(background);
+
+                // Create TopBar
+                this.topBar = new TopBar({
+                    width: 800,
+                    position: 'top',
+                    items: [
+                        {
+                            id: 'coins',
+                            type: TopBarItemType.RESOURCE,
+                            icon: this.createCoinIcon(),
+                            value: this.coins,
+                            format: 'abbreviate',
+                            animated: true
+                        },
+                        {
+                            id: 'gems',
+                            type: TopBarItemType.RESOURCE,
+                            icon: this.createGemIcon(),
+                            value: this.gems,
+                            animated: true
+                        },
+                        {
+                            id: 'lives',
+                            type: TopBarItemType.RESOURCE,
+                            icon: this.createHeartIcon(),
+                            value: this.lives,
+                            max: 5
+                        },
+                        {
+                            id: 'timer',
+                            type: TopBarItemType.TIMER,
+                            value: this.timeRemaining,
+                            format: 'time'
+                        },
+                        {
+                            id: 'settings',
+                            type: TopBarItemType.BUTTON,
+                            icon: this.createSettingsIcon(),
+                            onClick: () => {
+                                console.log('Settings clicked!');
+                                this.showMessage('Settings clicked!');
+                            }
+                        }
+                    ],
+                    theme: {
+                        backgroundColor: 0x0f3460,
+                        backgroundAlpha: 0.95,
+                        textColor: 0xFFFFFF,
+                        iconSize: 32,
+                        height: 80,
+                        borderRadius: 0
+                    }
+                });
+
+                this.container.addChild(this.topBar.getContainer());
+
+                // Create demo content
+                this.createDemoContent();
+
+                // Timer countdown
+                this.timerInterval = setInterval(() => {
+                    this.timeRemaining--;
+                    this.topBar.updateItem('timer', this.timeRemaining);
+
+                    if (this.timeRemaining <= 0) {
+                        clearInterval(this.timerInterval);
+                        this.showMessage('Time\'s up!');
+                    }
+                }, 1000);
+
+                // Make container interactive for clicks
+                this.container.eventMode = 'static';
+                this.container.on('pointerdown', (event) => {
+                    this.handleClick(event);
+                });
+
+                console.log('✅ UI Components scene initialized');
+            }
+
+            createDemoContent() {
+                // Title
+                const title = new PIXI.Text('UI COMPONENTS DEMO', {
+                    fontFamily: 'Arial',
+                    fontSize: 36,
+                    fill: 0x4ECCA3,
+                    fontWeight: 'bold'
+                });
+                title.anchor.set(0.5);
+                title.x = 400;
+                title.y = 150;
+                this.container.addChild(title);
+
+                // Instructions
+                const instructions = new PIXI.Text('Click anywhere to earn coins and gems!\nProgress bars update automatically', {
+                    fontFamily: 'Arial',
+                    fontSize: 18,
+                    fill: 0xFFFFFF,
+                    align: 'center'
+                });
+                instructions.anchor.set(0.5);
+                instructions.x = 400;
+                instructions.y = 220;
+                this.container.addChild(instructions);
+
+                // Create visual progress bars
+                this.createVisualProgressBar(300, 300, 'Coins Progress', 0x4ECCA3);
+                this.createVisualProgressBar(300, 370, 'Gems Progress', 0x9B59B6);
+                this.createVisualProgressBar(300, 440, 'Experience', 0xE74C3C);
+
+                // Score display
+                this.scoreText = new PIXI.Text('Score: 0', {
+                    fontFamily: 'Arial',
+                    fontSize: 28,
+                    fill: 0xFFD700,
+                    fontWeight: 'bold'
+                });
+                this.scoreText.anchor.set(0.5);
+                this.scoreText.x = 400;
+                this.scoreText.y = 520;
+                this.container.addChild(this.scoreText);
+            }
+
+            createVisualProgressBar(x, y, label, color) {
+                // Label
+                const labelText = new PIXI.Text(label, {
+                    fontFamily: 'Arial',
+                    fontSize: 16,
+                    fill: 0xFFFFFF
+                });
+                labelText.x = x - 150;
+                labelText.y = y - 25;
+                this.container.addChild(labelText);
+
+                // Background
+                const bg = new PIXI.Graphics();
+                bg.beginFill(0x2C3E50);
+                bg.drawRoundedRect(x - 150, y, 300, 30, 15);
+                bg.endFill();
+                this.container.addChild(bg);
+
+                // Fill
+                const fill = new PIXI.Graphics();
+                fill.beginFill(color);
+                fill.drawRoundedRect(x - 150, y, 0, 30, 15);
+                fill.endFill();
+                this.container.addChild(fill);
+
+                // Value text
+                const valueText = new PIXI.Text('0%', {
+                    fontFamily: 'Arial',
+                    fontSize: 14,
+                    fill: 0xFFFFFF
+                });
+                valueText.anchor.set(0.5);
+                valueText.x = x;
+                valueText.y = y + 15;
+                this.container.addChild(valueText);
+
+                this.progressBars.push({ fill, valueText, progress: 0, color });
+            }
+
+            handleClick(event) {
+                // Add resources
+                this.coins += Math.floor(Math.random() * 50) + 10;
+                this.gems += Math.floor(Math.random() * 5) + 1;
+                this.score += 100;
+
+                // Update TopBar with animation
+                this.topBar.updateItem('coins', this.coins, true);
+                this.topBar.updateItem('gems', this.gems, true);
+
+                // Update score
+                this.scoreText.text = `Score: ${this.score}`;
+
+                // Pulse animation on score
+                this.scoreText.scale.set(1.2);
+
+                // Create click effect
+                this.createClickEffect(event.global.x, event.global.y);
+
+                // Update progress bars
+                this.updateProgressBars();
+            }
+
+            createClickEffect(x, y) {
+                const circle = new PIXI.Graphics();
+                circle.beginFill(0x4ECCA3, 0.5);
+                circle.drawCircle(0, 0, 10);
+                circle.endFill();
+                circle.x = x;
+                circle.y = y;
+                this.container.addChild(circle);
+
+                // Animate
+                let scale = 1;
+                let alpha = 0.5;
+                const animate = () => {
+                    scale += 0.5;
+                    alpha -= 0.02;
+                    circle.scale.set(scale);
+                    circle.alpha = alpha;
+
+                    if (alpha > 0) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        this.container.removeChild(circle);
+                        circle.destroy();
+                    }
+                };
+                animate();
+            }
+
+            updateProgressBars() {
+                // Update progress bars based on resources
+                const coinProgress = Math.min((this.coins % 1000) / 1000, 1);
+                const gemProgress = Math.min((this.gems % 100) / 100, 1);
+                const xpProgress = Math.min((this.score % 1000) / 1000, 1);
+
+                const progresses = [coinProgress, gemProgress, xpProgress];
+
+                this.progressBars.forEach((bar, index) => {
+                    bar.progress = progresses[index];
+
+                    // Redraw fill
+                    bar.fill.clear();
+                    bar.fill.beginFill(bar.color);
+                    bar.fill.drawRoundedRect(150, 300 + (index * 70), 300 * bar.progress, 30, 15);
+                    bar.fill.endFill();
+
+                    // Update text
+                    bar.valueText.text = `${Math.round(bar.progress * 100)}%`;
+                });
+            }
+
+            showMessage(text) {
+                const message = new PIXI.Text(text, {
+                    fontFamily: 'Arial',
+                    fontSize: 24,
+                    fill: 0xFFFFFF,
+                    fontWeight: 'bold'
+                });
+                message.anchor.set(0.5);
+                message.x = 400;
+                message.y = 100;
+                message.alpha = 0;
+                this.container.addChild(message);
+
+                // Fade in and out
+                let alpha = 0;
+                let direction = 1;
+                let holdTime = 0;
+                const animate = () => {
+                    if (direction === 1) {
+                        alpha += 0.05;
+                        if (alpha >= 1) {
+                            direction = 0; // Hold
+                            alpha = 1;
+                        }
+                    } else if (direction === 0) {
+                        holdTime++;
+                        if (holdTime > 60) { // Hold for ~1 second at 60fps
+                            direction = -1;
+                        }
+                    } else {
+                        alpha -= 0.05;
+                    }
+
+                    message.alpha = alpha;
+
+                    if (alpha > 0 || direction >= 0) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        this.container.removeChild(message);
+                        message.destroy();
+                    }
+                };
+                animate();
+            }
+
+            update(deltaTime) {
+                super.update(deltaTime);
+
+                // Smooth scale animation on score
+                if (this.scoreText.scale.x > 1) {
+                    this.scoreText.scale.x -= 0.02;
+                    this.scoreText.scale.y -= 0.02;
+                    if (this.scoreText.scale.x < 1) {
+                        this.scoreText.scale.set(1);
+                    }
+                }
+            }
+
+            // Icon creation helpers
+            createCoinIcon() {
+                const graphics = new PIXI.Graphics();
+                graphics.beginFill(0xFFD700);
+                graphics.drawCircle(16, 16, 14);
+                graphics.endFill();
+                graphics.beginFill(0xFFA500);
+                graphics.drawCircle(16, 16, 10);
+                graphics.endFill();
+
+                const texture = PIXI.RenderTexture.create({ width: 32, height: 32 });
+                const pixiRenderer = renderer.getRenderer();
+                pixiRenderer.render(graphics, { renderTexture: texture });
+                graphics.destroy();
+
+                return texture;
+            }
+
+            createGemIcon() {
+                const graphics = new PIXI.Graphics();
+                graphics.beginFill(0x9B59B6);
+                graphics.moveTo(16, 4);
+                graphics.lineTo(28, 12);
+                graphics.lineTo(22, 28);
+                graphics.lineTo(10, 28);
+                graphics.lineTo(4, 12);
+                graphics.closePath();
+                graphics.endFill();
+
+                const texture = PIXI.RenderTexture.create({ width: 32, height: 32 });
+                const pixiRenderer = renderer.getRenderer();
+                pixiRenderer.render(graphics, { renderTexture: texture });
+                graphics.destroy();
+
+                return texture;
+            }
+
+            createHeartIcon() {
+                const graphics = new PIXI.Graphics();
+                graphics.beginFill(0xE74C3C);
+                graphics.drawCircle(12, 10, 6);
+                graphics.drawCircle(20, 10, 6);
+                graphics.endFill();
+                graphics.beginFill(0xE74C3C);
+                graphics.moveTo(6, 12);
+                graphics.lineTo(16, 26);
+                graphics.lineTo(26, 12);
+                graphics.closePath();
+                graphics.endFill();
+
+                const texture = PIXI.RenderTexture.create({ width: 32, height: 32 });
+                const pixiRenderer = renderer.getRenderer();
+                pixiRenderer.render(graphics, { renderTexture: texture });
+                graphics.destroy();
+
+                return texture;
+            }
+
+            createSettingsIcon() {
+                const graphics = new PIXI.Graphics();
+                graphics.lineStyle(3, 0xFFFFFF);
+                graphics.drawCircle(16, 16, 8);
+
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i / 8) * Math.PI * 2;
+                    const x1 = 16 + Math.cos(angle) * 10;
+                    const y1 = 16 + Math.sin(angle) * 10;
+                    const x2 = 16 + Math.cos(angle) * 14;
+                    const y2 = 16 + Math.sin(angle) * 14;
+                    graphics.moveTo(x1, y1);
+                    graphics.lineTo(x2, y2);
+                }
+
+                const texture = PIXI.RenderTexture.create({ width: 32, height: 32 });
+                const pixiRenderer = renderer.getRenderer();
+                pixiRenderer.render(graphics, { renderTexture: texture });
+                graphics.destroy();
+
+                return texture;
+            }
+
+            destroy() {
+                if (this.timerInterval) {
+                    clearInterval(this.timerInterval);
+                }
+                if (this.topBar) {
+                    this.topBar.destroy();
+                }
+                super.destroy();
+            }
+        }
+
+        async function init() {
+            try {
+                console.log('🎮 Initializing UI Components Demo...');
+
+                // 1. Create game
+                game = createGame();
+                console.log('✅ GameByte created');
+
+                // 2. Create canvas
+                const canvas = document.createElement('canvas');
+                canvas.width = 800;
+                canvas.height = 600;
+                document.getElementById('game-container').insertBefore(canvas, document.getElementById('info'));
+                console.log('✅ Canvas created: 800x600');
+
+                // 3. Initialize
+                await game.initialize(canvas, '2d');
+                console.log('✅ Game initialized');
+
+                // 4. Get managers
+                sceneManager = game.make('scene.manager');
+                renderer = game.make('renderer');
+                console.log('✅ Managers obtained');
+
+                // 5. Create and add scene (don't initialize manually)
+                const uiScene = new UIComponentsScene();
+                sceneManager.add(uiScene);
+                console.log('✅ UI scene added');
+
+                // 6. Switch to scene (this will initialize it)
+                await sceneManager.switchTo('ui-demo');
+                console.log('✅ Scene activated');
+
+                // 7. Add scene container to stage
+                const stage = renderer.getStage();
+                const currentScene = sceneManager.getCurrentScene();
+                if (stage && currentScene) {
+                    stage.addChild(currentScene.getContainer());
+                }
+
+                // 8. Hook renderer
+                renderer.on('tick', (deltaTime) => {
+                    sceneManager.update(deltaTime);
+                    // No need to call scene render - renderer renders stage automatically
+                });
+
+                // 9. Start game loop
+                game.start();
+                console.log('✅ Game loop started');
+
+                console.log('🎉 UI Components Demo running!');
+
+            } catch (error) {
+                console.error('❌ Error:', error);
+            }
+        }
+
+        // Wait for everything to load
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

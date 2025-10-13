@@ -1,5 +1,7 @@
 import { BaseUIComponent } from '../core/BaseUIComponent';
 import { UIScreen, ScreenOrientation, DeviceInfo } from '../../contracts/UI';
+import { UIContainer } from '../components/UIContainer';
+import { UIPanel } from '../components/UIPanel';
 
 /**
  * Abstract base class for game screens
@@ -189,7 +191,7 @@ export abstract class BaseUIScreen extends BaseUIComponent implements UIScreen {
    * Create a centered container for main content
    */
   protected createCenteredContainer(): any {
-    const container = new (require('../components/UIContainer').UIContainer)('centered-container');
+    const container = new UIContainer('centered-container');
     container.setPositionConstraint('center', 'center');
     container.setSizeConstraint('wrap', 'wrap');
     this.addChild(container);
@@ -200,7 +202,7 @@ export abstract class BaseUIScreen extends BaseUIComponent implements UIScreen {
    * Create a full-screen background
    */
   protected createBackground(config?: any): any {
-    const background = new (require('../components/UIPanel').UIPanel)(config, 'screen-background');
+    const background = new UIPanel(config, 'screen-background');
     background.setPositionConstraint('fixed', 'fixed');
     background.setSizeConstraint('fill', 'fill');
     background.setPosition(0, 0);
@@ -215,7 +217,7 @@ export abstract class BaseUIScreen extends BaseUIComponent implements UIScreen {
    * Create a header area
    */
   protected createHeader(height: number = 80): any {
-    const header = new (require('../components/UIContainer').UIContainer)('screen-header');
+    const header = new UIContainer('screen-header');
     header.setPositionConstraint('fixed', 'fixed');
     header.setSizeConstraint('fill', 'fixed');
     header.setPosition(0, 0);
@@ -228,7 +230,7 @@ export abstract class BaseUIScreen extends BaseUIComponent implements UIScreen {
    * Create a footer area
    */
   protected createFooter(height: number = 80): any {
-    const footer = new (require('../components/UIContainer').UIContainer)('screen-footer');
+    const footer = new UIContainer('screen-footer');
     footer.setPositionConstraint('fixed', 'fixed');
     footer.setSizeConstraint('fill', 'fixed');
     footer.setPosition(0, 0); // Will be positioned at bottom by constraint

@@ -407,7 +407,7 @@ export class GameByteUIManager extends EventEmitter implements UIManager {
    */
   private registerDefaultComponents(): void {
     // This will be expanded as we create more components
-    this.registerComponent('container', () => new (require('../components/UIContainer').UIContainer)());
+    this.registerComponent('container', () => new UIContainer());
   }
 
   /**

@@ -38,6 +38,7 @@ class MockRenderer extends EventEmitter {
 jest.mock('../../../src/rendering/RendererFactory', () => ({
   RendererFactory: {
     create: jest.fn((mode: RenderingMode) => new MockRenderer(mode)),
+    createWithFallback: jest.fn((preferredMode: RenderingMode, fallbackMode?: RenderingMode) => new MockRenderer(preferredMode)),
     getSupportedModes: jest.fn(() => [
       RenderingMode.RENDERER_2D,
       RenderingMode.RENDERER_3D,
@@ -56,6 +57,10 @@ describe('RenderingServiceProvider', () => {
     app = GameByte.create();
     provider = new RenderingServiceProvider();
     jest.clearAllMocks();
+
+    // Restore original mock implementations
+    (RendererFactory.create as jest.Mock).mockImplementation((mode: RenderingMode) => new MockRenderer(mode));
+    (RendererFactory.createWithFallback as jest.Mock).mockImplementation((preferredMode: RenderingMode) => new MockRenderer(preferredMode));
   });
 
   afterEach(() => {
@@ -169,7 +174,8 @@ describe('RenderingServiceProvider', () => {
         'renderer',
         'renderer.factory',
         'renderer.modes',
-        'renderer.create'
+        'renderer.create',
+        'renderer.createWithFallback'
       ]);
     });
 
@@ -185,9 +191,15 @@ describe('RenderingServiceProvider', () => {
   describe('integration scenarios', () => {
     it('should work with full app lifecycle', async () => {
       // Arrange
+      // Mock scene.manager to avoid dependency on SceneServiceProvider
+      app.singleton('scene.manager', () => ({
+        getCurrentScene: jest.fn(),
+        switchScene: jest.fn()
+      }));
+
       app.register(provider);
       await app.boot();
-      
+
       const canvas = document.createElement('canvas') as HTMLCanvasElement;
 
       // Act
@@ -226,11 +238,14 @@ describe('RenderingServiceProvider', () => {
       (RendererFactory.create as jest.Mock).mockImplementation(() => {
         throw new Error('Renderer creation failed');
       });
-      
+
       provider.register(app);
 
       // Act & Assert
       expect(() => app.make('renderer')).toThrow('Renderer creation failed');
+
+      // Cleanup: Restore mock to prevent afterEach from failing
+      (RendererFactory.create as jest.Mock).mockImplementation((mode: RenderingMode) => new MockRenderer(mode));
     });
 
     it('should support multiple provider instances', () => {

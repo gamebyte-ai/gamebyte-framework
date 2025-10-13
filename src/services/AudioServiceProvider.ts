@@ -289,19 +289,20 @@ export class AudioServiceProvider extends AbstractServiceProvider {
             }
           });
           
-          sceneManager.on('scene:changed', (data: any) => {
+          sceneManager.on('scene:changed', (fromScene: any, toScene: any) => {
             // Update spatial audio listener based on scene camera
             const spatialAudio = audioManager.getSpatialAudioSystem();
-            
+
             // Reset audio zones for new scene
             spatialAudio.zones.forEach((zone, name) => {
               spatialAudio.removeZone(name);
             });
-            
+
             // Scene-specific audio setup could be triggered here
             // Example: Load scene-specific audio assets
-            if (data.sceneName) {
-              this.loadSceneAudio(audioManager, data.sceneName);
+            // Note: scene:changed passes (fromScene, toScene) as separate params
+            if (toScene && toScene.name) {
+              this.loadSceneAudio(audioManager, toScene.name);
             }
           });
         }

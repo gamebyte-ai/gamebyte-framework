@@ -1,6 +1,7 @@
 import { BaseUIScreen } from './BaseUIScreen';
 import { UIPanel } from '../components/UIPanel';
 import { UIText } from '../components/UIText';
+import { UIProgressBar } from '../components/UIProgressBar';
 import { Color } from '../../contracts/UI';
 
 export interface SplashScreenConfig {
@@ -111,7 +112,6 @@ export class SplashScreen extends BaseUIScreen {
 
     // Create progress bar if enabled
     if (this.config.showProgressBar) {
-      const UIProgressBar = require('../components/UIProgressBar').UIProgressBar;
       this.progressBar = new UIProgressBar({
         backgroundColor: { r: 60, g: 60, b: 60, a: 1 },
         fillColor: { r: 0, g: 122, b: 255, a: 1 },

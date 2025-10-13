@@ -1,6 +1,7 @@
 import { Renderer, RenderingMode } from '../contracts/Renderer';
 import { PixiRenderer } from './PixiRenderer';
-import { ThreeRenderer } from './ThreeRenderer';
+// ThreeRenderer NOT imported statically to avoid bundling in UMD
+// import { ThreeRenderer } from './ThreeRenderer';
 
 /**
  * Factory for creating renderer instances based on rendering mode.
@@ -15,15 +16,21 @@ export class RendererFactory {
     switch (mode) {
       case RenderingMode.RENDERER_2D:
         return new PixiRenderer();
-      
+
       case RenderingMode.RENDERER_3D:
-        return new ThreeRenderer();
-      
+        // ThreeRenderer not available in UMD builds
+        // Use dist/renderers/three3d.js for 3D rendering
+        throw new Error(
+          '3D renderer not available in main bundle. ' +
+          'Please use dist/renderers/three3d.js for 3D rendering, ' +
+          'or import ThreeRenderer directly in ESM/CJS environments.'
+        );
+
       case RenderingMode.HYBRID:
         // For hybrid mode, we'll default to 2D renderer and allow 3D overlay
         // This can be extended later for more sophisticated hybrid rendering
         return new PixiRenderer();
-      
+
       default:
         // Fallback to 2D renderer if mode is not recognized
         console.warn(`Unsupported rendering mode: ${mode}. Falling back to 2D renderer.`);

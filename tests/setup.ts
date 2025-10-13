@@ -70,6 +70,93 @@ global.Audio = jest.fn(() => ({
   removeEventListener: jest.fn()
 })) as any;
 
+// Mock AudioContext
+const mockAudioContext = {
+  createGain: jest.fn(() => ({
+    connect: jest.fn(),
+    disconnect: jest.fn(),
+    gain: { value: 1, setValueAtTime: jest.fn() }
+  })),
+  createOscillator: jest.fn(() => ({
+    connect: jest.fn(),
+    disconnect: jest.fn(),
+    start: jest.fn(),
+    stop: jest.fn(),
+    frequency: { value: 440, setValueAtTime: jest.fn() }
+  })),
+  createBufferSource: jest.fn(() => ({
+    connect: jest.fn(),
+    disconnect: jest.fn(),
+    start: jest.fn(),
+    stop: jest.fn(),
+    buffer: null,
+    loop: false
+  })),
+  createAnalyser: jest.fn(() => ({
+    connect: jest.fn(),
+    disconnect: jest.fn(),
+    fftSize: 2048,
+    frequencyBinCount: 1024,
+    getByteFrequencyData: jest.fn(),
+    getByteTimeDomainData: jest.fn()
+  })),
+  createDynamicsCompressor: jest.fn(() => ({
+    connect: jest.fn(),
+    disconnect: jest.fn(),
+    threshold: { value: -24, setValueAtTime: jest.fn() },
+    knee: { value: 30, setValueAtTime: jest.fn() },
+    ratio: { value: 12, setValueAtTime: jest.fn() },
+    attack: { value: 0.003, setValueAtTime: jest.fn() },
+    release: { value: 0.25, setValueAtTime: jest.fn() }
+  })),
+  createBiquadFilter: jest.fn(() => ({
+    connect: jest.fn(),
+    disconnect: jest.fn(),
+    type: 'lowpass',
+    frequency: { value: 350, setValueAtTime: jest.fn() },
+    Q: { value: 1, setValueAtTime: jest.fn() }
+  })),
+  createPanner: jest.fn(() => ({
+    connect: jest.fn(),
+    disconnect: jest.fn(),
+    setPosition: jest.fn(),
+    setOrientation: jest.fn(),
+    panningModel: 'HRTF',
+    distanceModel: 'inverse',
+    refDistance: 1,
+    maxDistance: 10000,
+    rolloffFactor: 1
+  })),
+  createStereoPanner: jest.fn(() => ({
+    connect: jest.fn(),
+    disconnect: jest.fn(),
+    pan: { value: 0, setValueAtTime: jest.fn() }
+  })),
+  decodeAudioData: jest.fn(() => Promise.resolve({
+    duration: 1,
+    length: 44100,
+    numberOfChannels: 2,
+    sampleRate: 44100
+  })),
+  destination: {
+    channelCount: 2,
+    channelCountMode: 'explicit',
+    channelInterpretation: 'speakers',
+    maxChannelCount: 2
+  },
+  sampleRate: 44100,
+  currentTime: 0,
+  state: 'running',
+  suspend: jest.fn(() => Promise.resolve()),
+  resume: jest.fn(() => Promise.resolve()),
+  close: jest.fn(() => Promise.resolve()),
+  addEventListener: jest.fn(),
+  removeEventListener: jest.fn()
+};
+
+global.AudioContext = jest.fn(() => mockAudioContext) as any;
+(global as any).webkitAudioContext = jest.fn(() => mockAudioContext) as any;
+
 // Mock WebGL context
 const mockWebGLContext = {
   getExtension: jest.fn(() => null),

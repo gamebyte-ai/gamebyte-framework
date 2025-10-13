@@ -1,560 +1,424 @@
 <div align="center">
 
-<!-- Logo placeholder - GameByte Framework logo will be added here -->
-<img src="https://via.placeholder.com/200x200/1a1a2e/16213e?text=GameByte" alt="GameByte Framework" width="200" height="200">
+# 🎮 GameByte Framework
 
-# GameByte Framework
+**Modern Mobile-First Game Development Framework**
 
-**🎮 Enterprise-Grade Mobile Game Development Framework**
-
-[![npm version](https://badge.fury.io/js/%40gamebyte%2Fframework.svg)](https://badge.fury.io/js/%40gamebyte%2Fframework)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/%3C%2F%3E-TypeScript-%230074c1.svg)](http://www.typescriptlang.org/)
-[![Build Status](https://github.com/gamebyte-framework/framework/workflows/CI/badge.svg)](https://github.com/gamebyte-framework/framework/actions)
-[![Coverage Status](https://codecov.io/gh/gamebyte-framework/framework/branch/main/graph/badge.svg)](https://codecov.io/gh/gamebyte-framework/framework)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Pixi.js v8](https://img.shields.io/badge/Pixi.js-v8-ff69b4)](https://pixijs.com/)
 
-A comprehensive JavaScript game engine framework that unifies 2D and 3D game development with Laravel-inspired architecture. Built for mobile casual, hybrid casual, hyper casual, platformer, shooter, and puzzle games targeting Rollic/Voodoo quality standards.
+A comprehensive JavaScript game framework that unifies 2D and 3D game development with Laravel-inspired architecture.
 
-[📖 **Documentation**](https://docs.gamebyte-framework.dev) | [🎮 **Live Demo**](https://demo.gamebyte-framework.dev) | [💬 **Discord**](https://discord.gg/gamebyte) | [🐦 **Twitter**](https://twitter.com/gamebytefw)
+**✨ [View Live Demos](./index.html) • 📖 [Quick Start](#-quick-start) • 🎨 [UI Components](#-ui-components)**
 
 </div>
 
+---
+
 ## ✨ Features
 
-<table>
-<tr>
-<td width="50%">
+- 🎨 **Modern UI System** - Beautiful components with gradients, glow, shadows, animations
+- 🚀 **Laravel Architecture** - Service providers, dependency injection, facades
+- 🎬 **Scene Management** - Smooth transitions & lifecycle management
+- ⚡ **Physics Integration** - Matter.js (2D) & Cannon.js (3D)
+- 🔊 **Audio System** - Spatial audio, music, SFX with mobile optimization
+- 📱 **Mobile-First** - 44px touch targets, performance optimizations
+- 🎯 **TypeScript** - 100% type safety
+- 🎮 **Dual Rendering** - Pixi.js v8 (2D) & Three.js (3D)
 
-### 🎮 **Core Features**
-- **Unified 2D/3D API** - Clean abstraction over Pixi.js & Three.js
-- **Laravel-Inspired Architecture** - Service providers, DI, facades
-- **Modular Design** - Tree-shakeable bundles for optimal performance
-- **TypeScript First** - 100% type safety with modern tooling
-- **Mobile Optimized** - Performance tiers & adaptive quality scaling
-
-</td>
-<td width="50%">
-
-### 🚀 **Advanced Features**
-- **Scene Management** - Smooth transitions & lifecycle hooks
-- **Plugin System** - Extensible npm-style architecture
-- **Performance Monitoring** - Built-in FPS tracking & optimization
-- **Cross-Platform** - Web, mobile, desktop support
-- **Enterprise Ready** - Comprehensive testing & documentation
-
-</td>
-</tr>
-</table>
-
-### 🎯 **Game Types Supported**
-
-| Type | Description | Key Features |
-|------|-------------|-------------|
-| 🎲 **Mobile Casual** | Touch-optimized gameplay | Responsive UI, haptic feedback |
-| ⚡ **Hybrid Casual** | Progressive complexity | Retention hooks, analytics |
-| 🏃 **Hyper Casual** | Ultra-lightweight | Instant playability, minimal bundle |
-| 🏗️ **Platformer** | Physics-based games | Collision detection, movement helpers |
-| 🔫 **Shooter** | High-performance action | Optimized rendering, input handling |
-| 🧩 **Puzzle** | Logic-based games | State management, turn-based systems |
+---
 
 ## 🚀 Quick Start
 
 ### Installation
 
 ```bash
-# Install the framework
-npm install @gamebyte/framework
-
-# Or with yarn
-yarn add @gamebyte/framework
-
-# Or with pnpm
-pnpm add @gamebyte/framework
+npm install gamebyte-framework
 ```
 
-### Basic Usage
+### Basic 2D Game
 
-#### 🎮 Full Framework (All Features)
 ```typescript
-import { createGame, initializeFacades, RenderingMode } from '@gamebyte/framework';
+import { createGame } from 'gamebyte-framework';
+import * as PIXI from 'pixi.js';
 
-// Create GameByte application with all features
-const app = createGame();
+// Create and initialize
+const game = createGame();
+const canvas = document.createElement('canvas');
+canvas.width = 800;
+canvas.height = 600;
+document.body.appendChild(canvas);
 
-// Initialize facades for static access
-initializeFacades(app);
+await game.initialize(canvas, '2d');
 
-// Get canvas element
-const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
+// Get services
+const renderer = game.make('renderer');
+const sceneManager = game.make('scene.manager');
 
-// Initialize with 2D rendering
-await app.initialize(canvas, RenderingMode.RENDERER_2D, {
-  width: 800,
-  height: 600,
-  backgroundColor: 0x1099bb
+// Start game loop
+game.start();
+```
+
+### UMD Build (Browser)
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Game</title>
+</head>
+<body>
+    <!-- Load Pixi.js from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+
+    <!-- Load GameByte -->
+    <script src="./dist/gamebyte.umd.js"></script>
+
+    <script>
+        const game = GameByteFramework.createGame();
+        // Your game code...
+    </script>
+</body>
+</html>
+```
+
+---
+
+## 🎨 UI Components
+
+### Modern Button
+
+```typescript
+import { UIButton } from 'gamebyte-framework';
+
+const button = new UIButton({
+    text: 'PLAY',
+    width: 200,
+    height: 60,
+    backgroundColor: 0x4CAF50,
+    gradient: { enabled: true, colorTop: 0x66BB6A, colorBottom: 0x388E3C },
+    glowEffect: true,
+    shadowEffect: true,
+    rippleEffect: true
 });
 
-// Start the game loop
-app.start();
+button.on('click', () => console.log('Clicked!'));
+scene.addChild(button.getContainer());
 ```
 
-#### 🎯 Lightweight 2D Games
+### TopBar with Resources
+
 ```typescript
-import { create2DGame, initializeGame } from '@gamebyte/framework/2d';
-import { add2DPhysics } from '@gamebyte/framework/physics2d';
+import { TopBar, TopBarItemType } from 'gamebyte-framework';
 
-// Create lightweight 2D game instance
-const app = create2DGame();
-
-// Optional: Add 2D physics if needed
-add2DPhysics(app);
-
-// Initialize 2D game
-const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
-await initializeGame(app, canvas, {
-  width: 800,
-  height: 600,
-  backgroundColor: 0x1099bb
+const topBar = new TopBar({
+    width: 800,
+    items: [
+        {
+            id: 'coins',
+            type: TopBarItemType.RESOURCE,
+            icon: coinTexture,
+            value: 1000,
+            format: 'abbreviate', // "1K"
+            animated: true
+        },
+        {
+            id: 'timer',
+            type: TopBarItemType.TIMER,
+            value: 60,
+            format: 'time' // "1:00"
+        }
+    ]
 });
 
-app.start();
+scene.addChild(topBar.getContainer());
+topBar.updateItem('coins', 1500, true);
 ```
 
-#### 🚀 Lightweight 3D Games
-```typescript
-import { create3DGame, initializeGame } from '@gamebyte/framework/3d';
-import { add3DPhysics } from '@gamebyte/framework/physics3d';
+---
 
-// Create lightweight 3D game instance
-const app = create3DGame();
-
-// Optional: Add 3D physics if needed
-add3DPhysics(app);
-
-// Initialize 3D game
-const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
-await initializeGame(app, canvas, {
-  width: 800,
-  height: 600
-});
-
-app.start();
-```
-
-### Scene Management
+## 🎬 Scene Management
 
 ```typescript
-import { Scene, Scenes } from '@gamebyte/framework';
+import { BaseScene } from 'gamebyte-framework';
 
-class MainMenuScene implements Scene {
-  public readonly id = 'main-menu';
-  public readonly name = 'Main Menu';
-  public isActive = false;
+class MyScene extends BaseScene {
+    constructor() {
+        super('my-scene', 'My Scene');
+    }
 
-  async initialize(): Promise<void> {
-    // Initialize scene assets
-  }
+    async initialize() {
+        await super.initialize();
+        // Setup your scene
+    }
 
-  activate(): void {
-    this.isActive = true;
-  }
-
-  deactivate(): void {
-    this.isActive = false;
-  }
-
-  update(deltaTime: number): void {
-    // Update scene logic
-  }
-
-  render(renderer: any): void {
-    // Render scene objects
-  }
-
-  destroy(): void {
-    // Clean up resources
-  }
+    update(deltaTime: number) {
+        super.update(deltaTime);
+        // Update game logic
+    }
 }
 
-// Register and switch scenes
-const mainMenu = new MainMenuScene();
-Scenes.add(mainMenu);
-await Scenes.switchTo('main-menu');
+// Add and switch scenes
+const scene = new MyScene();
+sceneManager.add(scene);
+await sceneManager.switchTo('my-scene', {
+    type: 'fade',
+    duration: 500
+});
 ```
 
-## Architecture Overview
+---
 
-### Core Components
+## 🏗️ Architecture
 
-#### 1. GameByte Application (`GameByte`)
-The main application class that orchestrates the entire framework:
-
-```typescript
-const app = GameByte.create();
-
-// Register service providers
-app.register(new CustomServiceProvider());
-
-// Boot the application
-await app.boot();
-
-// Access services
-const renderer = app.make('renderer');
-```
-
-#### 2. Service Container (`ServiceContainer`)
-Laravel-inspired dependency injection container:
+### Service Container
 
 ```typescript
 // Bind services
-app.bind('custom.service', () => new CustomService());
-app.singleton('global.service', () => new GlobalService());
+game.bind('my.service', () => new MyService());
+game.singleton('global.service', () => new GlobalService());
 
 // Resolve services
-const service = app.make('custom.service');
+const service = game.make('my.service');
 ```
 
-#### 3. Service Providers (`ServiceProvider`)
-Modular service registration system:
+### Service Providers
 
 ```typescript
-import { AbstractServiceProvider } from '@gamebyte/framework';
+import { AbstractServiceProvider } from 'gamebyte-framework';
 
-export class CustomServiceProvider extends AbstractServiceProvider {
-  register(app: GameByte): void {
-    app.bind('custom.feature', () => new CustomFeature());
-  }
-
-  boot(app: GameByte): void {
-    // Bootstrap services after registration
-  }
+export class MyServiceProvider extends AbstractServiceProvider {
+    register(app: GameByte): void {
+        app.singleton('my.feature', () => new MyFeature());
+    }
 }
-```
 
-#### 4. Unified Rendering API (`Renderer`)
-Abstraction layer over Pixi.js and Three.js:
-
-```typescript
-import { RendererFactory, RenderingMode } from '@gamebyte/framework';
-
-// Create 2D renderer
-const renderer2D = RendererFactory.create(RenderingMode.PIXI_2D);
-
-// Create 3D renderer
-const renderer3D = RendererFactory.create(RenderingMode.THREE_3D);
-
-// Use facade for static access
-import { Renderer } from '@gamebyte/framework';
-Renderer.start();
-Renderer.resize(1024, 768);
-```
-
-#### 5. Scene Management (`SceneManager`)
-Comprehensive scene lifecycle management:
-
-```typescript
-import { Scenes } from '@gamebyte/framework';
-
-// Scene transitions with effects
-await Scenes.switchTo('game', {
-  type: 'fade',
-  duration: 1000,
-  easing: (t) => t * t
-});
-```
-
-#### 6. Plugin System (`PluginManager`)
-npm-style plugin architecture:
-
-```typescript
-import { Plugins } from '@gamebyte/framework';
-
-// Register plugin
-Plugins.register({
-  name: 'my-plugin',
-  version: '1.0.0',
-  provider: MyPluginProvider,
-  dependencies: ['core-plugin']
-});
-
-// Load plugins
-await Plugins.loadAll();
+game.register(new MyServiceProvider());
 ```
 
 ### Facades
 
-Static access to framework services:
-
 ```typescript
-import { Renderer, Scenes, Plugins } from '@gamebyte/framework';
+import { Renderer, Scenes, UI, Audio } from 'gamebyte-framework';
 
-// Renderer facade
 Renderer.start();
-const stats = Renderer.getStats();
-
-// Scenes facade
 await Scenes.switchTo('game');
-const currentScene = Scenes.getCurrentScene();
-
-// Plugins facade
-await Plugins.load('my-plugin');
-const isLoaded = Plugins.isLoaded('my-plugin');
+const button = UI.createButton({...});
+Audio.playMusic('background');
 ```
 
-## Mobile Game Optimization
+---
 
-The framework is specifically designed for mobile game development with built-in optimizations:
+## 🎮 Core Systems
 
-### Performance Tiers
+### Physics
+
 ```typescript
-import { PerformanceTier } from '@gamebyte/framework';
+import { Physics } from 'gamebyte-framework';
 
-// Automatic performance detection and scaling
-const tier = detectPerformanceTier();
-adjustQualitySettings(tier);
+// 2D Physics (Matter.js)
+Physics.create2DWorld({ gravity: { x: 0, y: 1 } });
+const body = Physics.createBody({ x: 100, y: 100, width: 50, height: 50 });
+
+// 3D Physics (Cannon.js)
+Physics.create3DWorld({ gravity: { x: 0, y: -9.8, z: 0 } });
 ```
 
-### Game Types Support
-- **Mobile Casual** - Touch-optimized UI and simple mechanics
-- **Hybrid Casual** - Progressive complexity with retention hooks
-- **Hyper Casual** - Ultra-lightweight with instant playability
-- **Platformer** - Physics-based movement and collision detection
-- **Shooter** - High-performance rendering and input handling
-- **Puzzle** - Turn-based logic and state management
+### Audio
 
-## Directory Structure
+```typescript
+import { Music, SFX, Spatial } from 'gamebyte-framework';
+
+Music.play('background', { loop: true, volume: 0.7 });
+SFX.play('click');
+Spatial.play('explosion', { position: { x: 10, y: 0, z: 5 } });
+```
+
+### Input
+
+```typescript
+import { Input } from 'gamebyte-framework';
+
+Input.keyboard.on('KeyW', () => console.log('W pressed'));
+Input.touch.on('tap', (e) => console.log('Tapped at:', e.x, e.y));
+Input.gamepad.on('button-a', () => console.log('A pressed'));
+```
+
+### Assets
+
+```typescript
+import { Assets } from 'gamebyte-framework';
+
+await Assets.load([
+    { key: 'player', url: 'player.png', type: 'texture' },
+    { key: 'music', url: 'music.mp3', type: 'audio' }
+]);
+
+const texture = Assets.get('player');
+```
+
+---
+
+## 🌐 3D Rendering
+
+GameByte supports 3D rendering with Three.js:
+
+- **UMD Build**: Use direct Three.js API (see `docs/3D_RENDERING_GUIDE.md`)
+- **ESM/CJS**: Import `ThreeRenderer` and `BaseScene3D` directly
+
+```typescript
+// ESM/CJS approach
+import { createGame } from 'gamebyte-framework';
+import * as THREE from 'three';
+
+const game = createGame();
+await game.initialize(canvas, '3d');
+
+// Use Three.js API directly for 3D scenes
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+// ... rest of Three.js setup
+```
+
+📖 **[Full 3D Rendering Guide →](docs/3D_RENDERING_GUIDE.md)**
+
+---
+
+## 📁 Project Structure
 
 ```
 gamebyte-framework/
 ├── src/
-│   ├── core/                    # Core framework classes
-│   │   ├── GameByte.ts         # Main application class
-│   │   ├── ServiceContainer.ts  # Dependency injection
-│   │   └── DefaultSceneManager.ts
-│   ├── contracts/               # TypeScript interfaces
-│   │   ├── ServiceProvider.ts
-│   │   ├── Container.ts
-│   │   ├── Renderer.ts
-│   │   └── Scene.ts
-│   ├── rendering/               # Rendering system
-│   │   ├── PixiRenderer.ts     # 2D renderer implementation
-│   │   ├── ThreeRenderer.ts    # 3D renderer implementation
-│   │   └── RendererFactory.ts
-│   ├── services/                # Core service providers
-│   │   ├── RenderingServiceProvider.ts
-│   │   ├── SceneServiceProvider.ts
-│   │   └── PluginServiceProvider.ts
-│   ├── plugins/                 # Plugin system
-│   │   └── PluginManager.ts
-│   ├── facades/                 # Static access facades
-│   │   ├── Facade.ts
-│   │   ├── Renderer.ts
-│   │   ├── Scenes.ts
-│   │   └── Plugins.ts
-│   ├── types/                   # TypeScript type definitions
-│   └── index.ts                 # Main entry point
-├── examples/                    # Usage examples
-│   ├── basic-usage.ts
-│   └── index.html
-├── dist/                        # Compiled output
-├── package.json
-├── tsconfig.json
-├── rollup.config.js
+│   ├── core/              # Framework core
+│   ├── rendering/         # 2D/3D renderers
+│   ├── ui/                # UI components
+│   ├── scenes/            # Scene management
+│   ├── physics/           # Physics engines
+│   ├── audio/             # Audio system
+│   ├── input/             # Input handling
+│   ├── assets/            # Asset management
+│   ├── services/          # Service providers
+│   ├── facades/           # Static facades
+│   └── index.ts           # Main entry
+├── dist/
+│   ├── index.js           # ES module
+│   ├── index.cjs.js       # CommonJS
+│   ├── gamebyte.umd.js    # UMD bundle (2D only)
+│   └── renderers/
+│       └── three3d.js     # 3D renderer bundle
+├── docs/
+│   └── 3D_RENDERING_GUIDE.md
+├── index.html             # Demo hub
+├── test-*.html            # Demo pages
 └── README.md
 ```
 
-## Building the Framework
+---
+
+## 🎓 Live Demos
+
+- **[Demo Hub](./index.html)** - All demos in one place
+- **[Modern UI](./test-ui-modern.html)** - Beautiful button components
+- **[TopBar System](./test-ui-umd.html)** - Complete UI system
+- **[2D Simple](./test-umd-simple.html)** - Basic 2D rendering
+- **[3D Direct API](./test-3d-simple.html)** - Three.js integration
+- **[Graphics API](./test-graphics-api.html)** - Graphics abstraction
+
+---
+
+## 🛠️ Development
 
 ```bash
 # Install dependencies
 npm install
 
-# Build the framework
+# Build framework
 npm run build
 
-# Development mode with watch
+# Development mode (watch)
 npm run dev
 
 # Run tests
-npm run test
+npm test
 
-# Lint code
-npm run lint
+# Start demo server
+npx http-server -p 8080
 ```
 
-## 🎮 Interactive Demo
+---
 
-Experience the GameByte Framework with our comprehensive demo that showcases Laravel-inspired architecture patterns in action:
+## 📚 Documentation
 
-```bash
-# Quick start - builds and serves the demo
-npm run demo:serve
+- 📖 **[3D Rendering Guide](docs/3D_RENDERING_GUIDE.md)** - Complete 3D setup guide
+- 📝 **[Changelog](CHANGELOG.md)** - Version history
+- 🤝 **[Contributing](CONTRIBUTING.md)** - Contribution guidelines
+- 🗺️ **[Roadmap](ROADMAP.md)** - Development roadmap
 
-# Or manually build and serve
-npm run demo:build
-npx http-server demos/dist -p 9000 -o
-```
+---
 
-**Demo Features:**
-- ✅ **Dependency Injection & IoC** - Service container with automatic resolution
-- ✅ **Service Providers** - Laravel-inspired service registration and lifecycle  
-- ✅ **Facade Pattern** - Clean static APIs (DemoScore, DemoGameState, DemoNotifications)
-- ✅ **Scene Management** - Smooth transitions between splash, menu, and gameplay
-- ✅ **Event-Driven Architecture** - Cross-service communication via events
-- ✅ **Mobile-First UI** - Touch-optimized responsive design with haptic feedback
-- ✅ **Performance Monitoring** - FPS tracking and automatic quality scaling
+## 🎯 Roadmap
 
-The demo runs at `http://localhost:9000` and works on both desktop and mobile devices.
+### ✅ v1.0 - Core Framework (Current)
+- ✅ Service container & providers
+- ✅ 2D rendering (Pixi.js v8)
+- ✅ 3D rendering (Three.js)
+- ✅ Scene management
+- ✅ Modern UI components
+- ✅ Physics (Matter.js, Cannon.js)
+- ✅ Audio system
+- ✅ Input handling
+- ✅ Asset management
 
-> 💡 **Tip**: The demo showcases enterprise patterns like dependency injection, service providers, and facades in action. Perfect for understanding the framework's architecture!
+### 🚧 v1.1 - Enhanced UI (In Progress)
+- Enhanced animations
+- More components (Slider, Toggle, Modal)
+- Visual effects system
 
-## 🎯 **Clean API Examples:**
-
-### **2D Game Development**
-```typescript
-// Clean, abstracted 2D API - no Pixi.js references
-import { 
-  create2DGame, 
-  initializeGame, 
-  Renderer2D, 
-  AssetManager2D 
-} from '@gamebyte/framework/2d';
-
-import { 
-  add2DPhysics, 
-  PlatformerHelper, 
-  PhysicsWorld2D 
-} from '@gamebyte/framework/physics2d';
-
-const app = create2DGame();
-add2DPhysics(app);
-await initializeGame(app, canvas);
-```
-
-### **3D Game Development**
-```typescript
-// Clean, abstracted 3D API - no Three.js references
-import { 
-  create3DGame, 
-  initializeGame, 
-  Renderer3D, 
-  SpatialAudio 
-} from '@gamebyte/framework/3d';
-
-import { 
-  add3DPhysics, 
-  ParticleSystem, 
-  PhysicsWorld3D 
-} from '@gamebyte/framework/physics3d';
-
-const app = create3DGame();
-add3DPhysics(app);
-await initializeGame(app, canvas);
-```
-
-## Example Projects
-
-Check the `examples/` directory for:
-- Basic framework setup
-- Scene management examples
-- Plugin development guide
-- Mobile optimization techniques
-- Performance monitoring setup
-
-## API Reference
-
-### Core Classes
-
-- **`GameByte`** - Main application class
-- **`ServiceContainer`** - Dependency injection container
-- **`RendererFactory`** - Renderer creation and management
-- **`PluginManager`** - Plugin registration and lifecycle
-
-### Rendering
-
-- **`RenderingMode`** - Supported rendering modes (2D, 3D, Hybrid)
-- **`PixiRenderer`** - Pixi.js implementation
-- **`ThreeRenderer`** - Three.js implementation
-
-### Scene Management
-
-- **`Scene`** - Scene interface
-- **`SceneManager`** - Scene lifecycle management
-- **`SceneTransition`** - Transition configuration
-
-### Service Providers
-
-- **`RenderingServiceProvider`** - Rendering services
-- **`SceneServiceProvider`** - Scene management services
-- **`PluginServiceProvider`** - Plugin system services
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Submit a pull request
-
-## License
-
-MIT License - see LICENSE file for details.
-
-## Roadmap
-
-- [ ] Asset management system
-- [ ] Input handling system
-- [ ] Audio system integration
-- [ ] Physics engine integration
-- [ ] UI component library
-- [ ] Animation system
-- [ ] Particle effects
-- [ ] Mobile platform plugins (iOS/Android)
-- [ ] Cloud save integration
-- [ ] Analytics and telemetry
-- [ ] A/B testing framework
+### 📋 v2.0 - Tools & Services (Planned)
+- Level editor
+- Analytics integration
+- Cloud save system
+- A/B testing framework
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-### 🌟 Contributors Hall of Fame
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Open a Pull Request
 
-<a href="https://github.com/gamebyte-framework/framework/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=gamebyte-framework/framework" />
-</a>
-
-## 📊 Project Stats
-
-![Alt](https://repobeats.axiom.co/api/embed/your-repo-id.svg "GameByte Framework analytics")
-
-## 🔗 Links & Resources
-
-- 📖 [Documentation](https://docs.gamebyte-framework.dev)
-- 🎮 [Interactive Demo](https://demo.gamebyte-framework.dev)
-- 💬 [Discord Community](https://discord.gg/gamebyte)
-- 🐦 [Twitter Updates](https://twitter.com/gamebytefw)
-- 📝 [Blog & Tutorials](https://blog.gamebyte-framework.dev)
-- 🎓 [Video Courses](https://learn.gamebyte-framework.dev)
+---
 
 ## 📄 License
 
-GameByte Framework is [MIT licensed](./LICENSE).
+MIT License - see [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+---
 
-- Built on top of amazing libraries: [Pixi.js](https://pixijs.com/), [Three.js](https://threejs.org/)
-- Inspired by [Laravel Framework](https://laravel.com/) architecture patterns
+## 🙏 Credits
+
+Built on amazing open-source libraries:
+- [Pixi.js](https://pixijs.com/) - 2D rendering
+- [Three.js](https://threejs.org/) - 3D rendering
+- [Matter.js](https://brm.io/matter-js/) - 2D physics
+- [Cannon.js](https://schteppe.github.io/cannon.js/) - 3D physics
+
+Inspired by [Laravel Framework](https://laravel.com/) architecture.
 
 ---
 
 <div align="center">
 
-**Built with ❤️ for mobile game developers targeting Rollic/Voodoo quality standards.**
+**Built with ❤️ for Game Developers**
 
-⭐ Star us on GitHub — it motivates us a lot!
+⭐ Star us on GitHub — it helps!
+
+**[Live Demos](./index.html) • [Quick Start](#-quick-start) • [Documentation](#-documentation)**
 
 </div>

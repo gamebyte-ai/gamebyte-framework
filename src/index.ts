@@ -10,6 +10,12 @@ export { GameByte } from './core/GameByte';
 export { ServiceContainer } from './core/ServiceContainer';
 export { DefaultSceneManager } from './core/DefaultSceneManager';
 
+// Base Scene Implementations
+export { BaseScene } from './scenes/BaseScene';
+// BaseScene3D: Not exported to avoid THREE.js dependency in UMD
+// Use ESM/CJS imports for 3D scene development
+// export { BaseScene3D } from './scenes/BaseScene';
+
 // Third-party dependencies (bundled)
 export { EventEmitter } from 'eventemitter3';
 
@@ -201,7 +207,11 @@ export {
 
 // Rendering System
 export { PixiRenderer } from './rendering/PixiRenderer';
-export { ThreeRenderer } from './rendering/ThreeRenderer';
+export type { PixiRendererConfig } from './rendering/PixiRenderer';
+// ThreeRenderer: Use dist/renderers/three3d.js for 3D rendering
+// Not exported in main bundle to avoid THREE.js dependency in UMD
+// export { ThreeRenderer } from './rendering/ThreeRenderer';
+// export type { ThreeRendererConfig } from './rendering/ThreeRenderer';
 export { RendererFactory } from './rendering/RendererFactory';
 
 // Audio System
@@ -249,11 +259,14 @@ export { UIButton } from './ui/components/UIButton';
 export { UIText } from './ui/components/UIText';
 export { UIPanel } from './ui/components/UIPanel';
 export { UIProgressBar } from './ui/components/UIProgressBar';
+export { TopBar, TopBarItemType } from './ui/components/TopBar';
+export type { TopBarConfig, TopBarItemConfig, TopBarTheme } from './ui/components/TopBar';
 
 // UI Screen Components
 export { BaseUIScreen } from './ui/screens/BaseUIScreen';
 export { SplashScreen } from './ui/screens/SplashScreen';
-export { MainMenuScreen } from './ui/screens/MainMenuScreen';
+// MainMenuScreen temporarily disabled - needs refactoring to work with UIComponent
+// export { MainMenuScreen } from './ui/screens/MainMenuScreen';
 
 // UI Animation System
 export { GameByteUIAnimationSystem, GameByteUITimeline } from './ui/animations/UIAnimationSystem';
@@ -316,6 +329,41 @@ export { RenderingOptimizer as RenderingOptimizerClass } from './performance/Ren
 export { MobileOptimizer as MobileOptimizerClass } from './performance/MobileOptimizer';
 export { PerformanceDebugOverlay as PerformanceDebugOverlayClass, PerformanceProfiler as PerformanceProfilerClass } from './performance/PerformanceDebugOverlay';
 
+// Version Detection & Compatibility Utilities
+export {
+  PixiVersionDetector,
+  ThreeVersionDetector,
+  BrowserFeatureDetector,
+  FrameworkCompatibility
+} from './utils/VersionDetection';
+export type { VersionInfo, FeatureSupport } from './utils/VersionDetection';
+
+// Renderer Compatibility Helpers
+export {
+  PixiCompatibility,
+  ThreeCompatibility,
+  RenderingCompatibility
+} from './utils/RendererCompatibility';
+export type { PixiRendererOptions, ThreeRendererOptions } from './utils/RendererCompatibility';
+
+// Graphics Abstraction Layer
+export type {
+  IDisplayObject,
+  IContainer,
+  IGraphics,
+  IText,
+  ITextStyle,
+  ISprite,
+  ITexture,
+  IGraphicsFactory,
+  IGraphicsEngine
+} from './contracts/Graphics';
+export { GraphicsEngine, graphics } from './graphics/GraphicsEngine';
+export { PixiGraphicsFactory } from './graphics/PixiGraphicsFactory';
+// ThreeGraphicsFactory: Not exported to avoid CSS2DRenderer dependency in UMD
+// Use PixiGraphicsFactory for 2D UI, or access ThreeGraphicsFactory via ESM/CJS imports
+// export { ThreeGraphicsFactory } from './graphics/ThreeGraphicsFactory';
+
 // Types
 export type {
   GameConfig,
@@ -341,6 +389,15 @@ import { AudioServiceProvider } from './services/AudioServiceProvider';
 import { ServiceContainer } from './core/ServiceContainer';
 import { RenderingMode } from './contracts/Renderer';
 import { Assets } from './facades/Assets';
+import { Facade } from './facades/Facade';
+import { Renderer as RendererFacade } from './facades/Renderer';
+import { Scenes } from './facades/Scenes';
+import { Plugins } from './facades/Plugins';
+import { UI, Animations, Themes } from './facades/UI';
+import { Input } from './facades/Input';
+import { Physics } from './facades/Physics';
+import { Performance } from './facades/Performance';
+import { Audio as AudioFacadeExport } from './facades/Audio';
 
 // Utility function to create and configure a GameByte instance
 export function createGame(): GameByte {
@@ -399,20 +456,11 @@ export default GameByteFramework;
  * This should be called after creating your GameByte app.
  */
 export function initializeFacades(app: GameByte): void {
-  const { Facade } = require('./facades/Facade');
-  const { Renderer } = require('./facades/Renderer');
-  const { Scenes } = require('./facades/Scenes');
-  const { Plugins } = require('./facades/Plugins');
-  const { UI, Animations, Themes } = require('./facades/UI');
-  const { Input } = require('./facades/Input');
-  const { Physics } = require('./facades/Physics');
-  const { Performance } = require('./facades/Performance');
-  const { Audio } = require('./facades/Audio');
-  
+  // Import facades (already imported at the top of this file)
   Facade.setApplication(app);
-  
+
   // Update default export facades
-  GameByteFramework.Renderer = Renderer;
+  GameByteFramework.Renderer = RendererFacade;
   GameByteFramework.Scenes = Scenes;
   GameByteFramework.Plugins = Plugins;
   GameByteFramework.UI = UI;
@@ -421,5 +469,5 @@ export function initializeFacades(app: GameByte): void {
   GameByteFramework.Input = Input;
   GameByteFramework.Physics = Physics;
   GameByteFramework.Performance = Performance;
-  GameByteFramework.Audio = Audio;
+  GameByteFramework.Audio = AudioFacadeExport;
 }

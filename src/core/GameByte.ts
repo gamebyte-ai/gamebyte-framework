@@ -3,6 +3,7 @@ import { ServiceContainer } from './ServiceContainer';
 import { ServiceProvider } from '../contracts/ServiceProvider';
 import { Renderer, RenderingMode, RendererOptions } from '../contracts/Renderer';
 import { SceneManager } from '../contracts/Scene';
+import { GraphicsEngine } from '../graphics/GraphicsEngine';
 
 /**
  * Main GameByte framework class.
@@ -104,6 +105,12 @@ export class GameByte extends EventEmitter {
     // Boot the framework if not already booted
     if (!this.booted) {
       await this.boot();
+    }
+
+    // Initialize GraphicsEngine with rendering mode
+    if (!GraphicsEngine.isInitialized()) {
+      GraphicsEngine.initialize(mode);
+      console.log(`✅ GraphicsEngine initialized with ${mode === RenderingMode.RENDERER_2D ? '2D (Pixi.js)' : '3D (Three.js)'} renderer`);
     }
 
     // Initialize the renderer

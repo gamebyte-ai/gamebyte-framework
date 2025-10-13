@@ -1,455 +1,501 @@
-import { BaseUIComponent } from '../core/BaseUIComponent';
-import { Color, UIInteractionEvent } from '../../contracts/UI';
+import { EventEmitter } from 'eventemitter3';
+import { IContainer, IGraphics, IText, ITexture } from '../../contracts/Graphics';
+import { graphics } from '../../graphics/GraphicsEngine';
 
+/**
+ * UIButton configuration
+ */
 export interface UIButtonConfig {
   text?: string;
+  width?: number;
+  height?: number;
   fontSize?: number;
   fontFamily?: string;
   fontWeight?: string;
-  textColor?: Color;
-  backgroundColor?: Color;
-  borderColor?: Color;
+  textColor?: number;
+  backgroundColor?: number;
+  hoverColor?: number;
+  pressedColor?: number;
+  disabledColor?: number;
+  borderColor?: number;
   borderWidth?: number;
   borderRadius?: number;
-  padding?: number;
   disabled?: boolean;
   rippleEffect?: boolean;
+  glowEffect?: boolean;
+  shadowEffect?: boolean;
+  gradient?: {
+    enabled: boolean;
+    colorTop?: number;
+    colorBottom?: number;
+  };
 }
 
 /**
- * Mobile-optimized button component with touch feedback
+ * Modern UIButton component for mobile games
+ *
+ * Features:
+ * - Gradient backgrounds
+ * - Glow effects
+ * - Shadow effects
+ * - Ripple animations on tap
+ * - Smooth touch feedback
+ * - Mobile-optimized (44px minimum touch target)
+ *
+ * @example
+ * ```typescript
+ * const button = new UIButton({
+ *   text: 'PLAY',
+ *   width: 200,
+ *   height: 60,
+ *   backgroundColor: 0x4CAF50,
+ *   gradient: { enabled: true, colorTop: 0x66BB6A, colorBottom: 0x388E3C },
+ *   glowEffect: true,
+ *   shadowEffect: true
+ * });
+ *
+ * button.on('click', () => console.log('Button clicked!'));
+ * scene.addChild(button.getContainer());
+ * ```
  */
-export class UIButton extends BaseUIComponent {
-  // Button properties
-  public text: string = '';
-  public fontSize: number = 16;
-  public fontFamily: string = 'Arial, sans-serif';
-  public fontWeight: string = 'normal';
-  public textColor: Color = { r: 255, g: 255, b: 255, a: 1 };
-  public backgroundColor: Color = { r: 0, g: 122, b: 255, a: 1 };
-  public borderColor: Color = { r: 0, g: 122, b: 255, a: 1 };
-  public borderWidth: number = 0;
-  public borderRadius: number = 8;
-  public disabled: boolean = false;
-  public rippleEffect: boolean = true;
+export class UIButton extends EventEmitter {
+  private container: IContainer;
+  private background: IGraphics;
+  private glowGraphics?: IGraphics;
+  private shadowGraphics?: IGraphics;
+  private textField?: IText;
+  private rippleContainer: IContainer;
 
-  // Internal state
-  private _isPressed: boolean = false;
-  private _isHovered: boolean = false;
-  private _ripples: Array<{ x: number; y: number; startTime: number; id: string }> = [];
-  private _minTouchSize: number = 44; // Apple's recommended minimum touch target size
+  private config: Required<UIButtonConfig>;
+  private isPressed: boolean = false;
+  private isHovered: boolean = false;
+  private activeRipples: Array<{
+    graphics: IGraphics;
+    startTime: number;
+    x: number;
+    y: number;
+  }> = [];
 
-  constructor(config?: UIButtonConfig, id?: string) {
-    super(id);
-    
-    this.interactive = true;
-    
-    // Apply configuration
-    if (config) {
-      this.configure(config);
+  constructor(config: UIButtonConfig = {}) {
+    super();
+
+    // Default configuration with mobile game polish
+    this.config = {
+      text: config.text || '',
+      width: config.width || 180,
+      height: config.height || 60,
+      fontSize: config.fontSize || 24,
+      fontFamily: config.fontFamily || 'Arial Black, Arial, sans-serif',
+      fontWeight: config.fontWeight || 'bold',
+      textColor: config.textColor !== undefined ? config.textColor : 0xFFFFFF,
+      backgroundColor: config.backgroundColor !== undefined ? config.backgroundColor : 0x007AFF,
+      hoverColor: config.hoverColor !== undefined ? config.hoverColor : 0x0096FF,
+      pressedColor: config.pressedColor !== undefined ? config.pressedColor : 0x0056B3,
+      disabledColor: config.disabledColor !== undefined ? config.disabledColor : 0x999999,
+      borderColor: config.borderColor !== undefined ? config.borderColor : 0xFFFFFF,
+      borderWidth: config.borderWidth !== undefined ? config.borderWidth : 0,
+      borderRadius: config.borderRadius !== undefined ? config.borderRadius : 12,
+      disabled: config.disabled || false,
+      rippleEffect: config.rippleEffect !== false,
+      glowEffect: config.glowEffect !== false,
+      shadowEffect: config.shadowEffect !== false,
+      gradient: config.gradient || { enabled: true, colorTop: undefined, colorBottom: undefined }
+    };
+
+    // Ensure minimum touch target size (Apple HIG: 44x44pt)
+    this.config.width = Math.max(this.config.width, 44);
+    this.config.height = Math.max(this.config.height, 44);
+
+    // Create container
+    this.container = graphics().createContainer();
+    this.rippleContainer = graphics().createContainer();
+
+    // Create graphics elements
+    this.shadowGraphics = graphics().createGraphics();
+    this.glowGraphics = graphics().createGraphics();
+    this.background = graphics().createGraphics();
+
+    // Build button
+    this.container.addChild(this.shadowGraphics);
+    this.container.addChild(this.glowGraphics);
+    this.container.addChild(this.background);
+    this.container.addChild(this.rippleContainer);
+
+    // Create text
+    if (this.config.text) {
+      this.createText();
     }
 
-    // Ensure minimum touch size for mobile
-    this.ensureMinimumTouchSize();
+    // Render initial state
+    this.render();
 
-    // Setup event handlers
-    this.setupEventHandlers();
+    // Setup interactivity
+    this.setupInteractivity();
   }
 
   /**
-   * Configure button properties
+   * Create text field
    */
-  public configure(config: UIButtonConfig): this {
-    if (config.text !== undefined) this.text = config.text;
-    if (config.fontSize !== undefined) this.fontSize = config.fontSize;
-    if (config.fontFamily !== undefined) this.fontFamily = config.fontFamily;
-    if (config.fontWeight !== undefined) this.fontWeight = config.fontWeight;
-    if (config.textColor !== undefined) this.textColor = config.textColor;
-    if (config.backgroundColor !== undefined) this.backgroundColor = config.backgroundColor;
-    if (config.borderColor !== undefined) this.borderColor = config.borderColor;
-    if (config.borderWidth !== undefined) this.borderWidth = config.borderWidth;
-    if (config.borderRadius !== undefined) this.borderRadius = config.borderRadius;
-    if (config.disabled !== undefined) this.disabled = config.disabled;
-    if (config.rippleEffect !== undefined) this.rippleEffect = config.rippleEffect;
-
-    if (config.padding !== undefined) {
-      this.setPadding(config.padding);
-    }
-
-    return this;
-  }
-
-  /**
-   * Render the button
-   */
-  public render(renderer: any): void {
-    if (!this.visible || this.alpha <= 0) return;
-
-    const bounds = this.getBounds();
-    const globalPos = this.getGlobalPosition();
-    
-    // Get current colors based on state
-    const bgColor = this.getCurrentBackgroundColor();
-    const textCol = this.getCurrentTextColor();
-    
-    // Render background
-    this.renderBackground(renderer, bounds, globalPos, bgColor);
-    
-    // Render border if specified
-    if (this.borderWidth > 0) {
-      this.renderBorder(renderer, bounds, globalPos);
-    }
-    
-    // Render ripple effects
-    if (this.rippleEffect) {
-      this.renderRipples(renderer, bounds, globalPos);
-    }
-    
-    // Render text
-    if (this.text) {
-      this.renderText(renderer, bounds, globalPos, textCol);
-    }
-
-    // Render children
-    for (const child of this.children) {
-      child.render(renderer);
-    }
-  }
-
-  /**
-   * Update button (handle animations, ripples, etc.)
-   */
-  public update(deltaTime: number): void {
-    super.update(deltaTime);
-
-    // Update ripple effects
-    if (this.rippleEffect) {
-      this.updateRipples(deltaTime);
-    }
-  }
-
-  /**
-   * Set button text
-   */
-  public setText(text: string): this {
-    this.text = text;
-    this.calculateTextSize();
-    return this;
-  }
-
-  /**
-   * Set button style
-   */
-  public setStyle(style: Partial<UIButtonConfig>): this {
-    return this.configure(style);
-  }
-
-  /**
-   * Set disabled state
-   */
-  public setDisabled(disabled: boolean): this {
-    this.disabled = disabled;
-    this.interactive = !disabled;
-    this.emit('disabled-changed', disabled);
-    return this;
-  }
-
-  /**
-   * Trigger button click programmatically
-   */
-  public click(): this {
-    if (!this.disabled) {
-      this.emit('click');
-    }
-    return this;
-  }
-
-  /**
-   * Setup event handlers for touch/mouse interactions
-   */
-  private setupEventHandlers(): void {
-    this.on('pointer-down', this.handlePointerDown.bind(this));
-    this.on('pointer-up', this.handlePointerUp.bind(this));
-    this.on('pointer-move', this.handlePointerMove.bind(this));
-    this.on('pointer-cancel', this.handlePointerCancel.bind(this));
-  }
-
-  private handlePointerDown(event: UIInteractionEvent): void {
-    if (this.disabled) return;
-
-    this._isPressed = true;
-    
-    // Create ripple effect
-    if (this.rippleEffect) {
-      this.createRipple(event.position);
-    }
-
-    // Emit press event
-    this.emit('press', event);
-    
-    // Scale feedback
-    this.animate({ scale: { x: 0.95, y: 0.95 } }, {
-      duration: 100,
-      easing: 'ease-out'
-    });
-  }
-
-  private handlePointerUp(event: UIInteractionEvent): void {
-    if (this.disabled) return;
-
-    const wasPressed = this._isPressed;
-    this._isPressed = false;
-
-    // Scale back to normal
-    this.animate({ scale: { x: 1, y: 1 } }, {
-      duration: 150,
-      easing: 'spring'
+  private createText(): void {
+    this.textField = graphics().createText(this.config.text, {
+      fontFamily: this.config.fontFamily,
+      fontSize: this.config.fontSize,
+      fontWeight: this.config.fontWeight,
+      fill: this.config.textColor,
+      align: 'center'
     });
 
-    // Emit click if pointer is still over button
-    const hitTarget = this.hitTest(event.position);
-    if (wasPressed && hitTarget === this) {
-      this.emit('click', event);
-    }
+    if (this.textField.anchor) this.textField.anchor.set(0.5, 0.5);
+    this.textField.x = this.config.width / 2;
+    this.textField.y = this.config.height / 2;
 
-    this.emit('release', event);
+    this.container.addChild(this.textField);
   }
 
-  private handlePointerMove(event: UIInteractionEvent): void {
-    // Check if still hovering
-    const hitTarget = this.hitTest(event.position);
-    const isHovered = hitTarget === this;
-    
-    if (isHovered !== this._isHovered) {
-      this._isHovered = isHovered;
-      this.emit(isHovered ? 'hover-start' : 'hover-end', event);
+  /**
+   * Setup touch/mouse interactivity
+   */
+  private setupInteractivity(): void {
+    this.container.eventMode = 'static';
+    this.container.cursor = this.config.disabled ? 'default' : 'pointer';
+
+    // Pointer events
+    this.container.on('pointerdown', this.onPointerDown.bind(this));
+    this.container.on('pointerup', this.onPointerUp.bind(this));
+    this.container.on('pointerupoutside', this.onPointerUpOutside.bind(this));
+    this.container.on('pointerover', this.onPointerOver.bind(this));
+    this.container.on('pointerout', this.onPointerOut.bind(this));
+  }
+
+  /**
+   * Render button graphics
+   */
+  private render(): void {
+    const { width, height, borderRadius, shadowEffect, glowEffect } = this.config;
+
+    // Clear all graphics
+    this.background.clear();
+    if (this.shadowGraphics) this.shadowGraphics.clear();
+    if (this.glowGraphics) this.glowGraphics.clear();
+
+    // Get current state color
+    const currentColor = this.getCurrentColor();
+
+    // Shadow effect
+    if (shadowEffect && !this.config.disabled) {
+      this.renderShadow();
+    }
+
+    // Glow effect (for pressed/hover states)
+    if (glowEffect && (this.isPressed || this.isHovered) && !this.config.disabled) {
+      this.renderGlow();
+    }
+
+    // Background with gradient
+    if (this.config.gradient.enabled) {
+      this.renderGradientBackground(currentColor);
+    } else {
+      this.renderSolidBackground(currentColor);
+    }
+
+    // Border
+    if (this.config.borderWidth > 0) {
+      this.renderBorder();
     }
   }
 
-  private handlePointerCancel(event: UIInteractionEvent): void {
-    this._isPressed = false;
-    this._isHovered = false;
-    
-    // Scale back to normal
-    this.animate({ scale: { x: 1, y: 1 } }, {
-      duration: 150,
-      easing: 'spring'
+  /**
+   * Render shadow effect
+   */
+  private renderShadow(): void {
+    if (!this.shadowGraphics) return;
+
+    const { width, height, borderRadius } = this.config;
+    const offsetY = this.isPressed ? 2 : 4;
+    const alpha = this.isPressed ? 0.2 : 0.3;
+
+    this.shadowGraphics.beginFill(0x000000, alpha);
+    this.shadowGraphics.drawRoundedRect(
+      0,
+      offsetY,
+      width,
+      height,
+      borderRadius
+    );
+    this.shadowGraphics.endFill();
+
+    // Note: Blur filter is renderer-specific and applied internally by the graphics implementation
+    // The framework handles blur effects automatically based on the renderer type
+  }
+
+  /**
+   * Render glow effect
+   */
+  private renderGlow(): void {
+    if (!this.glowGraphics) return;
+
+    const { width, height, borderRadius, backgroundColor } = this.config;
+
+    this.glowGraphics.beginFill(backgroundColor, 0.4);
+    this.glowGraphics.drawRoundedRect(
+      -4,
+      -4,
+      width + 8,
+      height + 8,
+      borderRadius + 4
+    );
+    this.glowGraphics.endFill();
+
+    // Note: Blur filter is renderer-specific and applied internally by the graphics implementation
+    // The framework handles blur effects automatically based on the renderer type
+  }
+
+  /**
+   * Render gradient background
+   */
+  private renderGradientBackground(baseColor: number): void {
+    const { width, height, borderRadius, gradient } = this.config;
+
+    // Determine gradient colors
+    const colorTop = gradient.colorTop !== undefined ? gradient.colorTop : this.lightenColor(baseColor, 0.2);
+    const colorBottom = gradient.colorBottom !== undefined ? gradient.colorBottom : this.darkenColor(baseColor, 0.2);
+
+    // Create gradient texture using framework abstraction
+    const texture = graphics().createCanvasTexture(width, height, (ctx: CanvasRenderingContext2D) => {
+      const gradientFill = ctx.createLinearGradient(0, 0, 0, height);
+      gradientFill.addColorStop(0, this.numberToHex(colorTop));
+      gradientFill.addColorStop(1, this.numberToHex(colorBottom));
+
+      ctx.fillStyle = gradientFill;
+      this.roundRect(ctx, 0, 0, width, height, borderRadius);
+      ctx.fill();
     });
 
-    this.emit('cancel', event);
+    // Apply to sprite
+    this.background.beginTextureFill({ texture });
+    this.background.drawRoundedRect(0, 0, width, height, borderRadius);
+    this.background.endFill();
   }
 
   /**
-   * Ensure button meets minimum touch size requirements
+   * Render solid background
    */
-  private ensureMinimumTouchSize(): void {
-    if (this.size.width < this._minTouchSize) {
-      this.size.width = this._minTouchSize;
-    }
-    if (this.size.height < this._minTouchSize) {
-      this.size.height = this._minTouchSize;
-    }
+  private renderSolidBackground(color: number): void {
+    const { width, height, borderRadius } = this.config;
+
+    this.background.beginFill(color);
+    this.background.drawRoundedRect(0, 0, width, height, borderRadius);
+    this.background.endFill();
   }
 
   /**
-   * Calculate text size and adjust button size if needed
+   * Render border
    */
-  private calculateTextSize(): void {
-    if (!this.text) return;
+  private renderBorder(): void {
+    const { width, height, borderRadius, borderWidth, borderColor } = this.config;
 
-    // This is a simplified calculation - in a real implementation,
-    // you'd measure the actual text with the rendering context
-    const estimatedWidth = this.text.length * (this.fontSize * 0.6);
-    const estimatedHeight = this.fontSize * 1.2;
-
-    const requiredWidth = estimatedWidth + this.padding.left + this.padding.right;
-    const requiredHeight = estimatedHeight + this.padding.top + this.padding.bottom;
-
-    if (this.constraints.width.type === 'wrap') {
-      this.size.width = Math.max(requiredWidth, this._minTouchSize);
-    }
-    if (this.constraints.height.type === 'wrap') {
-      this.size.height = Math.max(requiredHeight, this._minTouchSize);
-    }
+    this.background.lineStyle(borderWidth, borderColor, 1);
+    this.background.drawRoundedRect(0, 0, width, height, borderRadius);
   }
 
   /**
-   * Get current background color based on state
+   * Get current button color based on state
    */
-  private getCurrentBackgroundColor(): Color {
-    if (this.disabled) {
-      return {
-        r: this.backgroundColor.r * 0.5,
-        g: this.backgroundColor.g * 0.5,
-        b: this.backgroundColor.b * 0.5,
-        a: this.backgroundColor.a * 0.5
-      };
-    }
-
-    if (this._isPressed) {
-      return {
-        r: Math.max(0, this.backgroundColor.r - 30),
-        g: Math.max(0, this.backgroundColor.g - 30),
-        b: Math.max(0, this.backgroundColor.b - 30),
-        a: this.backgroundColor.a
-      };
-    }
-
-    if (this._isHovered) {
-      return {
-        r: Math.min(255, this.backgroundColor.r + 20),
-        g: Math.min(255, this.backgroundColor.g + 20),
-        b: Math.min(255, this.backgroundColor.b + 20),
-        a: this.backgroundColor.a
-      };
-    }
-
-    return this.backgroundColor;
+  private getCurrentColor(): number {
+    if (this.config.disabled) return this.config.disabledColor;
+    if (this.isPressed) return this.config.pressedColor;
+    if (this.isHovered) return this.config.hoverColor;
+    return this.config.backgroundColor;
   }
 
   /**
-   * Get current text color based on state
+   * Create ripple effect at position
    */
-  private getCurrentTextColor(): Color {
-    if (this.disabled) {
-      return {
-        r: this.textColor.r,
-        g: this.textColor.g,
-        b: this.textColor.b,
-        a: this.textColor.a * 0.5
-      };
-    }
+  private createRipple(x: number, y: number): void {
+    if (!this.config.rippleEffect) return;
 
-    return this.textColor;
-  }
+    const ripple = graphics().createGraphics();
+    ripple.x = x;
+    ripple.y = y;
 
-  /**
-   * Create a ripple effect at the given position
-   */
-  private createRipple(position: { x: number; y: number }): void {
-    const bounds = this.getBounds();
-    const localX = position.x - bounds.x;
-    const localY = position.y - bounds.y;
+    this.rippleContainer.addChild(ripple);
 
-    this._ripples.push({
-      x: localX,
-      y: localY,
+    this.activeRipples.push({
+      graphics: ripple,
       startTime: Date.now(),
-      id: Math.random().toString(36).substr(2, 9)
+      x,
+      y
     });
   }
 
   /**
    * Update ripple animations
    */
-  private updateRipples(deltaTime: number): void {
-    const currentTime = Date.now();
-    const rippleDuration = 300; // ms
+  public update(deltaTime: number): void {
+    const now = Date.now();
+    const duration = 400; // ms
 
-    // Remove expired ripples
-    this._ripples = this._ripples.filter(ripple => {
-      return (currentTime - ripple.startTime) < rippleDuration;
+    this.activeRipples = this.activeRipples.filter(ripple => {
+      const elapsed = now - ripple.startTime;
+      if (elapsed >= duration) {
+        this.rippleContainer.removeChild(ripple.graphics);
+        ripple.graphics.destroy();
+        return false;
+      }
+
+      // Animate ripple
+      const progress = elapsed / duration;
+      const radius = progress * Math.max(this.config.width, this.config.height);
+      const alpha = 1 - progress;
+
+      ripple.graphics.clear();
+      ripple.graphics.beginFill(0xFFFFFF, alpha * 0.5);
+      ripple.graphics.drawCircle(0, 0, radius);
+      ripple.graphics.endFill();
+
+      return true;
     });
   }
 
   /**
-   * Render background
+   * Pointer event handlers
    */
-  private renderBackground(renderer: any, bounds: any, globalPos: any, bgColor: Color): void {
-    // Implementation depends on the renderer
-    // This is a placeholder that would be implemented for specific renderers
-    const ctx = renderer.context || renderer;
-    
-    if (ctx && ctx.fillStyle !== undefined) {
-      // HTML5 Canvas implementation
-      ctx.save();
-      ctx.fillStyle = `rgba(${bgColor.r}, ${bgColor.g}, ${bgColor.b}, ${bgColor.a})`;
-      
-      if (this.borderRadius > 0) {
-        this.drawRoundedRect(ctx, bounds.x, bounds.y, bounds.width, bounds.height, this.borderRadius);
-        ctx.fill();
-      } else {
-        ctx.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
-      }
-      
-      ctx.restore();
-    }
+  private onPointerDown(event: any): void {
+    if (this.config.disabled) return;
+
+    this.isPressed = true;
+    this.render();
+
+    // Create ripple at touch position
+    const localPos = event.getLocalPosition ? event.getLocalPosition(this.container) : { x: this.config.width / 2, y: this.config.height / 2 };
+    this.createRipple(localPos.x, localPos.y);
+
+    // Scale feedback
+    this.container.scale.x = 0.95;
+    this.container.scale.y = 0.95;
+
+    this.emit('press', event);
+  }
+
+  private onPointerUp(event: any): void {
+    if (this.config.disabled) return;
+
+    this.isPressed = false;
+    this.render();
+
+    // Scale back
+    this.container.scale.x = 1;
+    this.container.scale.y = 1;
+
+    this.emit('click', event);
+    this.emit('release', event);
+  }
+
+  private onPointerUpOutside(): void {
+    if (this.config.disabled) return;
+
+    this.isPressed = false;
+    this.render();
+
+    // Scale back
+    this.container.scale.x = 1;
+    this.container.scale.y = 1;
+
+    this.emit('cancel');
+  }
+
+  private onPointerOver(): void {
+    if (this.config.disabled) return;
+
+    this.isHovered = true;
+    this.render();
+
+    this.emit('hover');
+  }
+
+  private onPointerOut(): void {
+    if (this.config.disabled) return;
+
+    this.isHovered = false;
+    this.render();
+
+    this.emit('hoverEnd');
   }
 
   /**
-   * Render border
+   * Public API
    */
-  private renderBorder(renderer: any, bounds: any, globalPos: any): void {
-    const ctx = renderer.context || renderer;
-    
-    if (ctx && ctx.strokeStyle !== undefined) {
-      ctx.save();
-      ctx.strokeStyle = `rgba(${this.borderColor.r}, ${this.borderColor.g}, ${this.borderColor.b}, ${this.borderColor.a})`;
-      ctx.lineWidth = this.borderWidth;
-      
-      if (this.borderRadius > 0) {
-        this.drawRoundedRect(ctx, bounds.x, bounds.y, bounds.width, bounds.height, this.borderRadius);
-        ctx.stroke();
-      } else {
-        ctx.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
-      }
-      
-      ctx.restore();
+
+  public setText(text: string): this {
+    this.config.text = text;
+    if (this.textField) {
+      this.textField.text = text;
+    } else {
+      this.createText();
     }
+    return this;
+  }
+
+  public setDisabled(disabled: boolean): this {
+    this.config.disabled = disabled;
+    this.container.cursor = disabled ? 'default' : 'pointer';
+    this.render();
+    this.emit('disabled-changed', disabled);
+    return this;
+  }
+
+  public setBackgroundColor(color: number): this {
+    this.config.backgroundColor = color;
+    this.render();
+    return this;
+  }
+
+  public setTextColor(color: number): this {
+    this.config.textColor = color;
+    if (this.textField) {
+      this.textField.style.fill = color;
+    }
+    return this;
+  }
+
+  public getContainer(): IContainer {
+    return this.container;
+  }
+
+  public destroy(): void {
+    this.activeRipples.forEach(ripple => {
+      ripple.graphics.destroy();
+    });
+    this.activeRipples = [];
+    this.container.destroy({ children: true });
+    this.removeAllListeners();
   }
 
   /**
-   * Render text
+   * Utility methods
    */
-  private renderText(renderer: any, bounds: any, globalPos: any, textColor: Color): void {
-    const ctx = renderer.context || renderer;
-    
-    if (ctx && ctx.fillText !== undefined) {
-      ctx.save();
-      ctx.fillStyle = `rgba(${textColor.r}, ${textColor.g}, ${textColor.b}, ${textColor.a})`;
-      ctx.font = `${this.fontWeight} ${this.fontSize}px ${this.fontFamily}`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      
-      const centerX = bounds.x + bounds.width / 2;
-      const centerY = bounds.y + bounds.height / 2;
-      
-      ctx.fillText(this.text, centerX, centerY);
-      ctx.restore();
-    }
+
+  private lightenColor(color: number, amount: number): number {
+    const r = ((color >> 16) & 0xFF) + Math.floor(255 * amount);
+    const g = ((color >> 8) & 0xFF) + Math.floor(255 * amount);
+    const b = (color & 0xFF) + Math.floor(255 * amount);
+
+    return ((Math.min(255, r) << 16) | (Math.min(255, g) << 8) | Math.min(255, b));
   }
 
-  /**
-   * Render ripple effects
-   */
-  private renderRipples(renderer: any, bounds: any, globalPos: any): void {
-    const ctx = renderer.context || renderer;
-    if (!ctx) return;
+  private darkenColor(color: number, amount: number): number {
+    const r = ((color >> 16) & 0xFF) - Math.floor(255 * amount);
+    const g = ((color >> 8) & 0xFF) - Math.floor(255 * amount);
+    const b = (color & 0xFF) - Math.floor(255 * amount);
 
-    const currentTime = Date.now();
-    const rippleDuration = 300;
-
-    for (const ripple of this._ripples) {
-      const elapsed = currentTime - ripple.startTime;
-      const progress = Math.min(elapsed / rippleDuration, 1);
-      const maxRadius = Math.max(bounds.width, bounds.height);
-      const radius = progress * maxRadius;
-      const opacity = 1 - progress;
-
-      ctx.save();
-      ctx.globalAlpha = opacity * 0.3;
-      ctx.fillStyle = 'rgba(255, 255, 255, 1)';
-      ctx.beginPath();
-      ctx.arc(bounds.x + ripple.x, bounds.y + ripple.y, radius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
+    return ((Math.max(0, r) << 16) | (Math.max(0, g) << 8) | Math.max(0, b));
   }
 
-  /**
-   * Draw rounded rectangle
-   */
-  private drawRoundedRect(ctx: any, x: number, y: number, width: number, height: number, radius: number): void {
+  private numberToHex(num: number): string {
+    return `#${num.toString(16).padStart(6, '0')}`;
+  }
+
+  private roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number): void {
     ctx.beginPath();
     ctx.moveTo(x + radius, y);
     ctx.lineTo(x + width - radius, y);
