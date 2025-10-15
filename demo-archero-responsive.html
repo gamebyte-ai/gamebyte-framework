@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Archero Menu (Framework Responsive) - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            overflow: hidden;
+            background: #000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            touch-action: none;
+        }
+        #game-container {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            height: 100vh;
+        }
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 24px;
+            z-index: 100;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">Loading...</div>
+    <div id="game-container"></div>
+
+    <!-- Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+    <script src="./dist/gamebyte.umd.js"></script>
+
+    <script>
+        (async () => {
+            try {
+                const { createGame, ArcheroMenu, ARCHERO_COLORS } = GameByteFramework;
+
+                // Mobile-first base design dimensions
+                const BASE_WIDTH = 1080;
+                const BASE_HEIGHT = 1920;
+
+                // Create game with responsive mode enabled
+                const game = createGame();
+
+                // Create canvas
+                const canvas = document.createElement('canvas');
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                canvas.style.width = window.innerWidth + 'px';
+                canvas.style.height = window.innerHeight + 'px';
+                canvas.style.display = 'block';
+                document.getElementById('game-container').appendChild(canvas);
+
+                console.log('✅ Canvas created:', window.innerWidth, 'x', window.innerHeight);
+
+                // Initialize with 2D renderer and ENABLE RESPONSIVE MODE
+                console.log('⏳ Initializing game with responsive mode...');
+                await game.initialize(canvas, '2d', {
+                    resolution: 1,
+                    autoDensity: false,
+                    responsive: {
+                        baseWidth: BASE_WIDTH,
+                        baseHeight: BASE_HEIGHT,
+                        minScale: 0.5,
+                        maxScale: 2.0
+                    }
+                });
+                console.log('✅ Game initialized successfully with responsive mode');
+
+                document.getElementById('loading').style.display = 'none';
+
+                // Get renderer and responsive calculator
+                const renderer = game.make('renderer');
+                const responsiveCalc = renderer.getResponsiveCalculator();
+                const stage = renderer.getStage();
+
+                console.log('🎨 Renderer:', renderer);
+                console.log('📱 Responsive Calculator:', responsiveCalc);
+                console.log('📐 Current Scale:', responsiveCalc.getScale());
+
+                // Create full screen background
+                const background = new PIXI.Graphics();
+                background.rect(0, 0, window.innerWidth, window.innerHeight);
+                background.fill({ color: 0x0a0e1a });
+                stage.addChild(background);
+
+                // Define base values (designed at 1080x1920)
+                const BASE_NAV_HEIGHT = 280;
+                const BASE_BUTTON_SIZE = 180;
+                const BASE_ACTIVE_BUTTON_SIZE = 320;
+                const BASE_PADDING = 40;
+
+                // Get current scale
+                let currentScale = responsiveCalc.getScale();
+
+                // Calculate scaled values using responsive calculator
+                let NAV_HEIGHT = responsiveCalc.scaleSize(BASE_NAV_HEIGHT);
+                let BUTTON_SIZE = responsiveCalc.scaleSize(BASE_BUTTON_SIZE);
+                let ACTIVE_BUTTON_SIZE = responsiveCalc.scaleSize(BASE_ACTIVE_BUTTON_SIZE);
+                let padding = responsiveCalc.scalePadding(BASE_PADDING);
+
+                // Menu sections
+                const sections = [
+                    { name: 'Shop', icon: '🛒', iconColor: ARCHERO_COLORS.red },
+                    { name: 'Gear', icon: '⚙️', iconColor: ARCHERO_COLORS.purple },
+                    { name: 'Campaign', icon: '🎯', iconColor: ARCHERO_COLORS.activeYellow },
+                    { name: 'Trophy', icon: '🏆', iconColor: ARCHERO_COLORS.green },
+                    { name: 'Chest', icon: '📦', iconColor: ARCHERO_COLORS.blue }
+                ];
+
+                let activeSection = 2;
+
+                // Create navigation bar
+                const navBar = new PIXI.Container();
+                navBar.y = window.innerHeight - NAV_HEIGHT;
+                stage.addChild(navBar);
+
+                // Navigation background
+                const navBg = new PIXI.Graphics();
+                navBg.rect(0, 0, window.innerWidth, NAV_HEIGHT);
+                navBg.fill({ color: 0x1a1f2e, alpha: 1.0 });
+                navBar.addChild(navBg);
+
+                // Create buttons
+                const navButtons = [];
+                const buttonSpacing = window.innerWidth / sections.length;
+
+                sections.forEach((section, i) => {
+                    const isActive = i === activeSection;
+                    const size = isActive ? ACTIVE_BUTTON_SIZE : BUTTON_SIZE;
+
+                    const button = new PIXI.Container();
+                    button.x = buttonSpacing * i + buttonSpacing / 2;
+                    button.y = NAV_HEIGHT / 2;
+
+                    // Button background
+                    const bg = new PIXI.Graphics();
+                    bg.circle(0, 0, size / 2);
+                    bg.fill({ color: isActive ? section.iconColor : 0x2a3040 });
+                    button.addChild(bg);
+
+                    // Icon
+                    const icon = new PIXI.Text({
+                        text: section.icon,
+                        style: {
+                            fontSize: responsiveCalc.scaleFont(isActive ? 140 : 90),
+                            fontFamily: 'system-ui',
+                            stroke: { color: 0x000000, width: responsiveCalc.scaleStroke(8) },
+                            dropShadow: {
+                                distance: responsiveCalc.scaleSize(6),
+                                alpha: 0.8,
+                                blur: responsiveCalc.scaleSize(4),
+                                color: 0x000000
+                            }
+                        }
+                    });
+                    icon.anchor.set(0.5);
+                    icon.y = responsiveCalc.scalePosition(isActive ? -35 : -10);
+                    button.addChild(icon);
+
+                    // Label (only for active button)
+                    if (isActive) {
+                        const label = new PIXI.Text({
+                            text: section.name,
+                            style: {
+                                fontSize: responsiveCalc.scaleFont(40),
+                                fontFamily: 'system-ui',
+                                fill: 0xffffff,
+                                stroke: { color: 0x000000, width: responsiveCalc.scaleStroke(4) }
+                            }
+                        });
+                        label.anchor.set(0.5);
+                        label.y = responsiveCalc.scalePosition(55);
+                        button.addChild(label);
+                        button.label = label;
+                    }
+
+                    button.interactive = true;
+                    button.cursor = 'pointer';
+                    button.on('pointerdown', () => {
+                        if (activeSection !== i) {
+                            activeSection = i;
+                            updateButtons();
+                        }
+                    });
+
+                    button.bg = bg;
+                    button.icon = icon;
+                    button.sectionIndex = i;
+                    navBar.addChild(button);
+                    navButtons.push(button);
+                });
+
+                // Update button states
+                function updateButtons() {
+                    navButtons.forEach((btn, i) => {
+                        const isActive = i === activeSection;
+                        const size = isActive ? ACTIVE_BUTTON_SIZE : BUTTON_SIZE;
+                        const section = sections[i];
+
+                        // Update background
+                        btn.bg.clear();
+                        btn.bg.circle(0, 0, size / 2);
+                        btn.bg.fill({ color: isActive ? section.iconColor : 0x2a3040 });
+
+                        // Update icon
+                        btn.icon.style.fontSize = responsiveCalc.scaleFont(isActive ? 140 : 90);
+                        btn.icon.y = responsiveCalc.scalePosition(isActive ? -35 : -10);
+
+                        // Update or remove label
+                        if (isActive && !btn.label) {
+                            const label = new PIXI.Text({
+                                text: section.name,
+                                style: {
+                                    fontSize: responsiveCalc.scaleFont(40),
+                                    fontFamily: 'system-ui',
+                                    fill: 0xffffff,
+                                    stroke: { color: 0x000000, width: responsiveCalc.scaleStroke(4) }
+                                }
+                            });
+                            label.anchor.set(0.5);
+                            label.y = responsiveCalc.scalePosition(55);
+                            btn.addChild(label);
+                            btn.label = label;
+                        } else if (!isActive && btn.label) {
+                            btn.removeChild(btn.label);
+                            btn.label = null;
+                        }
+                    });
+                }
+
+                // Listen for responsive resize events from the framework
+                renderer.on('responsiveResize', (size) => {
+                    console.log('📱 Responsive resize:', size);
+                    currentScale = size.scale;
+
+                    // Recalculate all scaled values
+                    NAV_HEIGHT = responsiveCalc.scaleSize(BASE_NAV_HEIGHT);
+                    BUTTON_SIZE = responsiveCalc.scaleSize(BASE_BUTTON_SIZE);
+                    ACTIVE_BUTTON_SIZE = responsiveCalc.scaleSize(BASE_ACTIVE_BUTTON_SIZE);
+                    padding = responsiveCalc.scalePadding(BASE_PADDING);
+
+                    // Update background
+                    background.clear();
+                    background.rect(0, 0, size.width, size.height);
+                    background.fill({ color: 0x0a0e1a });
+
+                    // Update navigation bar
+                    navBar.y = size.height - NAV_HEIGHT;
+                    navBg.clear();
+                    navBg.rect(0, 0, size.width, NAV_HEIGHT);
+                    navBg.fill({ color: 0x1a1f2e, alpha: 1.0 });
+
+                    // Update button positions and sizes
+                    const buttonSpacing = size.width / sections.length;
+                    navButtons.forEach((btn, i) => {
+                        btn.x = buttonSpacing * i + buttonSpacing / 2;
+                        btn.y = NAV_HEIGHT / 2;
+                    });
+
+                    // Update button visuals
+                    updateButtons();
+                });
+
+                // Start rendering
+                renderer.start();
+
+                console.log('✅ Framework responsive demo ready!');
+                console.log('💡 Resize the window to see automatic responsive scaling');
+            } catch (error) {
+                console.error('❌ Demo failed:', error);
+                document.getElementById('loading').textContent = 'Error: ' + error.message;
+                document.getElementById('loading').style.color = 'red';
+            }
+        })();
+    </script>
+</body>
+</html>

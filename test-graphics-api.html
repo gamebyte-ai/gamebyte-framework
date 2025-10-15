@@ -89,9 +89,8 @@
                     console.log('✅ Created graphics via graphics():', testGraphics);
 
                     // Draw a rectangle
-                    testGraphics.beginFill(0x4ECCA3);
-                    testGraphics.drawRect(100, 100, 200, 150);
-                    testGraphics.endFill();
+                    testGraphics.rect(100, 100, 200, 150);
+                    testGraphics.fill({ color: 0x4ECCA3 });
 
                     testContainer.addChild(testGraphics);
                     this.container.addChild(testContainer);
@@ -117,9 +116,8 @@
 
                 // Add background
                 const bg = graphics().createGraphics();
-                bg.beginFill(0x1a1a2e);
-                bg.drawRect(0, 0, 800, 600);
-                bg.endFill();
+                bg.rect(0, 0, 800, 600);
+                bg.fill({ color: 0x1a1a2e });
                 this.container.addChildAt(bg, 0);
 
                 console.log('✅ Graphics API Scene initialized');

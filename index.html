@@ -122,47 +122,102 @@
         <header>
             <h1>🎮 GameByte Framework</h1>
             <p class="subtitle">A comprehensive JavaScript game engine framework</p>
-            <div class="version">v1.0.0 - Architecture Refactoring Complete ✅</div>
+            <div class="version">v1.0.0 - Pixi v8 Upgrade Complete 🚀</div>
         </header>
 
         <div class="section">
             <h2 class="section-title">Mobile Game Demos</h2>
             <div class="grid">
-                <a href="demo-archero-style.html" class="card">
+                <a href="demo-archero-simple.html" class="card">
                     <div class="card-header">
                         <div class="card-icon">📱</div>
                         <div>
-                            <div class="card-title">Archero-Style Menu (2D)</div>
-                            <span class="status-badge status-working">WORKING</span>
-                        </div>
-                    </div>
-                    <p class="card-description">
-                        Mobile-first (9:16) bottom navigation menu with glossy gold gradient buttons, shine effects, GSAP animations, touch gestures, and particle effects. Production-ready component.
-                    </p>
-                    <div class="card-tags">
-                        <span class="tag tag-2d">2D</span>
-                        <span class="tag tag-ui">Bottom Nav</span>
-                        <span class="tag">Gestures</span>
-                        <span class="tag">Particles</span>
-                    </div>
-                </a>
-
-                <a href="demo-archero-3d.html" class="card">
-                    <div class="card-header">
-                        <div class="card-icon">🌐</div>
-                        <div>
-                            <div class="card-title">Archero-Style Menu (3D)</div>
+                            <div class="card-title">Archero Menu (Simple)</div>
                             <span class="status-badge status-new">NEW</span>
                         </div>
                     </div>
                     <p class="card-description">
-                        Same Archero menu with Three.js 3D background. Rotating 3D objects per section, metallic materials, smooth camera transitions. Perfect hybrid 2D/3D demo.
+                        Simplified Archero menu demo using framework's ArcheroMenu component. ~100 lines of code vs 770! Perfect starting point for mobile game menus.
+                    </p>
+                    <div class="card-tags">
+                        <span class="tag tag-2d">2D</span>
+                        <span class="tag tag-ui">Framework</span>
+                        <span class="tag">Simple</span>
+                        <span class="tag">Best Practice</span>
+                    </div>
+                </a>
+
+                <a href="demo-archero-responsive.html" class="card">
+                    <div class="card-header">
+                        <div class="card-icon">📱</div>
+                        <div>
+                            <div class="card-title">Archero Menu (Responsive)</div>
+                            <span class="status-badge status-new">NEW</span>
+                        </div>
+                    </div>
+                    <p class="card-description">
+                        Framework-native responsive demo using built-in ResponsiveCalculator. Automatic scaling for all screen sizes with minimal code.
+                    </p>
+                    <div class="card-tags">
+                        <span class="tag tag-2d">2D</span>
+                        <span class="tag tag-ui">Framework</span>
+                        <span class="tag">Responsive</span>
+                        <span class="tag">Auto-Scale</span>
+                    </div>
+                </a>
+
+                <a href="demo-archero-hybrid.html" class="card">
+                    <div class="card-header">
+                        <div class="card-icon">🌐</div>
+                        <div>
+                            <div class="card-title">Archero Menu (Hybrid 3D)</div>
+                            <span class="status-badge status-new">NEW</span>
+                        </div>
+                    </div>
+                    <p class="card-description">
+                        HybridRenderer demo: Three.js 3D background + Pixi.js 2D UI. Stacked canvas architecture, per-section 3D objects, synchronized rendering. ~200 lines!
                     </p>
                     <div class="card-tags">
                         <span class="tag tag-3d">3D</span>
                         <span class="tag tag-2d">2D UI</span>
                         <span class="tag tag-ui">Hybrid</span>
-                        <span class="tag">Three.js</span>
+                        <span class="tag">HybridRenderer</span>
+                    </div>
+                </a>
+
+                <a href="demo-archero-style.html" class="card">
+                    <div class="card-header">
+                        <div class="card-icon">📝</div>
+                        <div>
+                            <div class="card-title">Archero Menu (Vanilla)</div>
+                            <span class="status-badge status-working">LEGACY</span>
+                        </div>
+                    </div>
+                    <p class="card-description">
+                        Original vanilla implementation (770 lines). Shows all the details before framework abstraction. Reference for understanding internals.
+                    </p>
+                    <div class="card-tags">
+                        <span class="tag tag-2d">2D</span>
+                        <span class="tag">Vanilla</span>
+                        <span class="tag">Reference</span>
+                    </div>
+                </a>
+
+                <a href="demo-archero-3d.html" class="card">
+                    <div class="card-header">
+                        <div class="card-icon">📝</div>
+                        <div>
+                            <div class="card-title">Archero 3D (Vanilla)</div>
+                            <span class="status-badge status-working">LEGACY</span>
+                        </div>
+                    </div>
+                    <p class="card-description">
+                        Original hybrid implementation (800+ lines). Manual Three.js + Pixi.js integration. Use demo-archero-hybrid.html for modern approach.
+                    </p>
+                    <div class="card-tags">
+                        <span class="tag tag-3d">3D</span>
+                        <span class="tag">Vanilla</span>
+                        <span class="tag">Reference</span>
                     </div>
                 </a>
             </div>
@@ -171,24 +226,6 @@
         <div class="section">
             <h2 class="section-title">UI Component Demos</h2>
             <div class="grid">
-                <a href="test-ui-modern.html" class="card">
-                    <div class="card-header">
-                        <div class="card-icon">🎨</div>
-                        <div>
-                            <div class="card-title">Modern UI Components</div>
-                            <span class="status-badge status-working">WORKING</span>
-                        </div>
-                    </div>
-                    <p class="card-description">
-                        Showcase of modern UI buttons with gradients, glow effects, shadows, and ripple animations.
-                    </p>
-                    <div class="card-tags">
-                        <span class="tag tag-2d">2D</span>
-                        <span class="tag tag-ui">UI Components</span>
-                        <span class="tag">Animations</span>
-                    </div>
-                </a>
-
                 <a href="test-ui-umd.html" class="card">
                     <div class="card-header">
                         <div class="card-icon">📊</div>
@@ -212,24 +249,6 @@
         <div class="section">
             <h2 class="section-title">Core Framework Tests</h2>
             <div class="grid">
-                <a href="test-umd-simple.html" class="card">
-                    <div class="card-header">
-                        <div class="card-icon">⚡</div>
-                        <div>
-                            <div class="card-title">2D Simple Test</div>
-                            <span class="status-badge status-working">WORKING</span>
-                        </div>
-                    </div>
-                    <p class="card-description">
-                        Basic 2D framework test with Pixi.js renderer and animated circle.
-                    </p>
-                    <div class="card-tags">
-                        <span class="tag tag-2d">2D</span>
-                        <span class="tag">Pixi.js</span>
-                        <span class="tag">UMD</span>
-                    </div>
-                </a>
-
                 <a href="test-3d-simple.html" class="card">
                     <div class="card-header">
                         <div class="card-icon">🌐</div>
@@ -277,7 +296,7 @@
         <footer>
             <p><strong>GameByte Framework</strong> - Unifying 2D and 3D game development</p>
             <p style="margin-top: 10px; font-size: 14px;">
-                Architecture refactoring complete • Graphics abstraction layer • 100% renderer independence
+                Pixi.js v8 upgrade complete • Graphics abstraction layer • 100% renderer independence
             </p>
         </footer>
     </div>

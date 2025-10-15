@@ -64,6 +64,7 @@
 import { EventEmitter } from 'eventemitter3';
 import { graphics } from '../../graphics/GraphicsEngine';
 import { IContainer, IGraphics, IText } from '../../contracts/Graphics';
+import { ResponsiveScaleCalculator, ResponsiveConfig } from '../../utils/ResponsiveHelper';
 
 /**
  * Gradient configuration for button backgrounds
@@ -263,6 +264,8 @@ export interface ArcheroMenuOptions {
   canvasHeight?: number;
   /** Enable swipe gestures (default: true) */
   enableSwipe?: boolean;
+  /** Enable responsive scaling (default: false) */
+  responsive?: boolean | ResponsiveConfig;
 
   // Deprecated options (kept for backward compatibility)
   /** @deprecated Use style.enableParticles instead */
@@ -335,37 +338,37 @@ export const ARCHERO_COLORS = {
  * Default style configuration
  */
 const DEFAULT_STYLE: Required<ArcheroMenuStyleConfig> = {
-  // Button Sizes
-  buttonSize: 180,
-  activeButtonSize: 320,
+  // Button Sizes - Adjusted for better balance
+  buttonSize: 130,
+  activeButtonSize: 260,
   buttonRadius: 30,
 
-  // Button Colors & Gradients
+  // Button Colors & Gradients - More vibrant gold appearance
   buttonGradient: {
-    topColor: 0xFFE55C,
-    middleColor: 0xFFD700,
-    bottomColor: 0xFFA500
+    topColor: 0xFFF4CC,    // Very light cream/yellow (more contrast)
+    middleColor: 0xFFD700, // Bright gold
+    bottomColor: 0xFF8C00  // Dark orange (more saturated)
   },
   shineGradient: {
-    topColor: 0xFFFFFF,
-    middleColor: 0xFFE55C,
-    bottomColor: 0xFFD700,
-    alpha: 0.5
+    topColor: 0xFFFFFF,    // Pure white
+    middleColor: 0xFFFBE6, // Very light yellow
+    bottomColor: 0xFFE55C, // Light gold
+    alpha: 0.35            // Reduced alpha so gold shows through
   },
 
-  // Navigation Bar
-  navBarColor: ARCHERO_COLORS.navBg,
+  // Navigation Bar - More visible and prominent
+  navBarColor: 0x1a1f2e,   // Slightly lighter dark blue
   navBarAlpha: 1.0,
   navBarOverlayColor: ARCHERO_COLORS.navBgLight,
   navBarOverlayAlpha: 0.5,
-  separatorColor: ARCHERO_COLORS.separator,
-  navHeight: 280,
+  separatorColor: 0x3d4f6f, // Lighter separator for better visibility
+  navHeight: 220,           // Shorter but more prominent
 
-  // Icon Styling
-  iconSize: 90,
-  activeIconSize: 140,
+  // Icon Styling - Much larger icons that overflow the button
+  iconSize: 100,              // Larger inactive icons
+  activeIconSize: 200,        // Very large active icon that overflows button
   iconYOffset: -10,
-  activeIconYOffset: -35,
+  activeIconYOffset: -50,     // Higher position to overflow from top
   iconStrokeColor: ARCHERO_COLORS.black,
   iconStrokeWidth: 8,
   iconShadowDistance: 6,
@@ -373,7 +376,7 @@ const DEFAULT_STYLE: Required<ArcheroMenuStyleConfig> = {
 
   // Label Styling
   labelSize: 40,
-  labelYOffset: 55,
+  labelYOffset: 75,         // Lower position to accommodate large icon
   labelColor: ARCHERO_COLORS.darkBrown,
   labelStrokeColor: ARCHERO_COLORS.activeLightGold,
   labelStrokeWidth: 4,
@@ -381,17 +384,17 @@ const DEFAULT_STYLE: Required<ArcheroMenuStyleConfig> = {
   labelShadowDistance: 3,
   labelShadowBlur: 3,
 
-  // Layout & Spacing
-  padding: 40,
-  elevationOffset: 40,
+  // Layout & Spacing - Tighter spacing for better appearance
+  padding: 50,              // Increased padding for tighter button spacing
+  elevationOffset: 20,      // Less elevation for more natural look
 
-  // Animation Durations
-  transitionDuration: 0.5,
-  iconAnimDuration: 0.3,
-  repositionDuration: 0.4,
-  elevationDuration: 0.5,
-  labelFadeDuration: 0.3,
-  labelFadeDelay: 0.2,
+  // Animation Durations - Smoother and faster
+  transitionDuration: 0.4,
+  iconAnimDuration: 0.25,
+  repositionDuration: 0.35,
+  elevationDuration: 0.4,
+  labelFadeDuration: 0.25,
+  labelFadeDelay: 0.15,
 
   // Particle Effects
   enableParticles: true,
@@ -442,6 +445,9 @@ export class ArcheroMenu extends EventEmitter {
   protected touchStartX: number = 0;
   protected touchStartY: number = 0;
 
+  // Responsive scaling
+  protected responsiveCalculator: ResponsiveScaleCalculator | null = null;
+
   constructor(options: ArcheroMenuOptions) {
     super();
 
@@ -465,6 +471,16 @@ export class ArcheroMenu extends EventEmitter {
 
     this.activeSection = this.config.activeSection;
 
+    // Initialize responsive calculator if enabled
+    if (options.responsive) {
+      const responsiveConfig: ResponsiveConfig = typeof options.responsive === 'boolean'
+        ? { baseWidth: this.config.canvasWidth, baseHeight: this.config.canvasHeight }
+        : options.responsive;
+
+      this.responsiveCalculator = new ResponsiveScaleCalculator(responsiveConfig);
+      console.log('📱 ArcheroMenu responsive mode enabled with base size:', responsiveConfig.baseWidth, 'x', responsiveConfig.baseHeight);
+    }
+
     // Create containers
     this.rootContainer = graphics().createContainer();
     this.navBarContainer = graphics().createContainer();
@@ -475,7 +491,7 @@ export class ArcheroMenu extends EventEmitter {
     this.rootContainer.addChild(this.navBarContainer);
 
     // Position nav bar at bottom
-    this.navBarContainer.y = this.config.canvasHeight - this.style.navHeight;
+    this.navBarContainer.y = this.config.canvasHeight - this.getScaledValue(this.style.navHeight);
 
     // Build menu
     this.buildNavBar();
@@ -485,6 +501,15 @@ export class ArcheroMenu extends EventEmitter {
     if (this.config.enableSwipe) {
       this.setupTouchHandlers();
     }
+  }
+
+  /**
+   * Get scaled value using responsive calculator (if enabled)
+   */
+  protected getScaledValue(baseValue: number): number {
+    return this.responsiveCalculator
+      ? this.responsiveCalculator.scale(baseValue)
+      : baseValue;
   }
 
   /**
@@ -574,25 +599,25 @@ export class ArcheroMenu extends EventEmitter {
    * Build navigation bar background
    */
   protected buildNavBar(): void {
+    const navHeight = this.getScaledValue(this.style.navHeight);
+
     // Navy blue gradient background
     const navBg = graphics().createGraphics();
-    navBg.beginFill(this.style.navBarColor, this.style.navBarAlpha);
-    navBg.drawRect(0, 0, this.config.canvasWidth, this.style.navHeight);
-    navBg.endFill();
+    navBg.rect(0, 0, this.config.canvasWidth, navHeight);
+    navBg.fill({ color: this.style.navBarColor, alpha: this.style.navBarAlpha });
     this.navBarContainer.addChild(navBg);
 
-    // Top separator line
+    // Top separator line - more prominent
+    const separatorHeight = this.getScaledValue(4);
     const separator = graphics().createGraphics();
-    separator.beginFill(this.style.separatorColor);
-    separator.drawRect(0, 0, this.config.canvasWidth, 3);
-    separator.endFill();
+    separator.rect(0, 0, this.config.canvasWidth, separatorHeight);
+    separator.fill({ color: this.style.separatorColor });
     this.navBarContainer.addChild(separator);
 
     // Darker overlay for depth
     const overlay = graphics().createGraphics();
-    overlay.beginFill(this.style.navBarOverlayColor, this.style.navBarOverlayAlpha);
-    overlay.drawRect(0, 3, this.config.canvasWidth, this.style.navHeight - 3);
-    overlay.endFill();
+    overlay.rect(0, separatorHeight, this.config.canvasWidth, navHeight - separatorHeight);
+    overlay.fill({ color: this.style.navBarOverlayColor, alpha: this.style.navBarOverlayAlpha });
     this.navBarContainer.addChild(overlay);
   }
 
@@ -613,6 +638,10 @@ export class ArcheroMenu extends EventEmitter {
   protected createButton(section: MenuSection, index: number): ButtonData {
     const isActive = index === this.activeSection;
 
+    // Apply responsive scaling
+    const navHeight = this.getScaledValue(this.style.navHeight);
+    const elevationOffset = this.getScaledValue(this.style.elevationOffset);
+
     // Check for custom renderer
     if (this.callbacks.renderButton) {
       const customButton = this.callbacks.renderButton(section, isActive);
@@ -621,14 +650,14 @@ export class ArcheroMenu extends EventEmitter {
         const xPos = this.calculateButtonX(index);
         customButton.x = xPos;
         customButton.y = isActive
-          ? this.style.navHeight / 2 - this.style.elevationOffset
-          : this.style.navHeight / 2;
+          ? navHeight / 2 - elevationOffset
+          : navHeight / 2;
 
         return {
           container: customButton,
           bg: graphics().createGraphics(), // Placeholder
           overlay: null,
-          icon: graphics().createText('', {}), // Placeholder
+          icon: graphics().createText('', { fontFamily: 'system-ui' }), // Placeholder
           label: null,
           section,
           index
@@ -636,8 +665,10 @@ export class ArcheroMenu extends EventEmitter {
       }
     }
 
-    // Default button creation
-    const size = isActive ? this.style.activeButtonSize : this.style.buttonSize;
+    // Default button creation with responsive scaling
+    const size = isActive
+      ? this.getScaledValue(this.style.activeButtonSize)
+      : this.getScaledValue(this.style.buttonSize);
 
     // Create button container
     const container = graphics().createContainer();
@@ -648,8 +679,8 @@ export class ArcheroMenu extends EventEmitter {
     const xPos = this.calculateButtonX(index);
     container.x = xPos;
     container.y = isActive
-      ? this.style.navHeight / 2 - this.style.elevationOffset
-      : this.style.navHeight / 2;
+      ? navHeight / 2 - elevationOffset
+      : navHeight / 2;
 
     // Create button background
     const bg = graphics().createGraphics();
@@ -698,26 +729,29 @@ export class ArcheroMenu extends EventEmitter {
       if (customIcon) return customIcon;
     }
 
-    // Apply section-specific style overrides
-    const iconSize = section.customStyle?.activeIconSize && isActive
+    // Apply section-specific style overrides with responsive scaling
+    const baseIconSize = section.customStyle?.activeIconSize && isActive
       ? section.customStyle.activeIconSize
       : section.customStyle?.iconSize && !isActive
       ? section.customStyle.iconSize
       : isActive ? this.style.activeIconSize : this.style.iconSize;
 
-    const iconYOffset = isActive ? this.style.activeIconYOffset : this.style.iconYOffset;
+    const iconSize = this.getScaledValue(baseIconSize);
 
-    // Default icon creation
+    const baseIconYOffset = isActive ? this.style.activeIconYOffset : this.style.iconYOffset;
+    const iconYOffset = this.getScaledValue(baseIconYOffset);
+
+    // Default icon creation with responsive scaling
     const icon = graphics().createText(
       typeof section.icon === 'string' ? section.icon : '',
       {
         fontSize: iconSize,
         fontFamily: 'system-ui',
         stroke: this.style.iconStrokeColor,
-        strokeThickness: this.style.iconStrokeWidth,
+        strokeThickness: this.getScaledValue(this.style.iconStrokeWidth),
         dropShadow: true,
-        dropShadowDistance: this.style.iconShadowDistance,
-        dropShadowBlur: this.style.iconShadowBlur,
+        dropShadowDistance: this.getScaledValue(this.style.iconShadowDistance),
+        dropShadowBlur: this.getScaledValue(this.style.iconShadowBlur),
         dropShadowColor: this.style.iconStrokeColor
       }
     );
@@ -742,21 +776,22 @@ export class ArcheroMenu extends EventEmitter {
     const labelColor = section.customStyle?.labelColor ?? this.style.labelColor;
     const labelStrokeColor = section.customStyle?.labelStrokeColor ?? this.style.labelStrokeColor;
 
-    // Default label creation
+    // Default label creation with responsive scaling
     const label = graphics().createText(section.name, {
-      fontSize: this.style.labelSize,
+      fontSize: this.getScaledValue(this.style.labelSize),
+      fontFamily: 'system-ui',
       fill: labelColor,
       fontWeight: this.style.labelFontWeight,
       stroke: labelStrokeColor,
-      strokeThickness: this.style.labelStrokeWidth,
+      strokeThickness: this.getScaledValue(this.style.labelStrokeWidth),
       dropShadow: true,
-      dropShadowDistance: this.style.labelShadowDistance,
-      dropShadowBlur: this.style.labelShadowBlur,
+      dropShadowDistance: this.getScaledValue(this.style.labelShadowDistance),
+      dropShadowBlur: this.getScaledValue(this.style.labelShadowBlur),
       dropShadowColor: this.style.iconStrokeColor
     });
 
     if (label.anchor) label.anchor.set(0.5, 0.5);
-    label.y = this.style.labelYOffset;
+    label.y = this.getScaledValue(this.style.labelYOffset);
 
     return label;
   }
@@ -783,28 +818,41 @@ export class ArcheroMenu extends EventEmitter {
 
     if (isActive) {
       // Apply section-specific gradient override
-      const gradient = section.customStyle?.buttonGradient ?? this.style.buttonGradient;
+      const gradientConfig = section.customStyle?.buttonGradient ?? this.style.buttonGradient;
 
-      // Active: Gold gradient using canvas texture
-      const texture = graphics().createCanvasTexture(size, size, (ctx: CanvasRenderingContext2D) => {
-        const canvasGradient = ctx.createLinearGradient(0, 0, 0, size);
-        canvasGradient.addColorStop(0, this.hexToRgb(gradient.topColor!));
-        canvasGradient.addColorStop(0.5, this.hexToRgb(gradient.middleColor!));
-        canvasGradient.addColorStop(1, this.hexToRgb(gradient.bottomColor!));
+      // Active: Gold gradient using Pixi v8 FillGradient API
+      const PIXI = (globalThis as any).PIXI;
 
-        ctx.fillStyle = canvasGradient;
-        this.roundRect(ctx, 0, 0, size, size, this.style.buttonRadius);
-        ctx.fill();
-      });
+      // Ensure gradient colors have defaults
+      const topColor = gradientConfig.topColor ?? 0xFFF4CC;
+      const middleColor = gradientConfig.middleColor ?? 0xFFD700;
+      const bottomColor = gradientConfig.bottomColor ?? 0xFF8C00;
 
-      bg.beginTextureFill({ texture });
-      bg.drawRoundedRect(-size/2, -size/2, size, size, this.style.buttonRadius);
-      bg.endFill();
+      // Debug: Log gradient colors
+      if (typeof console !== 'undefined') {
+        console.log('🎨 Button gradient colors:', {
+          topColor: topColor.toString(16),
+          middleColor: middleColor.toString(16),
+          bottomColor: bottomColor.toString(16)
+        });
+      }
+
+      const fillGradient = new PIXI.FillGradient(
+        -size/2, -size/2,  // x0, y0
+        -size/2, size/2,   // x1, y1
+        [
+          { offset: 0, color: topColor },
+          { offset: 0.5, color: middleColor },
+          { offset: 1, color: bottomColor }
+        ]
+      );
+
+      bg.roundRect(-size/2, -size/2, size, size, this.getScaledValue(this.style.buttonRadius));
+      bg.fill(fillGradient);
     } else {
       // Inactive: Transparent
-      bg.beginFill(ARCHERO_COLORS.black, 0.0);
-      bg.drawRect(-size/2, -size/2, size, size);
-      bg.endFill();
+      bg.rect(-size/2, -size/2, size, size);
+      bg.fill({ color: ARCHERO_COLORS.black, alpha: 0.0 });
     }
   }
 
@@ -818,22 +866,28 @@ export class ArcheroMenu extends EventEmitter {
 
     const shine = this.style.shineGradient;
 
-    // Create shine gradient using canvas texture
-    const texture = graphics().createCanvasTexture(overlayWidth, overlayHeight, (ctx: CanvasRenderingContext2D) => {
-      const gradient = ctx.createLinearGradient(0, 0, 0, overlayHeight);
-      gradient.addColorStop(0, this.hexToRgb(shine.topColor!));
-      gradient.addColorStop(0.8, this.hexToRgb(shine.middleColor!));
-      gradient.addColorStop(1, this.hexToRgb(shine.bottomColor!));
+    // Create shine gradient using Pixi v8 FillGradient API
+    const PIXI = (globalThis as any).PIXI;
 
-      ctx.fillStyle = gradient;
-      this.roundRect(ctx, 0, 0, overlayWidth, overlayHeight, 25);
-      ctx.fill();
-    });
+    // Ensure shine colors have defaults
+    const topColor = shine.topColor ?? 0xFFFFFF;
+    const middleColor = shine.middleColor ?? 0xFFFBE6;
+    const bottomColor = shine.bottomColor ?? 0xFFE55C;
+    const alpha = shine.alpha ?? 0.35;
 
-    overlay.beginTextureFill({ texture });
-    overlay.drawRoundedRect(-overlayWidth/2, -size/2 + 8, overlayWidth, overlayHeight, 25);
-    overlay.endFill();
-    overlay.alpha = shine.alpha!;
+    const shineGradient = new PIXI.FillGradient(
+      -overlayWidth/2, -size/2 + 8,  // x0, y0
+      -overlayWidth/2, -size/2 + 8 + overlayHeight,  // x1, y1
+      [
+        { offset: 0, color: topColor },
+        { offset: 0.8, color: middleColor },
+        { offset: 1, color: bottomColor }
+      ]
+    );
+
+    overlay.roundRect(-overlayWidth/2, -size/2 + 8, overlayWidth, overlayHeight, this.getScaledValue(25));
+    overlay.fill(shineGradient);
+    overlay.alpha = alpha;
 
     return overlay;
   }
@@ -843,7 +897,11 @@ export class ArcheroMenu extends EventEmitter {
    */
   protected calculateButtonX(index: number): number {
     const { sections } = this.config;
-    const { buttonSize, activeButtonSize, padding } = this.style;
+
+    // Apply responsive scaling to button sizes and padding
+    const buttonSize = this.getScaledValue(this.style.buttonSize);
+    const activeButtonSize = this.getScaledValue(this.style.activeButtonSize);
+    const padding = this.getScaledValue(this.style.padding);
 
     // Calculate total width needed
     const totalButtonsWidth = activeButtonSize + (buttonSize * (sections.length - 1));
@@ -982,7 +1040,7 @@ export class ArcheroMenu extends EventEmitter {
    */
   protected animateToActive(index: number): void {
     const button = this.buttons[index];
-    const { activeButtonSize } = this.style;
+    const activeButtonSize = this.getScaledValue(this.style.activeButtonSize);
 
     // Recreate background as active
     this.renderButtonBackground(button.bg, button.section, activeButtonSize, true);
@@ -990,9 +1048,19 @@ export class ArcheroMenu extends EventEmitter {
     // Add shine overlay
     if (!button.overlay) {
       button.overlay = this.createShineOverlay(button.section, activeButtonSize);
+      // First add as child, then set index
+      button.container.addChild(button.overlay);
       const bgIndex = button.container.getChildIndex(button.bg);
       button.container.setChildIndex(button.overlay, bgIndex + 1);
     }
+
+    // Apply responsive scaling for animation values
+    const navHeight = this.getScaledValue(this.style.navHeight);
+    const elevationOffset = this.getScaledValue(this.style.elevationOffset);
+    const activeIconYOffset = this.getScaledValue(this.style.activeIconYOffset);
+    const activeIconSize = this.getScaledValue(
+      button.section.customStyle?.activeIconSize ?? this.style.activeIconSize
+    );
 
     // Use GSAP if available
     if (typeof window !== 'undefined' && (window as any).gsap) {
@@ -1000,21 +1068,21 @@ export class ArcheroMenu extends EventEmitter {
 
       // Move button up (elevated)
       gsap.to(button.container, {
-        y: this.style.navHeight / 2 - this.style.elevationOffset,
+        y: navHeight / 2 - elevationOffset,
         duration: this.style.elevationDuration,
         ease: 'elastic.out(1, 0.5)'
       });
 
       // Icon grows and moves up
       gsap.to(button.icon, {
-        y: this.style.activeIconYOffset,
+        y: activeIconYOffset,
         duration: this.style.iconAnimDuration,
         ease: 'back.out(2)'
       });
 
       if ((button.icon as IText).style) {
         gsap.to((button.icon as IText).style, {
-          fontSize: button.section.customStyle?.activeIconSize ?? this.style.activeIconSize,
+          fontSize: activeIconSize,
           duration: this.style.iconAnimDuration
         });
       }
@@ -1033,12 +1101,11 @@ export class ArcheroMenu extends EventEmitter {
       }
     } else {
       // Fallback without GSAP
-      button.container.y = this.style.navHeight / 2 - this.style.elevationOffset;
-      button.icon.y = this.style.activeIconYOffset;
+      button.container.y = navHeight / 2 - elevationOffset;
+      button.icon.y = activeIconYOffset;
 
       if ((button.icon as IText).style) {
-        (button.icon as IText).style.fontSize =
-          button.section.customStyle?.activeIconSize ?? this.style.activeIconSize;
+        (button.icon as IText).style.fontSize = activeIconSize;
       }
 
       if (!button.label) {
@@ -1053,7 +1120,7 @@ export class ArcheroMenu extends EventEmitter {
    */
   protected animateToInactive(index: number): void {
     const button = this.buttons[index];
-    const { buttonSize } = this.style;
+    const buttonSize = this.getScaledValue(this.style.buttonSize);
 
     // Recreate background as inactive
     this.renderButtonBackground(button.bg, button.section, buttonSize, false);
@@ -1065,26 +1132,33 @@ export class ArcheroMenu extends EventEmitter {
       button.overlay = null;
     }
 
+    // Apply responsive scaling for animation values
+    const navHeight = this.getScaledValue(this.style.navHeight);
+    const iconYOffset = this.getScaledValue(this.style.iconYOffset);
+    const iconSize = this.getScaledValue(
+      button.section.customStyle?.iconSize ?? this.style.iconSize
+    );
+
     // Use GSAP if available
     if (typeof window !== 'undefined' && (window as any).gsap) {
       const gsap = (window as any).gsap;
 
       // Move button down
       gsap.to(button.container, {
-        y: this.style.navHeight / 2,
+        y: navHeight / 2,
         duration: this.style.iconAnimDuration,
         ease: 'power2.out'
       });
 
       // Icon shrinks and moves to inactive position
       gsap.to(button.icon, {
-        y: this.style.iconYOffset,
+        y: iconYOffset,
         duration: this.style.iconAnimDuration
       });
 
       if ((button.icon as IText).style) {
         gsap.to((button.icon as IText).style, {
-          fontSize: button.section.customStyle?.iconSize ?? this.style.iconSize,
+          fontSize: iconSize,
           duration: this.style.iconAnimDuration
         });
       }
@@ -1105,12 +1179,11 @@ export class ArcheroMenu extends EventEmitter {
       }
     } else {
       // Fallback without GSAP
-      button.container.y = this.style.navHeight / 2;
-      button.icon.y = this.style.iconYOffset;
+      button.container.y = navHeight / 2;
+      button.icon.y = iconYOffset;
 
       if ((button.icon as IText).style) {
-        (button.icon as IText).style.fontSize =
-          button.section.customStyle?.iconSize ?? this.style.iconSize;
+        (button.icon as IText).style.fontSize = iconSize;
       }
 
       if (button.label) {
@@ -1145,18 +1218,26 @@ export class ArcheroMenu extends EventEmitter {
    * Create particle effects at position
    */
   protected createParticles(x: number, y: number, color: number): void {
-    const [minSize, maxSize] = this.style.particleSizeRange;
-    const [minSpeed, maxSpeed] = this.style.particleSpeedRange;
+    // Apply responsive scaling to particle sizes and speeds
+    const [baseMinSize, baseMaxSize] = this.style.particleSizeRange;
+    const [baseMinSpeed, baseMaxSpeed] = this.style.particleSpeedRange;
+
+    const minSize = this.getScaledValue(baseMinSize);
+    const maxSize = this.getScaledValue(baseMaxSize);
+    const minSpeed = this.getScaledValue(baseMinSpeed);
+    const maxSpeed = this.getScaledValue(baseMaxSpeed);
 
     for (let i = 0; i < this.style.particleCount; i++) {
       const particle = graphics().createGraphics();
       const size = Math.random() * (maxSize - minSize) + minSize;
 
-      particle.beginFill(color, 1);
-      particle.drawCircle(0, 0, size);
-      particle.endFill();
-      particle.lineStyle(2, ARCHERO_COLORS.white);
-      particle.drawCircle(0, 0, size);
+      // Fill circle
+      particle.circle(0, 0, size);
+      particle.fill({ color, alpha: 1 });
+
+      // Stroke circle outline
+      particle.circle(0, 0, size);
+      particle.stroke({ color: ARCHERO_COLORS.white, width: this.getScaledValue(2) });
 
       particle.x = x;
       particle.y = y;

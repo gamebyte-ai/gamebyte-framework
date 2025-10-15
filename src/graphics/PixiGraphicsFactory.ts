@@ -26,53 +26,16 @@ class PixiContainerWrapper extends PIXI.Container implements IContainer {
 
 /**
  * Pixi.js Graphics Wrapper
+ * Uses Pixi v8 modern API only
+ * PIXI.Graphics already implements all IGraphics methods, so we just extend it
  */
 class PixiGraphicsWrapper extends PIXI.Graphics implements IGraphics {
-  // Add convenience methods that match our interface
-  drawRoundedRect(x: number, y: number, width: number, height: number, radius: number): this {
-    this.roundRect(x, y, width, height, radius);
-    return this;
-  }
-
-  beginTextureFill(options: { texture: ITexture }): this {
-    this.beginTextureFill({ texture: options.texture as PIXI.Texture });
-    return this;
-  }
+  // All v8 methods are inherited from PIXI.Graphics:
+  // rect(), roundRect(), circle(), ellipse(), poly(), fill(), stroke(),
+  // moveTo(), lineTo(), texture(), clear()
 }
 
-/**
- * Pixi.js Text Wrapper
- */
-class PixiTextWrapper extends PIXI.Text implements IText {
-  private _customStyle: ITextStyle;
-
-  constructor(text: string, style?: ITextStyle) {
-    // Convert our style to PIXI.TextStyle
-    const pixiStyle = style ? PixiGraphicsFactory.convertTextStyle(style) : undefined;
-    super(text, pixiStyle);
-    this._customStyle = style || {};
-  }
-
-  // Override the style getter/setter to work with our interface
-  get style(): any {
-    return super.style;
-  }
-
-  set style(value: any) {
-    if (value && typeof value === 'object') {
-      // If it looks like our ITextStyle, convert it
-      const pixiStyle = PixiGraphicsFactory.convertTextStyle(value as ITextStyle);
-      super.style = pixiStyle as any;
-      this._customStyle = value as ITextStyle;
-    } else {
-      super.style = value;
-    }
-  }
-
-  getCustomStyle(): ITextStyle {
-    return this._customStyle;
-  }
-}
+// No wrapper needed - use PIXI.Text directly
 
 /**
  * Pixi.js Sprite Wrapper
@@ -100,7 +63,9 @@ export class PixiGraphicsFactory implements IGraphicsFactory {
   }
 
   createText(text: string, style?: ITextStyle): IText {
-    return new PixiTextWrapper(text, style);
+    // Pixi v8: new PIXI.Text({ text, style })
+    const pixiStyle = style ? PixiGraphicsFactory.convertToPixiV8Style(style) : {};
+    return new PIXI.Text({ text, style: pixiStyle }) as any;
   }
 
   createSprite(texture: ITexture | string): ISprite {
@@ -132,9 +97,10 @@ export class PixiGraphicsFactory implements IGraphicsFactory {
   }
 
   /**
-   * Convert framework text style to Pixi.js TextStyle
+   * Convert framework text style to Pixi v8 style object format
+   * Pixi v8 uses object format for stroke and dropShadow in Text constructor
    */
-  static convertTextStyle(style: ITextStyle): PIXI.TextStyle {
+  static convertToPixiV8Style(style: ITextStyle): any {
     const config: any = {
       fontFamily: style.fontFamily,
       fontSize: style.fontSize,
@@ -144,19 +110,27 @@ export class PixiGraphicsFactory implements IGraphicsFactory {
       wordWrap: style.wordWrap,
       wordWrapWidth: style.wordWrapWidth,
       lineHeight: style.lineHeight,
-      stroke: style.stroke,
-      dropShadow: style.dropShadow,
-      dropShadowColor: style.dropShadowColor,
-      dropShadowBlur: style.dropShadowBlur,
-      dropShadowAngle: style.dropShadowAngle,
-      dropShadowDistance: style.dropShadowDistance,
     };
 
-    // Handle strokeThickness separately for compatibility
-    if (style.strokeThickness !== undefined) {
-      config.strokeThickness = style.strokeThickness;
+    // Pixi v8 stroke format: { color: number, width: number }
+    if (style.stroke !== undefined || style.strokeThickness !== undefined) {
+      config.stroke = {
+        color: style.stroke ?? 0x000000,
+        width: style.strokeThickness ?? 0
+      };
     }
 
-    return new PIXI.TextStyle(config);
+    // Pixi v8 dropShadow format: { alpha, angle, blur, color, distance }
+    if (style.dropShadow) {
+      config.dropShadow = {
+        alpha: 0.8,
+        angle: style.dropShadowAngle ?? 0.523599, // ~30 degrees
+        blur: style.dropShadowBlur ?? 0,
+        color: style.dropShadowColor ?? 0x000000,
+        distance: style.dropShadowDistance ?? 5
+      };
+    }
+
+    return config;
   }
 }

@@ -112,29 +112,25 @@
                     return;
                 }
 
-                // 9:16 aspect ratio (mobile portrait)
-                const ASPECT_RATIO = 9 / 16;
-                const BASE_WIDTH = 1080;
-                const BASE_HEIGHT = 1920;
+                // Fully responsive - fills entire viewport with scale factor
+                const BASE_DESIGN_WIDTH = 1080; // Design reference width (mobile-first)
+                const BASE_DESIGN_HEIGHT = 1920; // Design reference height
 
-                // Calculate canvas size
                 function getCanvasSize() {
-                    const windowWidth = window.innerWidth;
-                    const windowHeight = window.innerHeight;
-                    const windowAspect = windowWidth / windowHeight;
+                    const width = window.innerWidth;
+                    const height = window.innerHeight;
 
-                    let width, height;
-                    if (windowAspect > ASPECT_RATIO) {
-                        height = windowHeight;
-                        width = height * ASPECT_RATIO;
-                    } else {
-                        width = windowWidth;
-                        height = width / ASPECT_RATIO;
-                    }
-                    return { width, height };
+                    // Calculate scale factor based on viewport width (mobile-first approach)
+                    const scale = Math.max(0.5, Math.min(width / BASE_DESIGN_WIDTH, 2.0)); // Min 0.5x, Max 2.0x
+
+                    return {
+                        width,
+                        height,
+                        scale
+                    };
                 }
 
-                const initialSize = getCanvasSize();
+                let currentSize = getCanvasSize();
 
                 // =====================================================
                 // THREE.JS - 3D Background Scene
@@ -142,10 +138,10 @@
 
                 const threeCanvas = document.createElement('canvas');
                 threeCanvas.id = 'three-canvas';
-                threeCanvas.width = BASE_WIDTH;
-                threeCanvas.height = BASE_HEIGHT;
-                threeCanvas.style.width = initialSize.width + 'px';
-                threeCanvas.style.height = initialSize.height + 'px';
+                threeCanvas.width = currentSize.width;
+                threeCanvas.height = currentSize.height;
+                threeCanvas.style.width = currentSize.width + 'px';
+                threeCanvas.style.height = currentSize.height + 'px';
                 document.getElementById('game-container').appendChild(threeCanvas);
 
                 const threeRenderer = new THREE.WebGLRenderer({
@@ -153,11 +149,11 @@
                     antialias: true,
                     alpha: true
                 });
-                threeRenderer.setSize(BASE_WIDTH, BASE_HEIGHT);
+                threeRenderer.setSize(currentSize.width, currentSize.height, false); // false = don't update CSS style
                 threeRenderer.setClearColor(0x000000, 1);
 
                 const scene = new THREE.Scene();
-                const camera = new THREE.PerspectiveCamera(75, BASE_WIDTH / BASE_HEIGHT, 0.1, 1000);
+                const camera = new THREE.PerspectiveCamera(75, currentSize.width / currentSize.height, 0.1, 1000);
                 camera.position.z = 5;
 
                 // Ambient light
@@ -314,23 +310,27 @@
 
                 const pixiCanvas = document.createElement('canvas');
                 pixiCanvas.id = 'pixi-canvas';
-                pixiCanvas.width = BASE_WIDTH;
-                pixiCanvas.height = BASE_HEIGHT;
-                pixiCanvas.style.width = initialSize.width + 'px';
-                pixiCanvas.style.height = initialSize.height + 'px';
+                pixiCanvas.width = currentSize.width;
+                pixiCanvas.height = currentSize.height;
+                pixiCanvas.style.width = currentSize.width + 'px';
+                pixiCanvas.style.height = currentSize.height + 'px';
                 document.getElementById('game-container').appendChild(pixiCanvas);
 
                 const pixiApp = new PIXI.Application();
                 await pixiApp.init({
                     canvas: pixiCanvas,
-                    width: BASE_WIDTH,
-                    height: BASE_HEIGHT,
+                    width: currentSize.width,
+                    height: currentSize.height,
                     backgroundColor: 0x000000,
                     backgroundAlpha: 0, // Transparent to see Three.js behind
                     antialias: true,
-                    resolution: window.devicePixelRatio || 1,
-                    autoDensity: true
+                    resolution: 1, // Fixed resolution to prevent auto-scaling
+                    autoDensity: false // Don't auto-update CSS style
                 });
+
+                // Fix canvas styles after initialization
+                pixiCanvas.style.width = currentSize.width + 'px';
+                pixiCanvas.style.height = currentSize.height + 'px';
 
                 console.log('✅ Pixi.js app initialized');
 
@@ -357,9 +357,19 @@
                 const uiContainer = new PIXI.Container();
                 stage.addChild(uiContainer);
 
-                // Create Archero-style bottom navigation
-                const NAV_HEIGHT = 280;
-                const NAV_Y = BASE_HEIGHT - NAV_HEIGHT;
+                // Create Archero-style bottom navigation with responsive scaling
+                const BASE_NAV_HEIGHT = 280;
+                const BASE_BUTTON_SIZE = 180;
+                const BASE_ACTIVE_BUTTON_SIZE = 320;
+                const BASE_PADDING = 40;
+
+                // Apply scale factor to all sizes
+                const NAV_HEIGHT = BASE_NAV_HEIGHT * currentSize.scale;
+                const BUTTON_SIZE = BASE_BUTTON_SIZE * currentSize.scale;
+                const ACTIVE_BUTTON_SIZE = BASE_ACTIVE_BUTTON_SIZE * currentSize.scale;
+                const padding = BASE_PADDING * currentSize.scale;
+
+                const NAV_Y = currentSize.height - NAV_HEIGHT;
 
                 const navBar = new PIXI.Container();
                 navBar.y = NAV_Y;
@@ -367,7 +377,7 @@
 
                 // Navy blue gradient background (Archero style)
                 const navBg = new PIXI.Graphics();
-                navBg.rect(0, 0, BASE_WIDTH, NAV_HEIGHT);
+                navBg.rect(0, 0, currentSize.width, NAV_HEIGHT);
                 navBg.fill({
                     color: COLORS.navBg,
                     alpha: 1.0
@@ -376,13 +386,13 @@
 
                 // Top separator line (light blue)
                 const separator = new PIXI.Graphics();
-                separator.rect(0, 0, BASE_WIDTH, 3);
+                separator.rect(0, 0, currentSize.width, 3 * currentSize.scale);
                 separator.fill({ color: COLORS.separator });
                 navBar.addChild(separator);
 
                 // Darker overlay for depth
                 const overlay = new PIXI.Graphics();
-                overlay.rect(0, 3, BASE_WIDTH, NAV_HEIGHT - 3);
+                overlay.rect(0, 3 * currentSize.scale, currentSize.width, NAV_HEIGHT - (3 * currentSize.scale));
                 overlay.fill({
                     color: COLORS.navBgLight,
                     alpha: 0.5
@@ -391,13 +401,10 @@
 
                 // Navigation buttons
                 const navButtons = [];
-                const BUTTON_SIZE = 180;
-                const ACTIVE_BUTTON_SIZE = 320;
 
                 // Calculate total width and spacing
                 const totalButtonsWidth = ACTIVE_BUTTON_SIZE + (BUTTON_SIZE * (sections.length - 1));
-                const padding = 40;
-                const availableWidth = BASE_WIDTH - (padding * 2);
+                const availableWidth = currentSize.width - (padding * 2);
                 const totalSpacing = availableWidth - totalButtonsWidth;
                 const spacingBetweenButtons = totalSpacing / (sections.length - 1);
 
@@ -475,66 +482,68 @@
                         btnBg.fill({ color: 0x000000, alpha: 0.0 });
                     }
 
-                    // Icon
+                    // Icon (scaled)
                     const icon = new PIXI.Text({
                         text: section.icon,
                         style: {
-                            fontSize: isActive ? 140 : 90,
+                            fontSize: (isActive ? 140 : 90) * currentSize.scale,
                             fontFamily: 'system-ui',
-                            stroke: { color: 0x000000, width: 8 },
+                            stroke: { color: 0x000000, width: 8 * currentSize.scale },
                             dropShadow: {
-                                distance: 6,
+                                distance: 6 * currentSize.scale,
                                 alpha: 0.8,
-                                blur: 4,
+                                blur: 4 * currentSize.scale,
                                 color: 0x000000
                             }
                         }
                     });
                     icon.anchor.set(0.5);
-                    icon.y = isActive ? -35 : -10;
+                    icon.y = (isActive ? -35 : -10) * currentSize.scale;
                     buttonContainer.addChild(icon);
                     buttonData.icon = icon;
 
-                    // Label (only for active)
+                    // Label (only for active, scaled)
                     if (isActive) {
                         const label = new PIXI.Text({
                             text: section.name,
                             style: {
-                                fontSize: 40,
+                                fontSize: 40 * currentSize.scale,
                                 fill: 0x4A2F1A,
                                 fontWeight: '900',
-                                stroke: { color: 0xFFE55C, width: 4 },
+                                stroke: { color: 0xFFE55C, width: 4 * currentSize.scale },
                                 dropShadow: {
-                                    distance: 3,
+                                    distance: 3 * currentSize.scale,
                                     alpha: 0.6,
-                                    blur: 3,
+                                    blur: 3 * currentSize.scale,
                                     color: 0x000000
                                 }
                             }
                         });
                         label.anchor.set(0.5);
-                        label.y = 55;
+                        label.y = 55 * currentSize.scale;
                         buttonContainer.addChild(label);
                         buttonData.label = label;
                     }
 
-                    // Notification badge (random)
+                    // Notification badge (random, scaled)
                     if (index !== activeSection && Math.random() > 0.5) {
+                        const badgeRadius = 18 * currentSize.scale;
+                        const badgeOffset = 20 * currentSize.scale;
                         const badge = new PIXI.Graphics();
-                        badge.circle(size/2 - 20, -size/2 + 20, 18);
+                        badge.circle(size/2 - badgeOffset, -size/2 + badgeOffset, badgeRadius);
                         badge.fill({ color: COLORS.red });
-                        badge.stroke({ color: 0xFFFFFF, width: 4 });
+                        badge.stroke({ color: 0xFFFFFF, width: 4 * currentSize.scale });
 
                         const exclamation = new PIXI.Text({
                             text: '!',
                             style: {
-                                fontSize: 24,
+                                fontSize: 24 * currentSize.scale,
                                 fill: 0xFFFFFF,
                                 fontWeight: 'bold'
                             }
                         });
                         exclamation.anchor.set(0.5);
-                        exclamation.position.set(size/2 - 20, -size/2 + 20);
+                        exclamation.position.set(size/2 - badgeOffset, -size/2 + badgeOffset);
                         buttonContainer.addChild(badge);
                         buttonContainer.addChild(exclamation);
                     }
@@ -618,7 +627,7 @@
                     }
 
                     gsap.to(newBtn.container, {
-                        y: NAV_HEIGHT / 2 - 40,
+                        y: NAV_HEIGHT / 2 - (40 * currentSize.scale),
                         duration: 0.5,
                         ease: 'elastic.out(1, 0.5)'
                     });
@@ -631,12 +640,12 @@
                     });
 
                     gsap.to(newBtn.icon, {
-                        y: -35,
+                        y: -35 * currentSize.scale,
                         duration: 0.3,
                         ease: 'back.out(2)'
                     });
                     gsap.to(newBtn.icon.style, {
-                        fontSize: 140,
+                        fontSize: 140 * currentSize.scale,
                         duration: 0.3
                     });
 
@@ -644,14 +653,14 @@
                         const label = new PIXI.Text({
                             text: newBtn.section.name,
                             style: {
-                                fontSize: 40,
+                                fontSize: 40 * currentSize.scale,
                                 fill: 0x4A2F1A,
                                 fontWeight: '900',
-                                stroke: { color: 0xFFE55C, width: 4 }
+                                stroke: { color: 0xFFE55C, width: 4 * currentSize.scale }
                             }
                         });
                         label.anchor.set(0.5);
-                        label.y = 55;
+                        label.y = 55 * currentSize.scale;
                         label.alpha = 0;
                         newBtn.container.addChild(label);
                         newBtn.label = label;
@@ -684,11 +693,11 @@
                     });
 
                     gsap.to(oldBtn.icon, {
-                        y: -10,
+                        y: -10 * currentSize.scale,
                         duration: 0.3
                     });
                     gsap.to(oldBtn.icon.style, {
-                        fontSize: 90,
+                        fontSize: 90 * currentSize.scale,
                         duration: 0.3
                     });
 
@@ -733,7 +742,7 @@
                 // Touch/Swipe support
                 let touchStartX = 0;
                 stage.eventMode = 'static';
-                stage.hitArea = new PIXI.Rectangle(0, 0, BASE_WIDTH, BASE_HEIGHT);
+                stage.hitArea = new PIXI.Rectangle(0, 0, currentSize.width, currentSize.height);
 
                 stage.on('pointerdown', (e) => {
                     if (e.target === stage) {
@@ -777,13 +786,103 @@
                     // Pixi.js auto-renders with app.ticker
                 }
 
-                // Resize handler
+                // Resize handler - updates both internal resolution and CSS
                 window.addEventListener('resize', () => {
-                    const newSize = getCanvasSize();
-                    threeCanvas.style.width = newSize.width + 'px';
-                    threeCanvas.style.height = newSize.height + 'px';
-                    pixiCanvas.style.width = newSize.width + 'px';
-                    pixiCanvas.style.height = newSize.height + 'px';
+                    const oldSize = currentSize;
+                    currentSize = getCanvasSize();
+
+                    // Update Three.js canvas
+                    threeCanvas.width = currentSize.width;
+                    threeCanvas.height = currentSize.height;
+                    threeCanvas.style.width = currentSize.width + 'px';
+                    threeCanvas.style.height = currentSize.height + 'px';
+                    threeRenderer.setSize(currentSize.width, currentSize.height, false);
+                    camera.aspect = currentSize.width / currentSize.height;
+                    camera.updateProjectionMatrix();
+
+                    // Update Pixi.js canvas
+                    pixiCanvas.width = currentSize.width;
+                    pixiCanvas.height = currentSize.height;
+                    pixiCanvas.style.width = currentSize.width + 'px';
+                    pixiCanvas.style.height = currentSize.height + 'px';
+                    pixiApp.renderer.resize(currentSize.width, currentSize.height);
+
+                    // Update UI element positions and sizes based on new viewport
+                    const newNavHeight = BASE_NAV_HEIGHT * currentSize.scale;
+                    const newButtonSize = BASE_BUTTON_SIZE * currentSize.scale;
+                    const newActiveButtonSize = BASE_ACTIVE_BUTTON_SIZE * currentSize.scale;
+                    const newPadding = BASE_PADDING * currentSize.scale;
+
+                    navBar.y = currentSize.height - newNavHeight;
+
+                    // Redraw background graphics with new size
+                    navBg.clear();
+                    navBg.rect(0, 0, currentSize.width, newNavHeight);
+                    navBg.fill({ color: COLORS.navBg, alpha: 1.0 });
+
+                    separator.clear();
+                    separator.rect(0, 0, currentSize.width, 3 * currentSize.scale);
+                    separator.fill({ color: COLORS.separator });
+
+                    overlay.clear();
+                    overlay.rect(0, 3 * currentSize.scale, currentSize.width, newNavHeight - (3 * currentSize.scale));
+                    overlay.fill({ color: COLORS.navBgLight, alpha: 0.5 });
+
+                    // Update button positions and sizes
+                    const totalButtonsWidth = newActiveButtonSize + (newButtonSize * (sections.length - 1));
+                    const availableWidth = currentSize.width - (newPadding * 2);
+                    const totalSpacing = availableWidth - totalButtonsWidth;
+                    const spacingBetweenButtons = totalSpacing / (sections.length - 1);
+
+                    navButtons.forEach((btn, i) => {
+                        const isActive = i === activeSection;
+                        const size = isActive ? newActiveButtonSize : newButtonSize;
+
+                        // Recalculate X position
+                        let xPos = newPadding;
+                        for (let j = 0; j < i; j++) {
+                            const btnSize = (j === activeSection) ? newActiveButtonSize : newButtonSize;
+                            xPos += btnSize + spacingBetweenButtons;
+                        }
+                        xPos += size / 2;
+
+                        btn.container.x = xPos;
+                        btn.container.y = isActive ? (newNavHeight / 2 - (40 * currentSize.scale)) : (newNavHeight / 2);
+
+                        // Update button graphics
+                        btn.bg.clear();
+                        if (isActive) {
+                            const gradient = new PIXI.FillGradient({
+                                type: 'linear',
+                                start: { x: 0, y: 0 },
+                                end: { x: 0, y: 1 },
+                                colorStops: [
+                                    { offset: 0, color: 0xFFE55C },
+                                    { offset: 0.5, color: 0xFFD700 },
+                                    { offset: 1, color: 0xFFA500 }
+                                ]
+                            });
+                            btn.bg.roundRect(-size/2, -size/2, size, size, 30 * currentSize.scale);
+                            btn.bg.fill(gradient);
+                        } else {
+                            btn.bg.rect(-size/2, -size/2, size, size);
+                            btn.bg.fill({ color: 0x000000, alpha: 0.0 });
+                        }
+
+                        // Update icon size and position
+                        btn.icon.style.fontSize = (isActive ? 140 : 90) * currentSize.scale;
+                        btn.icon.style.stroke.width = 8 * currentSize.scale;
+                        btn.icon.y = (isActive ? -35 : -10) * currentSize.scale;
+
+                        // Update label if exists
+                        if (btn.label) {
+                            btn.label.style.fontSize = 40 * currentSize.scale;
+                            btn.label.style.stroke.width = 4 * currentSize.scale;
+                            btn.label.y = 55 * currentSize.scale;
+                        }
+                    });
+
+                    stage.hitArea = new PIXI.Rectangle(0, 0, currentSize.width, currentSize.height);
                 });
 
                 document.getElementById('loading').style.display = 'none';

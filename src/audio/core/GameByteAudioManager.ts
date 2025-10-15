@@ -187,11 +187,9 @@ export class GameByteAudioManager extends EventEmitter<AudioEvents> implements A
     // Update performance metrics
     this._performanceMetrics.contextState = this._context.state;
     this._performanceMetrics.latency = this._context.baseLatency || 0;
-    
-    // Resume context if suspended
-    if (this._context.state === 'suspended') {
-      await this._context.resume();
-    }
+
+    // Don't resume here - let setupAudioUnlock() handle it on user interaction
+    // This follows Web Audio API best practice: create context early but resume after user gesture
   }
 
   /**

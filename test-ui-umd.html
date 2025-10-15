@@ -61,7 +61,7 @@
     <script src="./dist/gamebyte.umd.js"></script>
 
     <script>
-        const { createGame, BaseScene, TopBar, TopBarItemType } = GameByteFramework;
+        const { createGame, BaseScene, TopBar, TopBarItemType, graphics } = GameByteFramework;
 
         let game, sceneManager, renderer;
 
@@ -83,10 +83,9 @@
                 console.log('✅ Scene initializing...');
 
                 // Create background
-                const background = new PIXI.Graphics();
-                background.beginFill(0x1a1a2e);
-                background.drawRect(0, 0, 800, 600);
-                background.endFill();
+                const background = graphics().createGraphics();
+                background.rect(0, 0, 800, 600);
+                background.fill({ color: 0x1a1a2e });
                 this.container.addChild(background);
 
                 // Create TopBar
@@ -222,17 +221,15 @@
                 this.container.addChild(labelText);
 
                 // Background
-                const bg = new PIXI.Graphics();
-                bg.beginFill(0x2C3E50);
-                bg.drawRoundedRect(x - 150, y, 300, 30, 15);
-                bg.endFill();
+                const bg = graphics().createGraphics();
+                bg.roundRect(x - 150, y, 300, 30, 15);
+                bg.fill({ color: 0x2C3E50 });
                 this.container.addChild(bg);
 
                 // Fill
-                const fill = new PIXI.Graphics();
-                fill.beginFill(color);
-                fill.drawRoundedRect(x - 150, y, 0, 30, 15);
-                fill.endFill();
+                const fill = graphics().createGraphics();
+                fill.roundRect(x - 150, y, 0, 30, 15);
+                fill.fill({ color: color });
                 this.container.addChild(fill);
 
                 // Value text
@@ -273,10 +270,9 @@
             }
 
             createClickEffect(x, y) {
-                const circle = new PIXI.Graphics();
-                circle.beginFill(0x4ECCA3, 0.5);
-                circle.drawCircle(0, 0, 10);
-                circle.endFill();
+                const circle = graphics().createGraphics();
+                circle.circle(0, 0, 10);
+                circle.fill({ color: 0x4ECCA3, alpha: 0.5 });
                 circle.x = x;
                 circle.y = y;
                 this.container.addChild(circle);
@@ -313,9 +309,8 @@
 
                     // Redraw fill
                     bar.fill.clear();
-                    bar.fill.beginFill(bar.color);
-                    bar.fill.drawRoundedRect(150, 300 + (index * 70), 300 * bar.progress, 30, 15);
-                    bar.fill.endFill();
+                    bar.fill.roundRect(150, 300 + (index * 70), 300 * bar.progress, 30, 15);
+                    bar.fill.fill({ color: bar.color });
 
                     // Update text
                     bar.valueText.text = `${Math.round(bar.progress * 100)}%`;
@@ -382,66 +377,61 @@
 
             // Icon creation helpers
             createCoinIcon() {
-                const graphics = new PIXI.Graphics();
-                graphics.beginFill(0xFFD700);
-                graphics.drawCircle(16, 16, 14);
-                graphics.endFill();
-                graphics.beginFill(0xFFA500);
-                graphics.drawCircle(16, 16, 10);
-                graphics.endFill();
+                const coinGraphics = graphics().createGraphics();
+                coinGraphics.circle(16, 16, 14);
+                coinGraphics.fill({ color: 0xFFD700 });
+                coinGraphics.circle(16, 16, 10);
+                coinGraphics.fill({ color: 0xFFA500 });
 
                 const texture = PIXI.RenderTexture.create({ width: 32, height: 32 });
                 const pixiRenderer = renderer.getRenderer();
-                pixiRenderer.render(graphics, { renderTexture: texture });
-                graphics.destroy();
+                pixiRenderer.render(coinGraphics, { renderTexture: texture });
+                coinGraphics.destroy();
 
                 return texture;
             }
 
             createGemIcon() {
-                const graphics = new PIXI.Graphics();
-                graphics.beginFill(0x9B59B6);
-                graphics.moveTo(16, 4);
-                graphics.lineTo(28, 12);
-                graphics.lineTo(22, 28);
-                graphics.lineTo(10, 28);
-                graphics.lineTo(4, 12);
-                graphics.closePath();
-                graphics.endFill();
+                const gemGraphics = graphics().createGraphics();
+                gemGraphics.moveTo(16, 4);
+                gemGraphics.lineTo(28, 12);
+                gemGraphics.lineTo(22, 28);
+                gemGraphics.lineTo(10, 28);
+                gemGraphics.lineTo(4, 12);
+                gemGraphics.closePath();
+                gemGraphics.fill({ color: 0x9B59B6 });
 
                 const texture = PIXI.RenderTexture.create({ width: 32, height: 32 });
                 const pixiRenderer = renderer.getRenderer();
-                pixiRenderer.render(graphics, { renderTexture: texture });
-                graphics.destroy();
+                pixiRenderer.render(gemGraphics, { renderTexture: texture });
+                gemGraphics.destroy();
 
                 return texture;
             }
 
             createHeartIcon() {
-                const graphics = new PIXI.Graphics();
-                graphics.beginFill(0xE74C3C);
-                graphics.drawCircle(12, 10, 6);
-                graphics.drawCircle(20, 10, 6);
-                graphics.endFill();
-                graphics.beginFill(0xE74C3C);
-                graphics.moveTo(6, 12);
-                graphics.lineTo(16, 26);
-                graphics.lineTo(26, 12);
-                graphics.closePath();
-                graphics.endFill();
+                const heartGraphics = graphics().createGraphics();
+                heartGraphics.circle(12, 10, 6);
+                heartGraphics.circle(20, 10, 6);
+                heartGraphics.fill({ color: 0xE74C3C });
+                heartGraphics.moveTo(6, 12);
+                heartGraphics.lineTo(16, 26);
+                heartGraphics.lineTo(26, 12);
+                heartGraphics.closePath();
+                heartGraphics.fill({ color: 0xE74C3C });
 
                 const texture = PIXI.RenderTexture.create({ width: 32, height: 32 });
                 const pixiRenderer = renderer.getRenderer();
-                pixiRenderer.render(graphics, { renderTexture: texture });
-                graphics.destroy();
+                pixiRenderer.render(heartGraphics, { renderTexture: texture });
+                heartGraphics.destroy();
 
                 return texture;
             }
 
             createSettingsIcon() {
-                const graphics = new PIXI.Graphics();
-                graphics.lineStyle(3, 0xFFFFFF);
-                graphics.drawCircle(16, 16, 8);
+                const settingsGraphics = graphics().createGraphics();
+                settingsGraphics.circle(16, 16, 8);
+                settingsGraphics.stroke({ color: 0xFFFFFF, width: 3 });
 
                 for (let i = 0; i < 8; i++) {
                     const angle = (i / 8) * Math.PI * 2;
@@ -449,14 +439,15 @@
                     const y1 = 16 + Math.sin(angle) * 10;
                     const x2 = 16 + Math.cos(angle) * 14;
                     const y2 = 16 + Math.sin(angle) * 14;
-                    graphics.moveTo(x1, y1);
-                    graphics.lineTo(x2, y2);
+                    settingsGraphics.moveTo(x1, y1);
+                    settingsGraphics.lineTo(x2, y2);
                 }
+                settingsGraphics.stroke({ color: 0xFFFFFF, width: 3 });
 
                 const texture = PIXI.RenderTexture.create({ width: 32, height: 32 });
                 const pixiRenderer = renderer.getRenderer();
-                pixiRenderer.render(graphics, { renderTexture: texture });
-                graphics.destroy();
+                pixiRenderer.render(settingsGraphics, { renderTexture: texture });
+                settingsGraphics.destroy();
 
                 return texture;
             }

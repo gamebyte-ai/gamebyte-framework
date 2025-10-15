@@ -40,28 +40,30 @@ export interface IContainer extends IDisplayObject {
 
 /**
  * Graphics interface - for drawing shapes
+ * Uses Pixi v8 modern API only
  */
 export interface IGraphics extends IDisplayObject {
   tint?: number;
 
   clear(): this;
 
-  // Basic shapes
-  beginFill(color: number, alpha?: number): this;
-  endFill(): this;
-  drawRect(x: number, y: number, width: number, height: number): this;
-  drawRoundedRect(x: number, y: number, width: number, height: number, radius: number): this;
-  drawCircle(x: number, y: number, radius: number): this;
-  drawEllipse(x: number, y: number, width: number, height: number): this;
+  // Pixi v8 Modern API
+  rect(x: number, y: number, width: number, height: number): this;
+  roundRect(x: number, y: number, width: number, height: number, radius: number): this;
+  circle(x: number, y: number, radius: number): this;
+  ellipse(x: number, y: number, width: number, height: number): this;
+  poly(points: number[] | {x: number, y: number}[]): this;
 
-  // Lines
-  lineStyle(width: number, color: number, alpha?: number): this;
+  // Fill and stroke
+  fill(options?: { color?: number; alpha?: number } | any): this;
+  stroke(options?: { color?: number; width?: number; alpha?: number } | any): this;
+
+  // Line drawing
   moveTo(x: number, y: number): this;
   lineTo(x: number, y: number): this;
 
-  // Advanced
-  drawPolygon(points: number[] | {x: number, y: number}[]): this;
-  beginTextureFill(options: { texture: ITexture }): this;
+  // Texture support
+  texture(texture: ITexture): this;
 }
 
 /**

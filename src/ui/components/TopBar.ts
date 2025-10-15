@@ -142,10 +142,9 @@ export class TopBar extends EventEmitter {
    */
   private createBackground(): void {
     this.background.clear();
-    this.background.beginFill(this.theme.backgroundColor, this.theme.backgroundAlpha);
 
     if (this.theme.borderRadius > 0) {
-      this.background.drawRoundedRect(
+      this.background.roundRect(
         0,
         0,
         this.config.width,
@@ -153,10 +152,13 @@ export class TopBar extends EventEmitter {
         this.theme.borderRadius
       );
     } else {
-      this.background.drawRect(0, 0, this.config.width, this.theme.height);
+      this.background.rect(0, 0, this.config.width, this.theme.height);
     }
 
-    this.background.endFill();
+    this.background.fill({
+      color: this.theme.backgroundColor,
+      alpha: this.theme.backgroundAlpha
+    });
   }
 
   /**
@@ -307,15 +309,14 @@ export class TopBar extends EventEmitter {
 
     // Background
     item.background = graphics().createGraphics();
-    item.background.beginFill(0xFFFFFF, 0.1);
-    item.background.drawRoundedRect(
+    item.background.roundRect(
       -this.theme.iconSize / 2 - 10,
       -this.theme.iconSize / 2 - 10,
       this.theme.iconSize + 20,
       this.theme.iconSize + 20,
       10
     );
-    item.background.endFill();
+    item.background.fill({ color: 0xFFFFFF, alpha: 0.1 });
     item.container.addChild(item.background);
 
     // Icon

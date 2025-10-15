@@ -214,15 +214,14 @@ export class UIButton extends EventEmitter {
     const offsetY = this.isPressed ? 2 : 4;
     const alpha = this.isPressed ? 0.2 : 0.3;
 
-    this.shadowGraphics.beginFill(0x000000, alpha);
-    this.shadowGraphics.drawRoundedRect(
+    this.shadowGraphics.roundRect(
       0,
       offsetY,
       width,
       height,
       borderRadius
     );
-    this.shadowGraphics.endFill();
+    this.shadowGraphics.fill({ color: 0x000000, alpha });
 
     // Note: Blur filter is renderer-specific and applied internally by the graphics implementation
     // The framework handles blur effects automatically based on the renderer type
@@ -236,15 +235,14 @@ export class UIButton extends EventEmitter {
 
     const { width, height, borderRadius, backgroundColor } = this.config;
 
-    this.glowGraphics.beginFill(backgroundColor, 0.4);
-    this.glowGraphics.drawRoundedRect(
+    this.glowGraphics.roundRect(
       -4,
       -4,
       width + 8,
       height + 8,
       borderRadius + 4
     );
-    this.glowGraphics.endFill();
+    this.glowGraphics.fill({ color: backgroundColor, alpha: 0.4 });
 
     // Note: Blur filter is renderer-specific and applied internally by the graphics implementation
     // The framework handles blur effects automatically based on the renderer type
@@ -272,9 +270,9 @@ export class UIButton extends EventEmitter {
     });
 
     // Apply to sprite
-    this.background.beginTextureFill({ texture });
-    this.background.drawRoundedRect(0, 0, width, height, borderRadius);
-    this.background.endFill();
+    this.background.texture(texture);
+    this.background.roundRect(0, 0, width, height, borderRadius);
+    this.background.fill();
   }
 
   /**
@@ -283,9 +281,8 @@ export class UIButton extends EventEmitter {
   private renderSolidBackground(color: number): void {
     const { width, height, borderRadius } = this.config;
 
-    this.background.beginFill(color);
-    this.background.drawRoundedRect(0, 0, width, height, borderRadius);
-    this.background.endFill();
+    this.background.roundRect(0, 0, width, height, borderRadius);
+    this.background.fill({ color });
   }
 
   /**
@@ -294,8 +291,8 @@ export class UIButton extends EventEmitter {
   private renderBorder(): void {
     const { width, height, borderRadius, borderWidth, borderColor } = this.config;
 
-    this.background.lineStyle(borderWidth, borderColor, 1);
-    this.background.drawRoundedRect(0, 0, width, height, borderRadius);
+    this.background.roundRect(0, 0, width, height, borderRadius);
+    this.background.stroke({ width: borderWidth, color: borderColor, alpha: 1 });
   }
 
   /**
@@ -349,9 +346,8 @@ export class UIButton extends EventEmitter {
       const alpha = 1 - progress;
 
       ripple.graphics.clear();
-      ripple.graphics.beginFill(0xFFFFFF, alpha * 0.5);
-      ripple.graphics.drawCircle(0, 0, radius);
-      ripple.graphics.endFill();
+      ripple.graphics.circle(0, 0, radius);
+      ripple.graphics.fill({ color: 0xFFFFFF, alpha: alpha * 0.5 });
 
       return true;
     });

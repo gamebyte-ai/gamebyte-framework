@@ -2,6 +2,7 @@ import { EventEmitter } from 'eventemitter3';
 import { Renderer, RenderingMode, RendererOptions, RendererStats } from '../contracts/Renderer';
 import { PixiCompatibility, PixiRendererOptions, RenderingCompatibility } from '../utils/RendererCompatibility';
 import { PixiVersionDetector } from '../utils/VersionDetection';
+import { ResponsiveScaleCalculator, ResponsiveConfig, ResponsiveSize } from '../utils/ResponsiveHelper';
 import * as PIXI from 'pixi.js';
 
 export interface PixiRendererConfig extends RendererOptions {
@@ -20,6 +21,12 @@ export interface PixiRendererConfig extends RendererOptions {
    * Enable performance monitoring and stats
    */
   enableStats?: boolean;
+
+  /**
+   * Enable responsive scaling for UI elements
+   * When enabled, provides automatic scale calculation based on viewport size
+   */
+  responsive?: boolean | ResponsiveConfig;
 }
 
 /**
@@ -36,6 +43,8 @@ export class PixiRenderer extends EventEmitter implements Renderer {
   private renderMode: 'continuous' | 'on-demand' = 'continuous';
   private needsRender = false;
   private enableStats = false;
+  private responsiveCalculator: ResponsiveScaleCalculator | null = null;
+  private canvas: HTMLCanvasElement | null = null;
 
   /**
    * Initialize the 2D renderer with WebGPU support and v7/v8 compatibility.
@@ -44,14 +53,32 @@ export class PixiRenderer extends EventEmitter implements Renderer {
     // Log compatibility info
     console.log('🎮 Initializing PixiRenderer with Pixi.js', PixiVersionDetector.getVersion().raw);
 
+    // Store canvas reference
+    this.canvas = canvas;
+
     // Set configuration
     this.renderMode = options.renderMode || 'continuous';
     this.enableStats = options.enableStats ?? false;
 
+    // Initialize responsive calculator if enabled
+    if (options.responsive) {
+      const responsiveConfig: ResponsiveConfig = typeof options.responsive === 'boolean'
+        ? { baseWidth: 1080, baseHeight: 1920 } // Mobile-first defaults
+        : options.responsive;
+
+      this.responsiveCalculator = new ResponsiveScaleCalculator(responsiveConfig);
+
+      // Set up canvas resize handling
+      this.responsiveCalculator.onResize((size: ResponsiveSize) => {
+        this.handleResponsiveResize(size);
+      });
+
+      console.log('📱 Responsive mode enabled with base size:', responsiveConfig.baseWidth, 'x', responsiveConfig.baseHeight);
+    }
+
     // Get optimal settings for device
     const optimalPixelRatio = RenderingCompatibility.getOptimalPixelRatio();
     const recommendedAntialias = RenderingCompatibility.getRecommendedAntialias();
-    const recommendedPower = RenderingCompatibility.getRecommendedPowerPreference();
 
     // Build Pixi options with smart defaults
     const pixiOptions: PixiRendererOptions = {
@@ -62,10 +89,10 @@ export class PixiRenderer extends EventEmitter implements Renderer {
       backgroundAlpha: options.transparent ? 0 : 1,
       backgroundColor: options.backgroundColor as number,
       preserveDrawingBuffer: options.preserveDrawingBuffer ?? false,
-      powerPreference: options.powerPreference || recommendedPower,
+      powerPreference: options.powerPreference, // Let Pixi handle default (WebGPU doesn't accept 'default')
       autoDensity: options.autoDensity ?? true,
       resolution: options.resolution || optimalPixelRatio,
-      preference: options.preference // WebGPU/WebGL2/WebGL preference
+      preference: options.preference || 'webgl' // Default to stable WebGL (WebGPU is experimental)
     };
 
     // Create renderer using compatibility layer (supports v7 and v8)
@@ -300,6 +327,50 @@ export class PixiRenderer extends EventEmitter implements Renderer {
   }
 
   /**
+   * Get the responsive scale calculator (if responsive mode is enabled)
+   */
+  getResponsiveCalculator(): ResponsiveScaleCalculator | null {
+    return this.responsiveCalculator;
+  }
+
+  /**
+   * Get current responsive size and scale (if responsive mode is enabled)
+   */
+  getResponsiveSize(): ResponsiveSize | null {
+    return this.responsiveCalculator ? this.responsiveCalculator.getSize() : null;
+  }
+
+  /**
+   * Get current responsive scale factor (if responsive mode is enabled)
+   */
+  getResponsiveScale(): number | null {
+    return this.responsiveCalculator ? this.responsiveCalculator.getScale() : null;
+  }
+
+  /**
+   * Handle responsive resize events
+   */
+  private handleResponsiveResize(size: ResponsiveSize): void {
+    if (!this.canvas || !this.app) {
+      return;
+    }
+
+    // Update canvas size
+    this.canvas.width = size.width;
+    this.canvas.height = size.height;
+    this.canvas.style.width = size.width + 'px';
+    this.canvas.style.height = size.height + 'px';
+
+    // Update renderer size
+    PixiCompatibility.resize(this.app, size.width, size.height);
+
+    // Emit resize event with scale information
+    this.emit('resize', size.width, size.height, size.scale);
+    this.emit('responsiveResize', size);
+    this.requestRender();
+  }
+
+  /**
    * Destroy the renderer and clean up resources.
    */
   destroy(): void {
@@ -318,6 +389,13 @@ export class PixiRenderer extends EventEmitter implements Renderer {
       this.stage = null;
     }
 
+    // Clean up responsive calculator
+    if (this.responsiveCalculator) {
+      this.responsiveCalculator.destroy();
+      this.responsiveCalculator = null;
+    }
+
+    this.canvas = null;
     this.removeAllListeners();
     this.emit('destroyed');
   }
@@ -341,9 +419,10 @@ export class PixiRenderer extends EventEmitter implements Renderer {
     // Emit tick event for game loop
     this.emit('tick', deltaTime);
 
-    // In continuous mode, always mark for re-render
+    // In continuous mode, always mark for re-render and render
     if (this.renderMode === 'continuous') {
       this.needsRender = true;
+      this.render(deltaTime);
     }
   }
 }

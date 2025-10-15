@@ -422,13 +422,12 @@ export class CustomArcheroMenu extends ArcheroMenu {
 
       // Badge background
       const badge = graphics().createGraphics();
-      badge.beginFill(ARCHERO_COLORS.red);
-      badge.drawCircle(0, 0, badgeSize);
-      badge.endFill();
+      badge.circle(0, 0, badgeSize);
+      badge.fill({ color: ARCHERO_COLORS.red });
 
       // Badge border
-      badge.lineStyle(3, ARCHERO_COLORS.white);
-      badge.drawCircle(0, 0, badgeSize);
+      badge.circle(0, 0, badgeSize);
+      badge.stroke({ width: 3, color: ARCHERO_COLORS.white });
 
       // Badge text
       const badgeText = graphics().createText(count.toString(), {

@@ -40,116 +40,65 @@ export interface ThreeRendererOptions {
  */
 export class PixiCompatibility {
   /**
-   * Create a Pixi renderer with automatic version detection and fallback
-   * Supports both v7 (Application) and v8 (autoDetectRenderer)
+   * Create a Pixi v8 renderer using autoDetectRenderer
+   * Framework only supports Pixi v8+
    */
   static async createRenderer(options: PixiRendererOptions): Promise<any> {
-    const isV8 = PixiVersionDetector.isV8OrHigher();
-    const hasAutoDetect = PixiVersionDetector.hasAutoDetectRenderer();
+    const version = PixiVersionDetector.getVersion();
     const features = BrowserFeatureDetector.getBestRenderingContext();
 
-    console.log('🎨 Creating Pixi renderer:', {
-      version: PixiVersionDetector.getVersion().raw,
-      isV8,
-      hasAutoDetect,
+    console.log('🎨 Creating Pixi v8 renderer:', {
+      version: version.raw,
       bestContext: features
     });
 
-    if (isV8 && hasAutoDetect) {
-      return this.createV8Renderer(options);
-    } else {
-      return this.createV7Renderer(options);
-    }
+    return this.createV8Renderer(options);
   }
 
   /**
    * Create renderer using Pixi.js v8 API (autoDetectRenderer with WebGPU support)
+   * Framework requires Pixi v8+
    */
   private static async createV8Renderer(options: PixiRendererOptions): Promise<any> {
-    try {
-      const autoDetect = (PIXI as any).autoDetectRenderer;
+    const autoDetect = (PIXI as any).autoDetectRenderer;
 
-      if (!autoDetect) {
-        console.warn('⚠️ autoDetectRenderer not found, falling back to v7 API');
-        return this.createV7Renderer(options);
-      }
-
-      // Determine preferred renderer type based on browser capabilities
-      let preference = options.preference || 'webgpu';
-
-      if (preference === 'webgpu' && !BrowserFeatureDetector.hasWebGPU()) {
-        console.log('⚠️ WebGPU not available, falling back to WebGL2');
-        preference = 'webgl2';
-      }
-
-      if (preference === 'webgl2' && !BrowserFeatureDetector.hasWebGL2()) {
-        console.log('⚠️ WebGL2 not available, falling back to WebGL');
-        preference = 'webgl';
-      }
-
-      // Create renderer with v8 API
-      const rendererOptions = {
-        canvas: options.canvas,
-        width: options.width || 800,
-        height: options.height || 600,
-        backgroundColor: options.backgroundColor,
-        backgroundAlpha: options.backgroundAlpha,
-        antialias: options.antialias !== false,
-        preserveDrawingBuffer: options.preserveDrawingBuffer || false,
-        resolution: options.resolution || (window.devicePixelRatio || 1),
-        autoDensity: options.autoDensity !== false,
-        powerPreference: options.powerPreference || 'default',
-        preference
-      };
-
-      console.log('✅ Creating Pixi v8 renderer with preference:', preference);
-      const renderer = await autoDetect(rendererOptions);
-
-      return renderer;
-    } catch (error) {
-      console.error('❌ Failed to create v8 renderer:', error);
-      console.log('🔄 Falling back to v7 API');
-      return this.createV7Renderer(options);
+    if (!autoDetect) {
+      throw new Error('Pixi.js v8 autoDetectRenderer not found. Framework requires Pixi v8+');
     }
-  }
 
-  /**
-   * Create renderer using Pixi.js v7 API (Application)
-   */
-  private static async createV7Renderer(options: PixiRendererOptions): Promise<any> {
-    try {
-      const Application = (PIXI as any).Application;
+    // Determine preferred renderer type based on browser capabilities
+    // Default to WebGL (stable) instead of WebGPU (experimental)
+    let preference = options.preference || 'webgl';
 
-      if (!Application) {
-        throw new Error('Pixi.js Application not found');
-      }
-
-      const appOptions = {
-        view: options.canvas,
-        width: options.width || 800,
-        height: options.height || 600,
-        backgroundColor: options.backgroundColor,
-        backgroundAlpha: options.backgroundAlpha,
-        antialias: options.antialias !== false,
-        preserveDrawingBuffer: options.preserveDrawingBuffer || false,
-        resolution: options.resolution || (window.devicePixelRatio || 1),
-        autoDensity: options.autoDensity !== false,
-        powerPreference: options.powerPreference || 'default'
-      };
-
-      console.log('✅ Creating Pixi v7 Application');
-      const app = new Application(appOptions);
-
-      // For v7, we need to wait for the app to be ready
-      if (app.init) {
-        await app.init(appOptions);
-      }
-
-      return app;
-    } catch (error) {
-      console.error('❌ Failed to create v7 renderer:', error);
-      throw error;
+    if (preference === 'webgpu' && !BrowserFeatureDetector.hasWebGPU()) {
+      console.log('⚠️ WebGPU not available, falling back to WebGL2');
+      preference = 'webgl2';
     }
+
+    if (preference === 'webgl2' && !BrowserFeatureDetector.hasWebGL2()) {
+      console.log('⚠️ WebGL2 not available, falling back to WebGL');
+      preference = 'webgl';
+    }
+
+    // Create renderer with v8 API
+    const rendererOptions = {
+      canvas: options.canvas,
+      width: options.width || 800,
+      height: options.height || 600,
+      backgroundColor: options.backgroundColor,
+      backgroundAlpha: options.backgroundAlpha,
+      antialias: options.antialias !== false,
+      preserveDrawingBuffer: options.preserveDrawingBuffer || false,
+      resolution: options.resolution || (window.devicePixelRatio || 1),
+      autoDensity: options.autoDensity ?? true,
+      powerPreference: options.powerPreference,
+      preference
+    }
+
+    console.log('✅ Creating Pixi v8 renderer with preference:', preference);
+    const renderer = await autoDetect(rendererOptions);
+
+    return renderer;
   }
 
   /**
@@ -165,25 +114,17 @@ export class PixiCompatibility {
   }
 
   /**
-   * Get the renderer instance from either v7 Application or v8 renderer
+   * Get the renderer instance (Pixi v8 returns renderer directly)
    */
-  static getRenderer(appOrRenderer: any): any {
-    if (appOrRenderer.renderer) {
-      // v7 Application has a .renderer property
-      return appOrRenderer.renderer;
-    }
-    // v8 returns renderer directly
-    return appOrRenderer;
+  static getRenderer(renderer: any): any {
+    return renderer;
   }
 
   /**
-   * Get the canvas from either v7 Application or v8 renderer
+   * Get the canvas from Pixi v8 renderer
    */
-  static getCanvas(appOrRenderer: any): HTMLCanvasElement {
-    const renderer = this.getRenderer(appOrRenderer);
-
+  static getCanvas(renderer: any): HTMLCanvasElement {
     if (renderer.view) {
-      // v7/v8 both have .view property
       return renderer.view.canvas || renderer.view;
     }
 
@@ -191,49 +132,37 @@ export class PixiCompatibility {
       return renderer.canvas;
     }
 
-    throw new Error('Could not find canvas on renderer');
+    throw new Error('Could not find canvas on Pixi v8 renderer');
   }
 
   /**
-   * Get the stage from either v7 Application or create one for v8
+   * Get or create stage for Pixi v8 renderer
    */
-  static getStage(appOrRenderer: any): any {
-    if (appOrRenderer.stage) {
-      // v7 Application has a .stage property
-      return appOrRenderer.stage;
-    }
-
+  static getStage(renderer: any): any {
     // v8 doesn't have stage, need to create one
     const Container = (PIXI as any).Container;
     return new Container();
   }
 
   /**
-   * Resize renderer with version compatibility
+   * Resize Pixi v8 renderer
    */
-  static resize(appOrRenderer: any, width: number, height: number): void {
-    const renderer = this.getRenderer(appOrRenderer);
-
+  static resize(renderer: any, width: number, height: number): void {
     if (renderer.resize) {
       renderer.resize(width, height);
-    } else if (appOrRenderer.resize) {
-      appOrRenderer.resize(width, height);
     } else {
-      console.warn('⚠️ Resize method not found on renderer');
+      throw new Error('Resize method not found on Pixi v8 renderer');
     }
   }
 
   /**
-   * Render with version compatibility
+   * Render with Pixi v8 renderer
    */
-  static render(appOrRenderer: any, stage?: any): void {
-    const renderer = this.getRenderer(appOrRenderer);
-    const actualStage = stage || this.getStage(appOrRenderer);
-
+  static render(renderer: any, stage: any): void {
     if (renderer.render) {
-      renderer.render(actualStage);
+      renderer.render(stage);
     } else {
-      console.warn('⚠️ Render method not found on renderer');
+      throw new Error('Render method not found on Pixi v8 renderer');
     }
   }
 }

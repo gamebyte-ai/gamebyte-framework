@@ -212,6 +212,11 @@ export type { PixiRendererConfig } from './rendering/PixiRenderer';
 // Not exported in main bundle to avoid THREE.js dependency in UMD
 // export { ThreeRenderer } from './rendering/ThreeRenderer';
 // export type { ThreeRendererConfig } from './rendering/ThreeRenderer';
+// HybridRenderer: Combines Three.js (3D) + Pixi.js (2D) with stacked canvas
+// Not exported in main bundle to avoid THREE.js dependency in UMD
+// Use ESM/CJS imports for hybrid rendering: import { HybridRenderer } from '@gamebyte/framework/rendering/HybridRenderer'
+// export { HybridRenderer } from './rendering/HybridRenderer';
+// export type { HybridRendererConfig } from './rendering/HybridRenderer';
 export { RendererFactory } from './rendering/RendererFactory';
 
 // Audio System
@@ -358,6 +363,15 @@ export {
   RenderingCompatibility
 } from './utils/RendererCompatibility';
 export type { PixiRendererOptions, ThreeRendererOptions } from './utils/RendererCompatibility';
+
+// Responsive Helper Utilities
+export {
+  ResponsiveScaleCalculator,
+  ResponsiveContainer,
+  ResponsiveCanvas,
+  createResponsiveCalculator
+} from './utils/ResponsiveHelper';
+export type { ResponsiveConfig, ResponsiveSize } from './utils/ResponsiveHelper';
 
 // Graphics Abstraction Layer
 export type {

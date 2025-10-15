@@ -174,15 +174,12 @@ class ThreeContainerWrapper extends ThreeDisplayObjectBase implements IContainer
 
 /**
  * Three.js Graphics Wrapper (HTML Canvas-based)
+ * Implements Pixi v8 modern API using HTML5 Canvas
  */
 class ThreeGraphicsWrapper extends ThreeDisplayObjectBase implements IGraphics {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
-  private currentFillColor: number = 0xffffff;
-  private currentFillAlpha: number = 1;
-  private currentLineWidth: number = 1;
-  private currentLineColor: number = 0x000000;
-  private currentLineAlpha: number = 1;
+  private pathStarted: boolean = false;
 
   constructor() {
     const canvas = document.createElement('canvas');
@@ -199,76 +196,36 @@ class ThreeGraphicsWrapper extends ThreeDisplayObjectBase implements IGraphics {
     return this;
   }
 
-  beginFill(color: number, alpha: number = 1): this {
-    this.currentFillColor = color;
-    this.currentFillAlpha = alpha;
+  // Pixi v8 Modern API - Shape methods
+  rect(x: number, y: number, width: number, height: number): this {
+    this.ctx.beginPath();
+    this.ctx.rect(x, y, width, height);
+    this.pathStarted = true;
     return this;
   }
 
-  endFill(): this {
-    return this;
-  }
-
-  drawRect(x: number, y: number, width: number, height: number): this {
-    this.ctx.fillStyle = this.colorToHex(this.currentFillColor);
-    this.ctx.globalAlpha = this.currentFillAlpha;
-    this.ctx.fillRect(x, y, width, height);
-    this.ctx.globalAlpha = 1;
-    return this;
-  }
-
-  drawRoundedRect(x: number, y: number, width: number, height: number, radius: number): this {
-    this.ctx.fillStyle = this.colorToHex(this.currentFillColor);
-    this.ctx.globalAlpha = this.currentFillAlpha;
+  roundRect(x: number, y: number, width: number, height: number, radius: number): this {
     this.ctx.beginPath();
     this.ctx.roundRect(x, y, width, height, radius);
-    this.ctx.fill();
-    this.ctx.globalAlpha = 1;
+    this.pathStarted = true;
     return this;
   }
 
-  drawCircle(x: number, y: number, radius: number): this {
-    this.ctx.fillStyle = this.colorToHex(this.currentFillColor);
-    this.ctx.globalAlpha = this.currentFillAlpha;
+  circle(x: number, y: number, radius: number): this {
     this.ctx.beginPath();
     this.ctx.arc(x, y, radius, 0, Math.PI * 2);
-    this.ctx.fill();
-    this.ctx.globalAlpha = 1;
+    this.pathStarted = true;
     return this;
   }
 
-  drawEllipse(x: number, y: number, width: number, height: number): this {
-    this.ctx.fillStyle = this.colorToHex(this.currentFillColor);
-    this.ctx.globalAlpha = this.currentFillAlpha;
+  ellipse(x: number, y: number, width: number, height: number): this {
     this.ctx.beginPath();
     this.ctx.ellipse(x, y, width / 2, height / 2, 0, 0, Math.PI * 2);
-    this.ctx.fill();
-    this.ctx.globalAlpha = 1;
+    this.pathStarted = true;
     return this;
   }
 
-  lineStyle(width: number, color: number, alpha: number = 1): this {
-    this.currentLineWidth = width;
-    this.currentLineColor = color;
-    this.currentLineAlpha = alpha;
-    this.ctx.lineWidth = width;
-    this.ctx.strokeStyle = this.colorToHex(color);
-    return this;
-  }
-
-  moveTo(x: number, y: number): this {
-    this.ctx.moveTo(x, y);
-    return this;
-  }
-
-  lineTo(x: number, y: number): this {
-    this.ctx.lineTo(x, y);
-    return this;
-  }
-
-  drawPolygon(points: number[] | { x: number; y: number }[]): this {
-    this.ctx.fillStyle = this.colorToHex(this.currentFillColor);
-    this.ctx.globalAlpha = this.currentFillAlpha;
+  poly(points: number[] | { x: number; y: number }[]): this {
     this.ctx.beginPath();
 
     if (Array.isArray(points) && typeof points[0] === 'number') {
@@ -286,13 +243,67 @@ class ThreeGraphicsWrapper extends ThreeDisplayObjectBase implements IGraphics {
     }
 
     this.ctx.closePath();
-    this.ctx.fill();
-    this.ctx.globalAlpha = 1;
+    this.pathStarted = true;
     return this;
   }
 
-  beginTextureFill(options: { texture: ITexture }): this {
-    // For Three.js/CSS2D, we can't directly use texture fills
+  // Fill and stroke
+  fill(options?: { color?: number; alpha?: number } | any): this {
+    if (options) {
+      const color = options.color !== undefined ? options.color : 0xffffff;
+      const alpha = options.alpha !== undefined ? options.alpha : 1;
+
+      this.ctx.fillStyle = this.colorToHex(color);
+      this.ctx.globalAlpha = alpha;
+    }
+
+    this.ctx.fill();
+    this.ctx.globalAlpha = 1;
+    this.pathStarted = false;
+    return this;
+  }
+
+  stroke(options?: { color?: number; width?: number; alpha?: number } | any): this {
+    if (options) {
+      if (options.color !== undefined) {
+        this.ctx.strokeStyle = this.colorToHex(options.color);
+      }
+      if (options.width !== undefined) {
+        this.ctx.lineWidth = options.width;
+      }
+      if (options.alpha !== undefined) {
+        this.ctx.globalAlpha = options.alpha;
+      }
+    }
+
+    this.ctx.stroke();
+    this.ctx.globalAlpha = 1;
+    this.pathStarted = false;
+    return this;
+  }
+
+  // Line drawing
+  moveTo(x: number, y: number): this {
+    if (!this.pathStarted) {
+      this.ctx.beginPath();
+      this.pathStarted = true;
+    }
+    this.ctx.moveTo(x, y);
+    return this;
+  }
+
+  lineTo(x: number, y: number): this {
+    if (!this.pathStarted) {
+      this.ctx.beginPath();
+      this.pathStarted = true;
+    }
+    this.ctx.lineTo(x, y);
+    return this;
+  }
+
+  // Texture support
+  texture(texture: ITexture): this {
+    // For Three.js/CSS2D Canvas, we can't directly use Pixi textures
     // This is a no-op for CSS-based graphics
     return this;
   }

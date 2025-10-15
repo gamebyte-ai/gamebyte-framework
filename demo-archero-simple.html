@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Archero Menu (Simple) - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            overflow: hidden;
+            background: #000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            touch-action: none;
+        }
+        #game-container {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            height: 100vh;
+        }
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 24px;
+            z-index: 100;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">Loading...</div>
+    <div id="game-container"></div>
+
+    <!-- Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+    <script src="./dist/gamebyte.umd.js"></script>
+
+    <script>
+        (async () => {
+            try {
+                const { createGame, ArcheroMenu, ARCHERO_COLORS } = GameByteFramework;
+
+                const ASPECT_RATIO = 9 / 16;
+                const BASE_WIDTH = 1080;
+                const BASE_HEIGHT = 1920;
+
+                // Calculate canvas size
+                function getCanvasSize() {
+                    const windowWidth = window.innerWidth;
+                    const windowHeight = window.innerHeight;
+                    const windowAspect = windowWidth / windowHeight;
+
+                    let width, height;
+                    if (windowAspect > ASPECT_RATIO) {
+                        height = windowHeight;
+                        width = height * ASPECT_RATIO;
+                    } else {
+                        width = windowWidth;
+                        height = width / ASPECT_RATIO;
+                    }
+                    return { width, height };
+                }
+
+                // Create game
+                const game = createGame();
+
+                // Create canvas with 9:16 aspect ratio
+                const canvas = document.createElement('canvas');
+                canvas.width = BASE_WIDTH;
+                canvas.height = BASE_HEIGHT;
+
+                // Set initial display size
+                const initialSize = getCanvasSize();
+                canvas.style.width = initialSize.width + 'px';
+                canvas.style.height = initialSize.height + 'px';
+                canvas.style.display = 'block';
+
+                document.getElementById('game-container').appendChild(canvas);
+                console.log('✅ Canvas created:', initialSize.width, 'x', initialSize.height);
+
+                // Initialize with 2D renderer
+                // NOTE: resolution=1 and autoDensity=false keeps canvas at 1080x1920 (no scaling)
+                console.log('⏳ Initializing game...');
+                await game.initialize(canvas, '2d', {
+                    resolution: 1,
+                    autoDensity: false
+                });
+                console.log('✅ Game initialized successfully');
+
+            // Fix canvas style - framework might have changed it
+            canvas.style.width = initialSize.width + 'px';
+            canvas.style.height = initialSize.height + 'px';
+            console.log('🔧 Canvas style fixed:', canvas.style.width, 'x', canvas.style.height);
+
+            document.getElementById('loading').style.display = 'none';
+            console.log('✅ Loading screen hidden');
+
+            // Get renderer
+            const renderer = game.make('renderer');
+            console.log('🎨 Renderer:', renderer);
+            const stage = renderer.getStage();
+            console.log('🎭 Stage:', stage);
+            console.log('📐 Canvas dimensions:', canvas.width, 'x', canvas.height);
+            console.log('📏 Canvas style:', canvas.style.width, 'x', canvas.style.height);
+            console.log('👶 Stage children before adding:', stage.children.length);
+
+            // Create full screen background with gradient
+            const background = new PIXI.Graphics();
+
+            // Upper section: Orange-yellow vertical gradient (Archero style)
+            const upperHeight = BASE_HEIGHT - 220; // Everything above nav bar
+            const bgGradient = new PIXI.FillGradient(
+                0, 0,              // x0, y0 (top)
+                0, upperHeight,    // x1, y1 (bottom)
+                [
+                    { offset: 0, color: 0xFFA500 },    // Orange top
+                    { offset: 0.5, color: 0xFFD700 },  // Gold middle
+                    { offset: 1, color: 0xFFE55C }     // Light gold bottom
+                ]
+            );
+            background.rect(0, 0, BASE_WIDTH, upperHeight);
+            background.fill(bgGradient);
+
+            // Lower section: Dark background for nav bar area
+            background.rect(0, upperHeight, BASE_WIDTH, 220);
+            background.fill({ color: 0x0a0e1a }); // Dark blue background
+
+            stage.addChild(background);
+
+            // Define menu sections
+            const sections = [
+                { name: 'Shop', icon: '🛒', iconColor: ARCHERO_COLORS.red },
+                { name: 'Gear', icon: '⚙️', iconColor: ARCHERO_COLORS.purple },
+                { name: 'Campaign', icon: '🎯', iconColor: ARCHERO_COLORS.activeYellow },
+                { name: 'Trophy', icon: '🏆', iconColor: ARCHERO_COLORS.green },
+                { name: 'Chest', icon: '📦', iconColor: ARCHERO_COLORS.blue }
+            ];
+
+            // Create Archero menu with framework
+            const menu = new ArcheroMenu({
+                sections,
+                activeSection: 2, // Start with Campaign
+                onSectionChange: (index, section) => {
+                    console.log('Section changed to:', section.name);
+                },
+                canvasWidth: canvas.width,  // 1080 (resolution=1, autoDensity=false)
+                canvasHeight: canvas.height, // 1920 (resolution=1, autoDensity=false)
+                enableSwipe: true,
+                enableParticles: true
+            });
+
+            // Add menu to stage
+            stage.addChild(menu.getContainer());
+
+            // Start rendering
+            renderer.start();
+
+            // Update menu in render loop
+            renderer.on('tick', (deltaTime) => {
+                menu.update(deltaTime);
+            });
+
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                const newSize = getCanvasSize();
+                canvas.style.width = newSize.width + 'px';
+                canvas.style.height = newSize.height + 'px';
+            });
+
+                console.log('✅ Archero menu ready!');
+            } catch (error) {
+                console.error('❌ Demo failed:', error);
+                document.getElementById('loading').textContent = 'Error: ' + error.message;
+                document.getElementById('loading').style.color = 'red';
+            }
+        })();
+    </script>
+</body>
+</html>

@@ -154,9 +154,10 @@ export class HybridRenderer extends EventEmitter implements Renderer {
     // Initialize Three.js (3D Background Layer)
     await this.initializeThreeLayer(width, height, {
       antialias: options.antialias ?? recommendedAntialias,
-      transparent: false, // Opaque background
+      alpha: false, // Opaque background (Three.js uses 'alpha' not 'transparent')
       preserveDrawingBuffer: options.preserveDrawingBuffer ?? false,
-      powerPreference: options.powerPreference || recommendedPower,
+      powerPreference: options.powerPreference || recommendedPower
+    }, {
       backgroundColor: options.backgroundColor,
       resolution: options.resolution || optimalPixelRatio
     });
@@ -164,7 +165,7 @@ export class HybridRenderer extends EventEmitter implements Renderer {
     // Initialize Pixi.js (2D UI Overlay Layer)
     await this.initializePixiLayer(width, height, {
       antialias: options.antialias ?? recommendedAntialias,
-      transparent: true, // Transparent to show 3D layer below
+      backgroundAlpha: 0, // Transparent to show 3D layer below
       preserveDrawingBuffer: options.preserveDrawingBuffer ?? false,
       powerPreference: options.powerPreference || recommendedPower,
       resolution: options.resolution || optimalPixelRatio,
@@ -187,7 +188,8 @@ export class HybridRenderer extends EventEmitter implements Renderer {
   private async initializeThreeLayer(
     width: number,
     height: number,
-    options: Partial<ThreeRendererOptions>
+    options: Partial<ThreeRendererOptions>,
+    extraOptions?: { backgroundColor?: number | string; resolution?: number }
   ): Promise<void> {
     // Create Three.js canvas
     this.threeCanvas = document.createElement('canvas');
@@ -205,7 +207,7 @@ export class HybridRenderer extends EventEmitter implements Renderer {
     const threeOptions: ThreeRendererOptions = {
       canvas: this.threeCanvas,
       antialias: options.antialias ?? true,
-      alpha: options.transparent ?? false,
+      alpha: options.alpha ?? false,
       preserveDrawingBuffer: options.preserveDrawingBuffer ?? false,
       powerPreference: options.powerPreference || 'high-performance'
     };
@@ -221,17 +223,17 @@ export class HybridRenderer extends EventEmitter implements Renderer {
     // Set renderer size and pixel ratio
     this.threeRenderer.setSize(width, height, false);
 
-    if (options.resolution) {
-      this.threeRenderer.setPixelRatio(options.resolution);
+    if (extraOptions?.resolution) {
+      this.threeRenderer.setPixelRatio(extraOptions.resolution);
     } else {
       this.threeRenderer.setPixelRatio(RenderingCompatibility.getOptimalPixelRatio());
     }
 
     // Set background color
-    if (options.backgroundColor !== undefined) {
-      const bgColor = typeof options.backgroundColor === 'string'
-        ? parseInt(options.backgroundColor.replace('#', '0x'), 16)
-        : options.backgroundColor;
+    if (extraOptions?.backgroundColor !== undefined) {
+      const bgColor = typeof extraOptions.backgroundColor === 'string'
+        ? parseInt(extraOptions.backgroundColor.replace('#', '0x'), 16)
+        : extraOptions.backgroundColor;
       this.threeRenderer.setClearColor(bgColor, 1.0);
     }
 
