@@ -15,7 +15,12 @@
       "Bash(then echo \"❌ Found v7 API\")",
       "Bash(else echo \"✅ No v7 API found\")",
       "Bash(for pattern in \"beginFill\" \"endFill\" \"drawRect\" \"drawRoundedRect\" \"drawCircle\" \"lineStyle\")",
-      "Bash(do echo \"Checking for ''$pattern'':\")"
+      "Bash(do echo \"Checking for ''$pattern'':\")",
+      "WebFetch(domain:pixijs.download)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)",
+      "Bash(python3:*)",
+      "Bash(npm run build)"
     ],
     "deny": [],
     "ask": []

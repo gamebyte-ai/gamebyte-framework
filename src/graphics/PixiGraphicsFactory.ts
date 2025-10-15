@@ -123,7 +123,7 @@ export class PixiGraphicsFactory implements IGraphicsFactory {
     // Pixi v8 dropShadow format: { alpha, angle, blur, color, distance }
     if (style.dropShadow) {
       config.dropShadow = {
-        alpha: 0.8,
+        alpha: style.dropShadowAlpha ?? 0.8,
         angle: style.dropShadowAngle ?? 0.523599, // ~30 degrees
         blur: style.dropShadowBlur ?? 0,
         color: style.dropShadowColor ?? 0x000000,

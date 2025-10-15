@@ -39,7 +39,7 @@
     <!-- Dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
-    <script src="./dist/gamebyte.umd.js"></script>
+    <script src="./dist/gamebyte.umd.js?v=1570"></script><!-- Cache busting -->
 
     <script>
         (async () => {
@@ -85,12 +85,9 @@
                 console.log('✅ Canvas created:', initialSize.width, 'x', initialSize.height);
 
                 // Initialize with 2D renderer
-                // NOTE: resolution=1 and autoDensity=false keeps canvas at 1080x1920 (no scaling)
+                // NOTE: Let renderer use optimal resolution (devicePixelRatio) for sharp rendering
                 console.log('⏳ Initializing game...');
-                await game.initialize(canvas, '2d', {
-                    resolution: 1,
-                    autoDensity: false
-                });
+                await game.initialize(canvas, '2d');
                 console.log('✅ Game initialized successfully');
 
             // Fix canvas style - framework might have changed it
@@ -115,15 +112,19 @@
 
             // Upper section: Orange-yellow vertical gradient (Archero style)
             const upperHeight = BASE_HEIGHT - 220; // Everything above nav bar
-            const bgGradient = new PIXI.FillGradient(
-                0, 0,              // x0, y0 (top)
-                0, upperHeight,    // x1, y1 (bottom)
-                [
+
+            // PixiJS v8 FillGradient API (EXACT vanilla syntax)
+            const bgGradient = new PIXI.FillGradient({
+                type: 'linear',
+                start: { x: 0, y: 0 },
+                end: { x: 0, y: 1 },
+                colorStops: [
                     { offset: 0, color: 0xFFA500 },    // Orange top
                     { offset: 0.5, color: 0xFFD700 },  // Gold middle
                     { offset: 1, color: 0xFFE55C }     // Light gold bottom
                 ]
-            );
+            });
+
             background.rect(0, 0, BASE_WIDTH, upperHeight);
             background.fill(bgGradient);
 
@@ -149,8 +150,8 @@
                 onSectionChange: (index, section) => {
                     console.log('Section changed to:', section.name);
                 },
-                canvasWidth: canvas.width,  // 1080 (resolution=1, autoDensity=false)
-                canvasHeight: canvas.height, // 1920 (resolution=1, autoDensity=false)
+                canvasWidth: BASE_WIDTH,   // Logical size: 1080 (not canvas.width which includes devicePixelRatio)
+                canvasHeight: BASE_HEIGHT, // Logical size: 1920
                 enableSwipe: true,
                 enableParticles: true
             });

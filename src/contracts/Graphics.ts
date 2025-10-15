@@ -94,6 +94,7 @@ export interface ITextStyle {
   dropShadowBlur?: number;
   dropShadowAngle?: number;
   dropShadowDistance?: number;
+  dropShadowAlpha?: number;
 }
 
 /**

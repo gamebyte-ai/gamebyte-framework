@@ -62,6 +62,7 @@
  */
 
 import { EventEmitter } from 'eventemitter3';
+import * as PIXI from 'pixi.js';
 import { graphics } from '../../graphics/GraphicsEngine';
 import { IContainer, IGraphics, IText } from '../../contracts/Graphics';
 import { ResponsiveScaleCalculator, ResponsiveConfig } from '../../utils/ResponsiveHelper';
@@ -343,17 +344,17 @@ const DEFAULT_STYLE: Required<ArcheroMenuStyleConfig> = {
   activeButtonSize: 260,
   buttonRadius: 30,
 
-  // Button Colors & Gradients - More vibrant gold appearance
+  // Button Colors & Gradients - EXACT vanilla colors
   buttonGradient: {
-    topColor: 0xFFF4CC,    // Very light cream/yellow (more contrast)
-    middleColor: 0xFFD700, // Bright gold
-    bottomColor: 0xFF8C00  // Dark orange (more saturated)
+    topColor: 0xFFE55C,    // Light gold top (vanilla)
+    middleColor: 0xFFD700, // Gold middle (vanilla)
+    bottomColor: 0xFFA500  // Orange bottom (vanilla)
   },
   shineGradient: {
-    topColor: 0xFFFFFF,    // Pure white
-    middleColor: 0xFFFBE6, // Very light yellow
-    bottomColor: 0xFFE55C, // Light gold
-    alpha: 0.35            // Reduced alpha so gold shows through
+    topColor: 0xFFFFFF,    // Pure white at top (vanilla)
+    middleColor: 0xFFE55C, // Light gold (vanilla)
+    bottomColor: 0xFFD700, // Gold at bottom (vanilla)
+    alpha: 0.5             // Overall shine brightness (vanilla)
   },
 
   // Navigation Bar - More visible and prominent
@@ -364,19 +365,19 @@ const DEFAULT_STYLE: Required<ArcheroMenuStyleConfig> = {
   separatorColor: 0x3d4f6f, // Lighter separator for better visibility
   navHeight: 220,           // Shorter but more prominent
 
-  // Icon Styling - Much larger icons that overflow the button
-  iconSize: 100,              // Larger inactive icons
-  activeIconSize: 200,        // Very large active icon that overflows button
+  // Icon Styling - Vanilla sizes
+  iconSize: 90,               // Inactive icon size (vanilla)
+  activeIconSize: 140,        // Active icon size (vanilla)
   iconYOffset: -10,
-  activeIconYOffset: -50,     // Higher position to overflow from top
+  activeIconYOffset: -35,     // Vanilla positioning
   iconStrokeColor: ARCHERO_COLORS.black,
   iconStrokeWidth: 8,
   iconShadowDistance: 6,
   iconShadowBlur: 4,
 
-  // Label Styling
+  // Label Styling - Vanilla values
   labelSize: 40,
-  labelYOffset: 75,         // Lower position to accommodate large icon
+  labelYOffset: 55,         // Vanilla Y position
   labelColor: ARCHERO_COLORS.darkBrown,
   labelStrokeColor: ARCHERO_COLORS.activeLightGold,
   labelStrokeWidth: 4,
@@ -729,35 +730,26 @@ export class ArcheroMenu extends EventEmitter {
       if (customIcon) return customIcon;
     }
 
-    // Apply section-specific style overrides with responsive scaling
-    const baseIconSize = section.customStyle?.activeIconSize && isActive
-      ? section.customStyle.activeIconSize
-      : section.customStyle?.iconSize && !isActive
-      ? section.customStyle.iconSize
-      : isActive ? this.style.activeIconSize : this.style.iconSize;
+    // Use style config values (with vanilla defaults in DEFAULT_STYLE)
+    const fontSize = isActive ? this.style.activeIconSize : this.style.iconSize;
+    const yPosition = isActive ? this.style.activeIconYOffset : this.style.iconYOffset;
 
-    const iconSize = this.getScaledValue(baseIconSize);
-
-    const baseIconYOffset = isActive ? this.style.activeIconYOffset : this.style.iconYOffset;
-    const iconYOffset = this.getScaledValue(baseIconYOffset);
-
-    // Default icon creation with responsive scaling
-    const icon = graphics().createText(
-      typeof section.icon === 'string' ? section.icon : '',
-      {
-        fontSize: iconSize,
-        fontFamily: 'system-ui',
-        stroke: this.style.iconStrokeColor,
-        strokeThickness: this.getScaledValue(this.style.iconStrokeWidth),
-        dropShadow: true,
-        dropShadowDistance: this.getScaledValue(this.style.iconShadowDistance),
-        dropShadowBlur: this.getScaledValue(this.style.iconShadowBlur),
-        dropShadowColor: this.style.iconStrokeColor
+    // Direct PIXI.Text creation (bypass framework abstraction for predictable sizing)
+    const icon = new PIXI.Text(typeof section.icon === 'string' ? section.icon : '', {
+      fontSize: fontSize,
+      fontFamily: 'system-ui',
+      stroke: { color: this.style.iconStrokeColor, width: this.style.iconStrokeWidth },
+      dropShadow: {
+        angle: 0.523599,
+        distance: this.style.iconShadowDistance,
+        alpha: 0.8,
+        blur: this.style.iconShadowBlur,
+        color: this.style.iconStrokeColor
       }
-    );
+    }) as any;
 
-    if (icon.anchor) icon.anchor.set(0.5, 0.5);
-    icon.y = iconYOffset;
+    icon.anchor.set(0.5);
+    icon.y = yPosition;
 
     return icon;
   }
@@ -776,22 +768,23 @@ export class ArcheroMenu extends EventEmitter {
     const labelColor = section.customStyle?.labelColor ?? this.style.labelColor;
     const labelStrokeColor = section.customStyle?.labelStrokeColor ?? this.style.labelStrokeColor;
 
-    // Default label creation with responsive scaling
-    const label = graphics().createText(section.name, {
-      fontSize: this.getScaledValue(this.style.labelSize),
-      fontFamily: 'system-ui',
+    // Direct PIXI.Text creation (bypass framework abstraction for predictable sizing)
+    const label = new PIXI.Text(section.name, {
+      fontSize: this.style.labelSize,
       fill: labelColor,
-      fontWeight: this.style.labelFontWeight,
-      stroke: labelStrokeColor,
-      strokeThickness: this.getScaledValue(this.style.labelStrokeWidth),
-      dropShadow: true,
-      dropShadowDistance: this.getScaledValue(this.style.labelShadowDistance),
-      dropShadowBlur: this.getScaledValue(this.style.labelShadowBlur),
-      dropShadowColor: this.style.iconStrokeColor
-    });
+      fontWeight: this.style.labelFontWeight as any,
+      stroke: { color: labelStrokeColor, width: this.style.labelStrokeWidth },
+      dropShadow: {
+        angle: 0.523599,
+        distance: this.style.labelShadowDistance,
+        alpha: 0.6,
+        blur: this.style.labelShadowBlur,
+        color: 0x000000
+      }
+    }) as any;
 
-    if (label.anchor) label.anchor.set(0.5, 0.5);
-    label.y = this.getScaledValue(this.style.labelYOffset);
+    label.anchor.set(0.5);
+    label.y = this.style.labelYOffset;
 
     return label;
   }
@@ -820,32 +813,22 @@ export class ArcheroMenu extends EventEmitter {
       // Apply section-specific gradient override
       const gradientConfig = section.customStyle?.buttonGradient ?? this.style.buttonGradient;
 
-      // Active: Gold gradient using Pixi v8 FillGradient API
-      const PIXI = (globalThis as any).PIXI;
-
       // Ensure gradient colors have defaults
       const topColor = gradientConfig.topColor ?? 0xFFF4CC;
       const middleColor = gradientConfig.middleColor ?? 0xFFD700;
       const bottomColor = gradientConfig.bottomColor ?? 0xFF8C00;
 
-      // Debug: Log gradient colors
-      if (typeof console !== 'undefined') {
-        console.log('🎨 Button gradient colors:', {
-          topColor: topColor.toString(16),
-          middleColor: middleColor.toString(16),
-          bottomColor: bottomColor.toString(16)
-        });
-      }
-
-      const fillGradient = new PIXI.FillGradient(
-        -size/2, -size/2,  // x0, y0
-        -size/2, size/2,   // x1, y1
-        [
+      // PixiJS v8 FillGradient API (EXACT vanilla syntax)
+      const fillGradient = new PIXI.FillGradient({
+        type: 'linear',
+        start: { x: 0, y: 0 },
+        end: { x: 0, y: 1 },
+        colorStops: [
           { offset: 0, color: topColor },
           { offset: 0.5, color: middleColor },
           { offset: 1, color: bottomColor }
         ]
-      );
+      });
 
       bg.roundRect(-size/2, -size/2, size, size, this.getScaledValue(this.style.buttonRadius));
       bg.fill(fillGradient);
@@ -866,28 +849,28 @@ export class ArcheroMenu extends EventEmitter {
 
     const shine = this.style.shineGradient;
 
-    // Create shine gradient using Pixi v8 FillGradient API
-    const PIXI = (globalThis as any).PIXI;
-
     // Ensure shine colors have defaults
     const topColor = shine.topColor ?? 0xFFFFFF;
     const middleColor = shine.middleColor ?? 0xFFFBE6;
     const bottomColor = shine.bottomColor ?? 0xFFE55C;
     const alpha = shine.alpha ?? 0.35;
 
-    const shineGradient = new PIXI.FillGradient(
-      -overlayWidth/2, -size/2 + 8,  // x0, y0
-      -overlayWidth/2, -size/2 + 8 + overlayHeight,  // x1, y1
-      [
+    // PixiJS v8 FillGradient API (EXACT vanilla syntax)
+    const overlayTop = -size/2 + 8;
+    const shineGradient = new PIXI.FillGradient({
+      type: 'linear',
+      start: { x: 0, y: 0 },
+      end: { x: 0, y: 1 },
+      colorStops: [
         { offset: 0, color: topColor },
         { offset: 0.8, color: middleColor },
         { offset: 1, color: bottomColor }
       ]
-    );
+    });
 
-    overlay.roundRect(-overlayWidth/2, -size/2 + 8, overlayWidth, overlayHeight, this.getScaledValue(25));
+    overlay.roundRect(-overlayWidth/2, overlayTop, overlayWidth, overlayHeight, this.getScaledValue(25));
     overlay.fill(shineGradient);
-    overlay.alpha = alpha;
+    overlay.alpha = alpha; // Vanilla: simple alpha, no mask
 
     return overlay;
   }
