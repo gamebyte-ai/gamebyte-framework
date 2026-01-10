@@ -252,6 +252,14 @@ export class PixiRenderer extends EventEmitter implements Renderer {
   }
 
   /**
+   * Get the native renderer instance (implements Renderer interface).
+   * For PixiRenderer, returns the Pixi Application or Renderer.
+   */
+  getNativeRenderer(): any {
+    return this.app || this.getRenderer();
+  }
+
+  /**
    * Get the ticker for animation loop.
    */
   private getTicker(): any {
