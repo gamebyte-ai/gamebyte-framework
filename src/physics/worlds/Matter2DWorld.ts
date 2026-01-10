@@ -26,7 +26,9 @@ import { Matter2DConstraint } from '../constraints/Matter2DConstraint';
 export class Matter2DWorld extends EventEmitter implements PhysicsWorld {
   public readonly dimension: PhysicsDimension = '2d';
   public readonly engineType: PhysicsEngineType = 'matter';
-  public readonly isRunning: boolean = false;
+
+  // Private backing field for mutable state
+  private _isRunning: boolean = false;
 
   private engine: Matter2DEngine;
   private world: Matter.World;
@@ -37,16 +39,21 @@ export class Matter2DWorld extends EventEmitter implements PhysicsWorld {
   private lastStepTime = 0;
   private paused = false;
 
+  // Public getter for readonly access
+  get isRunning(): boolean {
+    return this._isRunning;
+  }
+
   constructor(engine: Matter2DEngine, config: PhysicsWorldConfig) {
     super();
     this.engine = engine;
     this.config = { ...config };
-    
+
     const nativeEngine = engine.getNativeEngine();
     if (!nativeEngine) {
       throw new Error('Engine is not initialized');
     }
-    
+
     this.world = nativeEngine.world;
     this.initializeWorld();
     this.setupCollisionEvents();
@@ -160,7 +167,7 @@ export class Matter2DWorld extends EventEmitter implements PhysicsWorld {
     if (nativeEngine) {
       this.runner = Matter.Runner.create();
       Matter.Runner.run(this.runner, nativeEngine);
-      (this as any).isRunning = true;
+      this._isRunning = true;
       this.emit('started');
     }
   }
@@ -176,7 +183,7 @@ export class Matter2DWorld extends EventEmitter implements PhysicsWorld {
       this.runner = null;
     }
     
-    (this as any).isRunning = false;
+    this._isRunning = false;
     this.emit('stopped');
   }
 

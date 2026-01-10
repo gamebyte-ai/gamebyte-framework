@@ -3,6 +3,7 @@ import {
   MobilePhysicsOptimizer,
   PhysicsPerformanceMetrics
 } from '../../contracts/Physics';
+import { DeviceDetector } from '../../performance/DeviceDetector';
 
 /**
  * Mobile-specific physics optimization system
@@ -179,36 +180,11 @@ export class GameByteMobileOptimizer extends EventEmitter implements MobilePhysi
   }
 
   /**
-   * Detect device tier based on available information
+   * Detect device tier using centralized DeviceDetector
    */
   detectDeviceTier(): 'low' | 'medium' | 'high' {
-    const memory = (navigator as any).deviceMemory || 4; // GB
-    const cores = navigator.hardwareConcurrency || 4;
-    const userAgent = navigator.userAgent.toLowerCase();
-    
-    // Check for mobile devices
-    const isMobile = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
-    
-    let tier: 'low' | 'medium' | 'high';
-    
-    if (isMobile) {
-      // Mobile device tier detection
-      if (memory <= 2 || cores <= 2) {
-        tier = 'low';
-      } else if (memory <= 4 || cores <= 4) {
-        tier = 'medium';
-      } else {
-        tier = 'high';
-      }
-    } else {
-      // Desktop device tier detection
-      if (memory <= 4 || cores <= 2) {
-        tier = 'medium';
-      } else {
-        tier = 'high';
-      }
-    }
-    
+    // Use centralized DeviceDetector for consistent detection across the framework
+    const tier = DeviceDetector.detectTierSync();
     this.deviceTier = tier;
     this.emit('device-tier-detected', tier);
     return tier;

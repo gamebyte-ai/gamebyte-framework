@@ -114,6 +114,45 @@ export class GameByteAudioSource extends EventEmitter<AudioEvents> implements Au
   }
 
   /**
+   * Get the output gain node for routing to buses
+   * This allows connecting this source to an AudioBus
+   */
+  getOutputNode(): GainNode {
+    return this._gainNode;
+  }
+
+  /**
+   * Disconnect from current destination and connect to a new target node
+   * Used when routing through an AudioBus
+   */
+  connectToNode(targetNode: AudioNode): void {
+    // Disconnect analyser from master (if connected)
+    if (this._analyserNode) {
+      try {
+        this._analyserNode.disconnect(this._masterGain);
+      } catch (e) {
+        // Already disconnected or not connected
+      }
+      // Connect analyser to target node
+      this._analyserNode.connect(targetNode);
+    }
+  }
+
+  /**
+   * Reconnect to the master gain (when removed from a bus)
+   */
+  reconnectToMaster(): void {
+    if (this._analyserNode) {
+      try {
+        this._analyserNode.disconnect();
+      } catch (e) {
+        // Already disconnected
+      }
+      this._analyserNode.connect(this._masterGain);
+    }
+  }
+
+  /**
    * Create and connect audio nodes
    */
   private createAudioNodes(spatial: boolean): void {

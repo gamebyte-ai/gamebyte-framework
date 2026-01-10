@@ -12,8 +12,10 @@ import {
  */
 export class GameByteTopDownHelper extends EventEmitter implements TopDownPhysicsHelper {
   public readonly character: PhysicsBody;
-  public readonly isMoving: boolean = false;
-  public readonly currentSpeed: number = 0;
+
+  // Private backing fields for mutable state properties
+  private _isMoving: boolean = false;
+  private _currentSpeed: number = 0;
 
   private world: PhysicsWorld;
   private movementInput: Point = { x: 0, y: 0 };
@@ -33,6 +35,15 @@ export class GameByteTopDownHelper extends EventEmitter implements TopDownPhysic
   // State tracking
   private velocity: Point = { x: 0, y: 0 };
   private lastMovementDirection: Point = { x: 0, y: 1 };
+
+  // Public getters for readonly access
+  get isMoving(): boolean {
+    return this._isMoving;
+  }
+
+  get currentSpeed(): number {
+    return this._currentSpeed;
+  }
 
   constructor(character: PhysicsBody, world: PhysicsWorld) {
     super();
@@ -339,8 +350,8 @@ export class GameByteTopDownHelper extends EventEmitter implements TopDownPhysic
     const speed = this.getMovementSpeed();
     const wasMoving = this.isMoving;
     
-    (this as any).isMoving = speed > 0.1;
-    (this as any).currentSpeed = speed;
+    this._isMoving = speed > 0.1;
+    this._currentSpeed = speed;
     
     if (wasMoving !== this.isMoving) {
       this.emit('movement-state-changed', this.isMoving);

@@ -19,6 +19,7 @@ import { GameByteTouchInputHandler } from './TouchInputHandler';
 import { GameByteVirtualControlsManager } from './VirtualControlsManager';
 import { GameByteInputMappingManager } from './InputMappingManager';
 import { GameByteInputPerformanceManager } from './InputPerformanceManager';
+import { DeviceDetector } from '../performance/DeviceDetector';
 
 /**
  * Main input manager for the GameByte Framework
@@ -63,12 +64,20 @@ export class GameByteInputManager extends EventEmitter implements InputManager {
   private debugMode: boolean = false;
   private debugOverlay: HTMLElement | null = null;
 
+  // Bound event handlers (stored for proper cleanup)
+  private boundPointerHandler: (e: PointerEvent) => void;
+  private boundKeydownHandler: (e: KeyboardEvent) => void;
+  private boundKeyupHandler: (e: KeyboardEvent) => void;
+  private boundGamepadConnectedHandler: (e: GamepadEvent) => void;
+  private boundGamepadDisconnectedHandler: (e: GamepadEvent) => void;
+  private boundContextMenuHandler: (e: Event) => void;
+
   constructor() {
     super();
-    
+
     // Initialize device capabilities
     this._deviceCapabilities = this.detectDeviceCapabilities();
-    
+
     // Initialize performance metrics
     this._performanceMetrics = {
       averageLatency: 0,
@@ -79,13 +88,21 @@ export class GameByteInputManager extends EventEmitter implements InputManager {
       frameRate: 60,
       batteryImpact: 'low'
     };
-    
+
     // Create handlers
     this.touchHandler = new GameByteTouchInputHandler();
     this.virtualControls = new GameByteVirtualControlsManager();
     this.mappingManager = new GameByteInputMappingManager();
     this.performanceManager = new GameByteInputPerformanceManager();
-    
+
+    // Bind event handlers once (prevents memory leak from creating new bindings)
+    this.boundPointerHandler = this.handlePointerEvent.bind(this);
+    this.boundKeydownHandler = this.handleKeyboardEvent.bind(this);
+    this.boundKeyupHandler = this.handleKeyboardEvent.bind(this);
+    this.boundGamepadConnectedHandler = this.handleGamepadEvent.bind(this);
+    this.boundGamepadDisconnectedHandler = this.handleGamepadEvent.bind(this);
+    this.boundContextMenuHandler = this.preventDefault.bind(this);
+
     // Setup handler event forwarding
     this.setupHandlerEvents();
   }
@@ -588,26 +605,18 @@ export class GameByteInputManager extends EventEmitter implements InputManager {
   }
 
   /**
-   * Detect device capabilities
+   * Detect device capabilities using centralized DeviceDetector
    */
   private detectDeviceCapabilities(): DeviceCapabilities {
-    const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const hasTouch = DeviceDetector.hasTouchSupport();
     const hasKeyboard = !hasTouch || window.innerWidth > 768; // Heuristic for keyboard availability
     const hasMouse = window.matchMedia('(pointer: fine)').matches;
     const hasGamepad = 'getGamepads' in navigator;
-    
-    // Detect performance tier based on various factors
-    let performanceTier: 'low' | 'medium' | 'high' = 'medium';
-    
-    // Type assertion for deviceMemory (not in all browsers)
-    const deviceMemory = (navigator as any).deviceMemory;
-    
-    if (navigator.hardwareConcurrency >= 8 && deviceMemory >= 4) {
-      performanceTier = 'high';
-    } else if (navigator.hardwareConcurrency <= 2 || (deviceMemory && deviceMemory < 1)) {
-      performanceTier = 'low';
-    }
-    
+
+    // Use centralized DeviceDetector for consistent tier detection
+    const performanceTier = DeviceDetector.detectTierSync();
+    const screenSize = DeviceDetector.getScreenSize();
+
     return {
       hasTouchScreen: hasTouch,
       hasTouch: hasTouch, // Alias for compatibility
@@ -619,10 +628,10 @@ export class GameByteInputManager extends EventEmitter implements InputManager {
       supportsHaptics: 'vibrate' in navigator,
       performanceTier,
       screenSize: {
-        width: window.innerWidth,
-        height: window.innerHeight
+        width: screenSize.width,
+        height: screenSize.height
       },
-      pixelRatio: window.devicePixelRatio || 1
+      pixelRatio: DeviceDetector.getPixelRatio()
     };
   }
 
@@ -631,23 +640,23 @@ export class GameByteInputManager extends EventEmitter implements InputManager {
    */
   private setupEventListeners(): void {
     if (!this.element) return;
-    
-    // Touch/Pointer events
-    this.element.addEventListener('pointerdown', this.handlePointerEvent.bind(this));
-    this.element.addEventListener('pointermove', this.handlePointerEvent.bind(this));
-    this.element.addEventListener('pointerup', this.handlePointerEvent.bind(this));
-    this.element.addEventListener('pointercancel', this.handlePointerEvent.bind(this));
-    
+
+    // Touch/Pointer events (using pre-bound handlers for proper cleanup)
+    this.element.addEventListener('pointerdown', this.boundPointerHandler);
+    this.element.addEventListener('pointermove', this.boundPointerHandler);
+    this.element.addEventListener('pointerup', this.boundPointerHandler);
+    this.element.addEventListener('pointercancel', this.boundPointerHandler);
+
     // Keyboard events
-    window.addEventListener('keydown', this.handleKeyboardEvent.bind(this));
-    window.addEventListener('keyup', this.handleKeyboardEvent.bind(this));
-    
+    window.addEventListener('keydown', this.boundKeydownHandler);
+    window.addEventListener('keyup', this.boundKeyupHandler);
+
     // Gamepad events
-    window.addEventListener('gamepadconnected', this.handleGamepadEvent.bind(this));
-    window.addEventListener('gamepaddisconnected', this.handleGamepadEvent.bind(this));
-    
+    window.addEventListener('gamepadconnected', this.boundGamepadConnectedHandler);
+    window.addEventListener('gamepaddisconnected', this.boundGamepadDisconnectedHandler);
+
     // Prevent context menu and default behaviors
-    this.element.addEventListener('contextmenu', this.preventDefault.bind(this));
+    this.element.addEventListener('contextmenu', this.boundContextMenuHandler);
   }
 
   /**
@@ -655,19 +664,20 @@ export class GameByteInputManager extends EventEmitter implements InputManager {
    */
   private removeEventListeners(): void {
     if (!this.element) return;
-    
-    this.element.removeEventListener('pointerdown', this.handlePointerEvent.bind(this));
-    this.element.removeEventListener('pointermove', this.handlePointerEvent.bind(this));
-    this.element.removeEventListener('pointerup', this.handlePointerEvent.bind(this));
-    this.element.removeEventListener('pointercancel', this.handlePointerEvent.bind(this));
-    
-    window.removeEventListener('keydown', this.handleKeyboardEvent.bind(this));
-    window.removeEventListener('keyup', this.handleKeyboardEvent.bind(this));
-    
-    window.removeEventListener('gamepadconnected', this.handleGamepadEvent.bind(this));
-    window.removeEventListener('gamepaddisconnected', this.handleGamepadEvent.bind(this));
-    
-    this.element.removeEventListener('contextmenu', this.preventDefault.bind(this));
+
+    // Remove using same handler references (fixes memory leak)
+    this.element.removeEventListener('pointerdown', this.boundPointerHandler);
+    this.element.removeEventListener('pointermove', this.boundPointerHandler);
+    this.element.removeEventListener('pointerup', this.boundPointerHandler);
+    this.element.removeEventListener('pointercancel', this.boundPointerHandler);
+
+    window.removeEventListener('keydown', this.boundKeydownHandler);
+    window.removeEventListener('keyup', this.boundKeyupHandler);
+
+    window.removeEventListener('gamepadconnected', this.boundGamepadConnectedHandler);
+    window.removeEventListener('gamepaddisconnected', this.boundGamepadDisconnectedHandler);
+
+    this.element.removeEventListener('contextmenu', this.boundContextMenuHandler);
   }
 
   /**

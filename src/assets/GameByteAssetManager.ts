@@ -28,6 +28,7 @@ import { PersistentCache } from './cache/PersistentCache';
 
 // Import bundle support
 import { GameByteAssetBundle } from './bundling/AssetBundle';
+import { DeviceDetector } from '../performance/DeviceDetector';
 
 /**
  * Asset manager configuration options.
@@ -506,27 +507,32 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
   }
   
   /**
-   * Detect device capabilities.
+   * Detect device capabilities using centralized DeviceDetector.
    */
   private detectDeviceCapabilities(): DeviceCapabilities {
-    const screen = window.screen;
+    const screenSize = DeviceDetector.getScreenSize();
     const nav = navigator as any;
-    
-    // Simple performance tier detection
-    const deviceMemory = nav.deviceMemory || 4;
-    const hardwareConcurrency = nav.hardwareConcurrency || 4;
     const connectionType = nav.connection?.effectiveType || '4g';
-    
+
+    // Use centralized DeviceDetector for hardware info
+    const deviceMemory = DeviceDetector.getDeviceMemory();
+    const cores = DeviceDetector.getCoreCount();
+
+    // Map DeviceDetector tier to AssetManager's DevicePerformanceTier
     let performanceTier: DevicePerformanceTier = DevicePerformanceTier.MEDIUM;
-    
-    if (deviceMemory >= 8 && hardwareConcurrency >= 8) {
-      performanceTier = DevicePerformanceTier.PREMIUM;
-    } else if (deviceMemory >= 6 && hardwareConcurrency >= 6) {
-      performanceTier = DevicePerformanceTier.HIGH;
-    } else if (deviceMemory <= 2 || hardwareConcurrency <= 2) {
+    const tier = DeviceDetector.detectTierSync();
+
+    if (tier === 'high') {
+      // Check if it qualifies for PREMIUM
+      if (deviceMemory >= 8 && cores >= 8) {
+        performanceTier = DevicePerformanceTier.PREMIUM;
+      } else {
+        performanceTier = DevicePerformanceTier.HIGH;
+      }
+    } else if (tier === 'low') {
       performanceTier = DevicePerformanceTier.LOW;
     }
-    
+
     return {
       performanceTier,
       availableMemory: deviceMemory * 1024, // Convert to MB
@@ -535,9 +541,9 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
       supportedAudioFormats: this.detectAudioFormats(),
       connectionType: connectionType as any,
       screen: {
-        width: screen.width,
-        height: screen.height,
-        pixelRatio: window.devicePixelRatio || 1
+        width: screenSize.width,
+        height: screenSize.height,
+        pixelRatio: DeviceDetector.getPixelRatio()
       },
       platform: this.detectPlatform()
     };

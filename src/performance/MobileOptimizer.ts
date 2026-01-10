@@ -1,5 +1,5 @@
 import { EventEmitter } from 'eventemitter3';
-import { 
+import {
   MobileOptimizer as IMobileOptimizer,
   DevicePerformanceTier,
   DeviceThermalState,
@@ -7,6 +7,7 @@ import {
   QualitySettings,
   QualityLevel
 } from '../contracts/Performance';
+import { DeviceDetector } from './DeviceDetector';
 
 /**
  * Battery information interface
@@ -148,25 +149,23 @@ export class MobileOptimizer extends EventEmitter implements IMobileOptimizer {
   }
 
   /**
-   * Detect device performance tier
+   * Detect device performance tier using centralized DeviceDetector
    */
   detectDeviceTier(): DevicePerformanceTier {
     let score = 0;
-    
+
+    // Use centralized DeviceDetector for hardware info
+    const cores = DeviceDetector.getCoreCount();
+    const deviceMemory = DeviceDetector.getDeviceMemory();
+
     // CPU cores (0-20 points)
-    const cores = navigator.hardwareConcurrency || 2;
     score += Math.min(cores * 3, 20);
-    
+
     // Memory (0-25 points)
-    const deviceMemory = (navigator as any).deviceMemory;
-    if (deviceMemory) {
-      if (deviceMemory >= 8) score += 25;
-      else if (deviceMemory >= 4) score += 20;
-      else if (deviceMemory >= 2) score += 15;
-      else score += 10;
-    } else {
-      score += 15; // Assume mid-range if unknown
-    }
+    if (deviceMemory >= 8) score += 25;
+    else if (deviceMemory >= 4) score += 20;
+    else if (deviceMemory >= 2) score += 15;
+    else score += 10;
     
     // WebGL capabilities (0-20 points)
     const webglScore = this.assessWebGLCapabilities();

@@ -26,7 +26,9 @@ import { Cannon3DConstraint } from '../constraints/Cannon3DConstraint';
 export class Cannon3DWorld extends EventEmitter implements PhysicsWorld {
   public readonly dimension: PhysicsDimension = '3d';
   public readonly engineType: PhysicsEngineType = 'cannon';
-  public readonly isRunning: boolean = false;
+
+  // Private backing field for mutable state
+  private _isRunning: boolean = false;
 
   private engine: Cannon3DEngine;
   private world: CANNON.World;
@@ -37,11 +39,16 @@ export class Cannon3DWorld extends EventEmitter implements PhysicsWorld {
   private paused = false;
   private animationFrameId?: number;
 
+  // Public getter for readonly access
+  get isRunning(): boolean {
+    return this._isRunning;
+  }
+
   constructor(engine: Cannon3DEngine, config: PhysicsWorldConfig) {
     super();
     this.engine = engine;
     this.config = { ...config };
-    
+
     this.world = new CANNON.World();
     this.initializeWorld();
     this.setupCollisionEvents();
@@ -157,7 +164,7 @@ export class Cannon3DWorld extends EventEmitter implements PhysicsWorld {
       this.animationFrameId = requestAnimationFrame(animate);
     };
 
-    (this as any).isRunning = true;
+    this._isRunning = true;
     animate();
     this.emit('started');
   }
@@ -173,7 +180,7 @@ export class Cannon3DWorld extends EventEmitter implements PhysicsWorld {
       this.animationFrameId = undefined;
     }
     
-    (this as any).isRunning = false;
+    this._isRunning = false;
     this.emit('stopped');
   }
 

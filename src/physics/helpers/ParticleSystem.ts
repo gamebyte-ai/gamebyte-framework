@@ -22,8 +22,9 @@ interface Particle {
  * Physics-based particle system implementation
  */
 export class GameByteParticleSystem extends EventEmitter implements PhysicsParticleSystem {
-  public readonly particleCount: number = 0;
-  public readonly isActive: boolean = false;
+  // Private backing fields for mutable state properties
+  private _particleCount: number = 0;
+  private _isActive: boolean = false;
 
   private world: PhysicsWorld;
   private particles: Particle[] = [];
@@ -46,6 +47,15 @@ export class GameByteParticleSystem extends EventEmitter implements PhysicsParti
   };
   private maxParticles = 100;
   private burstMode = false;
+
+  // Public getters for readonly access
+  get particleCount(): number {
+    return this._particleCount;
+  }
+
+  get isActive(): boolean {
+    return this._isActive;
+  }
 
   constructor(world: PhysicsWorld, config: any) {
     super();
@@ -134,7 +144,7 @@ export class GameByteParticleSystem extends EventEmitter implements PhysicsParti
    * Start the particle system
    */
   start(): void {
-    (this as any).isActive = true;
+    this._isActive = true;
     super.emit('started');
   }
 
@@ -142,7 +152,7 @@ export class GameByteParticleSystem extends EventEmitter implements PhysicsParti
    * Stop the particle system
    */
   stop(): void {
-    (this as any).isActive = false;
+    this._isActive = false;
     super.emit('stopped');
   }
 
@@ -150,7 +160,7 @@ export class GameByteParticleSystem extends EventEmitter implements PhysicsParti
    * Pause the particle system
    */
   pause(): void {
-    (this as any).isActive = false;
+    this._isActive = false;
     super.emit('paused');
   }
 
@@ -284,7 +294,7 @@ export class GameByteParticleSystem extends EventEmitter implements PhysicsParti
    * Update particle count property
    */
   private updateParticleCount(): void {
-    (this as any).particleCount = this.particles.length;
+    this._particleCount = this.particles.length;
   }
 
   /**

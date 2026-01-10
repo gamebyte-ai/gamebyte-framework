@@ -27,6 +27,7 @@ import { GameByteAudioEffectsProcessor } from '../effects/GameByteAudioEffectsPr
 import { GameByteProceduralAudioGenerator } from '../procedural/GameByteProceduralAudioGenerator';
 import { GameByteAudioBus } from './GameByteAudioBus';
 import { GameByteAudioSource } from './GameByteAudioSource';
+import { DeviceDetector } from '../../performance/DeviceDetector';
 
 /**
  * Default mobile audio configuration
@@ -204,42 +205,42 @@ export class GameByteAudioManager extends EventEmitter<AudioEvents> implements A
   }
 
   /**
-   * Detect device performance tier
+   * Detect device performance tier using centralized DeviceDetector
    */
   private detectPerformanceTier(): AudioPerformanceTier {
     if (!this._context) return AudioPerformanceTier.LOW;
-    
+
     const maxChannels = this._context.destination.maxChannelCount;
     const sampleRate = this._context.sampleRate;
     const baseLatency = this._context.baseLatency || 0;
-    
-    // Estimate device capabilities
-    const cpuCores = navigator.hardwareConcurrency || 2;
-    const memory = (navigator as any).deviceMemory || 2;
-    
+
+    // Use centralized DeviceDetector for hardware capabilities
+    const cpuCores = DeviceDetector.getCoreCount();
+    const memory = DeviceDetector.getDeviceMemory();
+
     // Performance tier calculation
     let score = 0;
-    
+
     // Audio context capabilities
     if (maxChannels >= 8) score += 3;
     else if (maxChannels >= 6) score += 2;
     else if (maxChannels >= 2) score += 1;
-    
+
     if (sampleRate >= 48000) score += 2;
     else if (sampleRate >= 44100) score += 1;
-    
+
     if (baseLatency < 0.02) score += 2; // < 20ms
     else if (baseLatency < 0.05) score += 1; // < 50ms
-    
+
     // Hardware capabilities
     if (cpuCores >= 8) score += 3;
     else if (cpuCores >= 4) score += 2;
     else if (cpuCores >= 2) score += 1;
-    
+
     if (memory >= 8) score += 3;
     else if (memory >= 4) score += 2;
     else if (memory >= 2) score += 1;
-    
+
     // Determine tier
     if (score >= 12) return AudioPerformanceTier.PREMIUM;
     if (score >= 8) return AudioPerformanceTier.HIGH;
