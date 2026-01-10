@@ -7,14 +7,12 @@
 
 // Core Framework
 export { GameByte } from './core/GameByte';
+export type { QuickGameConfig } from './core/GameByte';
 export { ServiceContainer } from './core/ServiceContainer';
 export { DefaultSceneManager } from './core/DefaultSceneManager';
 
 // Base Scene Implementations
-export { BaseScene } from './scenes/BaseScene';
-// BaseScene3D: Not exported to avoid THREE.js dependency in UMD
-// Use ESM/CJS imports for 3D scene development
-// export { BaseScene3D } from './scenes/BaseScene';
+export { BaseScene, BaseScene3D } from './scenes/BaseScene';
 
 // Third-party dependencies (bundled)
 export { EventEmitter } from 'eventemitter3';
@@ -208,15 +206,10 @@ export {
 // Rendering System
 export { PixiRenderer } from './rendering/PixiRenderer';
 export type { PixiRendererConfig } from './rendering/PixiRenderer';
-// ThreeRenderer: Use dist/renderers/three3d.js for 3D rendering
-// Not exported in main bundle to avoid THREE.js dependency in UMD
-// export { ThreeRenderer } from './rendering/ThreeRenderer';
-// export type { ThreeRendererConfig } from './rendering/ThreeRenderer';
-// HybridRenderer: Combines Three.js (3D) + Pixi.js (2D) with stacked canvas
-// Not exported in main bundle to avoid THREE.js dependency in UMD
-// Use ESM/CJS imports for hybrid rendering: import { HybridRenderer } from '@gamebyte/framework/rendering/HybridRenderer'
-// export { HybridRenderer } from './rendering/HybridRenderer';
-// export type { HybridRendererConfig } from './rendering/HybridRenderer';
+export { ThreeRenderer } from './rendering/ThreeRenderer';
+export type { ThreeRendererConfig } from './rendering/ThreeRenderer';
+export { HybridRenderer } from './rendering/HybridRenderer';
+export type { HybridRendererConfig } from './rendering/HybridRenderer';
 export { RendererFactory } from './rendering/RendererFactory';
 
 // Audio System
@@ -254,7 +247,6 @@ export { UI, Animations, Themes } from './facades/UI';
 export { Input } from './facades/Input';
 export { Physics } from './facades/Physics';
 export { Performance } from './facades/Performance';
-export { Audio as AudioFacadeExport } from './facades/Audio';
 
 // UI System Components
 export { BaseUIComponent } from './ui/core/BaseUIComponent';
@@ -267,22 +259,59 @@ export { UIProgressBar } from './ui/components/UIProgressBar';
 export { TopBar, TopBarItemType } from './ui/components/TopBar';
 export type { TopBarConfig, TopBarItemConfig, TopBarTheme } from './ui/components/TopBar';
 
-// UI Menu Components
-export { ArcheroMenu, ARCHERO_COLORS } from './ui/menus/ArcheroMenu';
+// Layout & UI Adapters (@pixi/layout, @pixi/ui)
+export { LayoutAdapter } from './adapters/LayoutAdapter';
 export type {
-  MenuSection,
+  FlexDirection,
+  JustifyContent,
+  AlignItems,
+  AlignSelf,
+  FlexWrap,
+  LayoutSize,
+  Padding,
+  FlexContainerConfig,
+  FlexItemConfig,
+  ResponsiveConfig as LayoutResponsiveConfig
+} from './adapters/LayoutAdapter';
+
+export { UIAdapter } from './adapters/UIAdapter';
+export type {
+  ButtonConfig,
+  ProgressBarConfig,
+  SliderConfig
+} from './adapters/UIAdapter';
+
+export { FlexLayoutHelper } from './ui/layouts/FlexLayoutHelper';
+export type {
+  ResponsiveNavBarConfig,
+  GridLayoutConfig
+} from './ui/layouts/FlexLayoutHelper';
+
+// UI Menu Components (Plugins)
+export {
+  ArcheroMenu,
+  ArcheroButton,
+  ArcheroAnimations,
+  ArcheroParticles,
+  ArcheroInteractions,
+  ARCHERO_COLORS,
+  DEFAULT_STYLE
+} from './plugins/menus/ArcheroMenu';
+export type {
   ArcheroMenuOptions,
   ArcheroMenuStyleConfig,
   ArcheroMenuCallbacks,
-  GradientConfig,
-  ShineGradientConfig,
-  SectionStyleOverride,
-  ButtonData
-} from './ui/menus/ArcheroMenu';
+  MenuSection as ArcheroMenuSection,
+  ButtonData as ArcheroButtonData,
+  GradientConfig as ArcheroGradientConfig,
+  ShineGradientConfig as ArcheroShineGradientConfig,
+  SectionStyleOverride as ArcheroSectionStyleOverride
+} from './plugins/menus/ArcheroMenu';
 
 // UI Screen Components
 export { BaseUIScreen } from './ui/screens/BaseUIScreen';
 export { SplashScreen } from './ui/screens/SplashScreen';
+export { LoadingScreen } from './ui/screens/LoadingScreen';
 // MainMenuScreen temporarily disabled - needs refactoring to work with UIComponent
 // export { MainMenuScreen } from './ui/screens/MainMenuScreen';
 
@@ -303,6 +332,8 @@ export { GameByteUIInputSystem } from './ui/input/UIInputSystem';
 
 // UI Layout System
 export { ResponsiveLayoutManager } from './ui/layouts/ResponsiveLayoutManager';
+export { ScreenLayoutManager } from './ui/layouts/ScreenLayoutManager';
+export type { ScreenLayout, LayoutRegion, ScreenLayoutConfig } from './ui/layouts/ScreenLayoutManager';
 
 // Input System Components
 export { GameByteInputManager } from './input/InputManager';
@@ -385,11 +416,9 @@ export type {
   IGraphicsFactory,
   IGraphicsEngine
 } from './contracts/Graphics';
-export { GraphicsEngine, graphics } from './graphics/GraphicsEngine';
+export { GraphicsEngine, graphics, drawToTexture } from './graphics/GraphicsEngine';
 export { PixiGraphicsFactory } from './graphics/PixiGraphicsFactory';
-// ThreeGraphicsFactory: Not exported to avoid CSS2DRenderer dependency in UMD
-// Use PixiGraphicsFactory for 2D UI, or access ThreeGraphicsFactory via ESM/CJS imports
-// export { ThreeGraphicsFactory } from './graphics/ThreeGraphicsFactory';
+export { ThreeGraphicsFactory } from './graphics/ThreeGraphicsFactory';
 
 // Types
 export type {
@@ -426,10 +455,41 @@ import { Physics } from './facades/Physics';
 import { Performance } from './facades/Performance';
 import { Audio as AudioFacadeExport } from './facades/Audio';
 
-// Utility function to create and configure a GameByte instance
-export function createGame(): GameByte {
+// Import QuickGameConfig for the createGame function
+import type { QuickGameConfig } from './core/GameByte';
+
+/**
+ * Create and configure a GameByte instance.
+ *
+ * @example
+ * // Traditional usage (requires manual initialization):
+ * const game = createGame();
+ * await game.initialize(canvas, '2d');
+ * game.start();
+ *
+ * @example
+ * // Quick config-based usage (auto-initializes):
+ * const game = await createGame({
+ *   container: '#game',
+ *   width: 800,
+ *   height: 600,
+ *   mode: '2d',
+ *   backgroundColor: 0x1a1a2e,
+ *   autoStart: true
+ * });
+ * game.stage.addChild(mySprite);
+ */
+export function createGame(): GameByte;
+export function createGame(config: QuickGameConfig): Promise<GameByte>;
+export function createGame(config?: QuickGameConfig): GameByte | Promise<GameByte> {
+  // If config provided, use quick setup
+  if (config) {
+    return GameByte.quick(config);
+  }
+
+  // Traditional setup - just create and register providers
   const app = GameByte.create();
-  
+
   // Register core service providers
   app.register(new RenderingServiceProvider());
   app.register(new SceneServiceProvider());
@@ -440,7 +500,7 @@ export function createGame(): GameByte {
   app.register(new PhysicsServiceProvider());
   app.register(new PerformanceServiceProvider());
   app.register(new AudioServiceProvider());
-  
+
   return app;
 }
 

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Start - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #1a1a2e; overflow: hidden; }
+        #game { width: 100vw; height: 100vh; }
+    </style>
+</head>
+<body>
+    <div id="game"></div>
+
+    <!-- Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="./dist/gamebyte.umd.js"></script>
+
+    <script>
+        (async () => {
+            const { GameByte, graphics } = GameByteFramework;
+
+            // Quick 2D game - just 1 line!
+            const game = await GameByte.quick2D('#game', 800, 600, {
+                backgroundColor: 0x1a1a2e
+            });
+
+            // Create a spinning box using graphics helper
+            const gfx = graphics();
+            const box = gfx.createGraphics();
+            box.rect(-50, -50, 100, 100);
+            box.fill({ color: 0x4ade80 });
+            box.x = 400;
+            box.y = 300;
+
+            // Direct stage access
+            game.stage.addChild(box);
+
+            // Update loop callback
+            game.onUpdate((deltaTime) => {
+                box.rotation += 0.02;
+            });
+
+            // Add some text
+            const text = gfx.createText('GameByte Quick Start', {
+                fontSize: 32,
+                fill: 0xffffff,
+                fontFamily: 'Arial'
+            });
+            text.x = 400;
+            text.y = 50;
+            if (text.anchor) text.anchor.set(0.5);
+            game.stage.addChild(text);
+
+            console.log('Game running!');
+        })();
+    </script>
+</body>
+</html>
