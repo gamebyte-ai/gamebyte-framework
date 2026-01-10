@@ -14,10 +14,12 @@ import {
  */
 export class GameBytePlatformerHelper extends EventEmitter implements PlatformerPhysicsHelper {
   public readonly character: PhysicsBody;
-  public readonly isGrounded: boolean = false;
-  public readonly isOnWall: boolean = false;
   public readonly canJump: boolean = true;
-  public readonly canWallJump: boolean = false;
+
+  // Private backing fields for mutable state properties
+  private _isGrounded: boolean = false;
+  private _isOnWall: boolean = false;
+  private _canWallJump: boolean = false;
 
   private world: PhysicsWorld;
   private horizontalInput = 0;
@@ -52,11 +54,24 @@ export class GameBytePlatformerHelper extends EventEmitter implements Platformer
   private jumpBufferingEnabled = true;
   private hasDoubleJumped = false;
 
+  // Public getters for readonly access
+  get isGrounded(): boolean {
+    return this._isGrounded;
+  }
+
+  get isOnWall(): boolean {
+    return this._isOnWall;
+  }
+
+  get canWallJump(): boolean {
+    return this._canWallJump;
+  }
+
   constructor(character: PhysicsBody, world: PhysicsWorld) {
     super();
     this.character = character;
     this.world = world;
-    
+
     // Set up default ground detection
     this.setGroundDetection({
       rayLength: 0.1,
@@ -339,7 +354,7 @@ export class GameBytePlatformerHelper extends EventEmitter implements Platformer
    */
   private updateGroundedState(): void {
     const wasGrounded = this.isGrounded;
-    (this as any).isGrounded = this.performGroundRaycast();
+    this._isGrounded = this.performGroundRaycast();
     
     if (wasGrounded !== this.isGrounded) {
       this.emit('grounded-changed', this.isGrounded);
@@ -356,8 +371,8 @@ export class GameBytePlatformerHelper extends EventEmitter implements Platformer
    */
   private updateWallState(): void {
     const wasOnWall = this.isOnWall;
-    (this as any).isOnWall = this.performWallRaycast();
-    (this as any).canWallJump = this.isOnWall && !this.isGrounded;
+    this._isOnWall = this.performWallRaycast();
+    this._canWallJump = this.isOnWall && !this.isGrounded;
     
     if (wasOnWall !== this.isOnWall) {
       this.emit('wall-contact-changed', this.isOnWall);

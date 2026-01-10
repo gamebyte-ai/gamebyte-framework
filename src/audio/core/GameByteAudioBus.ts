@@ -254,13 +254,16 @@ export class GameByteAudioBus extends EventEmitter<AudioEvents> implements Audio
     if (this._sources.has(source)) {
       return;
     }
-    
+
     this._sources.add(source);
-    
+
     // Connect source to bus input
-    // Note: This assumes the source has a method to connect to our input
-    // In practice, sources would need to know about their target bus
-    
+    // Cast to implementation type to access connectToNode method
+    const sourceImpl = source as any;
+    if (typeof sourceImpl.connectToNode === 'function') {
+      sourceImpl.connectToNode(this._inputGain);
+    }
+
     this.emit('source:added', {
       bus: this._name,
       source
@@ -271,12 +274,15 @@ export class GameByteAudioBus extends EventEmitter<AudioEvents> implements Audio
     if (!this._sources.has(source)) {
       return;
     }
-    
+
     this._sources.delete(source);
-    
-    // Disconnect source from bus
-    // Note: Implementation depends on how sources are connected
-    
+
+    // Disconnect source from bus and reconnect to master
+    const sourceImpl = source as any;
+    if (typeof sourceImpl.reconnectToMaster === 'function') {
+      sourceImpl.reconnectToMaster();
+    }
+
     this.emit('source:removed', {
       bus: this._name,
       source

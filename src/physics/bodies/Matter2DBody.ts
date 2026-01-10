@@ -21,8 +21,10 @@ export class Matter2DBody extends EventEmitter implements PhysicsBody {
   public readonly id: string;
   public readonly type: PhysicsBodyType;
   public readonly dimension: PhysicsDimension = '2d';
-  public readonly isStatic: boolean;
-  public readonly isSensor: boolean;
+
+  // Private backing fields for mutable state
+  private _isStatic: boolean;
+  private _isSensor: boolean;
 
   private engine: Matter2DEngine;
   private body: Matter.Body;
@@ -30,14 +32,23 @@ export class Matter2DBody extends EventEmitter implements PhysicsBody {
   private _userData: any = null;
   private _gravityScale: number = 1;
 
+  // Public getters for readonly access
+  get isStatic(): boolean {
+    return this._isStatic;
+  }
+
+  get isSensor(): boolean {
+    return this._isSensor;
+  }
+
   constructor(engine: Matter2DEngine, config: PhysicsBodyConfig) {
     super();
-    
+
     this.engine = engine;
     this.id = config.id || `body_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     this.type = config.type;
-    this.isStatic = config.isStatic || config.type === 'static';
-    this.isSensor = config.isSensor || false;
+    this._isStatic = config.isStatic || config.type === 'static';
+    this._isSensor = config.isSensor || false;
     this._material = config.material || engine.getDefaultMaterial();
     this._userData = config.userData;
 
@@ -268,7 +279,7 @@ export class Matter2DBody extends EventEmitter implements PhysicsBody {
    */
   setStatic(isStatic: boolean): void {
     Matter.Body.setStatic(this.body, isStatic);
-    (this as any).isStatic = isStatic;
+    this._isStatic = isStatic;
     this.emit('static-changed', isStatic);
   }
 
@@ -277,7 +288,7 @@ export class Matter2DBody extends EventEmitter implements PhysicsBody {
    */
   setSensor(isSensor: boolean): void {
     this.body.isSensor = isSensor;
-    (this as any).isSensor = isSensor;
+    this._isSensor = isSensor;
     this.emit('sensor-changed', isSensor);
   }
 

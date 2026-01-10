@@ -292,9 +292,103 @@ export class DeviceDetector extends EventEmitter {
       clearInterval(this.thermalMonitorInterval);
       this.thermalMonitorInterval = null;
     }
-    
+
     this.removeAllListeners();
     this.capabilities = null;
     this.gl = null;
+  }
+
+  // ============================================
+  // Static utility methods for synchronous usage
+  // ============================================
+
+  /**
+   * Quick synchronous device tier detection
+   * Use this when you need immediate tier info without full initialization
+   */
+  static detectTierSync(): 'low' | 'medium' | 'high' {
+    const memory = (navigator as any).deviceMemory || 4;
+    const cores = navigator.hardwareConcurrency || 4;
+    const isMobile = DeviceDetector.isMobileDevice();
+
+    if (isMobile) {
+      if (memory <= 2 || cores <= 2) return 'low';
+      if (memory <= 4 || cores <= 4) return 'medium';
+      return 'high';
+    } else {
+      if (memory <= 4 || cores <= 2) return 'medium';
+      return 'high';
+    }
+  }
+
+  /**
+   * Check if running on mobile device
+   */
+  static isMobileDevice(): boolean {
+    return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
+      navigator.userAgent.toLowerCase()
+    );
+  }
+
+  /**
+   * Check if running on tablet
+   */
+  static isTabletDevice(): boolean {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isMobile = /android|ipad/i.test(userAgent);
+    if (!isMobile) return false;
+
+    const minDim = Math.min(screen.width, screen.height);
+    const maxDim = Math.max(screen.width, screen.height);
+    const aspectRatio = maxDim / minDim;
+
+    return minDim >= 768 || (minDim >= 600 && aspectRatio < 2);
+  }
+
+  /**
+   * Get device type synchronously
+   */
+  static getDeviceTypeSync(): 'mobile' | 'tablet' | 'desktop' {
+    if (DeviceDetector.isTabletDevice()) return 'tablet';
+    if (DeviceDetector.isMobileDevice()) return 'mobile';
+    return 'desktop';
+  }
+
+  /**
+   * Get CPU core count
+   */
+  static getCoreCount(): number {
+    return navigator.hardwareConcurrency || 2;
+  }
+
+  /**
+   * Get estimated device memory in GB
+   */
+  static getDeviceMemory(): number {
+    return (navigator as any).deviceMemory || 4;
+  }
+
+  /**
+   * Check if touch is supported
+   */
+  static hasTouchSupport(): boolean {
+    return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  }
+
+  /**
+   * Get screen dimensions
+   */
+  static getScreenSize(): { width: number; height: number } {
+    return {
+      width: screen.width,
+      height: screen.height
+    };
+  }
+
+  /**
+   * Get pixel ratio
+   */
+  static getPixelRatio(): number {
+    return window.devicePixelRatio || 1;
   }
 }

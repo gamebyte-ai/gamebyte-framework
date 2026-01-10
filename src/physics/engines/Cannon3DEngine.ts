@@ -19,7 +19,9 @@ import { Cannon3DWorld } from '../worlds/Cannon3DWorld';
 export class Cannon3DEngine extends EventEmitter implements PhysicsEngine {
   public readonly engineType: PhysicsEngineType = 'cannon';
   public readonly dimension: PhysicsDimension = '3d';
-  public readonly isInitialized: boolean = false;
+
+  // Private backing field for mutable state
+  private _isInitialized: boolean = false;
 
   private worlds: Set<Cannon3DWorld> = new Set();
   private bodyPool: CANNON.Body[] = [];
@@ -52,6 +54,11 @@ export class Cannon3DEngine extends EventEmitter implements PhysicsEngine {
     culledBodies: 0
   };
 
+  // Public getter for readonly access
+  get isInitialized(): boolean {
+    return this._isInitialized;
+  }
+
   constructor() {
     super();
     // Initialize materials map with default material
@@ -69,7 +76,7 @@ export class Cannon3DEngine extends EventEmitter implements PhysicsEngine {
       // Configure for mobile optimization
       this.optimizeForMobile();
 
-      (this as any).isInitialized = true;
+      this._isInitialized = true;
       this.emit('initialized');
     } catch (error) {
       this.emit('error', error);
@@ -91,7 +98,7 @@ export class Cannon3DEngine extends EventEmitter implements PhysicsEngine {
     this.bodyPool.length = 0;
     this.constraintPool.length = 0;
 
-    (this as any).isInitialized = false;
+    this._isInitialized = false;
     this.emit('destroyed');
   }
 

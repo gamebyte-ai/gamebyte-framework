@@ -26,7 +26,9 @@ import { Matter2DWorld } from '../worlds/Matter2DWorld';
 export class Matter2DEngine extends EventEmitter implements PhysicsEngine {
   public readonly engineType: PhysicsEngineType = 'matter';
   public readonly dimension: PhysicsDimension = '2d';
-  public readonly isInitialized: boolean = false;
+
+  // Private backing field for mutable state
+  private _isInitialized: boolean = false;
 
   private engine: Matter.Engine | null = null;
   private render: Matter.Render | null = null;
@@ -62,6 +64,11 @@ export class Matter2DEngine extends EventEmitter implements PhysicsEngine {
     culledBodies: 0
   };
 
+  // Public getter for readonly access
+  get isInitialized(): boolean {
+    return this._isInitialized;
+  }
+
   constructor() {
     super();
     // Initialize materials map with default material
@@ -90,7 +97,7 @@ export class Matter2DEngine extends EventEmitter implements PhysicsEngine {
       // Configure for mobile optimization
       this.optimizeForMobile();
 
-      (this as any).isInitialized = true;
+      this._isInitialized = true;
       this.emit('initialized');
     } catch (error) {
       this.emit('error', error);
@@ -123,7 +130,7 @@ export class Matter2DEngine extends EventEmitter implements PhysicsEngine {
     this.constraintPool.length = 0;
 
     this.engine = null;
-    (this as any).isInitialized = false;
+    this._isInitialized = false;
     this.emit('destroyed');
   }
 

@@ -22,14 +22,16 @@ import { GameByteTopDownHelper } from './helpers/TopDownHelper';
 import { GameByteTriggerZone } from './helpers/TriggerZone';
 import { GameByteParticleSystem } from './helpers/ParticleSystem';
 import { GameByteMobileOptimizer } from './optimization/MobileOptimizer';
+import { DeviceDetector } from '../performance/DeviceDetector';
 
 /**
  * Unified physics manager that handles both 2D and 3D physics
  */
 export class PhysicsManager extends EventEmitter implements IPhysicsManager {
-  public readonly isInitialized: boolean = false;
-  public readonly currentWorld: PhysicsWorld | null = null;
-  public readonly dimension: PhysicsDimension | null = null;
+  // Private backing fields for public readonly properties
+  private _isInitialized: boolean = false;
+  private _currentWorld: PhysicsWorld | null = null;
+  private _dimension: PhysicsDimension | null = null;
 
   private engine2D: Matter2DEngine | null = null;
   private engine3D: Cannon3DEngine | null = null;
@@ -44,6 +46,19 @@ export class PhysicsManager extends EventEmitter implements IPhysicsManager {
     super();
     this.mobileOptimizer = new GameByteMobileOptimizer();
     this.detectDeviceTier();
+  }
+
+  // Public getters for readonly access
+  get isInitialized(): boolean {
+    return this._isInitialized;
+  }
+
+  get currentWorld(): PhysicsWorld | null {
+    return this._currentWorld;
+  }
+
+  get dimension(): PhysicsDimension | null {
+    return this._dimension;
   }
 
   /**
@@ -61,7 +76,7 @@ export class PhysicsManager extends EventEmitter implements IPhysicsManager {
    */
   async initialize(dimension: PhysicsDimension, engineType?: PhysicsEngineType): Promise<void> {
     try {
-      (this as any).dimension = dimension;
+      this._dimension = dimension;
       
       // Initialize the appropriate engine
       if (dimension === '2d') {
@@ -85,7 +100,7 @@ export class PhysicsManager extends EventEmitter implements IPhysicsManager {
       // Initialize default materials
       this.initializeDefaultMaterials();
 
-      (this as any).isInitialized = true;
+      this._isInitialized = true;
       this.emit('initialized', { dimension, engineType });
     } catch (error) {
       this.emit('error', error);
@@ -115,9 +130,9 @@ export class PhysicsManager extends EventEmitter implements IPhysicsManager {
 
     this.currentEngine = null;
     this.activeWorld = null;
-    (this as any).currentWorld = null;
-    (this as any).dimension = null;
-    (this as any).isInitialized = false;
+    this._currentWorld = null;
+    this._dimension = null;
+    this._isInitialized = false;
 
     this.materials.clear();
     this.emit('destroyed');
@@ -158,7 +173,7 @@ export class PhysicsManager extends EventEmitter implements IPhysicsManager {
 
     const previousWorld = this.activeWorld;
     this.activeWorld = world;
-    (this as any).currentWorld = world;
+    this._currentWorld = world;
 
     this.emit('active-world-changed', { previous: previousWorld, current: world });
   }
@@ -186,7 +201,7 @@ export class PhysicsManager extends EventEmitter implements IPhysicsManager {
     // Remove from active if it's the current one
     if (this.activeWorld === world) {
       this.activeWorld = null;
-      (this as any).currentWorld = null;
+      this._currentWorld = null;
     }
 
     // Destroy and remove
@@ -445,34 +460,10 @@ export class PhysicsManager extends EventEmitter implements IPhysicsManager {
 
   /**
    * Detect device tier for optimization
+   * Uses centralized DeviceDetector for consistent detection across the framework
    */
   private detectDeviceTier(): void {
-    // Simple device tier detection based on available metrics
-    const memory = (navigator as any).deviceMemory || 4; // GB
-    const cores = navigator.hardwareConcurrency || 4;
-    const userAgent = navigator.userAgent.toLowerCase();
-
-    // Check for mobile devices
-    const isMobile = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
-    
-    if (isMobile) {
-      // Mobile device tier detection
-      if (memory <= 2 || cores <= 2) {
-        this.deviceTier = 'low';
-      } else if (memory <= 4 || cores <= 4) {
-        this.deviceTier = 'medium';
-      } else {
-        this.deviceTier = 'high';
-      }
-    } else {
-      // Desktop device tier detection
-      if (memory <= 4 || cores <= 2) {
-        this.deviceTier = 'medium';
-      } else {
-        this.deviceTier = 'high';
-      }
-    }
-
+    this.deviceTier = DeviceDetector.detectTierSync();
     this.emit('device-tier-detected', this.deviceTier);
   }
 
