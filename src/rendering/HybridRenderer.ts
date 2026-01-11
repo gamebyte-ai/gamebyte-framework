@@ -600,15 +600,15 @@ export class HybridRenderer extends EventEmitter implements Renderer {
    * Get the primary stage (3D scene for hybrid renderer).
    * For accessing 2D stage, use getPixiStage() instead.
    */
-  getStage(): any {
-    return this.threeScene;
+  getStage<T = unknown>(): T {
+    return this.threeScene as T;
   }
 
   /**
    * Get the native renderer (returns Three.js renderer for hybrid).
    */
-  getNativeRenderer(): any {
-    return this.threeRenderer;
+  getNativeRenderer<T = unknown>(): T {
+    return this.threeRenderer as T;
   }
 
   /**

@@ -236,8 +236,8 @@ export class PixiRenderer extends EventEmitter implements Renderer {
   /**
    * Get the Pixi stage (scene graph root).
    */
-  getStage(): any {
-    return this.stage;
+  getStage<T = unknown>(): T {
+    return this.stage as T;
   }
 
   /**
@@ -255,8 +255,8 @@ export class PixiRenderer extends EventEmitter implements Renderer {
    * Get the native renderer instance (implements Renderer interface).
    * For PixiRenderer, returns the Pixi Application or Renderer.
    */
-  getNativeRenderer(): any {
-    return this.app || this.getRenderer();
+  getNativeRenderer<T = unknown>(): T {
+    return (this.app || this.getRenderer()) as T;
   }
 
   /**
