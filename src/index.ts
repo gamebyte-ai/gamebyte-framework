@@ -417,6 +417,7 @@ export type {
   IGraphicsEngine
 } from './contracts/Graphics';
 export { GraphicsEngine, graphics, drawToTexture } from './graphics/GraphicsEngine';
+export type { DrawToTextureOptions } from './graphics/GraphicsEngine';
 export { PixiGraphicsFactory } from './graphics/PixiGraphicsFactory';
 export { ThreeGraphicsFactory } from './graphics/ThreeGraphicsFactory';
 

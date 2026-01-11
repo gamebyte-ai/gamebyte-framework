@@ -129,14 +129,32 @@ export function graphics(): IGraphicsFactory {
 }
 
 /**
+ * Options for drawToTexture function
+ */
+export interface DrawToTextureOptions {
+  /** Width of the resulting texture (default: auto from bounds or 64) */
+  width?: number;
+  /** Height of the resulting texture (default: auto from bounds or 64) */
+  height?: number;
+  /** Resolution/pixel ratio (default: window.devicePixelRatio) */
+  resolution?: number;
+}
+
+/**
  * Draw any display object to a texture
  *
  * For 2D (Pixi): Requires the renderer from game.renderer
  * For 3D (Three): Uses canvas-based rendering
  *
- * Usage:
+ * @param displayObject - The display object to render (PIXI.Container, PIXI.Graphics, etc.)
+ * @param renderer - The renderer instance (from game.renderer)
+ * @param options - Optional configuration for texture size and resolution
+ * @returns Promise resolving to the created texture
+ * @throws Error if renderer is invalid or rendering fails
+ *
+ * @example
  * ```typescript
- * import { drawToTexture } from '@gamebyte/core';
+ * import { drawToTexture, graphics } from '@gamebyte/core';
  *
  * const icon = graphics().createGraphics();
  * icon.circle(16, 16, 16).fill({ color: 0xff0000 });
@@ -144,10 +162,18 @@ export function graphics(): IGraphicsFactory {
  * ```
  */
 export async function drawToTexture(
-  displayObject: any,
-  renderer: any,
-  options?: { width?: number; height?: number; resolution?: number }
+  displayObject: unknown,
+  renderer: unknown,
+  options?: DrawToTextureOptions
 ): Promise<ITexture> {
+  if (!displayObject) {
+    throw new Error('drawToTexture: displayObject is required');
+  }
+
+  if (!renderer) {
+    throw new Error('drawToTexture: renderer is required');
+  }
+
   const type = GraphicsEngine.getType();
 
   if (type === 'PIXI') {
@@ -155,7 +181,8 @@ export async function drawToTexture(
     const PIXI = await import('pixi.js');
 
     // Get bounds of the display object
-    const bounds = displayObject.getBounds?.() || { width: options?.width || 64, height: options?.height || 64 };
+    const displayObj = displayObject as { getBounds?: () => { width: number; height: number } };
+    const bounds = displayObj.getBounds?.() || { width: options?.width || 64, height: options?.height || 64 };
     const width = options?.width || bounds.width || 64;
     const height = options?.height || bounds.height || 64;
     const resolution = options?.resolution || window.devicePixelRatio || 1;
@@ -168,13 +195,16 @@ export async function drawToTexture(
     });
 
     // Get the native Pixi renderer
-    const nativeRenderer = renderer.getNativeRenderer?.() || renderer;
+    const rendererObj = renderer as { getNativeRenderer?: <T>() => T; render?: (options: unknown) => void };
+    const nativeRenderer = rendererObj.getNativeRenderer?.() || renderer;
+    const pixiRenderer = nativeRenderer as { render?: (options: unknown) => void };
 
     // Render the display object to the texture
-    if (nativeRenderer.render) {
-      nativeRenderer.render({ container: displayObject, target: renderTexture });
+    if (!pixiRenderer.render) {
+      throw new Error('drawToTexture: renderer does not have a render method. Make sure you pass game.renderer.');
     }
 
+    pixiRenderer.render({ container: displayObject, target: renderTexture });
     return renderTexture as ITexture;
   } else {
     // For Three.js, render to canvas and create texture
@@ -185,9 +215,16 @@ export async function drawToTexture(
     canvas.height = height;
 
     const ctx = canvas.getContext('2d');
-    if (ctx && displayObject.element instanceof HTMLCanvasElement) {
+    if (!ctx) {
+      throw new Error('drawToTexture: failed to get 2D canvas context');
+    }
+
+    const displayObj = displayObject as { element?: HTMLCanvasElement };
+    if (displayObj.element instanceof HTMLCanvasElement) {
       // If it's a canvas-based graphics, copy it
-      ctx.drawImage(displayObject.element, 0, 0);
+      ctx.drawImage(displayObj.element, 0, 0);
+    } else {
+      console.warn('drawToTexture: Three.js display object does not have a canvas element, returning empty texture');
     }
 
     return GraphicsEngine.getFactory().createTexture(canvas);

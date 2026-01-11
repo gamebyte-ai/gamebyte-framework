@@ -49,6 +49,9 @@ export class GameByte extends EventEmitter {
   private updateCallbacks: Array<(deltaTime: number) => void> = [];
   private renderCallbacks: Array<() => void> = [];
 
+  // ResizeObserver for container resize handling
+  private resizeObserver: ResizeObserver | null = null;
+
   /**
    * Framework version.
    */
@@ -177,12 +180,12 @@ export class GameByte extends EventEmitter {
 
     // Handle resize to container
     if (config.resizeToContainer && containerElement) {
-      const resizeObserver = new ResizeObserver(() => {
+      game.resizeObserver = new ResizeObserver(() => {
         canvas.width = containerElement!.clientWidth;
         canvas.height = containerElement!.clientHeight;
         game.emit('resize', canvas.width, canvas.height);
       });
-      resizeObserver.observe(containerElement);
+      game.resizeObserver.observe(containerElement);
     }
 
     // Determine rendering mode (default to 2D)
@@ -505,19 +508,29 @@ export class GameByte extends EventEmitter {
    */
   destroy(): void {
     this.stop();
-    
+
     // Emit destroyed event before cleanup
     this.emit('destroyed');
-    
+
     if (this.container.bound('renderer')) {
       const renderer = this.make<Renderer>('renderer');
       renderer.destroy();
     }
 
+    // Clean up ResizeObserver
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
+
+    // Clear callback arrays
+    this.updateCallbacks.length = 0;
+    this.renderCallbacks.length = 0;
+
     this.container.flush();
     this.providers.clear();
     this.removeAllListeners();
-    
+
     this.booted = false;
     this.running = false;
     this.canvas = null;

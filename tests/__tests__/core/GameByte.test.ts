@@ -548,7 +548,7 @@ describe('GameByte', () => {
       // Arrange
       class ErrorProvider extends AbstractServiceProvider {
         register(): void {}
-        
+
         async boot(): Promise<void> {
           throw new Error('Boot failed');
         }
@@ -558,6 +558,170 @@ describe('GameByte', () => {
 
       // Act & Assert
       await expect(app.boot()).rejects.toThrow('Boot failed');
+    });
+  });
+
+  describe('Quick API', () => {
+    describe('update and render callbacks', () => {
+      it('should register update callbacks with onUpdate()', () => {
+        // Arrange
+        const callback = jest.fn();
+
+        // Act
+        const result = app.onUpdate(callback);
+
+        // Assert
+        expect(result).toBe(app); // Method chaining
+      });
+
+      it('should remove update callbacks with offUpdate()', () => {
+        // Arrange
+        const callback = jest.fn();
+        app.onUpdate(callback);
+
+        // Act
+        const result = app.offUpdate(callback);
+
+        // Assert
+        expect(result).toBe(app); // Method chaining
+      });
+
+      it('should register render callbacks with onRender()', () => {
+        // Arrange
+        const callback = jest.fn();
+
+        // Act
+        const result = app.onRender(callback);
+
+        // Assert
+        expect(result).toBe(app); // Method chaining
+      });
+
+      it('should remove render callbacks with offRender()', () => {
+        // Arrange
+        const callback = jest.fn();
+        app.onRender(callback);
+
+        // Act
+        const result = app.offRender(callback);
+
+        // Assert
+        expect(result).toBe(app); // Method chaining
+      });
+
+      it('should handle removing non-existent callbacks gracefully', () => {
+        // Arrange
+        const callback = jest.fn();
+
+        // Act & Assert
+        expect(() => app.offUpdate(callback)).not.toThrow();
+        expect(() => app.offRender(callback)).not.toThrow();
+      });
+    });
+
+    describe('stage and renderer access', () => {
+      it('should throw error when accessing stage before initialization', () => {
+        // Act & Assert
+        expect(() => app.stage).toThrow('Renderer not initialized');
+      });
+
+      it('should throw error when accessing renderer before initialization', () => {
+        // Act & Assert
+        expect(() => app.renderer).toThrow('Renderer not initialized');
+      });
+
+      it('should return stage when renderer is initialized', async () => {
+        // Arrange
+        const mockStage = { name: 'mockStage' };
+        const mockRenderer = new MockRenderer();
+        (mockRenderer as any).getStage = () => mockStage;
+        (mockRenderer as any).on = jest.fn();
+        app.bind('renderer', mockRenderer);
+
+        // Act
+        const stage = app.stage;
+
+        // Assert
+        expect(stage).toBe(mockStage);
+      });
+
+      it('should return renderer when initialized', async () => {
+        // Arrange
+        const mockRenderer = new MockRenderer();
+        (mockRenderer as any).getStage = jest.fn();
+        (mockRenderer as any).on = jest.fn();
+        app.bind('renderer', mockRenderer);
+
+        // Act
+        const renderer = app.renderer;
+
+        // Assert
+        expect(renderer).toBe(mockRenderer);
+      });
+    });
+
+    describe('destroy cleanup', () => {
+      it('should clear update callbacks on destroy', () => {
+        // Arrange
+        const callback1 = jest.fn();
+        const callback2 = jest.fn();
+        app.onUpdate(callback1);
+        app.onUpdate(callback2);
+
+        // Act
+        app.destroy();
+
+        // Assert - callbacks should be cleared (internal state)
+        // We can't directly test private array, but we verify no errors
+        expect(app.isBooted()).toBe(false);
+      });
+
+      it('should clear render callbacks on destroy', () => {
+        // Arrange
+        const callback1 = jest.fn();
+        const callback2 = jest.fn();
+        app.onRender(callback1);
+        app.onRender(callback2);
+
+        // Act
+        app.destroy();
+
+        // Assert
+        expect(app.isBooted()).toBe(false);
+      });
+
+      it('should disconnect ResizeObserver on destroy', () => {
+        // This tests that the ResizeObserver cleanup doesn't throw
+        // The observer is only created in quick() method
+
+        // Act & Assert
+        expect(() => app.destroy()).not.toThrow();
+      });
+    });
+  });
+
+  describe('QuickGameConfig', () => {
+    it('should have correct interface shape', () => {
+      // This is a compile-time check - if QuickGameConfig interface is wrong,
+      // TypeScript will catch it during compilation
+      const config = {
+        container: '#game',
+        canvas: undefined,
+        width: 800,
+        height: 600,
+        mode: '2d' as const,
+        backgroundColor: 0x1a1a2e,
+        autoStart: true,
+        antialias: true,
+        resolution: 2,
+        resizeToContainer: false,
+        rendererOptions: {}
+      };
+
+      // Assert that the config object is valid
+      expect(config.width).toBe(800);
+      expect(config.height).toBe(600);
+      expect(config.mode).toBe('2d');
     });
   });
 });

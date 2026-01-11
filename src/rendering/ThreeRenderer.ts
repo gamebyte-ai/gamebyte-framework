@@ -310,15 +310,15 @@ export class ThreeRenderer extends EventEmitter implements Renderer {
   /**
    * Get the Three.js scene (implements Renderer interface).
    */
-  getStage(): any {
-    return this.scene;
+  getStage<T = unknown>(): T {
+    return this.scene as T;
   }
 
   /**
    * Get the native Three.js renderer (implements Renderer interface).
    */
-  getNativeRenderer(): any {
-    return this.renderer;
+  getNativeRenderer<T = unknown>(): T {
+    return this.renderer as T;
   }
 
   /**
