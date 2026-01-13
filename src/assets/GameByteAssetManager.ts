@@ -120,6 +120,7 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
   private batchContext: BatchLoadingContext | null = null;
   private deviceCapabilities: DeviceCapabilities;
   private memoryUsage = { total: 0, cached: 0, active: 0 };
+  private queueProcessorInterval: NodeJS.Timeout | null = null;
   
   constructor(config: AssetManagerConfig) {
     super();
@@ -489,6 +490,12 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
    * Destroy and cleanup all resources.
    */
   async destroy(): Promise<void> {
+    // Stop queue processor
+    if (this.queueProcessorInterval) {
+      clearInterval(this.queueProcessorInterval);
+      this.queueProcessorInterval = null;
+    }
+
     // Cancel all pending loads - wrap rejections to prevent unhandled promise rejections
     const rejectionPromises = [];
     for (const entry of this.loadingQueue) {
@@ -502,10 +509,10 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
         clearTimeout(entry.timeout);
       }
     }
-    
+
     // Wait for all rejections to be processed
     await Promise.allSettled(rejectionPromises);
-    
+
     this.loadingQueue = [];
     this.activeLoads.clear();
     
@@ -701,7 +708,7 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
    * Start queue processor.
    */
   private startQueueProcessor(): void {
-    setInterval(() => {
+    this.queueProcessorInterval = setInterval(() => {
       this.processQueue();
     }, 100); // Process every 100ms
   }
