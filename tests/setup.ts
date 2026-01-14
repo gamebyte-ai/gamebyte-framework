@@ -1,29 +1,35 @@
 // Test setup file for GameByte framework
 // Mocks and global configuration for Jest tests
 
+// Mock 2D Context
+const mock2DContext = {
+  clearRect: jest.fn(),
+  fillRect: jest.fn(),
+  drawImage: jest.fn(),
+  getImageData: jest.fn(() => ({ data: new Uint8ClampedArray(4) })),
+  putImageData: jest.fn(),
+  canvas: { width: 800, height: 600 }
+};
+
+// Mock WebGL Context
+const mockWebGLContextBase = {
+  getExtension: jest.fn(() => null),
+  getParameter: jest.fn(() => 'Mock WebGL Renderer'),
+  createShader: jest.fn(),
+  createProgram: jest.fn(),
+  attachShader: jest.fn(),
+  linkProgram: jest.fn(),
+  useProgram: jest.fn()
+};
+
 // Mock Canvas API
 const mockCanvas = {
   getContext: jest.fn((contextType: string) => {
     if (contextType === '2d') {
-      return {
-        clearRect: jest.fn(),
-        fillRect: jest.fn(),
-        drawImage: jest.fn(),
-        getImageData: jest.fn(() => ({ data: new Uint8ClampedArray(4) })),
-        putImageData: jest.fn(),
-        canvas: { width: 800, height: 600 }
-      };
+      return mock2DContext;
     }
     if (contextType === 'webgl' || contextType === 'experimental-webgl') {
-      return {
-        getExtension: jest.fn(() => null),
-        getParameter: jest.fn(() => 'Mock WebGL Renderer'),
-        createShader: jest.fn(),
-        createProgram: jest.fn(),
-        attachShader: jest.fn(),
-        linkProgram: jest.fn(),
-        useProgram: jest.fn()
-      };
+      return mockWebGLContextBase;
     }
     return null;
   }),
@@ -157,24 +163,13 @@ const mockAudioContext = {
 global.AudioContext = jest.fn(() => mockAudioContext) as any;
 (global as any).webkitAudioContext = jest.fn(() => mockAudioContext) as any;
 
-// Mock WebGL context
-const mockWebGLContext = {
-  getExtension: jest.fn(() => null),
-  getParameter: jest.fn(() => 'Mock WebGL Renderer'),
-  createShader: jest.fn(),
-  createProgram: jest.fn(),
-  attachShader: jest.fn(),
-  linkProgram: jest.fn(),
-  useProgram: jest.fn()
-};
-
-// Mock WebGL support
-HTMLCanvasElement.prototype.getContext = jest.fn((contextType: string) => {
+// Mock WebGL support on HTMLCanvasElement prototype
+HTMLCanvasElement.prototype.getContext = jest.fn(function(this: any, contextType: string) {
   if (contextType === 'webgl' || contextType === 'experimental-webgl') {
-    return mockWebGLContext;
+    return mockWebGLContextBase;
   }
   if (contextType === '2d') {
-    return mockCanvas.getContext();
+    return mock2DContext;
   }
   return null;
 });
