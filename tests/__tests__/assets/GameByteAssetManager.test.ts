@@ -425,5 +425,22 @@ describe('GameByteAssetManager', () => {
       const usage = cleanupAssetManager.getMemoryUsage();
       expect(usage.total).toBe(0);
     });
+
+    it('should clear queue processor interval on destroy', async () => {
+      const clearIntervalSpy = jest.spyOn(global, 'clearInterval');
+
+      const cleanupAssetManager = new GameByteAssetManager({
+        cache: {
+          maxSize: 10 * 1024 * 1024,
+          maxItems: 100,
+          evictionStrategy: CacheEvictionStrategy.LRU
+        }
+      });
+
+      await cleanupAssetManager.destroy();
+
+      expect(clearIntervalSpy).toHaveBeenCalled();
+      clearIntervalSpy.mockRestore();
+    });
   });
 });

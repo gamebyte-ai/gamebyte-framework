@@ -708,6 +708,9 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
    * Start queue processor.
    */
   private startQueueProcessor(): void {
+    if (this.queueProcessorInterval) {
+      clearInterval(this.queueProcessorInterval);
+    }
     this.queueProcessorInterval = setInterval(() => {
       this.processQueue();
     }, 100); // Process every 100ms
