@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte Framework V2.0 - Dev Server</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .version {
+            color: #667eea;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+        .demo-grid {
+            display: grid;
+            gap: 15px;
+        }
+        .demo-link {
+            display: block;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: 600;
+        }
+        .demo-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        .demo-link small {
+            display: block;
+            margin-top: 5px;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+        .status {
+            margin-top: 30px;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+        .status strong {
+            color: #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 GameByte Framework</h1>
+        <div class="version">Version 2.0 - Development Server</div>
+
+        <div class="demo-grid">
+            <a href="/archero-simple.html" class="demo-link">
+                🎯 Simple Demo
+                <small>Basic ArcheroMenu with hot reload</small>
+            </a>
+            <a href="/archero-responsive.html" class="demo-link">
+                📱 Responsive Demo
+                <small>Responsive sizing and window resize</small>
+            </a>
+            <a href="/archero-hybrid.html" class="demo-link">
+                🎨 3D Hybrid Demo
+                <small>Three.js + PixiJS integration</small>
+            </a>
+        </div>
+
+        <div class="status">
+            <strong>✓ Hot Reload Active</strong><br>
+            Changes to source files will automatically refresh the page
+        </div>
+    </div>
+</body>
+</html>

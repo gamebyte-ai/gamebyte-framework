@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - Main Menu</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            overflow: hidden;
+            background: #000;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top bar - 5% */
+        #top-bar {
+            height: 5vh;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            z-index: 10;
+        }
+
+        /* Game area - fills remaining space */
+        #game-area {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #game-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* Menu area - 10% */
+        #menu-area {
+            height: 10vh;
+            position: relative;
+            background: rgba(15, 22, 36, 0.95);
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Bar -->
+    <div id="top-bar">
+        <span>GameByte Framework</span>
+    </div>
+
+    <!-- Game Area -->
+    <div id="game-area">
+        <canvas id="game-canvas"></canvas>
+    </div>
+
+    <!-- Menu Area -->
+    <div id="menu-area"></div>
+
+    <!-- Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+
+    <!-- GameByte Framework -->
+    <script src="dist/gamebyte.umd.js"></script>
+
+    <script>
+        const { ArcheroMenu, ARCHERO_COLORS } = GameByteFramework;
+
+        (async () => {
+            // Get actual dimensions
+            const gameArea = document.getElementById('game-area');
+            const menuArea = document.getElementById('menu-area');
+            const canvas = document.getElementById('game-canvas');
+
+            // Create PixiJS app
+            const app = new PIXI.Application();
+            await app.init({
+                canvas: canvas,
+                width: gameArea.clientWidth,
+                height: gameArea.clientHeight,
+                backgroundColor: 0x1a1a2e,
+                resolution: window.devicePixelRatio || 1,
+                autoDensity: true,
+                resizeTo: gameArea
+            });
+
+            // Create menu in separate canvas/container
+            const menuCanvas = document.createElement('canvas');
+            menuCanvas.style.width = '100%';
+            menuCanvas.style.height = '100%';
+            menuCanvas.style.display = 'block';
+            menuArea.appendChild(menuCanvas);
+
+            const menuApp = new PIXI.Application();
+            await menuApp.init({
+                canvas: menuCanvas,
+                width: menuArea.clientWidth,
+                height: menuArea.clientHeight,
+                backgroundColor: 0x0f1624,
+                resolution: window.devicePixelRatio || 1,
+                autoDensity: true,
+                resizeTo: menuArea
+            });
+
+            // Create menu
+            const menu = new ArcheroMenu({
+                sections: [
+                    { name: 'Shop', icon: '🛒', iconColor: ARCHERO_COLORS.red },
+                    { name: 'Gear', icon: '⚙️', iconColor: ARCHERO_COLORS.purple },
+                    { name: 'Campaign', icon: '🎯', iconColor: ARCHERO_COLORS.activeYellow },
+                    { name: 'Trophy', icon: '🏆', iconColor: ARCHERO_COLORS.green },
+                    { name: 'Chest', icon: '📦', iconColor: ARCHERO_COLORS.blue }
+                ],
+                activeSection: 2,
+                canvasWidth: menuArea.clientWidth,
+                canvasHeight: menuArea.clientHeight,
+                enableSwipe: true,
+                callbacks: {
+                    onSectionChange: (index, section) => {
+                        console.log('✨ Section:', section.name);
+                    }
+                }
+            });
+
+            menuApp.stage.addChild(menu);
+
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                menu.resize(menuArea.clientWidth, menuArea.clientHeight);
+            });
+
+            console.log('🎉 Main Menu loaded!');
+        })();
+    </script>
+</body>
+</html>
