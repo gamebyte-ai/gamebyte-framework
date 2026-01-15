@@ -377,7 +377,7 @@ GameByte applies these defaults automatically when using `createGame()` or `crea
 - **Gesture support:** Swipe, pinch, long-press detection built-in
 
 ### Performance
-- **Auto-detection:** Device tier (LOW/MEDIUM/HIGH/PREMIUM)
+- **Auto-detection:** Device tier (LOW/MID/HIGH/UNKNOWN)
 - **Quality scaling:** Automatic texture/audio quality based on tier
 - **Memory management:** Aggressive cache eviction on mobile
 - **Battery optimization:** Rendering pauses when backgrounded
@@ -484,10 +484,10 @@ button.height = 60;
 
 ```typescript
 // ✅ Good - responsive scaling
-import { ResponsiveHelper } from 'gamebyte-framework';
-const helper = new ResponsiveHelper({ baseWidth: 1080, baseHeight: 1920 });
-button.width = helper.scale(200);
-button.height = helper.scale(60);
+import { ResponsiveScaleCalculator } from 'gamebyte-framework';
+const calculator = new ResponsiveScaleCalculator({ baseWidth: 1080, baseHeight: 1920 });
+button.width = calculator.scale(200);
+button.height = calculator.scale(60);
 ```
 
 ---
