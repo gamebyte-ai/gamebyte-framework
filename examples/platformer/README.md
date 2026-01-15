@@ -11,8 +11,7 @@
 - Player controller with left/right movement
 - Variable jump height (hold for higher jump)
 - Ground collision detection
-- Coyote time (jump grace period)
-- Physics-based movement
+- Physics-based movement with Matter.js
 
 ---
 
