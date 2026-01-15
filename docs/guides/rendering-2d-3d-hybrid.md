@@ -1,5 +1,7 @@
 # Mixing Three.js & Pixi.js: Best Practices Analysis
 
+<!-- keywords: rendering, 2d, 3d, hybrid, pixi, three, mixed, canvas -->
+
 ## TL;DR - Sorunun Cevabı
 
 ### Soru 1: Bu normal bir best practice mi?

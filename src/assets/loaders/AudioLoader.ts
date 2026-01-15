@@ -1,16 +1,10 @@
 import { BaseAssetLoader } from './BaseAssetLoader';
 import { AssetConfig, AssetType } from '../../contracts/AssetManager';
+import { detectAudioFormats, AudioFormats } from '../../utils/FormatDetectionUtils';
+import { getAudioDeviceTier } from '../../utils/DeviceDetectionUtils';
 
-/**
- * Supported audio formats and their codecs.
- */
-export interface AudioFormats {
-  mp3: boolean;
-  ogg: boolean;
-  webm: boolean;
-  aac: boolean;
-  wav: boolean;
-}
+// AudioFormats interface is re-exported from FormatDetectionUtils
+export type { AudioFormats } from '../../utils/FormatDetectionUtils';
 
 /**
  * Processed audio data.
@@ -314,17 +308,10 @@ export class AudioLoader extends BaseAssetLoader<ProcessedAudio> {
   
   /**
    * Detect supported audio formats.
+   * Uses centralized FormatDetectionUtils.
    */
   private detectSupportedFormats(): AudioFormats {
-    const audio = document.createElement('audio');
-    
-    return {
-      mp3: !!audio.canPlayType('audio/mpeg;').replace(/^no$/, ''),
-      ogg: !!audio.canPlayType('audio/ogg; codecs=\"vorbis\"').replace(/^no$/, ''),
-      webm: !!audio.canPlayType('audio/webm; codecs=\"vorbis\"').replace(/^no$/, ''),
-      aac: !!audio.canPlayType('audio/aac;').replace(/^no$/, ''),
-      wav: !!audio.canPlayType('audio/wav; codecs=\"1\"').replace(/^no$/, '')
-    };
+    return detectAudioFormats();
   }
   
   /**
@@ -353,18 +340,10 @@ export class AudioLoader extends BaseAssetLoader<ProcessedAudio> {
   
   /**
    * Get device performance tier.
+   * Uses centralized DeviceDetectionUtils.
    */
   private getDeviceTier(): string {
-    // Simple heuristic based on audio context capabilities
-    if (!this.audioContext) return 'low';
-    
-    const maxChannels = this.audioContext.destination.maxChannelCount;
-    const sampleRate = this.audioContext.sampleRate;
-    
-    if (maxChannels >= 8 && sampleRate >= 48000) return 'premium';
-    if (maxChannels >= 6 && sampleRate >= 44100) return 'high';
-    if (maxChannels >= 2) return 'medium';
-    return 'low';
+    return getAudioDeviceTier(this.audioContext);
   }
   
   /**

@@ -1,9 +1,18 @@
 import { EventEmitter } from 'eventemitter3';
-import { 
-  DeviceCapabilities, 
-  DevicePerformanceTier, 
-  DeviceThermalState 
-} from '../contracts/Performance';
+import { DeviceCapabilities, DevicePerformanceTier, DeviceThermalState } from '../contracts/Performance';
+import {
+  detectDeviceType,
+  getHardwareConcurrency,
+  estimateDeviceMemory,
+  getWebGLVersion,
+  getMaxTextureSize,
+  getMaxViewportDims,
+  getSupportedExtensions,
+  getScreenInfo,
+  calculatePerformanceTierForPerformanceContract,
+  supportsBatteryAPI,
+  supportsThermalAPI,
+} from '../utils/DeviceDetectionUtils';
 
 /**
  * Device detection and capabilities assessment system
@@ -58,139 +67,49 @@ export class DeviceDetector extends EventEmitter {
   }
 
   /**
-   * Detect comprehensive device capabilities
+   * Detect comprehensive device capabilities.
+   * Uses centralized DeviceDetectionUtils for most detection.
    */
   private async detectCapabilities(): Promise<DeviceCapabilities> {
     const canvas = document.createElement('canvas');
     this.gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
-    
+
+    const screenInfo = getScreenInfo();
+
     const capabilities: DeviceCapabilities = {
-      // Hardware info
-      deviceType: this.detectDeviceType(),
+      // Hardware info - using centralized utilities
+      deviceType: detectDeviceType(),
       performanceTier: DevicePerformanceTier.UNKNOWN, // Will be calculated later
-      cores: this.getCoreCount(),
-      memory: this.getMemorySize(),
-      
-      // Graphics capabilities
-      webglVersion: this.getWebGLVersion(),
-      maxTextureSize: this.getMaxTextureSize(),
-      maxViewportDims: this.getMaxViewportDims(),
-      supportedExtensions: this.getSupportedExtensions(),
-      
+      cores: getHardwareConcurrency(),
+      memory: estimateDeviceMemory() * 1024, // Convert GB to MB
+
+      // Graphics capabilities - using centralized utilities
+      webglVersion: getWebGLVersion(),
+      maxTextureSize: getMaxTextureSize(),
+      maxViewportDims: getMaxViewportDims(),
+      supportedExtensions: getSupportedExtensions(),
+
       // Display info
-      pixelRatio: window.devicePixelRatio || 1,
+      pixelRatio: screenInfo.pixelRatio,
       screenSize: {
-        width: screen.width,
-        height: screen.height
+        width: screenInfo.width,
+        height: screenInfo.height,
       },
       refreshRate: this.getRefreshRate(),
-      
-      // Battery and thermal
-      supportsBatteryAPI: 'getBattery' in navigator,
-      supportsThermalAPI: this.supportsThermalAPI(),
-      
+
+      // Battery and thermal - using centralized utilities
+      supportsBatteryAPI: supportsBatteryAPI(),
+      supportsThermalAPI: supportsThermalAPI(),
+
       // Performance features
       supportsWebWorkers: typeof Worker !== 'undefined',
       supportsOffscreenCanvas: typeof OffscreenCanvas !== 'undefined',
       supportsImageBitmap: typeof createImageBitmap !== 'undefined',
-      supportsWebAssembly: typeof WebAssembly !== 'undefined'
+      supportsWebAssembly: typeof WebAssembly !== 'undefined',
     };
 
     canvas.remove();
     return capabilities;
-  }
-
-  /**
-   * Detect device type based on user agent and screen size
-   */
-  private detectDeviceType(): 'mobile' | 'tablet' | 'desktop' | 'unknown' {
-    const userAgent = navigator.userAgent.toLowerCase();
-    const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
-    
-    if (isMobile) {
-      // Distinguish between phone and tablet based on screen size
-      const minDimension = Math.min(screen.width, screen.height);
-      const maxDimension = Math.max(screen.width, screen.height);
-      const aspectRatio = maxDimension / minDimension;
-      
-      // Tablets typically have larger screens and different aspect ratios
-      if (minDimension >= 768 || (minDimension >= 600 && aspectRatio < 2)) {
-        return 'tablet';
-      }
-      return 'mobile';
-    }
-    
-    return 'desktop';
-  }
-
-  /**
-   * Get estimated CPU core count
-   */
-  private getCoreCount(): number {
-    return navigator.hardwareConcurrency || 2;
-  }
-
-  /**
-   * Estimate device memory size
-   */
-  private getMemorySize(): number {
-    // Use deviceMemory API if available
-    if ('deviceMemory' in navigator) {
-      return (navigator as any).deviceMemory * 1024; // Convert GB to MB
-    }
-    
-    // Fallback estimation based on device type and performance
-    const deviceType = this.detectDeviceType();
-    switch (deviceType) {
-      case 'mobile':
-        return 2048; // 2GB typical for mobile
-      case 'tablet': 
-        return 4096; // 4GB typical for tablets
-      case 'desktop':
-        return 8192; // 8GB typical for desktop
-      default:
-        return 2048;
-    }
-  }
-
-  /**
-   * Get WebGL version
-   */
-  private getWebGLVersion(): number {
-    if (!this.gl) return 0;
-    
-    if (this.gl instanceof WebGL2RenderingContext) {
-      return 2;
-    } else if (this.gl instanceof WebGLRenderingContext) {
-      return 1;
-    }
-    
-    return 0;
-  }
-
-  /**
-   * Get maximum texture size
-   */
-  private getMaxTextureSize(): number {
-    if (!this.gl) return 0;
-    return this.gl.getParameter(this.gl.MAX_TEXTURE_SIZE);
-  }
-
-  /**
-   * Get maximum viewport dimensions
-   */
-  private getMaxViewportDims(): [number, number] {
-    if (!this.gl) return [0, 0];
-    const dims = this.gl.getParameter(this.gl.MAX_VIEWPORT_DIMS);
-    return [dims[0], dims[1]];
-  }
-
-  /**
-   * Get supported WebGL extensions
-   */
-  private getSupportedExtensions(): string[] {
-    if (!this.gl) return [];
-    return this.gl.getSupportedExtensions() || [];
   }
 
   /**
@@ -214,62 +133,14 @@ export class DeviceDetector extends EventEmitter {
   }
 
   /**
-   * Check if thermal API is supported
-   */
-  private supportsThermalAPI(): boolean {
-    return 'connection' in navigator && 
-           'thermalState' in (navigator as any).connection;
-  }
-
-  /**
-   * Calculate performance tier based on detected capabilities
+   * Calculate performance tier based on detected capabilities.
+   * Uses centralized utility for consistent tier calculation across the framework.
    */
   private calculatePerformanceTier(): DevicePerformanceTier {
     if (!this.capabilities) return DevicePerformanceTier.UNKNOWN;
-    
-    let score = 0;
-    
-    // CPU cores contribution (0-20 points)
-    score += Math.min(this.capabilities.cores * 3, 20);
-    
-    // Memory contribution (0-25 points)
-    const memoryGB = this.capabilities.memory / 1024;
-    if (memoryGB >= 8) score += 25;
-    else if (memoryGB >= 4) score += 20;
-    else if (memoryGB >= 2) score += 15;
-    else score += 10;
-    
-    // WebGL contribution (0-20 points)
-    if (this.capabilities.webglVersion === 2) score += 20;
-    else if (this.capabilities.webglVersion === 1) score += 15;
-    
-    // Texture size contribution (0-15 points)
-    const textureSize = this.capabilities.maxTextureSize;
-    if (textureSize >= 8192) score += 15;
-    else if (textureSize >= 4096) score += 12;
-    else if (textureSize >= 2048) score += 8;
-    else score += 5;
-    
-    // Device type contribution (0-10 points)
-    switch (this.capabilities.deviceType) {
-      case 'desktop': score += 10; break;
-      case 'tablet': score += 7; break;
-      case 'mobile': score += 5; break;
-    }
-    
-    // Advanced features contribution (0-10 points)
-    let featureScore = 0;
-    if (this.capabilities.supportsWebWorkers) featureScore += 2;
-    if (this.capabilities.supportsOffscreenCanvas) featureScore += 2;
-    if (this.capabilities.supportsImageBitmap) featureScore += 2;
-    if (this.capabilities.supportsWebAssembly) featureScore += 2;
-    if (this.capabilities.supportedExtensions.length > 20) featureScore += 2;
-    score += featureScore;
-    
-    // Classify based on total score
-    if (score >= 75) return DevicePerformanceTier.HIGH;
-    else if (score >= 50) return DevicePerformanceTier.MID;
-    else return DevicePerformanceTier.LOW;
+
+    // Use centralized performance tier calculation
+    return calculatePerformanceTierForPerformanceContract();
   }
 
   /**
