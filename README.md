@@ -85,6 +85,53 @@ game.start();
 
 ---
 
+## 🤖 For AI Agents & Code Assistants
+
+GameByte is optimized for AI-driven development with tiered documentation and discoverable patterns.
+
+### Quick Start for Agents
+
+**1. Load Core Knowledge (Required)**
+- Read: [`docs/agent-guide/CORE_API.md`](./docs/agent-guide/CORE_API.md) (~2000 tokens)
+- Cheatsheet: [`docs/agent-guide/QUICK_REFERENCE.md`](./docs/agent-guide/QUICK_REFERENCE.md) (~500 tokens)
+
+**2. Discover Advanced Topics (As Needed)**
+```bash
+# Search guides by keyword
+grep -r "physics" docs/guides/
+grep -r "mobile.*optimization" docs/guides/
+```
+
+**3. Reference Working Examples**
+- Platformer: `examples/platformer/`
+- UI Components: `examples/ui-showcase/`
+
+### Documentation Tiers
+
+| Tier | Content | When to Load |
+|------|---------|--------------|
+| **Tier 1** | Core API (~2000 tokens) | Always (pre-loaded) |
+| **Tier 2** | Advanced guides | On-demand (grep/semantic search) |
+| **Tier 3** | Working examples | For patterns/templates |
+
+### Key Features for AI
+
+- **Minimal context** - Core API is ~2000 tokens
+- **Smart defaults** - 40+ auto-configured settings
+- **Discoverable** - Keyword-enriched markdown for grep
+- **Type-rich** - JSDoc examples for autocomplete
+- **4-line games** - `createGame()` → `initialize()` → `start()`
+
+### Integration with RAG Systems
+
+All markdown docs include semantic keywords for vector search:
+
+```markdown
+<!-- keywords: physics, collision, 2d, 3d, matter, cannon -->
+```
+
+---
+
 ## 🎨 UI Components
 
 ### Modern Button
