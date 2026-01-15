@@ -39,7 +39,10 @@
     "lint": "eslint src/**/*.ts",
     "format": "prettier --write src/**/*.ts",
     "clean": "rimraf dist",
-    "prepublishOnly": "npm run clean && npm run build"
+    "prepublishOnly": "npm run clean && npm run build",
+    "validate:agent-docs": "bash scripts/validate-agent-docs.sh",
+    "docs:agent": "echo 'Agent docs: docs/agent-guide/CORE_API.md'",
+    "examples:list": "find examples/ -name '*.html' -type f"
   },
   "keywords": [
     "game-engine",
