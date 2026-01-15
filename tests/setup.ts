@@ -22,9 +22,9 @@ const mockWebGLContextBase = {
   useProgram: jest.fn()
 };
 
-// Mock Canvas API
-const mockCanvas = {
-  getContext: jest.fn((contextType: string) => {
+// Factory function to create mock canvas instances
+const createMockCanvas = () => {
+  const getContext = (contextType: string) => {
     if (contextType === '2d') {
       return mock2DContext;
     }
@@ -32,27 +32,31 @@ const mockCanvas = {
       return mockWebGLContextBase;
     }
     return null;
-  }),
-  width: 800,
-  height: 600,
-  toDataURL: jest.fn(() => 'data:image/png;base64,'),
-  addEventListener: jest.fn(),
-  removeEventListener: jest.fn()
+  };
+
+  return {
+    getContext,
+    width: 800,
+    height: 600,
+    toDataURL: () => 'data:image/png;base64,',
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn()
+  };
 };
 
 // Mock HTMLCanvasElement
 Object.defineProperty(window, 'HTMLCanvasElement', {
-  value: jest.fn(() => mockCanvas),
+  value: jest.fn(() => createMockCanvas()),
   writable: true
 });
 
 // Mock document.createElement for canvas
-const originalCreateElement = document.createElement;
-document.createElement = jest.fn((tagName: string) => {
+const originalCreateElement = document.createElement.bind(document);
+document.createElement = jest.fn((tagName: string): any => {
   if (tagName === 'canvas') {
-    return mockCanvas as any;
+    return createMockCanvas();
   }
-  return originalCreateElement.call(document, tagName);
+  return originalCreateElement(tagName);
 });
 
 // Mock Image constructor
