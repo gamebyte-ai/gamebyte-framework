@@ -77,6 +77,37 @@ interface BatchLoadingContext {
 /**
  * Main asset manager implementation for the GameByte framework.
  * Provides comprehensive asset loading, caching, and optimization for mobile games.
+ *
+ * @example Load a single texture
+ * ```typescript
+ * const assetManager = game.make('assets');
+ * const texture = await assetManager.load({
+ *   key: 'player',
+ *   type: 'texture',
+ *   src: 'assets/player.png'
+ * });
+ * ```
+ *
+ * @example Batch load with progress
+ * ```typescript
+ * assetManager.on('progress', (progress) => {
+ *   console.log(`Loading: ${Math.round(progress * 100)}%`);
+ * });
+ *
+ * const assets = await assetManager.loadBatch([
+ *   { key: 'player', type: 'texture', src: 'assets/player.png' },
+ *   { key: 'bgMusic', type: 'audio', src: 'assets/music.mp3' },
+ *   { key: 'level1', type: 'json', src: 'assets/level1.json' }
+ * ]);
+ * ```
+ *
+ * @example Get cached asset
+ * ```typescript
+ * const texture = assetManager.get('player');
+ * if (texture) {
+ *   sprite.texture = texture.data;
+ * }
+ * ```
  */
 export class GameByteAssetManager extends EventEmitter implements AssetManager {
   private config: AssetManagerConfig;
