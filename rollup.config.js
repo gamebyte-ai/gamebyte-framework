@@ -12,15 +12,24 @@ const mainConfig = {
     {
       file: 'dist/index.js',
       format: 'es',
-      sourcemap: true
+      sourcemap: true,
+      exports: 'named'
     },
     {
       file: 'dist/index.cjs.js',
       format: 'cjs',
-      sourcemap: true
+      sourcemap: true,
+      exports: 'named'
     }
   ],
-  external: ['pixi.js', 'three', 'matter-js', 'cannon-es'],
+  external: [
+    'pixi.js',
+    'three',
+    'matter-js',
+    'cannon-es',
+    // Three.js examples/jsm modules
+    /^three\/examples\/jsm\//
+  ],
   plugins: [
     nodeResolve({
       preferBuiltins: false,
@@ -41,9 +50,10 @@ const pixi2DConfig = {
     dir: 'dist/renderers',
     entryFileNames: 'pixi2d.js',
     format: 'es',
-    sourcemap: true
+    sourcemap: true,
+    exports: 'named'
   },
-  external: ['pixi.js'],
+  external: ['pixi.js', /^three\/examples\/jsm\//],
   plugins: [
     nodeResolve({
       preferBuiltins: false,
@@ -64,9 +74,10 @@ const three3DConfig = {
     dir: 'dist/renderers',
     entryFileNames: 'three3d.js',
     format: 'es',
-    sourcemap: true
+    sourcemap: true,
+    exports: 'named'
   },
-  external: ['three'],
+  external: ['three', /^three\/examples\/jsm\//],
   plugins: [
     nodeResolve({
       preferBuiltins: false,
@@ -84,12 +95,13 @@ const three3DConfig = {
 const matter2DConfig = {
   input: 'src/physics/matter2d.ts',
   output: {
-    dir: 'dist/physics', 
+    dir: 'dist/physics',
     entryFileNames: 'matter2d.js',
     format: 'es',
-    sourcemap: true
+    sourcemap: true,
+    exports: 'named'
   },
-  external: ['matter-js'],
+  external: ['matter-js', /^three\/examples\/jsm\//],
   plugins: [
     nodeResolve({
       preferBuiltins: false,
@@ -108,11 +120,12 @@ const cannon3DConfig = {
   input: 'src/physics/cannon3d.ts',
   output: {
     dir: 'dist/physics',
-    entryFileNames: 'cannon3d.js', 
+    entryFileNames: 'cannon3d.js',
     format: 'es',
-    sourcemap: true
+    sourcemap: true,
+    exports: 'named'
   },
-  external: ['cannon-es'],
+  external: ['cannon-es', /^three\/examples\/jsm\//],
   plugins: [
     nodeResolve({
       preferBuiltins: false,

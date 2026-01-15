@@ -1,5 +1,6 @@
 {
   "name": "@gamebyte/framework",
+  "type": "module",
   "version": "1.0.0",
   "description": "A comprehensive JavaScript game engine framework that unifies 2D and 3D game development with Laravel-inspired architecture",
   "main": "dist/index.js",

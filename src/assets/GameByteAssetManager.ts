@@ -13,8 +13,7 @@ import {
   AssetLoadingState,
   AssetPriority,
   DeviceCapabilities,
-  DevicePerformanceTier,
-  CacheEvictionStrategy
+  DevicePerformanceTier
 } from '../contracts/AssetManager';
 
 // Import loaders
@@ -107,6 +106,7 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
     
     // Setup memory pressure monitoring
     if (this.cache instanceof LRUCache || this.cache instanceof PersistentCache) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Cache interface doesn't define optional method
       (this.cache as any).setMemoryPressureCallback?.((usage: number, limit: number) => {
         this.emit('memory:pressure', usage, limit);
         if (this.config.autoMemoryOptimization) {
@@ -128,6 +128,7 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
   /**
    * Load a single asset.
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Generic default allows flexible API
   async load<T = any>(config: AssetConfig): Promise<LoadedAsset<T>> {
     // Check if already loaded
     const existing = this.loadedAssets.get(config.id);
@@ -155,6 +156,7 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
 
     // Add to loading queue
     // Create entry first without promise
+    /* eslint-disable @typescript-eslint/no-explicit-any -- Promise constructor circular dependency pattern */
     const entry: LoadingQueueEntry = {
       config: this.optimizeAssetConfig(config),
       priority: config.options?.priority || AssetPriority.NORMAL,
@@ -163,6 +165,7 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
       retries: 0,
       promise: null as any,
     };
+    /* eslint-enable @typescript-eslint/no-explicit-any */
 
     // Now create the promise and set resolve/reject on entry
     const promise = new Promise<LoadedAsset<T>>((resolve, reject) => {
@@ -203,13 +206,19 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
       const loadPromises = configs.map(async (config) => {
         try {
           const asset = await this.load(config);
-          this.batchContext!.results.set(config.id, asset);
-          this.batchContext!.loadedAssets++;
+          const ctx = this.batchContext; // Store local reference
+          if (ctx) {
+            ctx.results.set(config.id, asset);
+            ctx.loadedAssets++;
+          }
           this.updateBatchProgress();
           return { id: config.id, asset, error: null };
         } catch (error) {
-          this.batchContext!.errors.set(config.id, error as Error);
-          this.batchContext!.failedAssets++;
+          const ctx = this.batchContext; // Store local reference
+          if (ctx) {
+            ctx.errors.set(config.id, error as Error);
+            ctx.failedAssets++;
+          }
           this.updateBatchProgress();
           return { id: config.id, asset: null, error: error as Error };
         }

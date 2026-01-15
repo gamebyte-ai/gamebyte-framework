@@ -257,16 +257,27 @@ export class ThreeVersionDetector {
   }
 
   /**
-   * Check if WebGPURenderer is available
+   * Check if WebGPURenderer might be available (version check only)
+   * WebGPURenderer is in examples/jsm, not main Three.js export
    */
   static hasWebGPURenderer(): boolean {
     // WebGPURenderer available from r160+
+    // Actual availability requires runtime dynamic import check
+    return this.getRevision() >= 160;
+  }
+
+  /**
+   * Attempt to load WebGPURenderer dynamically
+   * Returns true if WebGPURenderer can be imported
+   */
+  static async canLoadWebGPURenderer(): Promise<boolean> {
     if (this.getRevision() < 160) {
       return false;
     }
-
     try {
-      return typeof (THREE as any).WebGPURenderer !== 'undefined';
+      // @ts-expect-error - WebGPURenderer is in examples/jsm, not in main type definitions
+      await import('three/examples/jsm/renderers/webgpu/WebGPURenderer.js');
+      return true;
     } catch {
       return false;
     }

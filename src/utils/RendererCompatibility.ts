@@ -205,25 +205,32 @@ export class ThreeCompatibility {
 
   /**
    * Create WebGPU renderer (Three.js r160+)
+   * WebGPURenderer is in examples/jsm, requires dynamic import
    */
   private static async createWebGPURenderer(options: ThreeRendererOptions): Promise<any> {
-    const WebGPURenderer = (THREE as any).WebGPURenderer;
+    try {
+      // Dynamic import to avoid build-time resolution errors
+      // @ts-expect-error - WebGPURenderer is in examples/jsm, not in main type definitions
+      const { WebGPURenderer } = await import('three/examples/jsm/renderers/webgpu/WebGPURenderer.js');
 
-    if (!WebGPURenderer) {
-      throw new Error('WebGPURenderer not available');
+      if (!WebGPURenderer) {
+        throw new Error('WebGPURenderer not available after import');
+      }
+
+      const renderer = new WebGPURenderer({
+        canvas: options.canvas,
+        antialias: options.antialias !== false,
+        alpha: options.alpha || false,
+        powerPreference: options.powerPreference || 'high-performance'
+      });
+
+      await renderer.init();
+      console.log('✅ WebGPURenderer initialized successfully');
+      return renderer;
+    } catch (error) {
+      console.warn('⚠️ Failed to load WebGPURenderer:', error);
+      throw new Error(`WebGPURenderer not available: ${error}`);
     }
-
-    const renderer = new WebGPURenderer({
-      canvas: options.canvas,
-      antialias: options.antialias !== false,
-      alpha: options.alpha || false,
-      powerPreference: options.powerPreference || 'high-performance'
-    });
-
-    // WebGPU requires async initialization
-    await renderer.init();
-
-    return renderer;
   }
 
   /**
