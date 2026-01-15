@@ -264,7 +264,7 @@ const texture = Assets.get('player');
 
 GameByte supports 3D rendering with Three.js:
 
-- **UMD Build**: Use direct Three.js API (see `docs/3D_RENDERING_GUIDE.md`)
+- **UMD Build**: Use direct Three.js API (see `docs/guides/rendering-3d-setup.md`)
 - **ESM/CJS**: Import `ThreeRenderer` and `BaseScene3D` directly
 
 ```typescript
@@ -281,7 +281,7 @@ const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
 // ... rest of Three.js setup
 ```
 
-📖 **[Full 3D Rendering Guide →](docs/3D_RENDERING_GUIDE.md)**
+📖 **[Full 3D Rendering Guide →](docs/guides/rendering-3d-setup.md)**
 
 ---
 
@@ -308,7 +308,8 @@ gamebyte-framework/
 │   └── renderers/
 │       └── three3d.js     # 3D renderer bundle
 ├── docs/
-│   └── 3D_RENDERING_GUIDE.md
+│   └── guides/
+│       └── rendering-3d-setup.md
 ├── index.html             # Demo hub
 ├── test-*.html            # Demo pages
 └── README.md
@@ -350,7 +351,7 @@ npx http-server -p 8080
 
 ## 📚 Documentation
 
-- 📖 **[3D Rendering Guide](docs/3D_RENDERING_GUIDE.md)** - Complete 3D setup guide
+- 📖 **[3D Rendering Guide](docs/guides/rendering-3d-setup.md)** - Complete 3D setup guide
 - 📝 **[Changelog](CHANGELOG.md)** - Version history
 - 🤝 **[Contributing](CONTRIBUTING.md)** - Contribution guidelines
 - 🗺️ **[Roadmap](ROADMAP.md)** - Development roadmap

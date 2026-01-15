@@ -507,7 +507,7 @@ See complete working examples:
 
 ## Further Reading
 
-- [Mixing Three.js and Pixi.js Best Practices](../architecture/mixing-three-pixi-best-practices.md)
+- [Mixing Three.js and Pixi.js Best Practices](./rendering-2d-3d-hybrid.md)
 - [3D Demo Architecture](../components/3d-demo-architecture.md)
 - [ArcheroMenu Guide](../ui/archero-menu-guide.md)
 
