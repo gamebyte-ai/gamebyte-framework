@@ -13,12 +13,20 @@ import {
   InputDevice,
   InputEventType,
   InputSettings,
-  InputHandler
+  InputHandler,
 } from '../contracts/Input';
 import { GameByteTouchInputHandler } from './TouchInputHandler';
 import { GameByteVirtualControlsManager } from './VirtualControlsManager';
 import { GameByteInputMappingManager } from './InputMappingManager';
 import { GameByteInputPerformanceManager } from './InputPerformanceManager';
+import {
+  hasTouchScreen,
+  supportsHaptics,
+  getHardwareConcurrency,
+  estimateDeviceMemory,
+  getScreenInfo,
+} from '../utils/DeviceDetectionUtils';
+import { getInputConfigForTier } from '../config/DeviceConfigurations';
 
 /**
  * Main input manager for the GameByte Framework
@@ -487,37 +495,29 @@ export class GameByteInputManager extends EventEmitter implements InputManager {
   }
 
   /**
-   * Optimize input system for current device
+   * Optimize input system for current device.
+   * Uses centralized DeviceConfigurations for tier-based settings.
    */
   optimizeForDevice(): void {
     const caps = this._deviceCapabilities;
-    
-    // Adjust queue size based on performance tier
-    switch (caps.performanceTier) {
-      case 'low':
-        this.maxQueueSize = 50;
-        this.performanceManager.setPerformanceTarget('battery');
-        break;
-      case 'medium':
-        this.maxQueueSize = 75;
-        this.performanceManager.setPerformanceTarget('balanced');
-        break;
-      case 'high':
-        this.maxQueueSize = 100;
-        this.performanceManager.setPerformanceTarget('performance');
-        break;
-    }
-    
-    // Enable input prediction on higher-end devices
-    if (caps.performanceTier === 'high') {
+
+    // Get tier-based configuration from centralized config
+    const inputConfig = getInputConfigForTier(caps.performanceTier);
+
+    // Apply configuration
+    this.maxQueueSize = inputConfig.maxQueueSize;
+    this.performanceManager.setPerformanceTarget(inputConfig.performanceTarget);
+
+    // Enable input prediction based on tier config
+    if (inputConfig.enableInputPrediction) {
       this.performanceManager.enableInputPrediction(true);
     }
-    
+
     // Adjust virtual controls for touch devices
     if (caps.hasTouchScreen) {
       this.virtualControls.updateLayout(caps.screenSize);
     }
-    
+
     this.emit('optimized', caps);
   }
 
@@ -588,26 +588,28 @@ export class GameByteInputManager extends EventEmitter implements InputManager {
   }
 
   /**
-   * Detect device capabilities
+   * Detect device capabilities.
+   * Uses centralized DeviceDetectionUtils.
    */
   private detectDeviceCapabilities(): DeviceCapabilities {
-    const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const hasTouch = hasTouchScreen();
     const hasKeyboard = !hasTouch || window.innerWidth > 768; // Heuristic for keyboard availability
     const hasMouse = window.matchMedia('(pointer: fine)').matches;
     const hasGamepad = 'getGamepads' in navigator;
-    
-    // Detect performance tier based on various factors
+    const screenInfo = getScreenInfo();
+
+    // Detect performance tier based on centralized utilities
+    const hardwareConcurrency = getHardwareConcurrency();
+    const deviceMemory = estimateDeviceMemory();
+
     let performanceTier: 'low' | 'medium' | 'high' = 'medium';
-    
-    // Type assertion for deviceMemory (not in all browsers)
-    const deviceMemory = (navigator as any).deviceMemory;
-    
-    if (navigator.hardwareConcurrency >= 8 && deviceMemory >= 4) {
+
+    if (hardwareConcurrency >= 8 && deviceMemory >= 4) {
       performanceTier = 'high';
-    } else if (navigator.hardwareConcurrency <= 2 || (deviceMemory && deviceMemory < 1)) {
+    } else if (hardwareConcurrency <= 2 || deviceMemory < 1) {
       performanceTier = 'low';
     }
-    
+
     return {
       hasTouchScreen: hasTouch,
       hasTouch: hasTouch, // Alias for compatibility
@@ -616,13 +618,13 @@ export class GameByteInputManager extends EventEmitter implements InputManager {
       hasGamepad,
       maxTouchPoints: navigator.maxTouchPoints || (hasTouch ? 10 : 0),
       supportsPressure: hasTouch, // Modern touch devices usually support pressure
-      supportsHaptics: 'vibrate' in navigator,
+      supportsHaptics: supportsHaptics(),
       performanceTier,
       screenSize: {
         width: window.innerWidth,
-        height: window.innerHeight
+        height: window.innerHeight,
       },
-      pixelRatio: window.devicePixelRatio || 1
+      pixelRatio: screenInfo.pixelRatio,
     };
   }
 

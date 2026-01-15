@@ -1,16 +1,10 @@
 import { BaseAssetLoader } from './BaseAssetLoader';
 import { AssetConfig, AssetType } from '../../contracts/AssetManager';
+import { detectTextureFormats, TextureFormats, getBestTextureFormat } from '../../utils/FormatDetectionUtils';
+import { getTextureDeviceTier } from '../../utils/DeviceDetectionUtils';
 
-/**
- * Supported texture formats with compression options.
- */
-export interface TextureFormats {
-  webp: boolean;
-  avif: boolean;
-  dxt: boolean;
-  etc: boolean;
-  astc: boolean;
-}
+// TextureFormats interface is re-exported from FormatDetectionUtils
+export type { TextureFormats } from '../../utils/FormatDetectionUtils';
 
 /**
  * Processed texture data.
@@ -227,40 +221,18 @@ export class TextureLoader extends BaseAssetLoader<ProcessedTexture> {
   
   /**
    * Get the best supported format for encoding.
+   * Uses centralized FormatDetectionUtils.
    */
   private getBestFormat(): string {
-    if (this.supportedFormats.avif) return 'avif';
-    if (this.supportedFormats.webp) return 'webp';
-    return 'jpeg';
+    return getBestTextureFormat();
   }
   
   /**
    * Detect supported texture formats.
+   * Uses centralized FormatDetectionUtils.
    */
   private detectSupportedFormats(): TextureFormats {
-    const canvas = document.createElement('canvas');
-    canvas.width = canvas.height = 1;
-    
-    return {
-      webp: canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0,
-      avif: canvas.toDataURL('image/avif').indexOf('data:image/avif') === 0,
-      dxt: this.checkWebGLExtension('WEBGL_compressed_texture_s3tc'),
-      etc: this.checkWebGLExtension('WEBGL_compressed_texture_etc'),
-      astc: this.checkWebGLExtension('WEBGL_compressed_texture_astc')
-    };
-  }
-  
-  /**
-   * Check if WebGL extension is supported.
-   */
-  private checkWebGLExtension(extensionName: string): boolean {
-    try {
-      const canvas = document.createElement('canvas');
-      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-      return gl ? !!(gl as WebGLRenderingContext).getExtension(extensionName) : false;
-    } catch {
-      return false;
-    }
+    return detectTextureFormats();
   }
   
   /**
@@ -302,16 +274,10 @@ export class TextureLoader extends BaseAssetLoader<ProcessedTexture> {
   
   /**
    * Get device performance tier for optimization.
+   * Uses centralized DeviceDetectionUtils.
    */
   private getDeviceTier(): string {
-    const devicePixelRatio = window.devicePixelRatio || 1;
-    const screenSize = window.screen.width * window.screen.height;
-    
-    // Simple heuristic for device tier
-    if (devicePixelRatio >= 3 && screenSize > 2000000) return 'premium';
-    if (devicePixelRatio >= 2 && screenSize > 1000000) return 'high';
-    if (devicePixelRatio >= 1.5) return 'medium';
-    return 'low';
+    return getTextureDeviceTier();
   }
   
   /**
