@@ -1,0 +1,254 @@
+# GameByte Framework - Full API Reference
+# Version: 1.0.0
+# For AI Agents - Complete API in single file (~15KB)
+
+## SETUP
+```typescript
+import { createGame, BaseScene, UIButton } from 'gamebyte-framework';
+const game = createGame();
+await game.initialize(canvas, '2d'); // '2d' | '3d' | 'hybrid'
+game.start();
+```
+
+## SERVICE CONTAINER
+```typescript
+// Bind services
+game.bind('my.service', () => new MyService());
+game.singleton('global.service', () => new GlobalService());
+game.instance('config', configObject);
+
+// Resolve
+const service = game.make<MyService>('my.service');
+```
+
+## BUILT-IN SERVICES
+| Key | Type | Description |
+|-----|------|-------------|
+| renderer | Renderer | 2D/3D rendering |
+| scene.manager | SceneManager | Scene management |
+| input | InputManager | Keyboard/mouse/touch/gamepad |
+| audio | AudioManager | Music, SFX, spatial |
+| assets | AssetManager | Asset loading |
+| physics | PhysicsManager | 2D/3D physics |
+
+## SCENES
+```typescript
+class MyScene extends BaseScene {
+    constructor() { super('id', 'Name'); }
+    async initialize(): Promise<void> { await super.initialize(); }
+    update(deltaTime: number): void { super.update(deltaTime); }
+    destroy(): void { super.destroy(); }
+    onEnter(data?: any): void {}
+    onExit(): void {}
+}
+
+const sceneManager = game.make<SceneManager>('scene.manager');
+sceneManager.add(new MyScene());
+await sceneManager.switchTo('id', { type: 'fade', duration: 500 });
+```
+
+## UI COMPONENTS
+
+### UIButton
+```typescript
+const btn = new UIButton({
+    text: 'PLAY',
+    width: 200,
+    height: 60,
+    backgroundColor: 0x4CAF50,
+    gradient: { enabled: true, colorTop: 0x66BB6A, colorBottom: 0x388E3C },
+    glowEffect: true,
+    shadowEffect: true,
+    rippleEffect: true,
+    borderRadius: 8
+});
+btn.setPosition(x, y);
+btn.on('click', () => {});
+btn.setText('NEW');
+btn.setEnabled(false);
+scene.container.addChild(btn.getContainer());
+```
+
+### UIPanel
+```typescript
+const panel = new UIPanel({
+    width: 300,
+    height: 200,
+    backgroundColor: 0x1a1a2e,
+    borderRadius: 12,
+    shadowEffect: true,
+    layout: 'vertical', // or 'horizontal'
+    gap: 16,
+    padding: 20
+});
+panel.addChild(child);
+```
+
+### UIText
+```typescript
+const text = new UIText({
+    text: 'Hello',
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: 0xffffff,
+    align: 'center'
+});
+text.setText('New text');
+```
+
+### TopBar
+```typescript
+const topBar = new TopBar({
+    width: 800,
+    items: [
+        { id: 'coins', type: TopBarItemType.RESOURCE, icon: tex, value: 0, animated: true },
+        { id: 'health', type: TopBarItemType.PROGRESS, value: 100, maxValue: 100 },
+        { id: 'timer', type: TopBarItemType.TIMER, value: 60, format: 'time' }
+    ]
+});
+topBar.updateItem('coins', 100, true);
+topBar.startTimer('timer', { direction: 'down', onComplete: () => {} });
+```
+
+### UIProgressBar
+```typescript
+const bar = new UIProgressBar({
+    width: 150,
+    height: 16,
+    value: 75,
+    maxValue: 100,
+    color: 0x22c55e,
+    gradient: { enabled: true },
+    showLabel: true,
+    labelFormat: 'percentage' // or 'value' or 'fraction'
+});
+bar.setValue(50, true);
+```
+
+## INPUT
+
+### Keyboard
+```typescript
+const input = game.make('input');
+input.keyboard.on('Space', (pressed) => { if (pressed) jump(); });
+input.keyboard.on('KeyW', (pressed) => {});
+if (input.keyboard.isPressed('KeyA')) moveLeft();
+```
+
+### Touch
+```typescript
+input.touch.on('tap', (e) => handleTap(e.x, e.y));
+input.touch.on('swipe', (e) => { if (e.direction === 'left') nextPage(); });
+input.touch.on('pinch', (e) => zoom(e.scale));
+```
+
+### Gamepad
+```typescript
+input.gamepad.on('button-a', () => jump());
+const stick = input.gamepad.getAxis('left-stick'); // { x, y, magnitude }
+```
+
+## PHYSICS
+
+### 2D (Matter.js)
+```typescript
+Physics.create2DWorld({ gravity: { x: 0, y: 1 } });
+const body = Physics.createBody({ x, y, width, height, options: { label: 'player' } });
+Physics.createStaticBody({ x, y, width, height }); // platforms
+Physics.setVelocity(body, { x: 5, y: 0 });
+Physics.setVelocityY(body, -12); // jump
+Physics.applyForce(body, { x: 0.01, y: 0 });
+Physics.onCollision('player', 'enemy', (a, b) => takeDamage());
+Physics.update(deltaTime); // in game loop
+```
+
+### 3D (Cannon.js)
+```typescript
+Physics.create3DWorld({ gravity: { x: 0, y: -9.8, z: 0 } });
+const body = Physics.create3DBody({ x, y, z, shape: 'box', size: {x,y,z}, mass: 1 });
+```
+
+## AUDIO
+```typescript
+Music.play('bgm', { loop: true, volume: 0.7 });
+Music.pause(); Music.resume(); Music.stop();
+Music.crossFade('new-track', { duration: 1000 });
+
+SFX.play('click');
+SFX.play('hit', { volume: 1, pitch: 0.9 + Math.random() * 0.2 });
+
+Spatial.setListener({ position, orientation });
+Spatial.play('explosion', { position: { x, y, z } });
+
+Audio.setMasterVolume(0.8);
+Audio.mute(); Audio.unmute();
+```
+
+## ASSETS
+```typescript
+await Assets.load([
+    { key: 'player', url: 'player.png', type: 'texture' },
+    { key: 'bgm', url: 'music.mp3', type: 'audio' },
+    { key: 'config', url: 'config.json', type: 'json' }
+]);
+const texture = Assets.get('player');
+Assets.unload('player');
+
+Assets.on('progress', (p) => loadingBar.setValue(p * 100));
+```
+
+## RENDERING
+
+### 2D (Pixi.js)
+```typescript
+const sprite = PIXI.Sprite.from('texture.png');
+sprite.anchor.set(0.5);
+sprite.position.set(x, y);
+scene.container.addChild(sprite);
+
+const graphics = new PIXI.Graphics();
+graphics.beginFill(0x4CAF50);
+graphics.drawRect(0, 0, 100, 50);
+graphics.endFill();
+```
+
+### 3D (Three.js)
+```typescript
+const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 1, 1),
+    new THREE.MeshStandardMaterial({ color: 0x4CAF50 })
+);
+scene3D.add(mesh);
+
+const light = new THREE.DirectionalLight(0xffffff, 1);
+scene3D.add(light);
+```
+
+## TRANSITIONS
+```typescript
+await sceneManager.switchTo('game', {
+    type: 'fade', // 'none' | 'fade' | 'slide' | 'zoom'
+    duration: 500,
+    direction: 'left', // for slide
+    color: 0x000000 // for fade
+});
+```
+
+## CONFIGURATION
+```typescript
+const game = createGame({
+    debug: true,
+    renderer: { antialias: true, resolution: window.devicePixelRatio },
+    mobile: { touchTargetSize: 44, preventZoom: true },
+    physics: { gravity: { x: 0, y: 1 } },
+    audio: { masterVolume: 1, musicVolume: 0.7 }
+});
+```
+
+## KEY TYPES
+```typescript
+type RenderMode = '2d' | '3d' | 'hybrid';
+type TransitionType = 'none' | 'fade' | 'slide' | 'zoom';
+interface Vector2 { x: number; y: number; }
+interface Vector3 { x: number; y: number; z: number; }
+```

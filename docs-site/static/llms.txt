@@ -1,0 +1,109 @@
+# GameByte Framework Documentation
+> Modern Mobile-First Game Development Framework
+> Version: 1.0.0
+
+## Overview
+GameByte is a comprehensive JavaScript game framework that unifies 2D (Pixi.js v8) and 3D (Three.js) rendering with Laravel-inspired architecture. Mobile-optimized with 44px touch targets and performance features.
+
+## Quick Start
+- /overview - Framework introduction and features
+- /getting-started/installation - npm install gamebyte-framework
+- /getting-started/quick-start - Build first game in 5 minutes
+- /getting-started/first-game-tutorial - Complete platformer tutorial
+
+## Core Concepts
+- /core-concepts/architecture - Service container, providers, facades
+- /core-concepts/game-loop - Update cycle, delta time
+- /core-concepts/configuration - All config options
+
+## Rendering
+- /rendering/overview - 2D vs 3D vs Hybrid modes
+- /rendering/2d-pixi - Pixi.js v8 sprites, textures, filters
+- /rendering/3d-three - Three.js meshes, materials, lighting
+- /rendering/hybrid-mode - Combine 2D UI with 3D world
+
+## Scenes
+- /scenes/scene-management - Lifecycle, switching, data passing
+- /scenes/transitions - Fade, slide, zoom, custom
+
+## UI Components
+- /ui-components/overview - Mobile-first UI system
+- /ui-components/button - UIButton with effects
+- /ui-components/panel - Container with styling
+- /ui-components/text - UIText typography
+- /ui-components/topbar - HUD resources/timers
+- /ui-components/progress-bar - Health, loading bars
+- /ui-components/responsive-layout - Adaptive layouts
+
+## Physics
+- /physics/overview - 2D and 3D physics
+- /physics/2d-matter - Matter.js integration
+- /physics/3d-cannon - Cannon.js integration
+
+## Audio
+- /audio/overview - Audio system
+- /audio/music-sfx - Music and sound effects
+- /audio/spatial-audio - 3D positional audio
+
+## Input
+- /input/overview - Unified input system
+- /input/keyboard-mouse - Desktop controls
+- /input/touch - Mobile gestures
+- /input/gamepad - Controller support
+
+## Assets
+- /assets/loading-caching - Asset management
+
+## API Reference
+- /api-reference - Complete API documentation
+
+## AI Agent Guide
+- /ai-agent-guide - AI integration overview
+- /ai-agent-guide/core-api - Essential API (~2000 tokens)
+- /ai-agent-guide/quick-reference - Cheatsheet (~500 tokens)
+
+## Essential Code Patterns
+
+### Setup
+```typescript
+const game = createGame();
+await game.initialize(canvas, '2d');
+game.start();
+```
+
+### Scene
+```typescript
+class MyScene extends BaseScene {
+    constructor() { super('id', 'Name'); }
+    async initialize() { await super.initialize(); }
+    update(dt) { super.update(dt); }
+}
+```
+
+### UI Button
+```typescript
+new UIButton({ text: 'PLAY', width: 200, height: 60, backgroundColor: 0x4CAF50 })
+```
+
+### Input
+```typescript
+input.keyboard.on('Space', (pressed) => { if (pressed) jump(); });
+```
+
+### Physics
+```typescript
+Physics.create2DWorld({ gravity: { x: 0, y: 1 } });
+Physics.createBody({ x: 100, y: 100, width: 32, height: 48 });
+```
+
+## Service Keys
+- renderer - Rendering control
+- scene.manager - Scene management
+- input - Input handling
+- audio - Audio playback
+- assets - Asset loading
+- physics - Physics engine
+
+## Links
+- GitHub: https://github.com/gamebyte-ai/gamebyte-framework
+- Full API: /llms-full.txt

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte Quick Start Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #1a1a2e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: system-ui, sans-serif;
+        }
+        #game-container {
+            width: 100%;
+            max-width: 800px;
+            aspect-ratio: 4/3;
+            background: #0f0f23;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+        canvas { display: block; width: 100%; height: 100%; }
+        .demo-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: white;
+        }
+        .demo-title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            text-shadow: 0 2px 10px rgba(99, 102, 241, 0.5);
+        }
+        .demo-button {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            border: none;
+            color: white;
+            padding: 16px 48px;
+            font-size: 1.25rem;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .demo-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(99, 102, 241, 0.5);
+        }
+        .demo-button:active {
+            transform: translateY(0);
+        }
+        .demo-subtitle {
+            color: #9ca3af;
+            margin-top: 1rem;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div class="demo-overlay">
+            <h1 class="demo-title">GameByte</h1>
+            <button class="demo-button" onclick="startGame()">PLAY</button>
+            <p class="demo-subtitle">Click the button to start</p>
+        </div>
+        <canvas id="game-canvas" style="display: none;"></canvas>
+    </div>
+
+    <script>
+        let gameStarted = false;
+
+        function startGame() {
+            if (gameStarted) return;
+            gameStarted = true;
+
+            const overlay = document.querySelector('.demo-overlay');
+            overlay.innerHTML = `
+                <h1 class="demo-title" style="color: #22c55e;">Game Started!</h1>
+                <p class="demo-subtitle" style="color: #4ade80;">
+                    This is where your game would run.<br>
+                    Check the documentation for full examples.
+                </p>
+            `;
+
+            // In a real implementation, this would initialize GameByte
+            console.log('Game started! In production, this would call:');
+            console.log('const game = createGame();');
+            console.log('await game.initialize(canvas, "2d");');
+            console.log('game.start();');
+        }
+    </script>
+</body>
+</html>
