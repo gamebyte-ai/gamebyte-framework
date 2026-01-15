@@ -108,8 +108,11 @@ inputManager.on('swipe', (direction) => { /* ... */ });
 | Type | Path | Purpose |
 |------|------|---------|
 | Core API | `docs/agent-guide/CORE_API.md` | Load first |
-| Guides | `docs/guides/*.md` | Advanced topics |
-| Examples | `examples/*` | Working code |
+| Quick Ref | `docs/agent-guide/QUICK_REFERENCE.md` | Command cheatsheet |
+| Examples | `docs/examples/*.md` | Component examples |
+| Architecture | `docs/architecture/*.md` | System design |
+| Components | `docs/components/*.md` | Component docs |
+| UI | `docs/ui/*.md` | UI system docs |
 | Demos | Root `demo-*.html` | Full games |
 
 ---
@@ -120,16 +123,16 @@ Search docs efficiently:
 
 ```bash
 # Find physics-related docs
-grep -r "physics" docs/guides/
+grep -r "physics" docs/
 
 # Find collision examples
-grep -r "collision" docs/ examples/
+grep -r "collision" docs/
 
-# Find UI component guides
-grep -r "ui.*component" docs/
+# Find UI component documentation
+grep -r "UIButton\|UIPanel\|ArcheroMenu" docs/
 
 # Find mobile optimization docs
-grep -r "mobile.*optimization" docs/
+grep -r "mobile.*optimi\|createMobileGame" docs/
 ```
 
 ---
