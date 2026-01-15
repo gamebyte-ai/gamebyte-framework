@@ -1,5 +1,7 @@
 # HybridRenderer Guide
 
+<!-- keywords: rendering, hybrid, advanced, optimization, stacking, canvas -->
+
 ## Overview
 
 `HybridRenderer` combines **Three.js (3D)** and **Pixi.js (2D)** using a stacked canvas architecture. This enables games to have rich 3D backgrounds with performant 2D UI overlays.

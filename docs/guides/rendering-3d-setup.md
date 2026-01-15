@@ -1,5 +1,7 @@
 # 3D Rendering in GameByte Framework
 
+<!-- keywords: rendering, 3d, three.js, setup, initialization, scene, camera -->
+
 ## Overview
 
 GameByte Framework supports 3D rendering through **direct Three.js API usage**, not through the graphics abstraction layer. This is an intentional architectural decision.
