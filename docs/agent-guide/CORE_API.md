@@ -154,4 +154,215 @@ const inputManager = game.make('input');
 inputManager.on('pointerdown', (event) => { /* ... */ });
 ```
 
+## Common Patterns
+
+### Scene Creation
+
+```typescript
+import { BaseScene } from 'gamebyte-framework';
+import * as PIXI from 'pixi.js';
+
+class GameScene extends BaseScene {
+  async onEnter() {
+    // Scene initialization
+    const sprite = PIXI.Sprite.from('player');
+    sprite.x = 400;
+    sprite.y = 300;
+    this.addChild(sprite);
+  }
+
+  update(deltaTime: number) {
+    // Update logic (60 FPS by default)
+  }
+
+  async onExit() {
+    // Cleanup
+  }
+}
+
+// Register and load
+const sceneManager = game.make('scene.manager');
+sceneManager.register('game', new GameScene());
+await sceneManager.load('game');
+```
+
+---
+
+### UI Component Usage
+
+**Pre-built Components:**
+- `UIButton` - Buttons with gradients, glow, shadows
+- `UIPanel` - Panels with borders, backgrounds
+- `UIText` - Styled text labels
+- `UIProgressBar` - Animated progress bars
+- `UIContainer` - Layout containers
+- `ArcheroMenu` - Full-featured bottom navigation (670 lines → 3 lines)
+
+**Example: Button**
+
+```typescript
+import { UIButton } from 'gamebyte-framework';
+
+const button = new UIButton({
+  text: 'PLAY',
+  width: 200,
+  height: 60,
+  backgroundColor: 0x4CAF50,
+  onClick: () => console.log('Play clicked')
+});
+
+const renderer = game.make('renderer');
+renderer.getStage().addChild(button.getContainer());
+```
+
+**Example: ArcheroMenu (Minimal)**
+
+```typescript
+import { ArcheroMenu, ARCHERO_COLORS } from 'gamebyte-framework';
+
+const menu = new ArcheroMenu({
+  sections: [
+    { name: 'Shop', icon: '🛒', iconColor: ARCHERO_COLORS.red },
+    { name: 'Play', icon: '🎯', iconColor: ARCHERO_COLORS.activeYellow },
+    { name: 'Stats', icon: '📊', iconColor: ARCHERO_COLORS.green }
+  ],
+  activeSection: 1,
+  callbacks: {
+    onSectionChange: (index, section) => console.log('Changed to:', section.name)
+  }
+});
+
+renderer.getStage().addChild(menu.getContainer());
+```
+
+**Result:** Production-quality menu in 3 lines
+
+---
+
+### Asset Loading
+
+**Single Asset:**
+
+```typescript
+const assetManager = game.make('assets');
+
+const asset = await assetManager.load({
+  id: 'player-sprite',
+  url: './assets/player.png',
+  type: 'texture'
+});
+
+const sprite = PIXI.Sprite.from(asset.data);
+```
+
+**Batch Loading:**
+
+```typescript
+const assets = await assetManager.loadBatch([
+  { id: 'player', url: './player.png', type: 'texture' },
+  { id: 'enemy', url: './enemy.png', type: 'texture' },
+  { id: 'bgm', url: './music.mp3', type: 'audio' }
+]);
+
+// Access loaded assets
+const playerTexture = assetManager.get('player').data;
+```
+
+**Progress Tracking:**
+
+```typescript
+assetManager.on('batch:progress', (progress) => {
+  console.log(`${progress.progress * 100}% loaded`);
+});
+```
+
+---
+
+### Audio Playback
+
+```typescript
+const audioManager = game.make('audio');
+
+// Background music
+await audioManager.playMusic('bgm', {
+  loop: true,
+  volume: 0.5,
+  fadeIn: 1000  // 1 second fade-in
+});
+
+// Sound effects
+await audioManager.playSFX('jump', {
+  volume: 0.8,
+  playbackRate: 1.0
+});
+
+// 3D spatial audio
+await audioManager.playSFX('explosion', {
+  position: { x: 10, y: 0, z: 5 },
+  rolloffFactor: 1,
+  refDistance: 10
+});
+```
+
+---
+
+### Input Handling
+
+```typescript
+const inputManager = game.make('input');
+
+// Mouse/Touch
+inputManager.on('pointerdown', (event) => {
+  console.log('Click at:', event.global.x, event.global.y);
+});
+
+// Keyboard
+inputManager.on('keydown', (event) => {
+  if (event.key === 'Space') {
+    player.jump();
+  }
+});
+
+// Gesture detection (mobile)
+inputManager.on('swipe', (direction) => {
+  console.log('Swiped:', direction); // 'left', 'right', 'up', 'down'
+});
+```
+
+---
+
+### Physics Integration
+
+**2D (Matter.js):**
+
+```typescript
+const physicsManager = game.make('physics');
+
+// Create physics body
+const body = physicsManager.createBody({
+  shape: 'rectangle',
+  width: 50,
+  height: 50,
+  x: 400,
+  y: 300,
+  options: { restitution: 0.8 }
+});
+
+// Collision detection
+physicsManager.on('collision:start', (bodyA, bodyB) => {
+  console.log('Collision!');
+});
+```
+
+**3D (Cannon.js):**
+
+```typescript
+const physicsBody = physicsManager.createBody({
+  shape: 'box',
+  size: { x: 1, y: 1, z: 1 },
+  position: { x: 0, y: 10, z: 0 },
+  mass: 1
+});
+```
+
 ---
