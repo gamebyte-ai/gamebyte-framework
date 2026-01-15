@@ -8,7 +8,7 @@ module.exports = {
   ],
   transform: {
     '^.+\\.ts$': 'ts-jest',
-    '^.+\\.js$': ['babel-jest', { configFile: './babel.config.test.js' }],
+    '^.+\\.js$': ['babel-jest', { configFile: './babel.config.test.cjs' }],
   },
   transformIgnorePatterns: [
     'node_modules/(?!(pixi\\.js|earcut)/)'
