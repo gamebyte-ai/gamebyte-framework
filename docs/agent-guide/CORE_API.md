@@ -366,3 +366,174 @@ const physicsBody = physicsManager.createBody({
 ```
 
 ---
+
+## Mobile-First Defaults
+
+GameByte applies these defaults automatically when using `createGame()` or `createMobileGame()`:
+
+### Touch Targets
+- **Minimum size:** 44x44px (Apple HIG standard)
+- **Tap delay:** Eliminated via `touch-action: manipulation`
+- **Gesture support:** Swipe, pinch, long-press detection built-in
+
+### Performance
+- **Auto-detection:** Device tier (LOW/MEDIUM/HIGH/PREMIUM)
+- **Quality scaling:** Automatic texture/audio quality based on tier
+- **Memory management:** Aggressive cache eviction on mobile
+- **Battery optimization:** Rendering pauses when backgrounded
+
+### Resolution
+- **Pixel ratio:** Auto-detects `window.devicePixelRatio`
+- **Base resolution:** 1080x1920 (9:16 portrait) for mobile
+- **Scaling:** Maintains aspect ratio, no distortion
+
+### Asset Loading
+- **Max concurrent:** 6 parallel loads
+- **Retry logic:** 3 attempts with exponential backoff
+- **Timeout:** 30 seconds per asset
+- **Caching:** Persistent cache with LRU eviction
+
+### Audio
+- **Auto-unlock:** iOS audio unlock handled automatically
+- **Compression:** Lower bitrate on LOW tier devices
+- **Context management:** Single AudioContext, reused across scenes
+
+---
+
+## Anti-Patterns
+
+### ❌ DON'T: Manually register service providers
+
+```typescript
+// ❌ Bad - too much boilerplate
+const game = GameByte.create();
+game.register(new RenderingServiceProvider());
+game.register(new SceneServiceProvider());
+// ... 7 more providers
+await game.boot();
+```
+
+```typescript
+// ✅ Good - use Quick API
+const game = createGame();  // All providers auto-registered
+```
+
+---
+
+### ❌ DON'T: Ignore smart defaults
+
+```typescript
+// ❌ Bad - fighting the framework
+await game.initialize(canvas, '2d', {
+  antialias: false,  // Framework detects best value
+  resolution: 1,     // Ignores device pixel ratio
+  autoDensity: false // Manual DPI handling
+});
+```
+
+```typescript
+// ✅ Good - trust smart defaults
+await game.initialize(canvas, '2d');  // Optimal settings applied
+```
+
+---
+
+### ❌ DON'T: Create assets without caching
+
+```typescript
+// ❌ Bad - no caching, slow
+const texture = await PIXI.Assets.load('./player.png');
+const sprite = PIXI.Sprite.from(texture);
+```
+
+```typescript
+// ✅ Good - cached, fast, progress tracking
+const assetManager = game.make('assets');
+await assetManager.load({ id: 'player', url: './player.png', type: 'texture' });
+const sprite = PIXI.Sprite.from(assetManager.get('player').data);
+```
+
+---
+
+### ❌ DON'T: Build UI from scratch
+
+```typescript
+// ❌ Bad - 670 lines of custom UI code
+const button = new PIXI.Container();
+const bg = new PIXI.Graphics();
+bg.beginFill(0x4CAF50);
+bg.drawRoundedRect(0, 0, 200, 60, 8);
+// ... 665 more lines
+```
+
+```typescript
+// ✅ Good - 3 lines with ArcheroMenu or UIButton
+import { UIButton } from 'gamebyte-framework';
+const button = new UIButton({ text: 'PLAY', width: 200, height: 60 });
+```
+
+---
+
+### ❌ DON'T: Hardcode values for mobile
+
+```typescript
+// ❌ Bad - fixed sizes, breaks on different devices
+button.width = 200;
+button.height = 60;
+```
+
+```typescript
+// ✅ Good - responsive scaling
+import { ResponsiveHelper } from 'gamebyte-framework';
+const helper = new ResponsiveHelper({ baseWidth: 1080, baseHeight: 1920 });
+button.width = helper.scale(200);
+button.height = helper.scale(60);
+```
+
+---
+
+### ❌ DON'T: Skip lifecycle hooks
+
+```typescript
+// ❌ Bad - no cleanup
+class GameScene extends BaseScene {
+  async onEnter() {
+    this.interval = setInterval(() => this.update(), 16);
+  }
+  // Missing onExit - memory leak!
+}
+```
+
+```typescript
+// ✅ Good - proper cleanup
+class GameScene extends BaseScene {
+  async onEnter() {
+    this.interval = setInterval(() => this.update(), 16);
+  }
+
+  async onExit() {
+    clearInterval(this.interval);  // Cleanup
+  }
+}
+```
+
+---
+
+## Next Steps
+
+**Tier 2 Docs:** When you need advanced features:
+- Search: `grep -r "keyword" docs/guides/`
+- Topics: physics, audio-spatial, ui-responsive, asset-bundles, performance-optimization
+
+**Tier 3 Examples:** Working code patterns:
+- `examples/platformer/` - Physics + player controller
+- `examples/puzzle/` - Match-3 game mechanics
+- `examples/shooter/` - Top-down 2D shooter
+
+**Quick Reference:** See `QUICK_REFERENCE.md` for command cheatsheet
+
+---
+
+*Last updated: 2026-01-15*
+*Target audience: AI agents, autonomous game builders*
+*Estimated reading: 5-7 minutes*
