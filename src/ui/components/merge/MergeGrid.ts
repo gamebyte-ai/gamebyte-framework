@@ -502,9 +502,10 @@ export class MergeGrid extends EventEmitter<MergeGridEvents> {
       this._currentDragItem = it;
       this._currentDragFromCell = this.getCellForItem(it);
 
-      // Remove from cell but keep in items container
+      // Remove from cell and add back to items container for dragging
       if (this._currentDragFromCell) {
         this._currentDragFromCell.removeItem();
+        this.itemsContainer.addChild(it.getContainer());
       }
 
       // Move to top of items container

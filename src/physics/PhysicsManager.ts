@@ -119,7 +119,6 @@ export class PhysicsManager extends EventEmitter implements IPhysicsManager {
    */
   private createDefaultWorld(dimension: PhysicsDimension): void {
     const defaultConfig: PhysicsWorldConfig = {
-      id: 'default',
       dimension,
       gravity: dimension === '2d'
         ? { x: 0, y: 1 }  // 2D: positive Y is down (screen coordinates)
