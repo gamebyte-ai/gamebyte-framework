@@ -40,6 +40,16 @@ Advanced topics and deep-dives for specific features.
 
 ---
 
+## Game Examples
+
+Working code examples with documentation:
+
+- [Platformer Example](../examples/platformer-example.md) - 2D platformer with physics
+- [Merge Game Example](../examples/merge-game-example.md) - Mobile merge puzzle
+- [All Examples](../examples/README.md) - Full examples index
+
+---
+
 ## Discovery
 
 **Search by keyword:**
