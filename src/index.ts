@@ -260,32 +260,33 @@ export { TopBar, TopBarItemType } from './ui/components/TopBar';
 export type { TopBarConfig, TopBarItemConfig, TopBarTheme } from './ui/components/TopBar';
 
 // Layout & UI Adapters (@pixi/layout, @pixi/ui)
-export { LayoutAdapter } from './adapters/LayoutAdapter';
-export type {
-  FlexDirection,
-  JustifyContent,
-  AlignItems,
-  AlignSelf,
-  FlexWrap,
-  LayoutSize,
-  Padding,
-  FlexContainerConfig,
-  FlexItemConfig,
-  ResponsiveConfig as LayoutResponsiveConfig
-} from './adapters/LayoutAdapter';
+// NOTE: These adapters are temporarily disabled pending refactoring
+// export { LayoutAdapter } from './adapters/LayoutAdapter';
+// export type {
+//   FlexDirection,
+//   JustifyContent,
+//   AlignItems,
+//   AlignSelf,
+//   FlexWrap,
+//   LayoutSize,
+//   Padding,
+//   FlexContainerConfig,
+//   FlexItemConfig,
+//   ResponsiveConfig as LayoutResponsiveConfig
+// } from './adapters/LayoutAdapter';
 
-export { UIAdapter } from './adapters/UIAdapter';
-export type {
-  ButtonConfig,
-  ProgressBarConfig,
-  SliderConfig
-} from './adapters/UIAdapter';
+// export { UIAdapter } from './adapters/UIAdapter';
+// export type {
+//   ButtonConfig,
+//   ProgressBarConfig,
+//   SliderConfig
+// } from './adapters/UIAdapter';
 
-export { FlexLayoutHelper } from './ui/layouts/FlexLayoutHelper';
-export type {
-  ResponsiveNavBarConfig,
-  GridLayoutConfig
-} from './ui/layouts/FlexLayoutHelper';
+// export { FlexLayoutHelper } from './ui/layouts/FlexLayoutHelper';
+// export type {
+//   ResponsiveNavBarConfig,
+//   GridLayoutConfig
+// } from './ui/layouts/FlexLayoutHelper';
 
 // UI Menu Components (Plugins)
 export {
