@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Platformer Example - GameByte Framework</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #1a1a2e;
+        }
+        canvas {
+            display: block;
+        }
+        #instructions {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-family: Arial, sans-serif;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div id="instructions">
+        <h3>Platformer Example</h3>
+        <p><strong>Controls:</strong></p>
+        <p>Arrow Keys / A/D - Move</p>
+        <p>Space / W - Jump</p>
+        <p>Hold jump for higher jump</p>
+    </div>
+
+    <!-- Load dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/matter-js@0.19.0/build/matter.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
+
+    <script>
+        const { createGame } = GameByteFramework;
+
+        // Create game
+        const game = createGame();
+
+        // Create canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = 800;
+        canvas.height = 600;
+        document.body.appendChild(canvas);
+
+        // Initialize game
+        (async () => {
+            await game.initialize(canvas, '2d');
+
+            // Get services
+            const renderer = game.make('renderer');
+            const physicsManager = game.make('physics');
+            const inputManager = game.make('input');
+            const stage = renderer.getStage();
+
+            // Player state
+            let isGrounded = false;
+            let isJumping = false;
+            let jumpHoldTime = 0;
+            const maxJumpHoldTime = 0.3;
+            const speed = 5;
+            const jumpForce = -15;
+
+            // Create player
+            const playerBody = physicsManager.createBody({
+                shape: 'rectangle',
+                width: 40,
+                height: 60,
+                x: 100,
+                y: 100,
+                options: {
+                    friction: 0.1,
+                    frictionAir: 0.01,
+                    label: 'player'
+                }
+            });
+
+            // Create player sprite
+            const playerSprite = new PIXI.Graphics();
+            playerSprite.beginFill(0x4CAF50);
+            playerSprite.drawRect(-20, -30, 40, 60);
+            playerSprite.endFill();
+            stage.addChild(playerSprite);
+
+            // Create ground
+            const groundBody = physicsManager.createBody({
+                shape: 'rectangle',
+                width: 800,
+                height: 20,
+                x: 400,
+                y: 590,
+                options: {
+                    isStatic: true,
+                    label: 'ground'
+                }
+            });
+
+            // Ground sprite
+            const groundSprite = new PIXI.Graphics();
+            groundSprite.beginFill(0x888888);
+            groundSprite.drawRect(-400, -10, 800, 20);
+            groundSprite.endFill();
+            groundSprite.x = 400;
+            groundSprite.y = 590;
+            stage.addChild(groundSprite);
+
+            // Create platforms
+            const platforms = [
+                { x: 200, y: 450, width: 150, height: 20 },
+                { x: 500, y: 350, width: 150, height: 20 },
+                { x: 300, y: 250, width: 150, height: 20 }
+            ];
+
+            platforms.forEach(platform => {
+                const body = physicsManager.createBody({
+                    shape: 'rectangle',
+                    width: platform.width,
+                    height: platform.height,
+                    x: platform.x,
+                    y: platform.y,
+                    options: {
+                        isStatic: true,
+                        label: 'ground'
+                    }
+                });
+
+                const sprite = new PIXI.Graphics();
+                sprite.beginFill(0x666666);
+                sprite.drawRect(-platform.width / 2, -platform.height / 2, platform.width, platform.height);
+                sprite.endFill();
+                sprite.x = platform.x;
+                sprite.y = platform.y;
+                stage.addChild(sprite);
+            });
+
+            // Ground detection using physics world collision events
+            const world = physicsManager.getActiveWorld();
+            world.on('collision-active', (event) => {
+                const { bodyA, bodyB } = event;
+                const isPlayerCollision = bodyA === playerBody || bodyB === playerBody;
+                const otherBody = bodyA === playerBody ? bodyB : bodyA;
+                const otherLabel = otherBody.userData?.label;
+
+                if (isPlayerCollision && otherLabel === 'ground') {
+                    isGrounded = true;
+                }
+            });
+
+            world.on('collision-end', (event) => {
+                const { bodyA, bodyB } = event;
+                const isPlayerCollision = bodyA === playerBody || bodyB === playerBody;
+                const otherBody = bodyA === playerBody ? bodyB : bodyA;
+                const otherLabel = otherBody.userData?.label;
+
+                if (isPlayerCollision && otherLabel === 'ground') {
+                    isGrounded = false;
+                }
+            });
+
+            // Input handling
+            const keys = {
+                left: false,
+                right: false,
+                jump: false
+            };
+
+            inputManager.on('keydown', (event) => {
+                switch (event.key) {
+                    case 'ArrowLeft':
+                    case 'a':
+                        keys.left = true;
+                        break;
+                    case 'ArrowRight':
+                    case 'd':
+                        keys.right = true;
+                        break;
+                    case ' ':
+                    case 'w':
+                        if (!keys.jump && isGrounded) {
+                            keys.jump = true;
+                            isJumping = true;
+                            jumpHoldTime = 0;
+                            // Use wrapper's velocity setter
+                            playerBody.velocity = {
+                                x: playerBody.velocity.x,
+                                y: jumpForce
+                            };
+                        }
+                        break;
+                }
+            });
+
+            inputManager.on('keyup', (event) => {
+                switch (event.key) {
+                    case 'ArrowLeft':
+                    case 'a':
+                        keys.left = false;
+                        break;
+                    case 'ArrowRight':
+                    case 'd':
+                        keys.right = false;
+                        break;
+                    case ' ':
+                    case 'w':
+                        keys.jump = false;
+                        isJumping = false;
+                        break;
+                }
+            });
+
+            // Update loop
+            game.on('update', (deltaTime) => {
+                // Movement - use wrapper's velocity setter
+                if (keys.left) {
+                    playerBody.velocity = {
+                        x: -speed,
+                        y: playerBody.velocity.y
+                    };
+                } else if (keys.right) {
+                    playerBody.velocity = {
+                        x: speed,
+                        y: playerBody.velocity.y
+                    };
+                } else {
+                    // Apply friction
+                    playerBody.velocity = {
+                        x: playerBody.velocity.x * 0.9,
+                        y: playerBody.velocity.y
+                    };
+                }
+
+                // Variable jump height - use wrapper's applyForce method
+                if (isJumping && keys.jump && jumpHoldTime < maxJumpHoldTime) {
+                    jumpHoldTime += deltaTime / 1000;
+                    playerBody.applyForce({ x: 0, y: -0.005 });
+                }
+
+                // Update sprite position - use wrapper's position and rotation getters
+                playerSprite.x = playerBody.position.x;
+                playerSprite.y = playerBody.position.y;
+                playerSprite.rotation = playerBody.rotation;
+            });
+
+            // Start game
+            game.start();
+        })();
+    </script>
+</body>
+</html>

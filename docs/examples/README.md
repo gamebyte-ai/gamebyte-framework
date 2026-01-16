@@ -11,6 +11,7 @@ Working code examples demonstrating framework features.
 ### Platformer
 A 2D platformer with physics-based movement and jumping.
 
+- **Live Demo:** [platformer-physics.html](/demos/platformer-physics.html)
 - **Code:** `examples/platformer/index.html`
 - **Docs:** [platformer-example.md](platformer-example.md)
 - **Features:** Physics bodies, collision detection, variable jump height
@@ -18,6 +19,7 @@ A 2D platformer with physics-based movement and jumping.
 ### Merge Puzzle Game
 A mobile-style merge puzzle with drag-and-drop mechanics.
 
+- **Live Demo:** [merge-puzzle.html](/demos/merge-puzzle.html)
 - **Code:** `examples/merge-game/index.html`
 - **Docs:** [merge-game-example.md](merge-game-example.md)
 - **Features:** Grid system, drag-drop, tier progression, animations
