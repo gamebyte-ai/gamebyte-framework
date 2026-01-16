@@ -27,7 +27,11 @@
       "Skill(superpowers:subagent-driven-development)",
       "Bash(test:*)",
       "Bash(tree:*)",
-      "Bash(./scripts/validate-agent-docs.sh:*)"
+      "Bash(./scripts/validate-agent-docs.sh:*)",
+      "Bash(gh pr:*)",
+      "Bash(wc:*)",
+      "Bash(md5:*)",
+      "Skill(superpowers:brainstorming)"
     ],
     "deny": [],
     "ask": []
