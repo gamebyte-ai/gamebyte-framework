@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Stacked Canvas Architecture - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #000;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            touch-action: none;
+        }
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        #game-container canvas {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 18px;
+            z-index: 200;
+        }
+        #layer-info {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+        }
+        .layer-box {
+            background: rgba(0,0,0,0.8);
+            border-radius: 8px;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            color: white;
+            font-size: 12px;
+        }
+        .layer-box.three { border-left: 4px solid #4ecca3; }
+        .layer-box.pixi { border-left: 4px solid #ff6b6b; }
+        .layer-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        #section-display {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 48px;
+            font-weight: bold;
+            text-shadow: 0 0 20px rgba(255,215,0,0.5);
+            z-index: 50;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">Loading Stacked Canvas Demo...</div>
+    <div id="game-container"></div>
+    <div id="layer-info" style="display: none;">
+        <div class="layer-box pixi">
+            <div class="layer-title">Layer 2: Pixi.js (z-index: 2)</div>
+            2D UI Overlay - Interactive
+        </div>
+        <div class="layer-box three">
+            <div class="layer-title">Layer 1: Three.js (z-index: 1)</div>
+            3D Background - Visual
+        </div>
+    </div>
+    <div id="section-display" style="display: none;"></div>
+
+    <!-- Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+    <script src="../../dist/gamebyte.umd.js"></script>
+
+    <script>
+        (async () => {
+            try {
+                const { ArcheroMenu, ARCHERO_COLORS } = GameByteFramework;
+
+                const container = document.getElementById('game-container');
+                const BASE_WIDTH = 540;
+                const BASE_HEIGHT = 960;
+
+                // === LAYER 1: THREE.JS (3D Background) ===
+                const threeCanvas = document.createElement('canvas');
+                threeCanvas.width = BASE_WIDTH;
+                threeCanvas.height = BASE_HEIGHT;
+                threeCanvas.style.zIndex = '1';
+                container.appendChild(threeCanvas);
+
+                const threeRenderer = new THREE.WebGLRenderer({
+                    canvas: threeCanvas,
+                    antialias: true
+                });
+                threeRenderer.setSize(BASE_WIDTH, BASE_HEIGHT);
+
+                const scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x0a0e1a);
+
+                const camera = new THREE.PerspectiveCamera(75, BASE_WIDTH / BASE_HEIGHT, 0.1, 1000);
+                camera.position.z = 5;
+
+                // Lighting
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+                scene.add(ambientLight);
+
+                const pointLight = new THREE.PointLight(0xffffff, 1);
+                pointLight.position.set(5, 5, 5);
+                scene.add(pointLight);
+
+                // Section-specific 3D objects
+                const objects3D = {};
+                const objectConfigs = {
+                    'Shop': { geometry: 'box', color: 0xFF3B3B },
+                    'Gear': { geometry: 'torus', color: 0x9B3BFF },
+                    'Campaign': { geometry: 'icosahedron', color: 0xFFD700 },
+                    'Trophy': { geometry: 'octahedron', color: 0x3BFF7B },
+                    'Chest': { geometry: 'dodecahedron', color: 0x3B7BFF }
+                };
+
+                Object.entries(objectConfigs).forEach(([name, config]) => {
+                    let geometry;
+                    switch (config.geometry) {
+                        case 'box':
+                            geometry = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+                            break;
+                        case 'torus':
+                            geometry = new THREE.TorusGeometry(1, 0.4, 16, 32);
+                            break;
+                        case 'icosahedron':
+                            geometry = new THREE.IcosahedronGeometry(1.2);
+                            break;
+                        case 'octahedron':
+                            geometry = new THREE.OctahedronGeometry(1.3);
+                            break;
+                        case 'dodecahedron':
+                            geometry = new THREE.DodecahedronGeometry(1.2);
+                            break;
+                    }
+
+                    const material = new THREE.MeshPhongMaterial({
+                        color: config.color,
+                        emissive: config.color,
+                        emissiveIntensity: 0.2,
+                        shininess: 100
+                    });
+
+                    const mesh = new THREE.Mesh(geometry, material);
+                    mesh.visible = false;
+                    scene.add(mesh);
+                    objects3D[name] = mesh;
+                });
+
+                let currentSection = 'Campaign';
+                objects3D['Campaign'].visible = true;
+
+                function show3DObject(sectionName) {
+                    // Fade out current
+                    if (objects3D[currentSection]) {
+                        gsap.to(objects3D[currentSection].scale, {
+                            x: 0, y: 0, z: 0,
+                            duration: 0.3,
+                            onComplete: () => {
+                                objects3D[currentSection].visible = false;
+                            }
+                        });
+                    }
+
+                    // Show new
+                    currentSection = sectionName;
+                    if (objects3D[sectionName]) {
+                        objects3D[sectionName].visible = true;
+                        objects3D[sectionName].scale.set(0, 0, 0);
+                        gsap.to(objects3D[sectionName].scale, {
+                            x: 1, y: 1, z: 1,
+                            duration: 0.5,
+                            ease: 'elastic.out(1, 0.5)'
+                        });
+                    }
+
+                    // Update display
+                    const display = document.getElementById('section-display');
+                    display.textContent = sectionName;
+                    display.style.color = '#' + objectConfigs[sectionName].color.toString(16).padStart(6, '0');
+                    gsap.fromTo(display,
+                        { scale: 0.8, alpha: 0 },
+                        { scale: 1, alpha: 1, duration: 0.5 }
+                    );
+                }
+
+                // === LAYER 2: PIXI.JS (2D UI Overlay) ===
+                const pixiCanvas = document.createElement('canvas');
+                pixiCanvas.width = BASE_WIDTH;
+                pixiCanvas.height = BASE_HEIGHT;
+                pixiCanvas.style.zIndex = '2';
+                pixiCanvas.style.pointerEvents = 'auto';
+                container.appendChild(pixiCanvas);
+
+                const pixiApp = new PIXI.Application();
+                await pixiApp.init({
+                    canvas: pixiCanvas,
+                    width: BASE_WIDTH,
+                    height: BASE_HEIGHT,
+                    backgroundAlpha: 0, // Transparent!
+                    resolution: window.devicePixelRatio || 1,
+                    autoDensity: true
+                });
+
+                // Create ArcheroMenu on Pixi layer
+                const sections = [
+                    { name: 'Shop', icon: 'shop', iconColor: ARCHERO_COLORS.red },
+                    { name: 'Gear', icon: 'gear', iconColor: ARCHERO_COLORS.purple },
+                    { name: 'Campaign', icon: 'campaign', iconColor: ARCHERO_COLORS.activeYellow },
+                    { name: 'Trophy', icon: 'trophy', iconColor: ARCHERO_COLORS.green },
+                    { name: 'Chest', icon: 'chest', iconColor: ARCHERO_COLORS.blue }
+                ];
+
+                const menu = new ArcheroMenu({
+                    sections,
+                    activeSection: 2,
+                    canvasWidth: BASE_WIDTH,
+                    canvasHeight: BASE_HEIGHT,
+                    callbacks: {
+                        onSectionChange: (index, section) => {
+                            show3DObject(section.name);
+                        }
+                    },
+                    enableSwipe: true,
+                    style: {
+                        enableParticles: true,
+                        buttonSize: 90,
+                        activeButtonSize: 160,
+                        navHeight: 150,
+                        padding: 20
+                    }
+                });
+
+                pixiApp.stage.addChild(menu);
+
+                // === SYNCHRONIZED ANIMATION LOOPS ===
+                function animate() {
+                    requestAnimationFrame(animate);
+
+                    // Rotate visible 3D object
+                    Object.values(objects3D).forEach(mesh => {
+                        if (mesh.visible) {
+                            mesh.rotation.x += 0.01;
+                            mesh.rotation.y += 0.015;
+                        }
+                    });
+
+                    // Render Three.js
+                    threeRenderer.render(scene, camera);
+                }
+
+                animate();
+
+                // Hide loading, show UI
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('layer-info').style.display = 'block';
+                document.getElementById('section-display').style.display = 'block';
+                show3DObject('Campaign');
+
+                console.log('Stacked Canvas architecture demo ready!');
+
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('loading').textContent = 'Error: ' + error.message;
+                document.getElementById('loading').style.color = '#ff6b6b';
+            }
+        })();
+    </script>
+</body>
+</html>

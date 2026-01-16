@@ -2,6 +2,16 @@
 
 <!-- keywords: rendering, 2d, 3d, hybrid, pixi, three, mixed, canvas -->
 
+## Live Example
+
+<div style="border: 1px solid #333; border-radius: 8px; overflow: hidden; margin: 20px 0;">
+  <iframe src="../examples/hybrid-renderer-example.html" width="100%" height="500" style="border: none;"></iframe>
+</div>
+
+> **Interactive Demo**: Three.js ve Pixi.js'in birlikte kullanımı. 3D arka plan Three.js ile, 2D UI overlay Pixi.js ile render ediliyor. "Toggle Rotation" butonuna tıklayarak etkileşimi test edin.
+
+---
+
 ## TL;DR - Sorunun Cevabı
 
 ### Soru 1: Bu normal bir best practice mi?

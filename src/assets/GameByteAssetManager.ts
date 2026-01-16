@@ -27,6 +27,7 @@ import { PersistentCache } from './cache/PersistentCache';
 
 // Import bundle support
 import { GameByteAssetBundle } from './bundling/AssetBundle';
+import { DeviceDetector } from '../performance/DeviceDetector';
 
 /**
  * Asset manager configuration options.
@@ -119,6 +120,7 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
   private batchContext: BatchLoadingContext | null = null;
   private deviceCapabilities: DeviceCapabilities;
   private memoryUsage = { total: 0, cached: 0, active: 0 };
+  private queueProcessorInterval: NodeJS.Timeout | null = null;
   
   constructor(config: AssetManagerConfig) {
     super();
@@ -488,6 +490,12 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
    * Destroy and cleanup all resources.
    */
   async destroy(): Promise<void> {
+    // Stop queue processor
+    if (this.queueProcessorInterval) {
+      clearInterval(this.queueProcessorInterval);
+      this.queueProcessorInterval = null;
+    }
+
     // Cancel all pending loads - wrap rejections to prevent unhandled promise rejections
     const rejectionPromises = [];
     for (const entry of this.loadingQueue) {
@@ -501,10 +509,10 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
         clearTimeout(entry.timeout);
       }
     }
-    
+
     // Wait for all rejections to be processed
     await Promise.allSettled(rejectionPromises);
-    
+
     this.loadingQueue = [];
     this.activeLoads.clear();
     
@@ -546,27 +554,32 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
   }
   
   /**
-   * Detect device capabilities.
+   * Detect device capabilities using centralized DeviceDetector.
    */
   private detectDeviceCapabilities(): DeviceCapabilities {
-    const screen = window.screen;
+    const screenSize = DeviceDetector.getScreenSize();
     const nav = navigator as any;
-    
-    // Simple performance tier detection
-    const deviceMemory = nav.deviceMemory || 4;
-    const hardwareConcurrency = nav.hardwareConcurrency || 4;
     const connectionType = nav.connection?.effectiveType || '4g';
-    
+
+    // Use centralized DeviceDetector for hardware info
+    const deviceMemory = DeviceDetector.getDeviceMemory();
+    const cores = DeviceDetector.getCoreCount();
+
+    // Map DeviceDetector tier to AssetManager's DevicePerformanceTier
     let performanceTier: DevicePerformanceTier = DevicePerformanceTier.MEDIUM;
-    
-    if (deviceMemory >= 8 && hardwareConcurrency >= 8) {
-      performanceTier = DevicePerformanceTier.PREMIUM;
-    } else if (deviceMemory >= 6 && hardwareConcurrency >= 6) {
-      performanceTier = DevicePerformanceTier.HIGH;
-    } else if (deviceMemory <= 2 || hardwareConcurrency <= 2) {
+    const tier = DeviceDetector.detectTierSync();
+
+    if (tier === 'high') {
+      // Check if it qualifies for PREMIUM
+      if (deviceMemory >= 8 && cores >= 8) {
+        performanceTier = DevicePerformanceTier.PREMIUM;
+      } else {
+        performanceTier = DevicePerformanceTier.HIGH;
+      }
+    } else if (tier === 'low') {
       performanceTier = DevicePerformanceTier.LOW;
     }
-    
+
     return {
       performanceTier,
       availableMemory: deviceMemory * 1024, // Convert to MB
@@ -575,9 +588,9 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
       supportedAudioFormats: this.detectAudioFormats(),
       connectionType: connectionType as any,
       screen: {
-        width: screen.width,
-        height: screen.height,
-        pixelRatio: window.devicePixelRatio || 1
+        width: screenSize.width,
+        height: screenSize.height,
+        pixelRatio: DeviceDetector.getPixelRatio()
       },
       platform: this.detectPlatform()
     };
@@ -695,7 +708,10 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
    * Start queue processor.
    */
   private startQueueProcessor(): void {
-    setInterval(() => {
+    if (this.queueProcessorInterval) {
+      clearInterval(this.queueProcessorInterval);
+    }
+    this.queueProcessorInterval = setInterval(() => {
       this.processQueue();
     }, 100); // Process every 100ms
   }

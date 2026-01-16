@@ -13,8 +13,10 @@ import {
 export class GameByteTriggerZone extends EventEmitter implements TriggerZone {
   public readonly id: string;
   public readonly body: PhysicsBody;
-  public readonly isActive: boolean = true;
   public readonly enteredBodies: Set<PhysicsBody> = new Set();
+
+  // Private backing field for mutable state
+  private _isActive: boolean = true;
 
   private world: PhysicsWorld;
   private triggerMask = 0xFFFFFFFF;
@@ -39,11 +41,16 @@ export class GameByteTriggerZone extends EventEmitter implements TriggerZone {
     this.setupCollisionEvents();
   }
 
+  // Public getter for readonly access
+  get isActive(): boolean {
+    return this._isActive;
+  }
+
   /**
    * Set trigger zone active state
    */
   setActive(active: boolean): void {
-    (this as any).isActive = active;
+    this._isActive = active;
     this.emit('active-changed', active);
   }
 

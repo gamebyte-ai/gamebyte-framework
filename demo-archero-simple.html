@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Archero Menu (Simple) - GameByte Framework</title>
+    <title>Archero Menu (Simple) - GameByte Framework V2.0</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -30,153 +30,119 @@
             z-index: 100;
             text-align: center;
         }
+        #info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 14px;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 50;
+        }
     </style>
 </head>
 <body>
-    <div id="loading">Loading...</div>
+    <div id="loading">Loading GameByte Framework V2.0...</div>
     <div id="game-container"></div>
+    <div id="info" style="display: none;">
+        <strong>GameByte Framework V2.0</strong><br>
+        Modular ArcheroMenu Demo<br>
+        <span id="current-section">Section: Campaign</span><br>
+        Swipe or tap to navigate
+    </div>
 
     <!-- Dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <!-- @pixi/layout is already bundled in gamebyte.umd.js -->
     <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
-    <script src="./dist/gamebyte.umd.js?v=1570"></script><!-- Cache busting -->
+    <script src="./dist/gamebyte.umd.js?v=2000"></script>
 
     <script>
         (async () => {
             try {
-                const { createGame, ArcheroMenu, ARCHERO_COLORS } = GameByteFramework;
+                console.log('Starting GameByte Framework V2.0 Demo...');
 
-                const ASPECT_RATIO = 9 / 16;
+                const { GameByte, ArcheroMenu, ARCHERO_COLORS, graphics } = GameByteFramework;
+
+                // Canvas dimensions
                 const BASE_WIDTH = 1080;
                 const BASE_HEIGHT = 1920;
 
-                // Calculate canvas size
-                function getCanvasSize() {
-                    const windowWidth = window.innerWidth;
-                    const windowHeight = window.innerHeight;
-                    const windowAspect = windowWidth / windowHeight;
+                // NEW SIMPLIFIED API: Just one line to create a 2D game!
+                const game = await GameByte.quick2D('#game-container', BASE_WIDTH, BASE_HEIGHT, {
+                    backgroundColor: 0x000000
+                });
 
-                    let width, height;
-                    if (windowAspect > ASPECT_RATIO) {
-                        height = windowHeight;
-                        width = height * ASPECT_RATIO;
-                    } else {
-                        width = windowWidth;
-                        height = width / ASPECT_RATIO;
+                console.log('GameByte quick2D initialized');
+
+                // Create gradient background using the graphics() helper
+                const gfx = graphics();
+                const background = gfx.createGraphics();
+                background.rect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+                background.fill({ color: 0x1a1a2e });
+
+                // NEW: Direct stage access with game.stage
+                game.stage.addChild(background);
+
+                // Define menu sections
+                const sections = [
+                    { name: 'Shop', icon: 'shop', iconColor: ARCHERO_COLORS.red },
+                    { name: 'Gear', icon: 'gear', iconColor: ARCHERO_COLORS.purple },
+                    { name: 'Campaign', icon: 'campaign', iconColor: ARCHERO_COLORS.activeYellow },
+                    { name: 'Trophy', icon: 'trophy', iconColor: ARCHERO_COLORS.green },
+                    { name: 'Chest', icon: 'chest', iconColor: ARCHERO_COLORS.blue }
+                ];
+
+                console.log('Creating ArcheroMenu with', sections.length, 'sections');
+
+                // Create Archero menu with V2.0 modular architecture
+                const menu = new ArcheroMenu({
+                    sections,
+                    activeSection: 2, // Start with Campaign
+                    canvasWidth: BASE_WIDTH,
+                    canvasHeight: BASE_HEIGHT,
+                    callbacks: {
+                        onSectionChange: (index, section) => {
+                            console.log('Section changed to:', section.name);
+                            document.getElementById('current-section').textContent =
+                                'Section: ' + section.name;
+                        }
+                    },
+                    enableSwipe: true,
+                    style: {
+                        enableParticles: true
                     }
-                    return { width, height };
-                }
+                });
 
-                // Create game
-                const game = createGame();
+                // Add menu to stage (ArcheroMenu extends PIXI.Container)
+                game.stage.addChild(menu);
 
-                // Create canvas with 9:16 aspect ratio
-                const canvas = document.createElement('canvas');
-                canvas.width = BASE_WIDTH;
-                canvas.height = BASE_HEIGHT;
+                console.log('ArcheroMenu added to stage');
 
-                // Set initial display size
-                const initialSize = getCanvasSize();
-                canvas.style.width = initialSize.width + 'px';
-                canvas.style.height = initialSize.height + 'px';
-                canvas.style.display = 'block';
+                // NEW: Use game.onUpdate() for game loop callbacks if needed
+                // game.onUpdate((deltaTime) => {
+                //     // Update game logic here
+                // });
 
-                document.getElementById('game-container').appendChild(canvas);
-                console.log('✅ Canvas created:', initialSize.width, 'x', initialSize.height);
+                // Hide loading, show info
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('info').style.display = 'block';
 
-                // Initialize with 2D renderer
-                // NOTE: Let renderer use optimal resolution (devicePixelRatio) for sharp rendering
-                console.log('⏳ Initializing game...');
-                await game.initialize(canvas, '2d');
-                console.log('✅ Game initialized successfully');
+                // Handle window resize
+                window.addEventListener('resize', () => {
+                    const canvas = game.getCanvas();
+                    if (canvas) {
+                        canvas.style.width = '100vw';
+                        canvas.style.height = '100vh';
+                    }
+                });
 
-            // Fix canvas style - framework might have changed it
-            canvas.style.width = initialSize.width + 'px';
-            canvas.style.height = initialSize.height + 'px';
-            console.log('🔧 Canvas style fixed:', canvas.style.width, 'x', canvas.style.height);
+                console.log('Demo ready! Try swiping or tapping buttons.');
 
-            document.getElementById('loading').style.display = 'none';
-            console.log('✅ Loading screen hidden');
-
-            // Get renderer
-            const renderer = game.make('renderer');
-            console.log('🎨 Renderer:', renderer);
-            const stage = renderer.getStage();
-            console.log('🎭 Stage:', stage);
-            console.log('📐 Canvas dimensions:', canvas.width, 'x', canvas.height);
-            console.log('📏 Canvas style:', canvas.style.width, 'x', canvas.style.height);
-            console.log('👶 Stage children before adding:', stage.children.length);
-
-            // Create full screen background with gradient
-            const background = new PIXI.Graphics();
-
-            // Upper section: Orange-yellow vertical gradient (Archero style)
-            const upperHeight = BASE_HEIGHT - 220; // Everything above nav bar
-
-            // PixiJS v8 FillGradient API (EXACT vanilla syntax)
-            const bgGradient = new PIXI.FillGradient({
-                type: 'linear',
-                start: { x: 0, y: 0 },
-                end: { x: 0, y: 1 },
-                colorStops: [
-                    { offset: 0, color: 0xFFA500 },    // Orange top
-                    { offset: 0.5, color: 0xFFD700 },  // Gold middle
-                    { offset: 1, color: 0xFFE55C }     // Light gold bottom
-                ]
-            });
-
-            background.rect(0, 0, BASE_WIDTH, upperHeight);
-            background.fill(bgGradient);
-
-            // Lower section: Dark background for nav bar area
-            background.rect(0, upperHeight, BASE_WIDTH, 220);
-            background.fill({ color: 0x0a0e1a }); // Dark blue background
-
-            stage.addChild(background);
-
-            // Define menu sections
-            const sections = [
-                { name: 'Shop', icon: '🛒', iconColor: ARCHERO_COLORS.red },
-                { name: 'Gear', icon: '⚙️', iconColor: ARCHERO_COLORS.purple },
-                { name: 'Campaign', icon: '🎯', iconColor: ARCHERO_COLORS.activeYellow },
-                { name: 'Trophy', icon: '🏆', iconColor: ARCHERO_COLORS.green },
-                { name: 'Chest', icon: '📦', iconColor: ARCHERO_COLORS.blue }
-            ];
-
-            // Create Archero menu with framework
-            const menu = new ArcheroMenu({
-                sections,
-                activeSection: 2, // Start with Campaign
-                onSectionChange: (index, section) => {
-                    console.log('Section changed to:', section.name);
-                },
-                canvasWidth: BASE_WIDTH,   // Logical size: 1080 (not canvas.width which includes devicePixelRatio)
-                canvasHeight: BASE_HEIGHT, // Logical size: 1920
-                enableSwipe: true,
-                enableParticles: true
-            });
-
-            // Add menu to stage
-            stage.addChild(menu.getContainer());
-
-            // Start rendering
-            renderer.start();
-
-            // Update menu in render loop
-            renderer.on('tick', (deltaTime) => {
-                menu.update(deltaTime);
-            });
-
-            // Handle window resize
-            window.addEventListener('resize', () => {
-                const newSize = getCanvasSize();
-                canvas.style.width = newSize.width + 'px';
-                canvas.style.height = newSize.height + 'px';
-            });
-
-                console.log('✅ Archero menu ready!');
             } catch (error) {
-                console.error('❌ Demo failed:', error);
+                console.error('Demo failed:', error);
                 document.getElementById('loading').textContent = 'Error: ' + error.message;
                 document.getElementById('loading').style.color = 'red';
             }

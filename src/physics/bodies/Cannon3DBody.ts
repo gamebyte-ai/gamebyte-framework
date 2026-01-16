@@ -21,8 +21,10 @@ export class Cannon3DBody extends EventEmitter implements PhysicsBody {
   public readonly id: string;
   public readonly type: PhysicsBodyType;
   public readonly dimension: PhysicsDimension = '3d';
-  public readonly isStatic: boolean;
-  public readonly isSensor: boolean;
+
+  // Private backing fields for mutable state
+  private _isStatic: boolean;
+  private _isSensor: boolean;
 
   private engine: Cannon3DEngine;
   private body: CANNON.Body;
@@ -30,14 +32,23 @@ export class Cannon3DBody extends EventEmitter implements PhysicsBody {
   private cannonMaterial: CANNON.Material;
   private _userData: any = null;
 
+  // Public getters for readonly access
+  get isStatic(): boolean {
+    return this._isStatic;
+  }
+
+  get isSensor(): boolean {
+    return this._isSensor;
+  }
+
   constructor(engine: Cannon3DEngine, config: PhysicsBodyConfig) {
     super();
-    
+
     this.engine = engine;
     this.id = config.id || `body_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     this.type = config.type;
-    this.isStatic = config.isStatic || config.type === 'static';
-    this.isSensor = config.isSensor || false;
+    this._isStatic = config.isStatic || config.type === 'static';
+    this._isSensor = config.isSensor || false;
     this._material = config.material || engine.getDefaultMaterial();
     this._userData = config.userData;
 
@@ -322,7 +333,7 @@ export class Cannon3DBody extends EventEmitter implements PhysicsBody {
       this.body.mass = 0;
       this.body.updateMassProperties();
     }
-    (this as any).isStatic = isStatic;
+    this._isStatic = isStatic;
     this.emit('static-changed', isStatic);
   }
 
@@ -331,7 +342,7 @@ export class Cannon3DBody extends EventEmitter implements PhysicsBody {
    */
   setSensor(isSensor: boolean): void {
     this.body.isTrigger = isSensor;
-    (this as any).isSensor = isSensor;
+    this._isSensor = isSensor;
     this.emit('sensor-changed', isSensor);
   }
 

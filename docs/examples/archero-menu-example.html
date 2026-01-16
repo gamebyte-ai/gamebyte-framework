@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>ArcheroMenu Example - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            overflow: hidden;
+            background: #1a1a2e;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            touch-action: none;
+        }
+        #game-container {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            height: 100vh;
+        }
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 18px;
+            z-index: 100;
+        }
+        #info {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 14px;
+            background: rgba(0,0,0,0.7);
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-align: center;
+            z-index: 50;
+        }
+        #current-section {
+            color: #FFD700;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">Loading ArcheroMenu...</div>
+    <div id="game-container"></div>
+    <div id="info" style="display: none;">
+        <strong>ArcheroMenu Component</strong><br>
+        Current: <span id="current-section">Campaign</span><br>
+        <small>Swipe or tap buttons to navigate</small>
+    </div>
+
+    <!-- Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+    <script src="../../dist/gamebyte.umd.js"></script>
+
+    <script>
+        (async () => {
+            try {
+                const { GameByte, ArcheroMenu, ARCHERO_COLORS, graphics } = GameByteFramework;
+
+                const BASE_WIDTH = 540;
+                const BASE_HEIGHT = 960;
+
+                // Create game with Quick API
+                const game = await GameByte.quick2D('#game-container', BASE_WIDTH, BASE_HEIGHT, {
+                    backgroundColor: 0x1a1a2e
+                });
+
+                // Create gradient background
+                const gfx = graphics();
+                const background = gfx.createGraphics();
+                background.rect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+                background.fill({ color: 0x1a1a2e });
+                game.stage.addChild(background);
+
+                // Content area for each section
+                const contentArea = gfx.createContainer();
+                contentArea.y = 100;
+                game.stage.addChild(contentArea);
+
+                // Section content displays
+                const sectionContents = {
+                    'Shop': { icon: 'shop', color: 0xFF3B3B, desc: 'Buy items and upgrades' },
+                    'Gear': { icon: 'gear', color: 0x9B3BFF, desc: 'Equip your hero' },
+                    'Campaign': { icon: 'campaign', color: 0xFFD700, desc: 'Start your adventure' },
+                    'Trophy': { icon: 'trophy', color: 0x3BFF7B, desc: 'View achievements' },
+                    'Chest': { icon: 'chest', color: 0x3B7BFF, desc: 'Open rewards' }
+                };
+
+                function showSectionContent(sectionName) {
+                    contentArea.removeChildren();
+
+                    const content = sectionContents[sectionName];
+                    if (!content) return;
+
+                    // Section title
+                    const title = gfx.createText(sectionName, {
+                        fontSize: 48,
+                        fill: content.color,
+                        fontWeight: 'bold',
+                        fontFamily: 'Arial'
+                    });
+                    title.x = BASE_WIDTH / 2;
+                    title.y = 150;
+                    if (title.anchor) title.anchor.set(0.5);
+                    contentArea.addChild(title);
+
+                    // Description
+                    const desc = gfx.createText(content.desc, {
+                        fontSize: 24,
+                        fill: 0xcccccc,
+                        fontFamily: 'Arial'
+                    });
+                    desc.x = BASE_WIDTH / 2;
+                    desc.y = 220;
+                    if (desc.anchor) desc.anchor.set(0.5);
+                    contentArea.addChild(desc);
+
+                    // Decorative box
+                    const box = gfx.createGraphics();
+                    box.roundRect(-100, -100, 200, 200, 20);
+                    box.fill({ color: content.color, alpha: 0.2 });
+                    box.stroke({ color: content.color, width: 3 });
+                    box.x = BASE_WIDTH / 2;
+                    box.y = 400;
+                    contentArea.addChild(box);
+
+                    // Animate entry
+                    gsap.from(title, { alpha: 0, y: title.y - 30, duration: 0.4 });
+                    gsap.from(desc, { alpha: 0, duration: 0.4, delay: 0.1 });
+                    gsap.from(box, { alpha: 0, scale: 0.8, duration: 0.5, delay: 0.2 });
+                }
+
+                // Define menu sections
+                const sections = [
+                    { name: 'Shop', icon: 'shop', iconColor: ARCHERO_COLORS.red },
+                    { name: 'Gear', icon: 'gear', iconColor: ARCHERO_COLORS.purple },
+                    { name: 'Campaign', icon: 'campaign', iconColor: ARCHERO_COLORS.activeYellow },
+                    { name: 'Trophy', icon: 'trophy', iconColor: ARCHERO_COLORS.green },
+                    { name: 'Chest', icon: 'chest', iconColor: ARCHERO_COLORS.blue }
+                ];
+
+                // Create ArcheroMenu
+                const menu = new ArcheroMenu({
+                    sections,
+                    activeSection: 2,
+                    canvasWidth: BASE_WIDTH,
+                    canvasHeight: BASE_HEIGHT,
+                    callbacks: {
+                        onSectionChange: (index, section) => {
+                            document.getElementById('current-section').textContent = section.name;
+                            showSectionContent(section.name);
+                        }
+                    },
+                    enableSwipe: true,
+                    style: {
+                        enableParticles: true,
+                        buttonSize: 90,
+                        activeButtonSize: 160,
+                        navHeight: 150,
+                        padding: 20
+                    }
+                });
+
+                game.stage.addChild(menu);
+
+                // Show initial content
+                showSectionContent('Campaign');
+
+                // Hide loading, show info
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('info').style.display = 'block';
+
+                console.log('ArcheroMenu example ready!');
+
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('loading').textContent = 'Error: ' + error.message;
+                document.getElementById('loading').style.color = '#ff6b6b';
+            }
+        })();
+    </script>
+</body>
+</html>

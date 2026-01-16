@@ -45,6 +45,22 @@ export interface Renderer extends EventEmitter {
   getStats(): RendererStats;
 
   /**
+   * Get the stage/scene container.
+   * For 2D: Returns PIXI.Container (stage)
+   * For 3D: Returns THREE.Scene
+   * @template T - The expected stage type (e.g., PIXI.Container or THREE.Scene)
+   */
+  getStage<T = unknown>(): T;
+
+  /**
+   * Get the native renderer instance.
+   * For 2D: Returns Pixi Application or Renderer
+   * For 3D: Returns Three.js WebGLRenderer
+   * @template T - The expected renderer type
+   */
+  getNativeRenderer<T = unknown>(): T;
+
+  /**
    * Destroy the renderer and clean up resources.
    */
   destroy(): void;

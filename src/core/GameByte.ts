@@ -6,6 +6,34 @@ import { SceneManager } from '../contracts/Scene';
 import { GraphicsEngine } from '../graphics/GraphicsEngine';
 
 /**
+ * Quick game configuration options
+ */
+export interface QuickGameConfig {
+  /** Container element or selector */
+  container?: string | HTMLElement;
+  /** Canvas element (alternative to container) */
+  canvas?: HTMLCanvasElement;
+  /** Canvas width */
+  width?: number;
+  /** Canvas height */
+  height?: number;
+  /** Rendering mode ('2d', '3d', or 'hybrid') */
+  mode?: '2d' | '3d' | 'hybrid';
+  /** Background color */
+  backgroundColor?: number;
+  /** Auto-start game loop */
+  autoStart?: boolean;
+  /** Enable anti-aliasing */
+  antialias?: boolean;
+  /** Resolution / pixel ratio */
+  resolution?: number;
+  /** Resize canvas to fill container */
+  resizeToContainer?: boolean;
+  /** Additional renderer options */
+  rendererOptions?: RendererOptions;
+}
+
+/**
  * Main GameByte framework class.
  * Provides Laravel-inspired architecture for game development.
  */
@@ -16,6 +44,13 @@ export class GameByte extends EventEmitter {
   private booted = false;
   private running = false;
   private canvas: HTMLCanvasElement | null = null;
+
+  // Quick API: Update and render callbacks
+  private updateCallbacks: Array<(deltaTime: number) => void> = [];
+  private renderCallbacks: Array<() => void> = [];
+
+  // ResizeObserver for container resize handling
+  private resizeObserver: ResizeObserver | null = null;
 
   /**
    * Framework version.
@@ -43,6 +78,162 @@ export class GameByte extends EventEmitter {
    */
   static create(): GameByte {
     return new GameByte();
+  }
+
+  /**
+   * Quick 2D game setup - minimal boilerplate
+   * @example
+   * const game = await GameByte.quick2D('#game-container', 800, 600);
+   * game.stage.addChild(mySprite);
+   * game.onUpdate((dt) => { mySprite.x += dt; });
+   */
+  static async quick2D(
+    container: string | HTMLElement,
+    width: number = 800,
+    height: number = 600,
+    options: Partial<QuickGameConfig> = {}
+  ): Promise<GameByte> {
+    return GameByte.quick({
+      container,
+      width,
+      height,
+      mode: '2d',
+      autoStart: true,
+      ...options
+    });
+  }
+
+  /**
+   * Quick 3D game setup - minimal boilerplate
+   * @example
+   * const game = await GameByte.quick3D('#game-container', 800, 600);
+   * game.stage.add(myCube);
+   * game.onUpdate((dt) => { myCube.rotation.y += dt; });
+   */
+  static async quick3D(
+    container: string | HTMLElement,
+    width: number = 800,
+    height: number = 600,
+    options: Partial<QuickGameConfig> = {}
+  ): Promise<GameByte> {
+    return GameByte.quick({
+      container,
+      width,
+      height,
+      mode: '3d',
+      autoStart: true,
+      ...options
+    });
+  }
+
+  /**
+   * Universal quick game setup with config object
+   * @example
+   * const game = await GameByte.quick({
+   *   container: '#game',
+   *   width: 800,
+   *   height: 600,
+   *   mode: '2d',
+   *   backgroundColor: 0x1a1a2e,
+   *   autoStart: true
+   * });
+   */
+  static async quick(config: QuickGameConfig): Promise<GameByte> {
+    // Import service providers dynamically to avoid circular dependencies
+    const { RenderingServiceProvider } = await import('../services/RenderingServiceProvider');
+    const { SceneServiceProvider } = await import('../services/SceneServiceProvider');
+    const { PluginServiceProvider } = await import('../services/PluginServiceProvider');
+    const { UIServiceProvider } = await import('../services/UIServiceProvider');
+
+    // Create game instance
+    const game = new GameByte();
+
+    // Register minimal providers for quick setup
+    game.register(new RenderingServiceProvider());
+    game.register(new SceneServiceProvider());
+    game.register(new PluginServiceProvider());
+    game.register(new UIServiceProvider());
+
+    // Resolve container element
+    let containerElement: HTMLElement | null = null;
+    if (typeof config.container === 'string') {
+      containerElement = document.querySelector(config.container);
+    } else if (config.container instanceof HTMLElement) {
+      containerElement = config.container;
+    }
+
+    // Create or use canvas
+    let canvas: HTMLCanvasElement;
+    if (config.canvas) {
+      canvas = config.canvas;
+    } else {
+      canvas = document.createElement('canvas');
+      canvas.width = config.width || 800;
+      canvas.height = config.height || 600;
+
+      if (containerElement) {
+        containerElement.appendChild(canvas);
+      } else {
+        document.body.appendChild(canvas);
+      }
+    }
+
+    // Handle resize to container
+    if (config.resizeToContainer && containerElement) {
+      game.resizeObserver = new ResizeObserver(() => {
+        canvas.width = containerElement!.clientWidth;
+        canvas.height = containerElement!.clientHeight;
+        game.emit('resize', canvas.width, canvas.height);
+      });
+      game.resizeObserver.observe(containerElement);
+    }
+
+    // Determine rendering mode (default to 2D)
+    let mode: RenderingMode;
+    switch (config.mode) {
+      case '3d':
+        mode = RenderingMode.RENDERER_3D;
+        break;
+      case 'hybrid':
+        mode = RenderingMode.HYBRID;
+        break;
+      case '2d':
+      default:
+        mode = RenderingMode.RENDERER_2D;
+    }
+
+    // Build renderer options
+    const rendererOptions: RendererOptions = {
+      width: config.width || canvas.width,
+      height: config.height || canvas.height,
+      backgroundColor: config.backgroundColor,
+      antialias: config.antialias ?? true,
+      resolution: config.resolution ?? window.devicePixelRatio,
+      ...config.rendererOptions
+    };
+
+    // Initialize game
+    await game.initialize(canvas, mode, rendererOptions);
+
+    // Setup update/render hooks
+    const renderer = game.make<Renderer>('renderer');
+    renderer.on('tick', (deltaTime: number) => {
+      // Call all registered update callbacks
+      for (const callback of game.updateCallbacks) {
+        callback(deltaTime);
+      }
+      // Call all registered render callbacks
+      for (const callback of game.renderCallbacks) {
+        callback();
+      }
+    });
+
+    // Auto-start if requested
+    if (config.autoStart !== false) {
+      game.start();
+    }
+
+    return game;
   }
 
   /**
@@ -220,6 +411,80 @@ export class GameByte extends EventEmitter {
   }
 
   /**
+   * Get direct access to the stage/scene container.
+   * For 2D (Pixi.js): Returns PIXI.Container (stage)
+   * For 3D (Three.js): Returns THREE.Scene
+   * @example
+   * const game = await GameByte.quick2D('#container', 800, 600);
+   * game.stage.addChild(mySprite); // Pixi.js
+   */
+  get stage(): any {
+    if (!this.container.bound('renderer')) {
+      throw new Error('Renderer not initialized. Call initialize() or use quick2D()/quick3D() first.');
+    }
+    const renderer = this.make<Renderer>('renderer');
+    return renderer.getStage();
+  }
+
+  /**
+   * Get the native renderer instance.
+   * For 2D: Returns Pixi.js Application/Renderer
+   * For 3D: Returns Three.js WebGLRenderer
+   */
+  get renderer(): Renderer {
+    if (!this.container.bound('renderer')) {
+      throw new Error('Renderer not initialized. Call initialize() or use quick2D()/quick3D() first.');
+    }
+    return this.make<Renderer>('renderer');
+  }
+
+  /**
+   * Register an update callback (called every frame with deltaTime)
+   * @example
+   * game.onUpdate((dt) => {
+   *   player.x += speed * dt;
+   * });
+   */
+  onUpdate(callback: (deltaTime: number) => void): this {
+    this.updateCallbacks.push(callback);
+    return this;
+  }
+
+  /**
+   * Remove an update callback
+   */
+  offUpdate(callback: (deltaTime: number) => void): this {
+    const index = this.updateCallbacks.indexOf(callback);
+    if (index !== -1) {
+      this.updateCallbacks.splice(index, 1);
+    }
+    return this;
+  }
+
+  /**
+   * Register a render callback (called every frame after update)
+   * @example
+   * game.onRender(() => {
+   *   debugDraw();
+   * });
+   */
+  onRender(callback: () => void): this {
+    this.renderCallbacks.push(callback);
+    return this;
+  }
+
+  /**
+   * Remove a render callback
+   */
+  offRender(callback: () => void): this {
+    const index = this.renderCallbacks.indexOf(callback);
+    if (index !== -1) {
+      this.renderCallbacks.splice(index, 1);
+    }
+    return this;
+  }
+
+  /**
    * Get all registered providers.
    */
   getProviders(): Map<string, ServiceProvider> {
@@ -243,19 +508,29 @@ export class GameByte extends EventEmitter {
    */
   destroy(): void {
     this.stop();
-    
+
     // Emit destroyed event before cleanup
     this.emit('destroyed');
-    
+
     if (this.container.bound('renderer')) {
       const renderer = this.make<Renderer>('renderer');
       renderer.destroy();
     }
 
+    // Clean up ResizeObserver
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
+
+    // Clear callback arrays
+    this.updateCallbacks.length = 0;
+    this.renderCallbacks.length = 0;
+
     this.container.flush();
     this.providers.clear();
     this.removeAllListeners();
-    
+
     this.booted = false;
     this.running = false;
     this.canvas = null;

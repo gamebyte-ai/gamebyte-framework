@@ -1,5 +1,13 @@
 # 3D Demo Architecture (demo-archero-3d.html)
 
+## Live Example
+
+<div style="border: 1px solid #333; border-radius: 8px; overflow: hidden; margin: 20px 0;">
+  <iframe src="../examples/stacked-canvas-example.html" width="100%" height="600" style="border: none;"></iframe>
+</div>
+
+> **Interactive Demo**: Stacked Canvas architecture in action. Each menu section displays a unique 3D object (Box, Torus, Icosahedron, Octahedron, Dodecahedron) that rotates in the background while the Pixi.js UI overlay handles interactions.
+
 ## Overview
 
 The 3D demo (`demo-archero-3d.html`) uses a **hybrid rendering architecture** that combines **Three.js for 3D background** and **Pixi.js for 2D UI overlay**. Both frameworks work together seamlessly using a **stacked canvas approach**.

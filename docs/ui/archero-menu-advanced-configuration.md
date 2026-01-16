@@ -1,5 +1,15 @@
 # ArcheroMenu Advanced Configuration Guide
 
+## Live Example
+
+<div style="border: 1px solid #333; border-radius: 8px; overflow: hidden; margin: 20px 0;">
+  <iframe src="../examples/archero-advanced-example.html" width="100%" height="600" style="border: none;"></iframe>
+</div>
+
+> **Interactive Demo**: Advanced configuration in action. Use the control panel to dynamically add/remove sections, rename sections, change colors, and navigate programmatically. Watch the Event Log to see all callback events firing in real-time.
+
+---
+
 The ArcheroMenu component is now fully configurable, extendable, and override-capable. This guide covers all the advanced features and configuration options available.
 
 ## Table of Contents

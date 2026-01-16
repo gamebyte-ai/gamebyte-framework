@@ -11,7 +11,7 @@ module.exports = {
     '^.+\\.js$': ['babel-jest', { configFile: './babel.config.test.cjs' }],
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(pixi\\.js|earcut)/)'
+    'node_modules/(?!(pixi\\.js|earcut|three)/)'
   ],
   collectCoverageFrom: [
     'src/**/*.ts',

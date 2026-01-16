@@ -1,5 +1,15 @@
 # Archero-Style Bottom Navigation Menu - Complete Guide
 
+## Live Example
+
+<div style="border: 1px solid #333; border-radius: 8px; overflow: hidden; margin: 20px 0;">
+  <iframe src="../examples/archero-menu-example.html" width="100%" height="600" style="border: none;"></iframe>
+</div>
+
+> **Interactive Demo**: Fully functional ArcheroMenu component. Tap buttons or swipe left/right to navigate between sections. Each section displays dynamic content with animations.
+
+---
+
 A production-ready, mobile-optimized bottom navigation menu component inspired by the popular mobile game Archero. Features glossy gold gradient buttons, smooth animations, touch gestures, and particle effects.
 
 **NEW**: The ArcheroMenu is now fully configurable and extendable! See the [Advanced Configuration Guide](./archero-menu-advanced-configuration.md) for:
