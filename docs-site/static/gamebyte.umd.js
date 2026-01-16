@@ -30546,7 +30546,6 @@
 	     */
 	    createDefaultWorld(dimension) {
 	        const defaultConfig = {
-	            id: 'default',
 	            dimension,
 	            gravity: dimension === '2d'
 	                ? { x: 0, y: 1 } // 2D: positive Y is down (screen coordinates)
@@ -37023,6 +37022,311 @@
 	}
 
 	/**
+	 * Merge facade for easy access to merge game functionality
+	 *
+	 * Provides a simple, static API for creating and managing merge puzzle games.
+	 *
+	 * @example
+	 * ```typescript
+	 * import { Merge } from 'gamebyte-framework';
+	 *
+	 * // Quick setup - create a 5x5 merge game
+	 * const grid = Merge.createGame({
+	 *   rows: 5,
+	 *   cols: 5,
+	 *   initialItems: 3
+	 * });
+	 *
+	 * // Listen for events
+	 * Merge.on('merge', (item, tier, score) => {
+	 *   console.log(`Merged! Tier: ${tier}, Score: ${score}`);
+	 * });
+	 *
+	 * // Start the game
+	 * Merge.start();
+	 *
+	 * // Add to your scene
+	 * scene.addChild(Merge.getContainer());
+	 * ```
+	 */
+	class Merge extends Facade {
+	    /**
+	     * Get the facade accessor key
+	     */
+	    static getFacadeAccessor() {
+	        return 'merge';
+	    }
+	    /**
+	     * Get the merge manager instance
+	     */
+	    static getManager() {
+	        return this.resolve();
+	    }
+	    // ============================================
+	    // GAME CREATION
+	    // ============================================
+	    /**
+	     * Create a new merge game
+	     *
+	     * @example
+	     * ```typescript
+	     * // Simple 5x5 grid
+	     * Merge.createGame({ rows: 5, cols: 5 });
+	     *
+	     * // Custom configuration
+	     * Merge.createGame({
+	     *   rows: 6,
+	     *   cols: 6,
+	     *   maxTier: 12,
+	     *   initialItems: 5,
+	     *   autoSpawn: true,
+	     *   tierColors: [0xFF0000, 0x00FF00, 0x0000FF]
+	     * });
+	     * ```
+	     */
+	    static createGame(config) {
+	        return this.getManager().createGame(config);
+	    }
+	    /**
+	     * Quick create - creates a game with sensible defaults
+	     *
+	     * @example
+	     * ```typescript
+	     * // Creates 5x5 grid with 3 initial items
+	     * const grid = Merge.quick();
+	     * scene.addChild(Merge.getContainer());
+	     * Merge.start();
+	     * ```
+	     */
+	    static quick() {
+	        return this.createGame({
+	            rows: 5,
+	            cols: 5,
+	            initialItems: 3,
+	            autoSpawn: false
+	        });
+	    }
+	    /**
+	     * Create a Candy Crush style merge game
+	     */
+	    static createCandyStyle(rows = 6, cols = 5) {
+	        return this.createGame({
+	            rows,
+	            cols,
+	            cellWidth: 70,
+	            cellHeight: 70,
+	            gap: 6,
+	            padding: 12,
+	            maxTier: 8,
+	            initialItems: 4,
+	            tierColors: [
+	                0xE57373, // Red candy
+	                0x81C784, // Green candy
+	                0x64B5F6, // Blue candy
+	                0xFFD54F, // Yellow candy
+	                0xBA68C8, // Purple candy
+	                0x4DD0E1, // Cyan candy
+	                0xFFB74D, // Orange candy
+	                0xF06292, // Pink candy
+	            ]
+	        });
+	    }
+	    /**
+	     * Create a compact mobile-friendly merge game
+	     */
+	    static createMobileCompact() {
+	        return this.createGame({
+	            rows: 4,
+	            cols: 4,
+	            cellWidth: 85,
+	            cellHeight: 85,
+	            gap: 10,
+	            padding: 20,
+	            initialItems: 2,
+	            autoSpawn: false
+	        });
+	    }
+	    // ============================================
+	    // GAME CONTROL
+	    // ============================================
+	    /**
+	     * Start the game
+	     */
+	    static start() {
+	        this.getManager().start();
+	    }
+	    /**
+	     * Pause the game
+	     */
+	    static pause() {
+	        this.getManager().pause();
+	    }
+	    /**
+	     * Resume the game
+	     */
+	    static resume() {
+	        this.getManager().resume();
+	    }
+	    /**
+	     * Reset the game
+	     */
+	    static reset() {
+	        this.getManager().reset();
+	    }
+	    /**
+	     * Restart the game (reset + start)
+	     */
+	    static restart() {
+	        this.reset();
+	        this.start();
+	    }
+	    // ============================================
+	    // ITEM MANAGEMENT
+	    // ============================================
+	    /**
+	     * Spawn a new item
+	     */
+	    static spawnItem(tier = 1) {
+	        return this.getManager().spawnItem(tier);
+	    }
+	    /**
+	     * Spawn multiple items
+	     */
+	    static spawnItems(count, tier = 1) {
+	        const items = [];
+	        for (let i = 0; i < count; i++) {
+	            const item = this.spawnItem(tier);
+	            if (item) {
+	                items.push(item);
+	            }
+	        }
+	        return items;
+	    }
+	    // ============================================
+	    // STATE & GETTERS
+	    // ============================================
+	    /**
+	     * Get the grid instance
+	     */
+	    static getGrid() {
+	        return this.getManager().getGrid();
+	    }
+	    /**
+	     * Get the container for adding to scene
+	     */
+	    static getContainer() {
+	        return this.getManager().getContainer();
+	    }
+	    /**
+	     * Get current game state
+	     */
+	    static getState() {
+	        return this.getManager().getState();
+	    }
+	    /**
+	     * Get current score
+	     */
+	    static getScore() {
+	        return this.getManager().getScore();
+	    }
+	    /**
+	     * Get highest tier achieved
+	     */
+	    static getHighestTier() {
+	        return this.getManager().getHighestTier();
+	    }
+	    /**
+	     * Check if game is over
+	     */
+	    static isGameOver() {
+	        return this.getManager().isGameOver();
+	    }
+	    /**
+	     * Check if game is paused
+	     */
+	    static isPaused() {
+	        return this.getManager().isPaused();
+	    }
+	    /**
+	     * Get grid dimensions
+	     */
+	    static getDimensions() {
+	        return this.getManager().getDimensions();
+	    }
+	    // ============================================
+	    // POSITIONING
+	    // ============================================
+	    /**
+	     * Set grid position
+	     */
+	    static setPosition(x, y) {
+	        this.getManager().setPosition(x, y);
+	        return this;
+	    }
+	    /**
+	     * Center grid in area
+	     */
+	    static centerIn(width, height) {
+	        this.getManager().centerIn(width, height);
+	        return this;
+	    }
+	    // ============================================
+	    // EVENTS
+	    // ============================================
+	    /**
+	     * Listen for game events
+	     *
+	     * @example
+	     * ```typescript
+	     * Merge.on('merge', (item, tier, score) => {
+	     *   showMergeEffect(item.getPosition());
+	     *   updateScoreDisplay(score);
+	     * });
+	     *
+	     * Merge.on('game-over', (state) => {
+	     *   showGameOverScreen(state.score);
+	     * });
+	     *
+	     * Merge.on('max-tier', (item) => {
+	     *   celebrate();
+	     * });
+	     * ```
+	     */
+	    static on(event, callback) {
+	        this.getManager().on(event, callback);
+	        return this;
+	    }
+	    /**
+	     * Listen for event once
+	     */
+	    static once(event, callback) {
+	        this.getManager().once(event, callback);
+	        return this;
+	    }
+	    /**
+	     * Remove event listener
+	     */
+	    static off(event, callback) {
+	        if (callback) {
+	            this.getManager().off(event, callback);
+	        }
+	        else {
+	            this.getManager().removeAllListeners(event);
+	        }
+	        return this;
+	    }
+	    // ============================================
+	    // CLEANUP
+	    // ============================================
+	    /**
+	     * Destroy the merge game
+	     */
+	    static destroy() {
+	        this.getManager().destroy();
+	    }
+	}
+
+	/**
 	 * Modern UIButton component for mobile games
 	 *
 	 * Features:
@@ -37809,6 +38113,1833 @@
 	        this.removeAllListeners();
 	    }
 	}
+
+	/**
+	 * MergeCell - A single cell in the merge grid
+	 *
+	 * A MergeCell can hold one MergeItem at a time and acts as a drop zone
+	 * for drag operations. When an item is dropped on a cell that already
+	 * contains an item of the same tier, a merge is triggered.
+	 *
+	 * Features:
+	 * - Hold single item
+	 * - Drop zone detection
+	 * - Merge trigger logic
+	 * - Visual feedback (hover, occupied, locked states)
+	 * - Lock/unlock for progression systems
+	 *
+	 * @example
+	 * ```typescript
+	 * const cell = new MergeCell({
+	 *   row: 0,
+	 *   col: 0,
+	 *   width: 100,
+	 *   height: 100
+	 * });
+	 *
+	 * cell.on('item-dropped', (cell, item) => {
+	 *   if (cell.hasItem() && cell.getItem()?.canMergeWith(item)) {
+	 *     // Trigger merge
+	 *   }
+	 * });
+	 * ```
+	 */
+	class MergeCell extends EventEmitter {
+	    constructor(config) {
+	        super();
+	        this._item = null;
+	        this._isHovered = false;
+	        this._isHighlighted = false;
+	        this._isDestroyed = false;
+	        this.config = {
+	            width: config.width ?? 100,
+	            height: config.height ?? 100,
+	            row: config.row,
+	            col: config.col,
+	            backgroundColor: config.backgroundColor ?? 0x2a2a2a,
+	            borderColor: config.borderColor ?? 0x444444,
+	            borderWidth: config.borderWidth ?? 2,
+	            borderRadius: config.borderRadius ?? 8,
+	            acceptsItems: config.acceptsItems ?? true,
+	            locked: config.locked ?? false,
+	            emptyStyle: config.emptyStyle ?? 'solid'
+	        };
+	        // Create visual elements
+	        this.container = graphics().createContainer();
+	        this.background = graphics().createGraphics();
+	        this.highlightGraphics = graphics().createGraphics();
+	        this.container.addChild(this.background);
+	        this.container.addChild(this.highlightGraphics);
+	        // Setup interaction
+	        this.setupInteraction();
+	        // Initial render
+	        this.updateVisuals();
+	    }
+	    // ============================================
+	    // PUBLIC GETTERS
+	    // ============================================
+	    /** Get row index */
+	    get row() {
+	        return this.config.row;
+	    }
+	    /** Get column index */
+	    get col() {
+	        return this.config.col;
+	    }
+	    /** Get cell width */
+	    get width() {
+	        return this.config.width;
+	    }
+	    /** Get cell height */
+	    get height() {
+	        return this.config.height;
+	    }
+	    /** Check if cell is locked */
+	    get isLocked() {
+	        return this.config.locked;
+	    }
+	    /** Check if cell can accept items */
+	    get acceptsItems() {
+	        return this.config.acceptsItems && !this.config.locked;
+	    }
+	    /** Get the display container */
+	    getContainer() {
+	        return this.container;
+	    }
+	    /** Get cell center position */
+	    getCenterPosition() {
+	        return {
+	            x: this.container.x + this.config.width / 2,
+	            y: this.container.y + this.config.height / 2
+	        };
+	    }
+	    /** Get world center position */
+	    getWorldCenterPosition() {
+	        const containerAny = this.container;
+	        const globalPos = containerAny.getGlobalPosition?.() ?? { x: this.container.x, y: this.container.y };
+	        return {
+	            x: globalPos.x + this.config.width / 2,
+	            y: globalPos.y + this.config.height / 2
+	        };
+	    }
+	    // ============================================
+	    // ITEM MANAGEMENT
+	    // ============================================
+	    /**
+	     * Check if cell has an item
+	     */
+	    hasItem() {
+	        return this._item !== null;
+	    }
+	    /**
+	     * Get the current item (if any)
+	     */
+	    getItem() {
+	        return this._item;
+	    }
+	    /**
+	     * Place an item in this cell
+	     */
+	    placeItem(item) {
+	        if (!this.acceptsItems) {
+	            return false;
+	        }
+	        if (this._item !== null) {
+	            // Cell already has an item
+	            return false;
+	        }
+	        this._item = item;
+	        // Position item at cell center
+	        const center = this.getCenterPosition();
+	        item.setPosition(center.x, center.y);
+	        // Add item to container
+	        const itemContainerAny = item.getContainer();
+	        if (itemContainerAny.parent !== this.container) {
+	            this.container.addChild(item.getContainer());
+	        }
+	        this.updateVisuals();
+	        this.emit('item-placed', this, item);
+	        return true;
+	    }
+	    /**
+	     * Remove the current item
+	     */
+	    removeItem() {
+	        if (!this._item) {
+	            return null;
+	        }
+	        const item = this._item;
+	        this._item = null;
+	        // Remove from container
+	        const itemContainerAny = item.getContainer();
+	        if (itemContainerAny.parent === this.container) {
+	            this.container.removeChild(item.getContainer());
+	        }
+	        this.updateVisuals();
+	        this.emit('item-removed', this, item);
+	        return item;
+	    }
+	    /**
+	     * Check if this cell can accept a specific item
+	     */
+	    canAcceptItem(item) {
+	        if (!this.acceptsItems) {
+	            return false;
+	        }
+	        // Empty cell can accept any item
+	        if (!this._item) {
+	            return true;
+	        }
+	        // Cell with item can accept if merge is possible
+	        return this._item.canMergeWith(item);
+	    }
+	    /**
+	     * Handle a dropped item
+	     * Returns: 'placed' | 'merged' | 'rejected'
+	     */
+	    handleDrop(item) {
+	        if (!this.acceptsItems) {
+	            return 'rejected';
+	        }
+	        // Emit drop event
+	        this.emit('item-dropped', this, item);
+	        // If cell is empty, place the item
+	        if (!this._item) {
+	            this.placeItem(item);
+	            return 'placed';
+	        }
+	        // If cell has item, try to merge
+	        if (this._item.canMergeWith(item)) {
+	            this.emit('merge-attempt', this, item, this._item);
+	            return 'merged';
+	        }
+	        return 'rejected';
+	    }
+	    // ============================================
+	    // HIT DETECTION
+	    // ============================================
+	    /**
+	     * Check if a point is inside this cell
+	     */
+	    containsPoint(worldX, worldY) {
+	        const containerAny = this.container;
+	        const pos = containerAny.getGlobalPosition?.() ?? { x: this.container.x, y: this.container.y };
+	        const x = pos.x;
+	        const y = pos.y;
+	        return (worldX >= x &&
+	            worldX <= x + this.config.width &&
+	            worldY >= y &&
+	            worldY <= y + this.config.height);
+	    }
+	    // ============================================
+	    // VISUAL STATE
+	    // ============================================
+	    /**
+	     * Set highlight state (for drag hover feedback)
+	     */
+	    setHighlighted(highlighted, canDrop = true) {
+	        if (this._isHighlighted === highlighted)
+	            return;
+	        this._isHighlighted = highlighted;
+	        this.updateHighlight(canDrop);
+	    }
+	    /**
+	     * Lock/unlock the cell
+	     */
+	    setLocked(locked) {
+	        if (this.config.locked === locked)
+	            return;
+	        this.config.locked = locked;
+	        this.updateVisuals();
+	        this.emit('locked-changed', this, locked);
+	    }
+	    /**
+	     * Set position
+	     */
+	    setPosition(x, y) {
+	        this.container.x = x;
+	        this.container.y = y;
+	        return this;
+	    }
+	    /**
+	     * Destroy the cell
+	     */
+	    destroy() {
+	        if (this._isDestroyed)
+	            return;
+	        this._isDestroyed = true;
+	        if (this._item) {
+	            this._item.destroy();
+	        }
+	        this.container.destroy();
+	        this.removeAllListeners();
+	    }
+	    // ============================================
+	    // PRIVATE METHODS
+	    // ============================================
+	    /**
+	     * Setup cell interaction
+	     */
+	    setupInteraction() {
+	        this.container.interactive = true;
+	        this.container.on('pointerover', () => {
+	            if (this._isDestroyed)
+	                return;
+	            this._isHovered = true;
+	            this.emit('hover-enter', this);
+	        });
+	        this.container.on('pointerout', () => {
+	            if (this._isDestroyed)
+	                return;
+	            this._isHovered = false;
+	            this.emit('hover-exit', this);
+	        });
+	    }
+	    /**
+	     * Update visual appearance
+	     */
+	    updateVisuals() {
+	        const { width, height, backgroundColor, borderColor, borderWidth, borderRadius, locked } = this.config;
+	        this.background.clear();
+	        // Determine colors based on state
+	        let bgColor = backgroundColor;
+	        let alpha = 1;
+	        if (locked) {
+	            bgColor = 0x1a1a1a;
+	            alpha = 0.5;
+	        }
+	        else if (this._item) {
+	            // Slightly lighter when occupied
+	            bgColor = this.lightenColor(backgroundColor, 0.1);
+	        }
+	        // Draw background using Pixi v8 modern API
+	        this.background
+	            .roundRect(0, 0, width, height, borderRadius)
+	            .fill({ color: bgColor, alpha })
+	            .stroke({ color: borderColor, width: borderWidth, alpha });
+	        // Draw lock icon if locked
+	        if (locked) {
+	            this.drawLockIcon();
+	        }
+	        // Draw empty indicator if not occupied and not locked
+	        if (!this._item && !locked && this.config.emptyStyle !== 'none') {
+	            this.drawEmptyIndicator();
+	        }
+	    }
+	    /**
+	     * Update highlight overlay
+	     */
+	    updateHighlight(canDrop) {
+	        this.highlightGraphics.clear();
+	        if (!this._isHighlighted)
+	            return;
+	        const { width, height, borderRadius } = this.config;
+	        const color = canDrop ? 0x4CAF50 : 0xF44336;
+	        // Draw highlight fill and glow border using Pixi v8 modern API
+	        this.highlightGraphics
+	            .roundRect(0, 0, width, height, borderRadius)
+	            .fill({ color, alpha: 0.3 })
+	            .stroke({ color, width: 3, alpha: 0.8 });
+	    }
+	    /**
+	     * Draw lock icon
+	     */
+	    drawLockIcon() {
+	        const { width, height } = this.config;
+	        const iconSize = Math.min(width, height) * 0.3;
+	        const centerX = width / 2;
+	        const centerY = height / 2;
+	        // Lock body using Pixi v8 modern API
+	        this.background
+	            .roundRect(centerX - iconSize / 2, centerY - iconSize / 4, iconSize, iconSize * 0.7, 4)
+	            .fill({ color: 0x666666, alpha: 0.8 });
+	        // Lock shackle (simplified as a small circle on top)
+	        this.background
+	            .circle(centerX, centerY - iconSize / 3, iconSize * 0.25)
+	            .stroke({ color: 0x666666, width: iconSize * 0.12, alpha: 0.8 });
+	    }
+	    /**
+	     * Draw empty cell indicator
+	     */
+	    drawEmptyIndicator() {
+	        const { width, height } = this.config;
+	        const size = Math.min(width, height) * 0.2;
+	        const centerX = width / 2;
+	        const centerY = height / 2;
+	        // Draw plus sign using Pixi v8 modern API
+	        // Horizontal line
+	        this.background
+	            .moveTo(centerX - size / 2, centerY)
+	            .lineTo(centerX + size / 2, centerY)
+	            .stroke({ color: 0x555555, width: 2, alpha: 0.5 });
+	        // Vertical line
+	        this.background
+	            .moveTo(centerX, centerY - size / 2)
+	            .lineTo(centerX, centerY + size / 2)
+	            .stroke({ color: 0x555555, width: 2, alpha: 0.5 });
+	    }
+	    /**
+	     * Lighten a color
+	     */
+	    lightenColor(color, amount) {
+	        const r = Math.min(255, ((color >> 16) & 0xFF) + 255 * amount);
+	        const g = Math.min(255, ((color >> 8) & 0xFF) + 255 * amount);
+	        const b = Math.min(255, (color & 0xFF) + 255 * amount);
+	        return (r << 16) | (g << 8) | b;
+	    }
+	}
+
+	/**
+	 * Default tier colors (vibrant mobile game palette)
+	 */
+	const DEFAULT_TIER_COLORS = [
+	    0x9E9E9E, // Tier 0: Gray
+	    0x4CAF50, // Tier 1: Green
+	    0x2196F3, // Tier 2: Blue
+	    0x9C27B0, // Tier 3: Purple
+	    0xFF9800, // Tier 4: Orange
+	    0xF44336, // Tier 5: Red
+	    0xFFEB3B, // Tier 6: Yellow/Gold
+	    0x00BCD4, // Tier 7: Cyan
+	    0xE91E63, // Tier 8: Pink
+	    0x673AB7, // Tier 9: Deep Purple
+	    0xFFD700, // Tier 10+: Gold (max tier)
+	];
+	/**
+	 * MergeItem - Draggable, mergeable item for merge puzzle games
+	 *
+	 * A MergeItem represents a single item on the merge grid that can be:
+	 * - Dragged by the player
+	 * - Dropped onto other items or cells
+	 * - Merged with items of the same tier to create a higher tier item
+	 *
+	 * Features:
+	 * - Tier-based visual system (colors or textures)
+	 * - Touch/mouse drag support
+	 * - Merge zone detection
+	 * - Smooth animations for spawn, merge, destroy
+	 * - Mobile-optimized touch targets
+	 *
+	 * @example
+	 * ```typescript
+	 * const item = new MergeItem({
+	 *   tier: 1,
+	 *   size: 80,
+	 *   draggable: true
+	 * });
+	 *
+	 * item.on('drag-end', (item, x, y) => {
+	 *   // Check for merge or placement
+	 * });
+	 *
+	 * // Merge two items
+	 * if (item1.canMergeWith(item2)) {
+	 *   const result = item1.mergeWith(item2);
+	 * }
+	 * ```
+	 */
+	class MergeItem extends EventEmitter {
+	    constructor(config) {
+	        super();
+	        this._isDragging = false;
+	        this._isDestroyed = false;
+	        this._originalPosition = { x: 0, y: 0 };
+	        this._dragOffset = { x: 0, y: 0 };
+	        // For merge zone detection
+	        this._mergeZoneRadius = 1.2; // 20% larger than visual size
+	        this.config = {
+	            tier: config.tier,
+	            maxTier: config.maxTier ?? 10,
+	            size: config.size ?? 80,
+	            id: config.id ?? `item_${Math.random().toString(36).substr(2, 9)}`,
+	            textures: config.textures ?? new Map(),
+	            tierColors: config.tierColors ?? DEFAULT_TIER_COLORS,
+	            draggable: config.draggable ?? true,
+	            mergeable: config.mergeable ?? true,
+	            data: config.data ?? {}
+	        };
+	        this._tier = config.tier;
+	        // Create visual elements
+	        this.container = graphics().createContainer();
+	        this.background = graphics().createGraphics();
+	        this.container.addChild(this.background);
+	        // Setup interactive
+	        if (this.config.draggable) {
+	            this.setupDragInteraction();
+	        }
+	        // Initial render
+	        this.updateVisuals();
+	    }
+	    // ============================================
+	    // PUBLIC GETTERS
+	    // ============================================
+	    /** Get the item's unique ID */
+	    get id() {
+	        return this.config.id;
+	    }
+	    /** Get the current tier */
+	    get tier() {
+	        return this._tier;
+	    }
+	    /** Get the visual size */
+	    get size() {
+	        return this.config.size;
+	    }
+	    /** Check if item is being dragged */
+	    get isDragging() {
+	        return this._isDragging;
+	    }
+	    /** Check if item can be dragged */
+	    get canBeDragged() {
+	        return this.config.draggable && !this._isDestroyed;
+	    }
+	    /** Check if item can be merged */
+	    get canBeMerged() {
+	        return this.config.mergeable && !this._isDestroyed && this._tier < this.config.maxTier;
+	    }
+	    /** Get the display container */
+	    getContainer() {
+	        return this.container;
+	    }
+	    /** Get current position */
+	    getPosition() {
+	        return {
+	            x: this.container.x,
+	            y: this.container.y
+	        };
+	    }
+	    /** Get world position */
+	    getWorldPosition() {
+	        const containerAny = this.container;
+	        const pos = containerAny.getGlobalPosition?.() ?? { x: this.container.x, y: this.container.y };
+	        return { x: pos.x, y: pos.y };
+	    }
+	    /** Get custom data */
+	    getData(key) {
+	        return this.config.data[key];
+	    }
+	    // ============================================
+	    // PUBLIC METHODS
+	    // ============================================
+	    /**
+	     * Set the item's position
+	     */
+	    setPosition(x, y) {
+	        this.container.x = x;
+	        this.container.y = y;
+	        return this;
+	    }
+	    /**
+	     * Set the item's scale
+	     */
+	    setScale(scale) {
+	        this.container.scale.x = scale;
+	        this.container.scale.y = scale;
+	        return this;
+	    }
+	    /**
+	     * Store the original position (for drag cancel)
+	     */
+	    storeOriginalPosition() {
+	        this._originalPosition = this.getPosition();
+	    }
+	    /**
+	     * Return to original position (with optional animation)
+	     */
+	    returnToOriginalPosition(animate = true) {
+	        if (animate) {
+	            // TODO: Use GSAP or built-in animation system
+	            this.setPosition(this._originalPosition.x, this._originalPosition.y);
+	        }
+	        else {
+	            this.setPosition(this._originalPosition.x, this._originalPosition.y);
+	        }
+	    }
+	    /**
+	     * Check if this item can merge with another
+	     */
+	    canMergeWith(other) {
+	        if (!this.canBeMerged || !other.canBeMerged) {
+	            return false;
+	        }
+	        if (other === this) {
+	            return false;
+	        }
+	        if (other._tier !== this._tier) {
+	            return false;
+	        }
+	        if (this._tier >= this.config.maxTier) {
+	            return false;
+	        }
+	        return true;
+	    }
+	    /**
+	     * Check if a point is within this item's merge zone
+	     * (The merge zone is slightly larger than the visual for easier gameplay)
+	     */
+	    isPointInMergeZone(x, y) {
+	        const pos = this.getWorldPosition();
+	        const mergeRadius = (this.config.size / 2) * this._mergeZoneRadius;
+	        const dx = x - pos.x;
+	        const dy = y - pos.y;
+	        const distance = Math.sqrt(dx * dx + dy * dy);
+	        return distance <= mergeRadius;
+	    }
+	    /**
+	     * Perform merge with another item
+	     * Returns the resulting higher-tier item
+	     */
+	    mergeWith(other) {
+	        if (!this.canMergeWith(other)) {
+	            throw new Error('Cannot merge these items');
+	        }
+	        // Emit merge start event
+	        this.emit('merge-start', this, other);
+	        other.emit('merge-start', other, this);
+	        // Calculate result position (midpoint)
+	        const pos1 = this.getPosition();
+	        const pos2 = other.getPosition();
+	        const resultPos = {
+	            x: (pos1.x + pos2.x) / 2,
+	            y: (pos1.y + pos2.y) / 2
+	        };
+	        // Create result item with higher tier
+	        const resultItem = new MergeItem({
+	            ...this.config,
+	            tier: this._tier + 1,
+	            id: undefined // Generate new ID
+	        });
+	        resultItem.setPosition(resultPos.x, resultPos.y);
+	        // Emit events
+	        this.emit('merge-complete', resultItem, [this, other]);
+	        other.emit('merge-complete', resultItem, [this, other]);
+	        resultItem.emit('tier-changed', resultItem, 0, resultItem.tier);
+	        // Destroy merged items
+	        this.destroy();
+	        other.destroy();
+	        return resultItem;
+	    }
+	    /**
+	     * Upgrade tier (used after merge animation)
+	     */
+	    upgradeTier() {
+	        if (this._tier >= this.config.maxTier) {
+	            return false;
+	        }
+	        const oldTier = this._tier;
+	        this._tier++;
+	        this.updateVisuals();
+	        this.emit('tier-changed', this, oldTier, this._tier);
+	        return true;
+	    }
+	    /**
+	     * Set custom data
+	     */
+	    setData(key, value) {
+	        this.config.data[key] = value;
+	        return this;
+	    }
+	    /**
+	     * Destroy the item
+	     */
+	    destroy() {
+	        if (this._isDestroyed)
+	            return;
+	        this._isDestroyed = true;
+	        this.emit('destroyed', this);
+	        // Clean up graphics
+	        this.container.destroy();
+	        this.removeAllListeners();
+	    }
+	    // ============================================
+	    // PRIVATE METHODS
+	    // ============================================
+	    /**
+	     * Setup drag interaction
+	     */
+	    setupDragInteraction() {
+	        this.container.interactive = true;
+	        this.container.cursor = 'pointer';
+	        // Pointer down
+	        this.container.on('pointerdown', (event) => {
+	            if (!this.canBeDragged)
+	                return;
+	            this._isDragging = true;
+	            this.storeOriginalPosition();
+	            const pos = event.data?.global ?? event.global ?? { x: 0, y: 0 };
+	            const itemPos = this.getPosition();
+	            this._dragOffset = {
+	                x: itemPos.x - pos.x,
+	                y: itemPos.y - pos.y
+	            };
+	            // Bring to front
+	            const containerAny = this.container;
+	            if (containerAny.parent) {
+	                containerAny.parent.setChildIndex(this.container, containerAny.parent.children.length - 1);
+	            }
+	            this.emit('drag-start', this, pos.x, pos.y);
+	        });
+	        // Pointer move
+	        this.container.on('pointermove', (event) => {
+	            if (!this._isDragging)
+	                return;
+	            const pos = event.data?.global ?? event.global ?? { x: 0, y: 0 };
+	            this.setPosition(pos.x + this._dragOffset.x, pos.y + this._dragOffset.y);
+	            this.emit('drag-move', this, pos.x, pos.y);
+	        });
+	        // Pointer up
+	        this.container.on('pointerup', (event) => {
+	            if (!this._isDragging)
+	                return;
+	            this._isDragging = false;
+	            const pos = event.data?.global ?? event.global ?? { x: 0, y: 0 };
+	            this.emit('drag-end', this, pos.x, pos.y);
+	        });
+	        // Pointer up outside
+	        this.container.on('pointerupoutside', (event) => {
+	            if (!this._isDragging)
+	                return;
+	            this._isDragging = false;
+	            const pos = event.data?.global ?? event.global ?? { x: 0, y: 0 };
+	            this.emit('drag-end', this, pos.x, pos.y);
+	        });
+	    }
+	    /**
+	     * Update visual appearance based on tier
+	     */
+	    updateVisuals() {
+	        const size = this.config.size;
+	        const halfSize = size / 2;
+	        // Clear previous graphics
+	        this.background.clear();
+	        // Get color for current tier
+	        const colorIndex = Math.min(this._tier, this.config.tierColors.length - 1);
+	        const color = this.config.tierColors[colorIndex];
+	        // Check for texture
+	        const texture = this.config.textures.get(this._tier);
+	        if (texture && !this.sprite) {
+	            // Create sprite for texture
+	            this.sprite = graphics().createSprite(texture);
+	            this.sprite.anchor?.set(0.5, 0.5);
+	            this.sprite.width = size;
+	            this.sprite.height = size;
+	            this.container.addChild(this.sprite);
+	        }
+	        else if (texture && this.sprite) {
+	            // Update sprite texture
+	            this.sprite.texture = texture;
+	        }
+	        else {
+	            // Draw colored circle/square using Pixi v8 modern API
+	            // Shadow
+	            this.background
+	                .roundRect(-halfSize + 3, -halfSize + 3, size, size, size * 0.2)
+	                .fill({ color: 0x000000, alpha: 0.2 });
+	            // Main shape
+	            this.background
+	                .roundRect(-halfSize, -halfSize, size, size, size * 0.2)
+	                .fill({ color, alpha: 1 });
+	            // Highlight
+	            this.background
+	                .roundRect(-halfSize + 4, -halfSize + 4, size - 8, size * 0.3, size * 0.15)
+	                .fill({ color: 0xFFFFFF, alpha: 0.3 });
+	            // Tier indicator (small number or stars)
+	            this.drawTierIndicator();
+	        }
+	    }
+	    /**
+	     * Draw tier indicator (number or stars)
+	     */
+	    drawTierIndicator() {
+	        const size = this.config.size;
+	        const indicatorSize = size * 0.25;
+	        // Draw tier number in bottom-right corner
+	        if (!this.tierLabel) {
+	            this.tierLabel = graphics().createGraphics();
+	            this.container.addChild(this.tierLabel);
+	        }
+	        this.tierLabel.clear();
+	        // Background circle using Pixi v8 modern API
+	        this.tierLabel
+	            .circle(size / 2 - indicatorSize, size / 2 - indicatorSize, indicatorSize)
+	            .fill({ color: 0x000000, alpha: 0.5 });
+	        // TODO: Add text for tier number when text rendering is available
+	    }
+	}
+
+	/**
+	 * MergeGrid - Main container for merge puzzle games
+	 *
+	 * MergeGrid manages a grid of MergeCells and handles:
+	 * - Cell layout and positioning
+	 * - Item drag and drop between cells
+	 * - Merge detection and execution
+	 * - Item spawning
+	 * - Progression (cell unlocking)
+	 *
+	 * Features:
+	 * - Flexible grid sizing (rows x cols)
+	 * - Configurable cell appearance
+	 * - Automatic merge handling
+	 * - Drop zone detection during drag
+	 * - Cell locking/unlocking for progression
+	 * - Event system for game logic integration
+	 *
+	 * @example
+	 * ```typescript
+	 * const grid = new MergeGrid({
+	 *   rows: 5,
+	 *   cols: 5,
+	 *   cellWidth: 80,
+	 *   cellHeight: 80,
+	 *   gap: 8
+	 * });
+	 *
+	 * // Spawn an item
+	 * grid.spawnItem({ tier: 1 });
+	 *
+	 * // Listen for merges
+	 * grid.on('merge-completed', (grid, item, cell) => {
+	 *   console.log(`Merged! New tier: ${item.tier}`);
+	 * });
+	 *
+	 * scene.addChild(grid.getContainer());
+	 * ```
+	 */
+	class MergeGrid extends EventEmitter {
+	    constructor(config) {
+	        super();
+	        this.cells = [];
+	        this.allCells = [];
+	        this._currentDragItem = null;
+	        this._currentDragFromCell = null;
+	        this._highlightedCell = null;
+	        this._isDestroyed = false;
+	        this.config = {
+	            rows: config.rows,
+	            cols: config.cols,
+	            cellWidth: config.cellWidth ?? 80,
+	            cellHeight: config.cellHeight ?? 80,
+	            gap: config.gap ?? 8,
+	            padding: config.padding ?? 16,
+	            backgroundColor: config.backgroundColor ?? 0x1a1a1a,
+	            cellConfig: config.cellConfig ?? {},
+	            lockedCells: config.lockedCells ?? [],
+	            autoSpawn: config.autoSpawn ?? false,
+	            maxTier: config.maxTier ?? 10
+	        };
+	        // Create containers
+	        this.container = graphics().createContainer();
+	        this.background = graphics().createGraphics();
+	        this.cellsContainer = graphics().createContainer();
+	        this.itemsContainer = graphics().createContainer();
+	        this.container.addChild(this.background);
+	        this.container.addChild(this.cellsContainer);
+	        this.container.addChild(this.itemsContainer);
+	        // Initialize grid
+	        this.initializeGrid();
+	        // Setup global pointer move for drag tracking
+	        this.setupGlobalDragTracking();
+	        this.emit('initialized', this);
+	    }
+	    // ============================================
+	    // PUBLIC GETTERS
+	    // ============================================
+	    /** Get grid dimensions */
+	    get rows() { return this.config.rows; }
+	    get cols() { return this.config.cols; }
+	    /** Get total grid size */
+	    get width() {
+	        return this.config.padding * 2 + this.config.cols * this.config.cellWidth + (this.config.cols - 1) * this.config.gap;
+	    }
+	    get height() {
+	        return this.config.padding * 2 + this.config.rows * this.config.cellHeight + (this.config.rows - 1) * this.config.gap;
+	    }
+	    /** Get the display container */
+	    getContainer() {
+	        return this.container;
+	    }
+	    /** Get all cells */
+	    getCells() {
+	        return [...this.allCells];
+	    }
+	    /** Get cell at position */
+	    getCell(row, col) {
+	        if (row < 0 || row >= this.config.rows || col < 0 || col >= this.config.cols) {
+	            return null;
+	        }
+	        return this.cells[row][col];
+	    }
+	    /** Get all items currently in grid */
+	    getAllItems() {
+	        return this.allCells
+	            .filter(cell => cell.hasItem())
+	            .map(cell => cell.getItem());
+	    }
+	    /** Get empty cells */
+	    getEmptyCells() {
+	        return this.allCells.filter(cell => !cell.hasItem() && cell.acceptsItems);
+	    }
+	    /** Get unlocked cells */
+	    getUnlockedCells() {
+	        return this.allCells.filter(cell => !cell.isLocked);
+	    }
+	    /** Check if grid is full */
+	    isFull() {
+	        return this.getEmptyCells().length === 0;
+	    }
+	    // ============================================
+	    // ITEM MANAGEMENT
+	    // ============================================
+	    /**
+	     * Spawn a new item in a random empty cell
+	     */
+	    spawnItem(itemConfig = {}) {
+	        const emptyCells = this.getEmptyCells();
+	        if (emptyCells.length === 0) {
+	            this.emit('grid-full', this);
+	            return null;
+	        }
+	        // Pick random empty cell
+	        const cell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+	        return this.spawnItemInCell(cell, itemConfig);
+	    }
+	    /**
+	     * Spawn item in a specific cell
+	     */
+	    spawnItemInCell(cell, itemConfig = {}) {
+	        if (cell.hasItem() || !cell.acceptsItems) {
+	            return null;
+	        }
+	        const item = new MergeItem({
+	            tier: itemConfig.tier ?? 1,
+	            size: Math.min(this.config.cellWidth, this.config.cellHeight) * 0.8,
+	            maxTier: this.config.maxTier,
+	            ...itemConfig
+	        });
+	        // Setup item events
+	        this.setupItemEvents(item, cell);
+	        // Add to items container (for proper z-ordering during drag)
+	        this.itemsContainer.addChild(item.getContainer());
+	        // Place in cell
+	        cell.placeItem(item);
+	        this.emit('item-spawned', this, item, cell);
+	        return item;
+	    }
+	    /**
+	     * Remove an item from the grid
+	     */
+	    removeItem(item) {
+	        for (const cell of this.allCells) {
+	            if (cell.getItem() === item) {
+	                cell.removeItem();
+	                item.destroy();
+	                return true;
+	            }
+	        }
+	        return false;
+	    }
+	    /**
+	     * Clear all items from grid
+	     */
+	    clearAllItems() {
+	        for (const cell of this.allCells) {
+	            const item = cell.removeItem();
+	            if (item) {
+	                item.destroy();
+	            }
+	        }
+	    }
+	    // ============================================
+	    // CELL MANAGEMENT
+	    // ============================================
+	    /**
+	     * Unlock a specific cell
+	     */
+	    unlockCell(row, col) {
+	        const cell = this.getCell(row, col);
+	        if (!cell || !cell.isLocked) {
+	            return false;
+	        }
+	        cell.setLocked(false);
+	        this.emit('cell-unlocked', this, cell);
+	        return true;
+	    }
+	    /**
+	     * Lock a specific cell
+	     */
+	    lockCell(row, col) {
+	        const cell = this.getCell(row, col);
+	        if (!cell || cell.isLocked) {
+	            return false;
+	        }
+	        // Remove item if present
+	        const item = cell.removeItem();
+	        if (item) {
+	            item.destroy();
+	        }
+	        cell.setLocked(true);
+	        return true;
+	    }
+	    /**
+	     * Find cell at world position
+	     */
+	    getCellAtPosition(worldX, worldY) {
+	        for (const cell of this.allCells) {
+	            if (cell.containsPoint(worldX, worldY)) {
+	                return cell;
+	            }
+	        }
+	        return null;
+	    }
+	    /**
+	     * Find the cell containing a specific item
+	     */
+	    getCellForItem(item) {
+	        for (const cell of this.allCells) {
+	            if (cell.getItem() === item) {
+	                return cell;
+	            }
+	        }
+	        return null;
+	    }
+	    // ============================================
+	    // MERGE OPERATIONS
+	    // ============================================
+	    /**
+	     * Attempt to merge two items
+	     */
+	    performMerge(cell, droppedItem) {
+	        const existingItem = cell.getItem();
+	        if (!existingItem || !existingItem.canMergeWith(droppedItem)) {
+	            return null;
+	        }
+	        this.emit('merge-started', this, droppedItem, existingItem, cell);
+	        // Remove existing item from cell
+	        cell.removeItem();
+	        // Perform merge
+	        const resultItem = existingItem.mergeWith(droppedItem);
+	        // Place result in cell
+	        this.itemsContainer.addChild(resultItem.getContainer());
+	        this.setupItemEvents(resultItem, cell);
+	        cell.placeItem(resultItem);
+	        // Check for max tier
+	        if (resultItem.tier >= this.config.maxTier) {
+	            this.emit('max-tier-reached', this, resultItem);
+	        }
+	        this.emit('merge-completed', this, resultItem, cell);
+	        // Auto spawn if enabled
+	        if (this.config.autoSpawn) {
+	            this.spawnItem({ tier: 1 });
+	        }
+	        return resultItem;
+	    }
+	    // ============================================
+	    // POSITION & LAYOUT
+	    // ============================================
+	    /**
+	     * Set grid position
+	     */
+	    setPosition(x, y) {
+	        this.container.x = x;
+	        this.container.y = y;
+	        return this;
+	    }
+	    /**
+	     * Center the grid in a given area
+	     */
+	    centerIn(width, height) {
+	        this.setPosition((width - this.width) / 2, (height - this.height) / 2);
+	        return this;
+	    }
+	    /**
+	     * Destroy the grid
+	     */
+	    destroy() {
+	        if (this._isDestroyed)
+	            return;
+	        this._isDestroyed = true;
+	        // Destroy all items and cells
+	        for (const cell of this.allCells) {
+	            const item = cell.getItem();
+	            if (item) {
+	                item.destroy();
+	            }
+	            cell.destroy();
+	        }
+	        this.container.destroy();
+	        this.removeAllListeners();
+	    }
+	    // ============================================
+	    // PRIVATE METHODS
+	    // ============================================
+	    /**
+	     * Initialize the grid cells
+	     */
+	    initializeGrid() {
+	        const { rows, cols, cellWidth, cellHeight, gap, padding, lockedCells, cellConfig } = this.config;
+	        // Create locked cells set for O(1) lookup
+	        const lockedSet = new Set(lockedCells.map(([r, c]) => `${r},${c}`));
+	        // Draw background
+	        this.drawBackground();
+	        // Create cells
+	        for (let row = 0; row < rows; row++) {
+	            this.cells[row] = [];
+	            for (let col = 0; col < cols; col++) {
+	                const isLocked = lockedSet.has(`${row},${col}`);
+	                const cell = new MergeCell({
+	                    row,
+	                    col,
+	                    width: cellWidth,
+	                    height: cellHeight,
+	                    locked: isLocked,
+	                    ...cellConfig
+	                });
+	                // Position cell
+	                const x = padding + col * (cellWidth + gap);
+	                const y = padding + row * (cellHeight + gap);
+	                cell.setPosition(x, y);
+	                // Add to container
+	                this.cellsContainer.addChild(cell.getContainer());
+	                // Store reference
+	                this.cells[row][col] = cell;
+	                this.allCells.push(cell);
+	                // Setup cell events
+	                this.setupCellEvents(cell);
+	            }
+	        }
+	    }
+	    /**
+	     * Draw grid background
+	     */
+	    drawBackground() {
+	        this.background.clear();
+	        // Use Pixi v8 modern API
+	        this.background
+	            .roundRect(0, 0, this.width, this.height, 12)
+	            .fill({ color: this.config.backgroundColor, alpha: 1 });
+	    }
+	    /**
+	     * Setup events for a cell
+	     */
+	    setupCellEvents(cell) {
+	        cell.on('hover-enter', () => {
+	            if (this._currentDragItem && !cell.hasItem()) {
+	                cell.setHighlighted(true, cell.canAcceptItem(this._currentDragItem));
+	            }
+	        });
+	        cell.on('hover-exit', () => {
+	            cell.setHighlighted(false);
+	        });
+	        cell.on('merge-attempt', (c, droppedItem, existingItem) => {
+	            this.performMerge(c, droppedItem);
+	        });
+	    }
+	    /**
+	     * Setup events for an item
+	     */
+	    setupItemEvents(item, initialCell) {
+	        item.on('drag-start', (it, x, y) => {
+	            this._currentDragItem = it;
+	            this._currentDragFromCell = this.getCellForItem(it);
+	            // Remove from cell and add back to items container for dragging
+	            if (this._currentDragFromCell) {
+	                this._currentDragFromCell.removeItem();
+	                this.itemsContainer.addChild(it.getContainer());
+	            }
+	            // Move to top of items container
+	            this.itemsContainer.setChildIndex(it.getContainer(), this.itemsContainer.children.length - 1);
+	        });
+	        item.on('drag-move', (it, x, y) => {
+	            // Update highlighted cell
+	            const cellUnder = this.getCellAtPosition(x, y);
+	            if (this._highlightedCell && this._highlightedCell !== cellUnder) {
+	                this._highlightedCell.setHighlighted(false);
+	            }
+	            if (cellUnder && cellUnder !== this._highlightedCell) {
+	                const canDrop = cellUnder.canAcceptItem(it);
+	                cellUnder.setHighlighted(true, canDrop);
+	                this._highlightedCell = cellUnder;
+	            }
+	            else if (!cellUnder) {
+	                this._highlightedCell = null;
+	            }
+	        });
+	        item.on('drag-end', (it, x, y) => {
+	            // Clear highlight
+	            if (this._highlightedCell) {
+	                this._highlightedCell.setHighlighted(false);
+	            }
+	            // Find drop target
+	            const dropCell = this.getCellAtPosition(x, y);
+	            if (dropCell) {
+	                const result = dropCell.handleDrop(it);
+	                if (result === 'placed') {
+	                    this.emit('item-moved', this, it, this._currentDragFromCell, dropCell);
+	                }
+	                else if (result === 'rejected') {
+	                    // Return to original cell
+	                    if (this._currentDragFromCell) {
+	                        this._currentDragFromCell.placeItem(it);
+	                    }
+	                }
+	                // 'merged' is handled by merge-attempt event
+	            }
+	            else {
+	                // Dropped outside grid - return to original cell
+	                if (this._currentDragFromCell) {
+	                    this._currentDragFromCell.placeItem(it);
+	                }
+	            }
+	            this._currentDragItem = null;
+	            this._currentDragFromCell = null;
+	            this._highlightedCell = null;
+	        });
+	    }
+	    /**
+	     * Setup global drag tracking
+	     */
+	    setupGlobalDragTracking() {
+	        // The item handles its own drag via pointermove
+	        // This is for grid-level tracking if needed
+	    }
+	}
+
+	/**
+	 * MergeManager - Core manager for merge puzzle games
+	 *
+	 * Provides high-level API for creating and managing merge games.
+	 * Handles game state, scoring, and lifecycle.
+	 *
+	 * @example
+	 * ```typescript
+	 * const manager = new MergeManager();
+	 * const grid = manager.createGame({
+	 *   rows: 5,
+	 *   cols: 5,
+	 *   maxTier: 10,
+	 *   initialItems: 3
+	 * });
+	 *
+	 * manager.on('merge', (item, tier, score) => {
+	 *   console.log(`Merged to tier ${tier}! Score: ${score}`);
+	 * });
+	 *
+	 * manager.start();
+	 * ```
+	 */
+	class MergeManager extends EventEmitter {
+	    constructor(config = {}) {
+	        super();
+	        this.grid = null;
+	        this.config = { ...MergeManager.DEFAULT_CONFIG, ...config };
+	        this.container = graphics().createContainer();
+	        this.state = this.createInitialState();
+	    }
+	    // ============================================
+	    // PUBLIC API
+	    // ============================================
+	    /**
+	     * Create a new merge game grid
+	     */
+	    createGame(config) {
+	        if (config) {
+	            this.config = { ...this.config, ...config };
+	        }
+	        // Destroy existing grid if any
+	        if (this.grid) {
+	            this.grid.destroy();
+	        }
+	        // Create new grid
+	        this.grid = new MergeGrid({
+	            rows: this.config.rows,
+	            cols: this.config.cols,
+	            cellWidth: this.config.cellWidth,
+	            cellHeight: this.config.cellHeight,
+	            gap: this.config.gap,
+	            padding: this.config.padding,
+	            backgroundColor: this.config.backgroundColor,
+	            maxTier: this.config.maxTier,
+	            autoSpawn: this.config.autoSpawn,
+	            lockedCells: this.config.lockedCells,
+	            cellConfig: {
+	                backgroundColor: this.config.cellBackgroundColor,
+	                borderColor: this.config.cellBorderColor
+	            }
+	        });
+	        // Setup event handlers
+	        this.setupGridEvents();
+	        // Add to container
+	        this.container.addChild(this.grid.getContainer());
+	        // Reset state
+	        this.state = this.createInitialState();
+	        return this.grid;
+	    }
+	    /**
+	     * Start the game (spawn initial items)
+	     */
+	    start() {
+	        if (!this.grid) {
+	            throw new Error('No game created. Call createGame() first.');
+	        }
+	        this.state.isPaused = false;
+	        this.state.isGameOver = false;
+	        // Spawn initial items
+	        for (let i = 0; i < this.config.initialItems; i++) {
+	            this.spawnItem(this.config.initialTier);
+	        }
+	        this.emit('game-started', { ...this.state });
+	    }
+	    /**
+	     * Pause the game
+	     */
+	    pause() {
+	        this.state.isPaused = true;
+	        this.emit('game-paused', { ...this.state });
+	    }
+	    /**
+	     * Resume the game
+	     */
+	    resume() {
+	        this.state.isPaused = false;
+	        this.emit('game-resumed', { ...this.state });
+	    }
+	    /**
+	     * Reset the game
+	     */
+	    reset() {
+	        if (this.grid) {
+	            this.grid.clearAllItems();
+	        }
+	        this.state = this.createInitialState();
+	        this.emit('game-reset', { ...this.state });
+	    }
+	    /**
+	     * Spawn a new item
+	     */
+	    spawnItem(tier = 1) {
+	        if (!this.grid || this.state.isPaused || this.state.isGameOver) {
+	            return null;
+	        }
+	        const item = this.grid.spawnItem({
+	            tier,
+	            tierColors: this.config.tierColors,
+	            textures: this.config.tierTextures,
+	            maxTier: this.config.maxTier
+	        });
+	        if (item) {
+	            this.state.itemsSpawned++;
+	            this.emit('item-spawned', item);
+	            this.emit('state-changed', { ...this.state });
+	        }
+	        return item;
+	    }
+	    /**
+	     * Get the grid instance
+	     */
+	    getGrid() {
+	        return this.grid;
+	    }
+	    /**
+	     * Get the container for adding to scene
+	     */
+	    getContainer() {
+	        return this.container;
+	    }
+	    /**
+	     * Get current game state
+	     */
+	    getState() {
+	        return { ...this.state };
+	    }
+	    /**
+	     * Get current score
+	     */
+	    getScore() {
+	        return this.state.score;
+	    }
+	    /**
+	     * Get highest tier achieved
+	     */
+	    getHighestTier() {
+	        return this.state.highestTier;
+	    }
+	    /**
+	     * Check if game is over
+	     */
+	    isGameOver() {
+	        return this.state.isGameOver;
+	    }
+	    /**
+	     * Check if game is paused
+	     */
+	    isPaused() {
+	        return this.state.isPaused;
+	    }
+	    /**
+	     * Set position
+	     */
+	    setPosition(x, y) {
+	        this.container.x = x;
+	        this.container.y = y;
+	        return this;
+	    }
+	    /**
+	     * Center in area
+	     */
+	    centerIn(width, height) {
+	        if (this.grid) {
+	            this.grid.centerIn(width, height);
+	        }
+	        return this;
+	    }
+	    /**
+	     * Get grid dimensions
+	     */
+	    getDimensions() {
+	        if (!this.grid) {
+	            return { width: 0, height: 0 };
+	        }
+	        return {
+	            width: this.grid.width,
+	            height: this.grid.height
+	        };
+	    }
+	    /**
+	     * Destroy the manager
+	     */
+	    destroy() {
+	        if (this.grid) {
+	            this.grid.destroy();
+	            this.grid = null;
+	        }
+	        this.container.destroy();
+	        this.removeAllListeners();
+	    }
+	    // ============================================
+	    // PRIVATE METHODS
+	    // ============================================
+	    /**
+	     * Create initial game state
+	     */
+	    createInitialState() {
+	        return {
+	            score: 0,
+	            highestTier: 0,
+	            totalMerges: 0,
+	            itemsSpawned: 0,
+	            isGameOver: false,
+	            isPaused: false
+	        };
+	    }
+	    /**
+	     * Setup grid event handlers
+	     */
+	    setupGridEvents() {
+	        if (!this.grid)
+	            return;
+	        this.grid.on('merge-completed', (grid, resultItem, cell) => {
+	            this.handleMerge(resultItem);
+	        });
+	        this.grid.on('max-tier-reached', (grid, item) => {
+	            this.emit('max-tier', item);
+	        });
+	        this.grid.on('grid-full', () => {
+	            this.handleGridFull();
+	        });
+	    }
+	    /**
+	     * Handle merge event
+	     */
+	    handleMerge(resultItem) {
+	        const tier = resultItem.tier;
+	        const scoreGain = tier * this.config.scoreMultiplier;
+	        // Update state
+	        this.state.totalMerges++;
+	        this.state.score += scoreGain;
+	        if (tier > this.state.highestTier) {
+	            this.state.highestTier = tier;
+	        }
+	        // Emit events
+	        this.emit('score-changed', this.state.score, scoreGain);
+	        this.emit('merge', resultItem, tier, scoreGain);
+	        this.emit('state-changed', { ...this.state });
+	        // Haptic feedback
+	        if (this.config.hapticFeedback && 'vibrate' in navigator) {
+	            navigator.vibrate(50);
+	        }
+	    }
+	    /**
+	     * Handle grid full event
+	     */
+	    handleGridFull() {
+	        this.state.isGameOver = true;
+	        this.emit('grid-full');
+	        this.emit('game-over', { ...this.state });
+	    }
+	}
+	MergeManager.DEFAULT_CONFIG = {
+	    rows: 5,
+	    cols: 5,
+	    cellWidth: 80,
+	    cellHeight: 80,
+	    gap: 8,
+	    padding: 16,
+	    backgroundColor: 0x1a1a1a,
+	    cellBackgroundColor: 0x2a2a2a,
+	    cellBorderColor: 0x444444,
+	    maxTier: 10,
+	    autoSpawn: false,
+	    initialItems: 3,
+	    initialTier: 1,
+	    lockedCells: [],
+	    tierColors: [
+	        0x9E9E9E, // Tier 0: Gray
+	        0x4CAF50, // Tier 1: Green
+	        0x2196F3, // Tier 2: Blue
+	        0x9C27B0, // Tier 3: Purple
+	        0xFF9800, // Tier 4: Orange
+	        0xF44336, // Tier 5: Red
+	        0xFFEB3B, // Tier 6: Yellow/Gold
+	        0x00BCD4, // Tier 7: Cyan
+	        0xE91E63, // Tier 8: Pink
+	        0x673AB7, // Tier 9: Deep Purple
+	        0xFFD700, // Tier 10+: Gold
+	    ],
+	    tierTextures: new Map(),
+	    scoreMultiplier: 100,
+	    hapticFeedback: true,
+	    soundEnabled: true,
+	    mergeAnimationDuration: 200,
+	    spawnAnimationDuration: 150
+	};
+
+	/**
+	 * Service provider for the Merge game system
+	 *
+	 * Registers merge game services and components in the container.
+	 *
+	 * @example
+	 * ```typescript
+	 * import { GameByte, MergeServiceProvider } from 'gamebyte-framework';
+	 *
+	 * const game = GameByte.create();
+	 * game.register(new MergeServiceProvider());
+	 *
+	 * await game.initialize(canvas, '2d');
+	 *
+	 * // Now you can use the Merge facade
+	 * import { Merge } from 'gamebyte-framework';
+	 * Merge.createGame({ rows: 5, cols: 5 });
+	 * ```
+	 */
+	class MergeServiceProvider extends AbstractServiceProvider {
+	    constructor(config = {}) {
+	        super();
+	        this.config = config;
+	    }
+	    /**
+	     * Register merge services in the container
+	     */
+	    register(app) {
+	        // Register MergeManager as singleton
+	        app.singleton('merge', () => {
+	            return new MergeManager(this.config);
+	        });
+	        // Register alias for convenience
+	        app.getContainer().alias('merge.manager', 'merge');
+	    }
+	    /**
+	     * Boot the merge services
+	     */
+	    async boot(app) {
+	        // Get the merge manager to ensure it's initialized
+	        const mergeManager = app.make('merge');
+	        // Emit merge system ready event
+	        app.emit('merge-system-ready', { mergeManager });
+	    }
+	    /**
+	     * Services this provider offers
+	     */
+	    provides() {
+	        return ['merge', 'merge.manager'];
+	    }
+	}
+
+	/**
+	 * MergeGameScene - Ready-to-use scene for merge puzzle games
+	 *
+	 * Provides a complete merge game experience with:
+	 * - Pre-configured merge grid
+	 * - Optional score display
+	 * - Event handling
+	 * - Game state management
+	 *
+	 * @example
+	 * ```typescript
+	 * // Simple usage
+	 * const mergeScene = new MergeGameScene({
+	 *   rows: 5,
+	 *   cols: 5,
+	 *   showScoreUI: true
+	 * });
+	 *
+	 * await sceneManager.add(mergeScene);
+	 * await sceneManager.switchTo('merge-game');
+	 *
+	 * // With callbacks
+	 * const mergeScene = new MergeGameScene({
+	 *   rows: 6,
+	 *   cols: 6,
+	 *   onMerge: (item, tier, score) => {
+	 *     playMergeSound(tier);
+	 *   },
+	 *   onGameOver: (state) => {
+	 *     showGameOverModal(state.score);
+	 *   }
+	 * });
+	 * ```
+	 */
+	class MergeGameScene extends BaseScene {
+	    constructor(config = {}) {
+	        const sceneId = config.sceneId || 'merge-game';
+	        const sceneName = config.sceneName || 'Merge Game';
+	        super(sceneId, sceneName);
+	        this.scoreText = null;
+	        this.tierText = null;
+	        this.uiContainer = null;
+	        this.backgroundGraphics = null;
+	        // Merge configs
+	        this.sceneConfig = {
+	            ...MergeGameScene.DEFAULT_SCENE_CONFIG,
+	            ...config
+	        };
+	        // Create merge manager with game config
+	        this.mergeManager = new MergeManager(config);
+	    }
+	    /**
+	     * Initialize the scene
+	     */
+	    async initialize() {
+	        await super.initialize();
+	        // Create background
+	        this.createBackground();
+	        // Create merge game
+	        this.mergeManager.createGame();
+	        // Add merge grid to scene
+	        const gridContainer = this.mergeManager.getContainer();
+	        this.container.addChild(gridContainer);
+	        // Setup UI if enabled
+	        if (this.sceneConfig.showScoreUI || this.sceneConfig.showTierUI) {
+	            this.createUI();
+	        }
+	        // Setup event handlers
+	        this.setupEventHandlers();
+	    }
+	    /**
+	     * Activate the scene
+	     */
+	    activate() {
+	        super.activate();
+	        // Auto center if enabled
+	        if (this.sceneConfig.autoCenter) {
+	            this.centerGrid();
+	        }
+	        // Start the game
+	        this.mergeManager.start();
+	    }
+	    /**
+	     * Deactivate the scene
+	     */
+	    deactivate() {
+	        super.deactivate();
+	        this.mergeManager.pause();
+	    }
+	    /**
+	     * Update the scene
+	     */
+	    update(deltaTime) {
+	        super.update(deltaTime);
+	        // Update UI
+	        this.updateUI();
+	    }
+	    /**
+	     * Destroy the scene
+	     */
+	    destroy() {
+	        this.mergeManager.destroy();
+	        super.destroy();
+	    }
+	    // ============================================
+	    // PUBLIC API
+	    // ============================================
+	    /**
+	     * Get the merge manager
+	     */
+	    getMergeManager() {
+	        return this.mergeManager;
+	    }
+	    /**
+	     * Get the merge grid
+	     */
+	    getGrid() {
+	        return this.mergeManager.getGrid();
+	    }
+	    /**
+	     * Get current score
+	     */
+	    getScore() {
+	        return this.mergeManager.getScore();
+	    }
+	    /**
+	     * Get game state
+	     */
+	    getState() {
+	        return this.mergeManager.getState();
+	    }
+	    /**
+	     * Spawn an item
+	     */
+	    spawnItem(tier = 1) {
+	        return this.mergeManager.spawnItem(tier);
+	    }
+	    /**
+	     * Restart the game
+	     */
+	    restart() {
+	        this.mergeManager.reset();
+	        this.mergeManager.start();
+	    }
+	    /**
+	     * Pause the game
+	     */
+	    pauseGame() {
+	        this.mergeManager.pause();
+	    }
+	    /**
+	     * Resume the game
+	     */
+	    resumeGame() {
+	        this.mergeManager.resume();
+	    }
+	    /**
+	     * Center the grid in the scene
+	     */
+	    centerGrid() {
+	        // Get viewport dimensions from renderer or use defaults
+	        const width = this.container.width || 800;
+	        const height = this.container.height || 600;
+	        this.mergeManager.centerIn(width, height);
+	        // Apply offset
+	        const container = this.mergeManager.getContainer();
+	        container.x += this.sceneConfig.gridOffsetX;
+	        container.y += this.sceneConfig.gridOffsetY;
+	    }
+	    /**
+	     * Set grid position
+	     */
+	    setGridPosition(x, y) {
+	        this.mergeManager.setPosition(x, y);
+	    }
+	    // ============================================
+	    // PRIVATE METHODS
+	    // ============================================
+	    /**
+	     * Create background
+	     */
+	    createBackground() {
+	        try {
+	            this.backgroundGraphics = graphics().createGraphics();
+	            this.backgroundGraphics
+	                .rect(0, 0, 2000, 2000)
+	                .fill({ color: this.sceneConfig.sceneBackgroundColor });
+	            this.container.addChildAt(this.backgroundGraphics, 0);
+	        }
+	        catch {
+	            // Graphics engine might not be initialized
+	        }
+	    }
+	    /**
+	     * Create UI elements
+	     */
+	    createUI() {
+	        try {
+	            this.uiContainer = graphics().createContainer();
+	            this.container.addChild(this.uiContainer);
+	            if (this.sceneConfig.showScoreUI) {
+	                this.scoreText = graphics().createText('Score: 0', {
+	                    fontFamily: 'Arial',
+	                    fontSize: 24,
+	                    fill: 0xFFFFFF
+	                });
+	                this.scoreText.x = this.sceneConfig.scorePosition.x;
+	                this.scoreText.y = this.sceneConfig.scorePosition.y;
+	                this.uiContainer.addChild(this.scoreText);
+	            }
+	            if (this.sceneConfig.showTierUI) {
+	                this.tierText = graphics().createText('Best Tier: 0', {
+	                    fontFamily: 'Arial',
+	                    fontSize: 18,
+	                    fill: 0xCCCCCC
+	                });
+	                this.tierText.x = this.sceneConfig.scorePosition.x;
+	                this.tierText.y = this.sceneConfig.scorePosition.y + 30;
+	                this.uiContainer.addChild(this.tierText);
+	            }
+	        }
+	        catch {
+	            // Graphics engine might not be initialized
+	        }
+	    }
+	    /**
+	     * Update UI elements
+	     */
+	    updateUI() {
+	        const state = this.mergeManager.getState();
+	        if (this.scoreText) {
+	            this.scoreText.text = `Score: ${state.score.toLocaleString()}`;
+	        }
+	        if (this.tierText) {
+	            this.tierText.text = `Best Tier: ${state.highestTier}`;
+	        }
+	    }
+	    /**
+	     * Setup event handlers
+	     */
+	    setupEventHandlers() {
+	        this.mergeManager.on('merge', (item, tier, score) => {
+	            this.sceneConfig.onMerge(item, tier, score);
+	            this.emit('merge', item, tier, score);
+	        });
+	        this.mergeManager.on('game-over', (state) => {
+	            this.sceneConfig.onGameOver(state);
+	            this.emit('game-over', state);
+	        });
+	        this.mergeManager.on('max-tier', (item) => {
+	            this.sceneConfig.onMaxTier(item);
+	            this.emit('max-tier', item);
+	        });
+	        this.mergeManager.on('score-changed', (score, delta) => {
+	            this.sceneConfig.onScoreChange(score, delta);
+	            this.emit('score-changed', score, delta);
+	        });
+	    }
+	}
+	MergeGameScene.DEFAULT_SCENE_CONFIG = {
+	    sceneId: 'merge-game',
+	    sceneName: 'Merge Game',
+	    showScoreUI: true,
+	    showTierUI: true,
+	    sceneBackgroundColor: 0x0d0d1a,
+	    autoCenter: true,
+	    gridOffsetX: 0,
+	    gridOffsetY: 50,
+	    scorePosition: { x: 20, y: 20 },
+	    onMerge: () => { },
+	    onGameOver: () => { },
+	    onMaxTier: () => { },
+	    onScoreChange: () => { }
+	};
 
 	/**
 	 * Archero-Style Bottom Navigation Menu
@@ -40227,6 +42358,29 @@
 	    // such as specific renderer configurations, performance settings, etc.
 	    return app;
 	}
+	/**
+	 * Create a GameByte instance pre-configured for merge puzzle games.
+	 *
+	 * @example
+	 * ```typescript
+	 * const game = createMergeGame();
+	 * await game.initialize(canvas, '2d');
+	 *
+	 * // Use the Merge facade
+	 * Merge.createGame({ rows: 5, cols: 5 });
+	 * scene.addChild(Merge.getContainer());
+	 * Merge.start();
+	 *
+	 * game.start();
+	 * ```
+	 */
+	function createMergeGame() {
+	    const app = createGame();
+	    // Register merge service provider
+	    const { MergeServiceProvider: MSP } = require('./services/MergeServiceProvider');
+	    app.register(new MSP());
+	    return app;
+	}
 	// Default export for convenient importing
 	const GameByteFramework = {
 	    GameByte,
@@ -40245,7 +42399,8 @@
 	    Input: null, // Will be set after app initialization
 	    Physics: null, // Will be set after app initialization
 	    Performance: null, // Will be set after app initialization
-	    Audio: null // Will be set after app initialization
+	    Audio: null, // Will be set after app initialization
+	    Merge: null // Will be set after app initialization
 	};
 	/**
 	 * Initialize facades with a GameByte application instance.
@@ -40265,6 +42420,7 @@
 	    GameByteFramework.Physics = Physics;
 	    GameByteFramework.Performance = Performance;
 	    GameByteFramework.Audio = Audio;
+	    GameByteFramework.Merge = Merge;
 	}
 
 	exports.ARCHERO_COLORS = ARCHERO_COLORS;
@@ -40328,6 +42484,13 @@
 	exports.Matter2DEngine = Matter2DEngine;
 	exports.Matter2DWorld = Matter2DWorld;
 	exports.MemoryOptimizerClass = MemoryOptimizer;
+	exports.Merge = Merge;
+	exports.MergeCell = MergeCell;
+	exports.MergeGameScene = MergeGameScene;
+	exports.MergeGrid = MergeGrid;
+	exports.MergeItem = MergeItem;
+	exports.MergeManager = MergeManager;
+	exports.MergeServiceProvider = MergeServiceProvider;
 	exports.MinimalUITheme = MinimalUITheme;
 	exports.MobileOptimizerClass = MobileOptimizer;
 	exports.Music = MusicSystemFacade;
@@ -40378,6 +42541,7 @@
 	exports.UIThemeManager = UIThemeManager;
 	exports.VibrantUITheme = VibrantUITheme;
 	exports.createGame = createGame;
+	exports.createMergeGame = createMergeGame;
 	exports.createMobileGame = createMobileGame;
 	exports.createResponsiveCalculator = createResponsiveCalculator;
 	exports.default = GameByteFramework;

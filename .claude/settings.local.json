@@ -40,7 +40,8 @@
       "Bash(node extract-game-zip.js:*)",
       "Bash(node analyze-game-code.js:*)",
       "Bash(node extract-mechanics.js:*)",
-      "Bash(gh api:*)"
+      "Bash(gh api:*)",
+      "Bash(yes:*)"
     ],
     "deny": [],
     "ask": []
