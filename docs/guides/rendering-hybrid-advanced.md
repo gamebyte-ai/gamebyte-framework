@@ -2,6 +2,14 @@
 
 <!-- keywords: rendering, hybrid, advanced, optimization, stacking, canvas -->
 
+## Live Example
+
+<div style="border: 1px solid #333; border-radius: 8px; overflow: hidden; margin: 20px 0;">
+  <iframe src="../examples/hybrid-renderer-example.html" width="100%" height="500" style="border: none;"></iframe>
+</div>
+
+> **Interactive Demo**: Three.js 3D background with Pixi.js 2D UI overlay. Click the "Toggle Rotation" button to control the 3D animation. Notice how both layers render independently.
+
 ## Overview
 
 `HybridRenderer` combines **Three.js (3D)** and **Pixi.js (2D)** using a stacked canvas architecture. This enables games to have rich 3D backgrounds with performant 2D UI overlays.

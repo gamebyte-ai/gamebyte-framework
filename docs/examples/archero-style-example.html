@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Archero Style Customization - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            overflow: hidden;
+            background: #1a1a2e;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            touch-action: none;
+        }
+        #game-container {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            height: 100vh;
+        }
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 18px;
+            z-index: 100;
+        }
+        #controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.85);
+            padding: 15px;
+            border-radius: 10px;
+            z-index: 100;
+            color: white;
+            font-size: 13px;
+            max-width: 200px;
+        }
+        #controls h3 {
+            margin-bottom: 10px;
+            color: #FFD700;
+            font-size: 14px;
+        }
+        .theme-btn {
+            display: block;
+            width: 100%;
+            padding: 8px 12px;
+            margin: 5px 0;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        .theme-btn:hover {
+            transform: scale(1.05);
+        }
+        .theme-gold { background: linear-gradient(to bottom, #FFE55C, #FFD700, #FFA500); color: #4A2F1A; }
+        .theme-fire { background: linear-gradient(to bottom, #FF6B6B, #FF4500, #CC0000); color: white; }
+        .theme-ocean { background: linear-gradient(to bottom, #87CEEB, #1E90FF, #0047AB); color: white; }
+        .theme-forest { background: linear-gradient(to bottom, #90EE90, #32CD32, #228B22); color: white; }
+        .theme-dark { background: linear-gradient(to bottom, #6495ED, #4169E1, #191970); color: white; }
+        #info {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            padding: 10px 20px;
+            border-radius: 8px;
+            color: white;
+            font-size: 12px;
+            text-align: center;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">Loading Style Demo...</div>
+    <div id="game-container"></div>
+    <div id="controls" style="display: none;">
+        <h3>Theme Selector</h3>
+        <button class="theme-btn theme-gold" data-theme="gold">Gold (Default)</button>
+        <button class="theme-btn theme-fire" data-theme="fire">Fire</button>
+        <button class="theme-btn theme-ocean" data-theme="ocean">Ocean</button>
+        <button class="theme-btn theme-forest" data-theme="forest">Forest</button>
+        <button class="theme-btn theme-dark" data-theme="dark">Dark Night</button>
+    </div>
+    <div id="info" style="display: none;">
+        Click theme buttons to change menu style dynamically
+    </div>
+
+    <!-- Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+    <script src="../../dist/gamebyte.umd.js"></script>
+
+    <script>
+        (async () => {
+            try {
+                const { GameByte, ArcheroMenu, ARCHERO_COLORS, graphics } = GameByteFramework;
+
+                const BASE_WIDTH = 540;
+                const BASE_HEIGHT = 960;
+
+                // Theme definitions
+                const themes = {
+                    gold: {
+                        buttonGradient: {
+                            topColor: 0xFFE55C,
+                            middleColor: 0xFFD700,
+                            bottomColor: 0xFFA500
+                        },
+                        shineGradient: {
+                            topColor: 0xFFFFFF,
+                            middleColor: 0xFFE55C,
+                            bottomColor: 0xFFD700,
+                            alpha: 0.5
+                        },
+                        navBarColor: 0x0f1624,
+                        labelColor: 0x4A2F1A,
+                        labelStrokeColor: 0xFFE55C,
+                        bgColor: 0x1a1a2e
+                    },
+                    fire: {
+                        buttonGradient: {
+                            topColor: 0xFF6B6B,
+                            middleColor: 0xFF4500,
+                            bottomColor: 0xCC0000
+                        },
+                        shineGradient: {
+                            topColor: 0xFFFFFF,
+                            middleColor: 0xFF6B6B,
+                            bottomColor: 0xFF4500,
+                            alpha: 0.4
+                        },
+                        navBarColor: 0x1a0a0a,
+                        labelColor: 0xFFFFFF,
+                        labelStrokeColor: 0xFF4500,
+                        bgColor: 0x1a0a0a
+                    },
+                    ocean: {
+                        buttonGradient: {
+                            topColor: 0x87CEEB,
+                            middleColor: 0x1E90FF,
+                            bottomColor: 0x0047AB
+                        },
+                        shineGradient: {
+                            topColor: 0xFFFFFF,
+                            middleColor: 0x87CEEB,
+                            bottomColor: 0x1E90FF,
+                            alpha: 0.5
+                        },
+                        navBarColor: 0x0a1a2e,
+                        labelColor: 0xFFFFFF,
+                        labelStrokeColor: 0x1E90FF,
+                        bgColor: 0x0a1a2e
+                    },
+                    forest: {
+                        buttonGradient: {
+                            topColor: 0x90EE90,
+                            middleColor: 0x32CD32,
+                            bottomColor: 0x228B22
+                        },
+                        shineGradient: {
+                            topColor: 0xFFFFFF,
+                            middleColor: 0x90EE90,
+                            bottomColor: 0x32CD32,
+                            alpha: 0.5
+                        },
+                        navBarColor: 0x0a1a0a,
+                        labelColor: 0xFFFFFF,
+                        labelStrokeColor: 0x32CD32,
+                        bgColor: 0x0a1a0a
+                    },
+                    dark: {
+                        buttonGradient: {
+                            topColor: 0x6495ED,
+                            middleColor: 0x4169E1,
+                            bottomColor: 0x191970
+                        },
+                        shineGradient: {
+                            topColor: 0xFFFFFF,
+                            middleColor: 0x6495ED,
+                            bottomColor: 0x4169E1,
+                            alpha: 0.4
+                        },
+                        navBarColor: 0x0a0a1a,
+                        labelColor: 0xFFFFFF,
+                        labelStrokeColor: 0x4169E1,
+                        bgColor: 0x0a0a1a
+                    }
+                };
+
+                // Create game
+                const game = await GameByte.quick2D('#game-container', BASE_WIDTH, BASE_HEIGHT, {
+                    backgroundColor: 0x1a1a2e
+                });
+
+                const gfx = graphics();
+
+                // Background
+                const background = gfx.createGraphics();
+                background.rect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+                background.fill({ color: 0x1a1a2e });
+                game.stage.addChild(background);
+
+                // Title
+                const title = gfx.createText('Style Customization', {
+                    fontSize: 32,
+                    fill: 0xFFD700,
+                    fontWeight: 'bold',
+                    fontFamily: 'Arial'
+                });
+                title.x = BASE_WIDTH / 2;
+                title.y = 80;
+                if (title.anchor) title.anchor.set(0.5);
+                game.stage.addChild(title);
+
+                // Current theme display
+                const themeLabel = gfx.createText('Theme: Gold', {
+                    fontSize: 20,
+                    fill: 0xcccccc,
+                    fontFamily: 'Arial'
+                });
+                themeLabel.x = BASE_WIDTH / 2;
+                themeLabel.y = 130;
+                if (themeLabel.anchor) themeLabel.anchor.set(0.5);
+                game.stage.addChild(themeLabel);
+
+                // Sections
+                const sections = [
+                    { name: 'Shop', icon: 'shop', iconColor: ARCHERO_COLORS.red },
+                    { name: 'Gear', icon: 'gear', iconColor: ARCHERO_COLORS.purple },
+                    { name: 'Campaign', icon: 'campaign', iconColor: ARCHERO_COLORS.activeYellow },
+                    { name: 'Trophy', icon: 'trophy', iconColor: ARCHERO_COLORS.green },
+                    { name: 'Chest', icon: 'chest', iconColor: ARCHERO_COLORS.blue }
+                ];
+
+                // Create menu
+                let menu = new ArcheroMenu({
+                    sections,
+                    activeSection: 2,
+                    canvasWidth: BASE_WIDTH,
+                    canvasHeight: BASE_HEIGHT,
+                    enableSwipe: true,
+                    style: {
+                        enableParticles: true,
+                        buttonSize: 90,
+                        activeButtonSize: 160,
+                        navHeight: 150,
+                        padding: 20,
+                        ...themes.gold
+                    }
+                });
+
+                game.stage.addChild(menu);
+
+                // Theme switching
+                function applyTheme(themeName) {
+                    const theme = themes[themeName];
+                    if (!theme) return;
+
+                    // Update background
+                    background.clear();
+                    background.rect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+                    background.fill({ color: theme.bgColor });
+
+                    // Update label
+                    themeLabel.text = 'Theme: ' + themeName.charAt(0).toUpperCase() + themeName.slice(1);
+
+                    // Animate title color change
+                    const themeColors = {
+                        gold: 0xFFD700,
+                        fire: 0xFF4500,
+                        ocean: 0x1E90FF,
+                        forest: 0x32CD32,
+                        dark: 0x4169E1
+                    };
+                    title.style.fill = themeColors[themeName];
+
+                    // Recreate menu with new style
+                    const currentActive = menu.getActiveSection();
+                    game.stage.removeChild(menu);
+                    menu.destroy();
+
+                    menu = new ArcheroMenu({
+                        sections,
+                        activeSection: currentActive,
+                        canvasWidth: BASE_WIDTH,
+                        canvasHeight: BASE_HEIGHT,
+                        enableSwipe: true,
+                        style: {
+                            enableParticles: true,
+                            buttonSize: 90,
+                            activeButtonSize: 160,
+                            navHeight: 150,
+                            padding: 20,
+                            ...theme
+                        }
+                    });
+
+                    game.stage.addChild(menu);
+
+                    // Animate
+                    gsap.from(menu, { alpha: 0, duration: 0.3 });
+                }
+
+                // Button event listeners
+                document.querySelectorAll('.theme-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const themeName = btn.dataset.theme;
+                        applyTheme(themeName);
+
+                        // Button feedback
+                        gsap.fromTo(btn,
+                            { scale: 0.95 },
+                            { scale: 1, duration: 0.2 }
+                        );
+                    });
+                });
+
+                // Hide loading, show UI
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('controls').style.display = 'block';
+                document.getElementById('info').style.display = 'block';
+
+                console.log('Style customization demo ready!');
+
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('loading').textContent = 'Error: ' + error.message;
+                document.getElementById('loading').style.color = '#ff6b6b';
+            }
+        })();
+    </script>
+</body>
+</html>

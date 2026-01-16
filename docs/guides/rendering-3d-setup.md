@@ -2,6 +2,14 @@
 
 <!-- keywords: rendering, 3d, three.js, setup, initialization, scene, camera -->
 
+## Live Example
+
+<div style="border: 1px solid #333; border-radius: 8px; overflow: hidden; margin: 20px 0;">
+  <iframe src="../examples/3d-rendering-example.html" width="100%" height="500" style="border: none;"></iframe>
+</div>
+
+> **Interactive Demo**: Rotating 3D objects with lighting using Three.js + GameByte Framework. The scene includes a main cube and orbiting torus objects with physics-based materials.
+
 ## Overview
 
 GameByte Framework supports 3D rendering through **direct Three.js API usage**, not through the graphics abstraction layer. This is an intentional architectural decision.
