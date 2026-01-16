@@ -90,6 +90,33 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
+      label: 'Examples',
+      items: [
+        'examples/index',
+        {
+          type: 'link',
+          label: '🎮 Platformer Demo',
+          href: '/demos/platformer-physics.html',
+        },
+        {
+          type: 'link',
+          label: '🧩 Merge Puzzle Demo',
+          href: '/demos/merge-puzzle.html',
+        },
+        {
+          type: 'link',
+          label: '⚡ Physics 2D Demo',
+          href: '/demos/physics-2d.html',
+        },
+        {
+          type: 'link',
+          label: '🌐 Hybrid 3D Demo',
+          href: '/demos/hybrid-game.html',
+        },
+      ],
+    },
+    {
+      type: 'category',
       label: 'API Reference',
       items: [
         'api-reference/index',
