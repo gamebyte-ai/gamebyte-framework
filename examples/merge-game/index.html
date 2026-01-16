@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>GameByte - Merge Puzzle Game Example</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    #game-container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #game-canvas {
+      touch-action: none;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .game-ui {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 20px;
+      z-index: 100;
+    }
+
+    .ui-panel {
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(10px);
+      padding: 12px 24px;
+      border-radius: 12px;
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .score-value {
+      color: #FFD700;
+    }
+
+    .level-value {
+      color: #4CAF50;
+    }
+
+    .spawn-btn {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 16px 48px;
+      font-size: 20px;
+      font-weight: bold;
+      background: linear-gradient(180deg, #4CAF50 0%, #388E3C 100%);
+      color: white;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+      transition: transform 0.1s, box-shadow 0.1s;
+      z-index: 100;
+    }
+
+    .spawn-btn:active {
+      transform: translateX(-50%) scale(0.95);
+      box-shadow: 0 3px 10px rgba(76, 175, 80, 0.4);
+    }
+
+    .spawn-btn:disabled {
+      background: #666;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .instructions {
+      position: absolute;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 14px;
+      text-align: center;
+      z-index: 100;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="game-canvas"></canvas>
+
+    <div class="game-ui">
+      <div class="ui-panel">
+        Score: <span class="score-value" id="score">0</span>
+      </div>
+      <div class="ui-panel">
+        Level: <span class="level-value" id="level">1</span>
+      </div>
+    </div>
+
+    <p class="instructions">Drag items to merge! Same tier items combine into higher tier.</p>
+
+    <button class="spawn-btn" id="spawn-btn">+ Spawn Item</button>
+  </div>
+
+  <script type="module">
+    import * as PIXI from 'https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.mjs';
+
+    // Game state
+    let score = 0;
+    let level = 1;
+    let mergeCount = 0;
+
+    // Initialize Pixi.js Application
+    const app = new PIXI.Application();
+    await app.init({
+      canvas: document.getElementById('game-canvas'),
+      width: 450,
+      height: 600,
+      backgroundColor: 0x1a1a2e,
+      antialias: true,
+      resolution: window.devicePixelRatio || 1,
+      autoDensity: true
+    });
+
+    // Grid configuration
+    const GRID_ROWS = 5;
+    const GRID_COLS = 5;
+    const CELL_SIZE = 70;
+    const CELL_GAP = 10;
+    const GRID_PADDING = 20;
+
+    // Tier colors (vibrant mobile game palette)
+    const TIER_COLORS = [
+      0x9E9E9E,  // Tier 0: Gray
+      0x4CAF50,  // Tier 1: Green
+      0x2196F3,  // Tier 2: Blue
+      0x9C27B0,  // Tier 3: Purple
+      0xFF9800,  // Tier 4: Orange
+      0xF44336,  // Tier 5: Red
+      0xFFEB3B,  // Tier 6: Yellow/Gold
+      0x00BCD4,  // Tier 7: Cyan
+      0xE91E63,  // Tier 8: Pink
+      0x673AB7,  // Tier 9: Deep Purple
+      0xFFD700,  // Tier 10+: Gold (max tier)
+    ];
+
+    // Grid state
+    const grid = [];
+    const items = [];
+    let draggedItem = null;
+    let draggedFromCell = null;
+    let highlightedCell = null;
+
+    // Create grid container
+    const gridContainer = new PIXI.Container();
+    const gridWidth = GRID_COLS * CELL_SIZE + (GRID_COLS - 1) * CELL_GAP + GRID_PADDING * 2;
+    const gridHeight = GRID_ROWS * CELL_SIZE + (GRID_ROWS - 1) * CELL_GAP + GRID_PADDING * 2;
+
+    gridContainer.x = (app.screen.width - gridWidth) / 2;
+    gridContainer.y = (app.screen.height - gridHeight) / 2 - 20;
+
+    // Draw grid background
+    const gridBg = new PIXI.Graphics();
+    gridBg.roundRect(0, 0, gridWidth, gridHeight, 16);
+    gridBg.fill({ color: 0x16213e, alpha: 0.8 });
+    gridContainer.addChild(gridBg);
+
+    // Create cells
+    for (let row = 0; row < GRID_ROWS; row++) {
+      grid[row] = [];
+      for (let col = 0; col < GRID_COLS; col++) {
+        const cell = createCell(row, col);
+        grid[row][col] = cell;
+        gridContainer.addChild(cell.graphics);
+      }
+    }
+
+    // Items container (for z-ordering during drag)
+    const itemsContainer = new PIXI.Container();
+    gridContainer.addChild(itemsContainer);
+
+    app.stage.addChild(gridContainer);
+
+    // Create a cell
+    function createCell(row, col) {
+      const x = GRID_PADDING + col * (CELL_SIZE + CELL_GAP);
+      const y = GRID_PADDING + row * (CELL_SIZE + CELL_GAP);
+
+      const graphics = new PIXI.Graphics();
+      drawCell(graphics, x, y, false);
+
+      return {
+        row,
+        col,
+        x,
+        y,
+        graphics,
+        item: null,
+        highlighted: false
+      };
+    }
+
+    function drawCell(graphics, x, y, highlighted, canDrop = true) {
+      graphics.clear();
+
+      // Cell background
+      graphics.roundRect(x, y, CELL_SIZE, CELL_SIZE, 8);
+      graphics.fill({ color: highlighted ? (canDrop ? 0x4CAF50 : 0xF44336) : 0x2a2a4a, alpha: highlighted ? 0.5 : 1 });
+      graphics.stroke({ color: 0x444464, width: 2 });
+
+      if (!highlighted) {
+        // Empty indicator
+        graphics.moveTo(x + CELL_SIZE/2 - 10, y + CELL_SIZE/2);
+        graphics.lineTo(x + CELL_SIZE/2 + 10, y + CELL_SIZE/2);
+        graphics.moveTo(x + CELL_SIZE/2, y + CELL_SIZE/2 - 10);
+        graphics.lineTo(x + CELL_SIZE/2, y + CELL_SIZE/2 + 10);
+        graphics.stroke({ color: 0x555575, width: 2 });
+      }
+    }
+
+    // Create a merge item
+    function createItem(tier, cell) {
+      const size = CELL_SIZE * 0.75;
+      const container = new PIXI.Container();
+      container.x = cell.x + CELL_SIZE / 2;
+      container.y = cell.y + CELL_SIZE / 2;
+
+      const graphics = new PIXI.Graphics();
+      drawItem(graphics, tier, size);
+      container.addChild(graphics);
+
+      // Tier label
+      const label = new PIXI.Text({
+        text: tier.toString(),
+        style: {
+          fontFamily: 'Arial Black',
+          fontSize: size * 0.4,
+          fill: 0xFFFFFF,
+          fontWeight: 'bold',
+          dropShadow: true,
+          dropShadowColor: 0x000000,
+          dropShadowDistance: 2
+        }
+      });
+      label.anchor.set(0.5);
+      container.addChild(label);
+
+      // Make interactive
+      container.eventMode = 'static';
+      container.cursor = 'pointer';
+
+      const item = {
+        tier,
+        container,
+        graphics,
+        label,
+        cell,
+        size
+      };
+
+      // Drag events
+      container.on('pointerdown', (e) => onDragStart(e, item));
+      container.on('pointermove', (e) => onDragMove(e, item));
+      container.on('pointerup', (e) => onDragEnd(e, item));
+      container.on('pointerupoutside', (e) => onDragEnd(e, item));
+
+      items.push(item);
+      itemsContainer.addChild(container);
+      cell.item = item;
+
+      // Spawn animation
+      container.scale.set(0);
+      animateScale(container, 1, 0.3, 'backOut');
+
+      return item;
+    }
+
+    function drawItem(graphics, tier, size) {
+      const colorIndex = Math.min(tier, TIER_COLORS.length - 1);
+      const color = TIER_COLORS[colorIndex];
+
+      graphics.clear();
+
+      // Shadow
+      graphics.roundRect(-size/2 + 3, -size/2 + 3, size, size, size * 0.2);
+      graphics.fill({ color: 0x000000, alpha: 0.3 });
+
+      // Main shape
+      graphics.roundRect(-size/2, -size/2, size, size, size * 0.2);
+      graphics.fill({ color: color });
+
+      // Highlight
+      graphics.roundRect(-size/2 + 4, -size/2 + 4, size - 8, size * 0.3, size * 0.15);
+      graphics.fill({ color: 0xFFFFFF, alpha: 0.3 });
+    }
+
+    // Drag handlers
+    function onDragStart(e, item) {
+      draggedItem = item;
+      draggedFromCell = item.cell;
+
+      // Store original position
+      item.originalPos = { x: item.container.x, y: item.container.y };
+
+      // Remove from cell
+      item.cell.item = null;
+      item.cell = null;
+
+      // Bring to front
+      itemsContainer.setChildIndex(item.container, itemsContainer.children.length - 1);
+
+      // Scale up slightly
+      animateScale(item.container, 1.1, 0.1);
+    }
+
+    function onDragMove(e, item) {
+      if (draggedItem !== item) return;
+
+      const pos = e.getLocalPosition(gridContainer);
+      item.container.x = pos.x;
+      item.container.y = pos.y;
+
+      // Find cell under cursor
+      const cellUnder = getCellAt(pos.x, pos.y);
+
+      // Update highlights
+      if (highlightedCell && highlightedCell !== cellUnder) {
+        drawCell(highlightedCell.graphics, highlightedCell.x, highlightedCell.y, false);
+        highlightedCell.highlighted = false;
+      }
+
+      if (cellUnder && cellUnder !== highlightedCell) {
+        const canDrop = !cellUnder.item || (cellUnder.item && cellUnder.item.tier === item.tier);
+        drawCell(cellUnder.graphics, cellUnder.x, cellUnder.y, true, canDrop);
+        cellUnder.highlighted = true;
+        highlightedCell = cellUnder;
+      }
+    }
+
+    function onDragEnd(e, item) {
+      if (draggedItem !== item) return;
+
+      // Clear highlight
+      if (highlightedCell) {
+        drawCell(highlightedCell.graphics, highlightedCell.x, highlightedCell.y, false);
+        highlightedCell.highlighted = false;
+        highlightedCell = null;
+      }
+
+      // Scale back
+      animateScale(item.container, 1, 0.1);
+
+      const pos = e.getLocalPosition(gridContainer);
+      const targetCell = getCellAt(pos.x, pos.y);
+
+      if (targetCell) {
+        if (!targetCell.item) {
+          // Place in empty cell
+          placeItemInCell(item, targetCell);
+        } else if (targetCell.item.tier === item.tier) {
+          // Merge!
+          performMerge(item, targetCell.item, targetCell);
+        } else {
+          // Return to original
+          returnToCell(item, draggedFromCell);
+        }
+      } else {
+        // Dropped outside grid
+        returnToCell(item, draggedFromCell);
+      }
+
+      draggedItem = null;
+      draggedFromCell = null;
+    }
+
+    function getCellAt(x, y) {
+      for (let row = 0; row < GRID_ROWS; row++) {
+        for (let col = 0; col < GRID_COLS; col++) {
+          const cell = grid[row][col];
+          if (x >= cell.x && x <= cell.x + CELL_SIZE &&
+              y >= cell.y && y <= cell.y + CELL_SIZE) {
+            return cell;
+          }
+        }
+      }
+      return null;
+    }
+
+    function placeItemInCell(item, cell) {
+      item.cell = cell;
+      cell.item = item;
+
+      // Animate to cell center
+      animatePosition(item.container, cell.x + CELL_SIZE/2, cell.y + CELL_SIZE/2, 0.15);
+    }
+
+    function returnToCell(item, cell) {
+      if (cell) {
+        placeItemInCell(item, cell);
+      }
+    }
+
+    function performMerge(droppedItem, existingItem, cell) {
+      const newTier = existingItem.tier + 1;
+
+      // Animate both items shrinking
+      animateScale(droppedItem.container, 0, 0.2);
+      animateScale(existingItem.container, 0, 0.2);
+
+      // After animation, create new item
+      setTimeout(() => {
+        // Remove old items
+        removeItem(droppedItem);
+        removeItem(existingItem);
+
+        // Create merged item
+        const newItem = createItem(newTier, cell);
+
+        // Update score
+        score += newTier * 100;
+        mergeCount++;
+        updateUI();
+
+        // Check for level up
+        if (mergeCount >= level * 5) {
+          level++;
+          updateUI();
+        }
+
+        // Check for max tier
+        if (newTier >= 10) {
+          showMaxTierCelebration();
+        }
+      }, 200);
+    }
+
+    function removeItem(item) {
+      const index = items.indexOf(item);
+      if (index > -1) {
+        items.splice(index, 1);
+      }
+      if (item.cell) {
+        item.cell.item = null;
+      }
+      item.container.destroy();
+    }
+
+    // Animation helpers
+    function animateScale(target, toScale, duration, easing = 'linear') {
+      const startScale = target.scale.x;
+      const startTime = performance.now();
+      const durationMs = duration * 1000;
+
+      function update() {
+        const elapsed = performance.now() - startTime;
+        const progress = Math.min(elapsed / durationMs, 1);
+
+        let easedProgress = progress;
+        if (easing === 'backOut') {
+          const c1 = 1.70158;
+          const c3 = c1 + 1;
+          easedProgress = 1 + c3 * Math.pow(progress - 1, 3) + c1 * Math.pow(progress - 1, 2);
+        }
+
+        target.scale.set(startScale + (toScale - startScale) * easedProgress);
+
+        if (progress < 1) {
+          requestAnimationFrame(update);
+        }
+      }
+
+      requestAnimationFrame(update);
+    }
+
+    function animatePosition(target, toX, toY, duration) {
+      const startX = target.x;
+      const startY = target.y;
+      const startTime = performance.now();
+      const durationMs = duration * 1000;
+
+      function update() {
+        const elapsed = performance.now() - startTime;
+        const progress = Math.min(elapsed / durationMs, 1);
+
+        // Ease out
+        const easedProgress = 1 - Math.pow(1 - progress, 3);
+
+        target.x = startX + (toX - startX) * easedProgress;
+        target.y = startY + (toY - startY) * easedProgress;
+
+        if (progress < 1) {
+          requestAnimationFrame(update);
+        }
+      }
+
+      requestAnimationFrame(update);
+    }
+
+    // UI Updates
+    function updateUI() {
+      document.getElementById('score').textContent = score.toLocaleString();
+      document.getElementById('level').textContent = level;
+    }
+
+    function showMaxTierCelebration() {
+      // Simple celebration effect
+      console.log('MAX TIER REACHED!');
+    }
+
+    // Spawn button
+    document.getElementById('spawn-btn').addEventListener('click', () => {
+      spawnRandomItem();
+    });
+
+    function spawnRandomItem() {
+      const emptyCells = [];
+      for (let row = 0; row < GRID_ROWS; row++) {
+        for (let col = 0; col < GRID_COLS; col++) {
+          if (!grid[row][col].item) {
+            emptyCells.push(grid[row][col]);
+          }
+        }
+      }
+
+      if (emptyCells.length === 0) {
+        document.getElementById('spawn-btn').disabled = true;
+        return;
+      }
+
+      const cell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+
+      // Random tier (weighted towards lower tiers)
+      const tierRoll = Math.random();
+      let tier = 1;
+      if (tierRoll > 0.9) tier = 3;
+      else if (tierRoll > 0.7) tier = 2;
+
+      createItem(tier, cell);
+
+      // Update button state
+      if (emptyCells.length <= 1) {
+        document.getElementById('spawn-btn').disabled = true;
+      }
+    }
+
+    // Initial spawn
+    spawnRandomItem();
+    spawnRandomItem();
+    spawnRandomItem();
+
+    // Enable spawn button when cells become available after merge
+    app.ticker.add(() => {
+      const emptyCells = [];
+      for (let row = 0; row < GRID_ROWS; row++) {
+        for (let col = 0; col < GRID_COLS; col++) {
+          if (!grid[row][col].item) {
+            emptyCells.push(grid[row][col]);
+          }
+        }
+      }
+      document.getElementById('spawn-btn').disabled = emptyCells.length === 0;
+    });
+  </script>
+</body>
+</html>

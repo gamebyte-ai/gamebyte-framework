@@ -247,6 +247,7 @@ export { UI, Animations, Themes } from './facades/UI';
 export { Input } from './facades/Input';
 export { Physics } from './facades/Physics';
 export { Performance } from './facades/Performance';
+export { Merge } from './facades/Merge';
 
 // UI System Components
 export { BaseUIComponent } from './ui/core/BaseUIComponent';
@@ -258,6 +259,28 @@ export { UIPanel } from './ui/components/UIPanel';
 export { UIProgressBar } from './ui/components/UIProgressBar';
 export { TopBar, TopBarItemType } from './ui/components/TopBar';
 export type { TopBarConfig, TopBarItemConfig, TopBarTheme } from './ui/components/TopBar';
+
+// Merge Game Components
+export { MergeGrid, MergeCell, MergeItem } from './ui/components/merge';
+export type {
+  MergeGridConfig,
+  MergeGridEvents,
+  MergeCellConfig,
+  MergeCellEvents,
+  MergeItemConfig,
+  MergeItemEvents
+} from './ui/components/merge';
+
+// Merge Game System (High-level API)
+export { MergeManager } from './merge/MergeManager';
+export type {
+  MergeGameConfig,
+  MergeGameState,
+  MergeManagerEvents
+} from './merge/MergeManager';
+export { MergeServiceProvider } from './services/MergeServiceProvider';
+export { MergeGameScene } from './scenes/MergeGameScene';
+export type { MergeGameSceneConfig } from './scenes/MergeGameScene';
 
 // Layout & UI Adapters (@pixi/layout, @pixi/ui)
 // NOTE: These adapters are temporarily disabled pending refactoring
@@ -453,6 +476,7 @@ import { Input } from './facades/Input';
 import { Physics } from './facades/Physics';
 import { Performance } from './facades/Performance';
 import { Audio as AudioFacadeExport } from './facades/Audio';
+import { Merge as MergeFacadeExport } from './facades/Merge';
 
 // Import QuickGameConfig for the createGame function
 import type { QuickGameConfig } from './core/GameByte';
@@ -506,10 +530,36 @@ export function createGame(config?: QuickGameConfig): GameByte | Promise<GameByt
 // Utility function to create a GameByte instance with UI system optimized for mobile games
 export function createMobileGame(): GameByte {
   const app = createGame();
-  
+
   // Additional mobile optimizations could be applied here
   // such as specific renderer configurations, performance settings, etc.
-  
+
+  return app;
+}
+
+/**
+ * Create a GameByte instance pre-configured for merge puzzle games.
+ *
+ * @example
+ * ```typescript
+ * const game = createMergeGame();
+ * await game.initialize(canvas, '2d');
+ *
+ * // Use the Merge facade
+ * Merge.createGame({ rows: 5, cols: 5 });
+ * scene.addChild(Merge.getContainer());
+ * Merge.start();
+ *
+ * game.start();
+ * ```
+ */
+export function createMergeGame(): GameByte {
+  const app = createGame();
+
+  // Register merge service provider
+  const { MergeServiceProvider: MSP } = require('./services/MergeServiceProvider');
+  app.register(new MSP());
+
   return app;
 }
 
@@ -521,7 +571,7 @@ const GameByteFramework = {
   RenderingMode,
   ServiceContainer,
   Assets,
-  
+
   // Facades for static access
   Renderer: null as any, // Will be set after app initialization
   Scenes: null as any,   // Will be set after app initialization
@@ -532,7 +582,8 @@ const GameByteFramework = {
   Input: null as any,    // Will be set after app initialization
   Physics: null as any,  // Will be set after app initialization
   Performance: null as any, // Will be set after app initialization
-  Audio: null as any       // Will be set after app initialization
+  Audio: null as any,      // Will be set after app initialization
+  Merge: null as any       // Will be set after app initialization
 };
 
 export default GameByteFramework;
@@ -556,4 +607,5 @@ export function initializeFacades(app: GameByte): void {
   GameByteFramework.Physics = Physics;
   GameByteFramework.Performance = Performance;
   GameByteFramework.Audio = AudioFacadeExport;
+  GameByteFramework.Merge = MergeFacadeExport;
 }
