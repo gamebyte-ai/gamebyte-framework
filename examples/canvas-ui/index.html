@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas UI Components - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0f0f1a;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="../../dist/gamebyte.umd.js"></script>
+
+    <script>
+        const { GameByte, UIButton, ArcheroMenu, ARCHERO_COLORS } = GameByteFramework;
+
+        // Custom UI Components built with PixiJS
+
+        // Animated Button Component
+        class AnimatedButton {
+            constructor(options) {
+                this.container = new PIXI.Container();
+                this.width = options.width || 200;
+                this.height = options.height || 60;
+                this.text = options.text || 'Button';
+                this.color = options.color || 0x8b5cf6;
+                this.onClick = options.onClick || (() => {});
+
+                this.isHovered = false;
+                this.isPressed = false;
+                this.scale = 1;
+                this.targetScale = 1;
+
+                this.create();
+            }
+
+            create() {
+                // Shadow
+                this.shadow = new PIXI.Graphics();
+                this.shadow.roundRect(-this.width/2, -this.height/2 + 4, this.width, this.height, 12);
+                this.shadow.fill({ color: 0x000000, alpha: 0.3 });
+                this.container.addChild(this.shadow);
+
+                // Background
+                this.bg = new PIXI.Graphics();
+                this.drawBackground();
+                this.container.addChild(this.bg);
+
+                // Shine effect
+                this.shine = new PIXI.Graphics();
+                this.shine.roundRect(-this.width/2 + 4, -this.height/2 + 4, this.width - 8, this.height/2 - 4, 8);
+                this.shine.fill({ color: 0xffffff, alpha: 0.2 });
+                this.container.addChild(this.shine);
+
+                // Text
+                this.label = new PIXI.Text({
+                    text: this.text,
+                    style: {
+                        fill: 0xffffff,
+                        fontSize: 18,
+                        fontWeight: 'bold',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif'
+                    }
+                });
+                this.label.anchor.set(0.5);
+                this.container.addChild(this.label);
+
+                // Interactive
+                this.container.eventMode = 'static';
+                this.container.cursor = 'pointer';
+
+                this.container.on('pointerover', () => {
+                    this.isHovered = true;
+                    this.targetScale = 1.05;
+                });
+
+                this.container.on('pointerout', () => {
+                    this.isHovered = false;
+                    this.isPressed = false;
+                    this.targetScale = 1;
+                });
+
+                this.container.on('pointerdown', () => {
+                    this.isPressed = true;
+                    this.targetScale = 0.95;
+                });
+
+                this.container.on('pointerup', () => {
+                    if (this.isPressed) {
+                        this.onClick();
+                        this.isPressed = false;
+                        this.targetScale = this.isHovered ? 1.05 : 1;
+                    }
+                });
+            }
+
+            drawBackground() {
+                this.bg.clear();
+                this.bg.roundRect(-this.width/2, -this.height/2, this.width, this.height, 12);
+                this.bg.fill(this.color);
+                this.bg.stroke({ width: 2, color: 0xffffff, alpha: 0.2 });
+            }
+
+            setPosition(x, y) {
+                this.container.x = x;
+                this.container.y = y;
+            }
+
+            update() {
+                // Smooth scale animation
+                this.scale += (this.targetScale - this.scale) * 0.2;
+                this.container.scale.set(this.scale);
+            }
+        }
+
+        // Progress Bar Component
+        class ProgressBar {
+            constructor(options) {
+                this.container = new PIXI.Container();
+                this.width = options.width || 300;
+                this.height = options.height || 30;
+                this.value = options.value || 0;
+                this.maxValue = options.maxValue || 100;
+                this.color = options.color || 0x22c55e;
+                this.label = options.label || '';
+                this.showPercentage = options.showPercentage !== false;
+                this.animated = options.animated !== false;
+
+                this.displayValue = this.value;
+                this.create();
+            }
+
+            create() {
+                // Background
+                this.bg = new PIXI.Graphics();
+                this.bg.roundRect(0, 0, this.width, this.height, this.height / 2);
+                this.bg.fill({ color: 0x333333, alpha: 0.8 });
+                this.bg.stroke({ width: 2, color: 0x555555 });
+                this.container.addChild(this.bg);
+
+                // Fill
+                this.fill = new PIXI.Graphics();
+                this.container.addChild(this.fill);
+
+                // Shine
+                this.shine = new PIXI.Graphics();
+                this.shine.roundRect(4, 4, this.width - 8, this.height / 2 - 4, this.height / 4);
+                this.shine.fill({ color: 0xffffff, alpha: 0.1 });
+                this.container.addChild(this.shine);
+
+                // Label
+                if (this.label) {
+                    this.labelText = new PIXI.Text({
+                        text: this.label,
+                        style: { fill: 0xffffff, fontSize: 14, fontWeight: 'bold' }
+                    });
+                    this.labelText.x = 10;
+                    this.labelText.y = this.height / 2;
+                    this.labelText.anchor.set(0, 0.5);
+                    this.container.addChild(this.labelText);
+                }
+
+                // Percentage text
+                if (this.showPercentage) {
+                    this.percentText = new PIXI.Text({
+                        text: '0%',
+                        style: { fill: 0xffffff, fontSize: 14, fontWeight: 'bold' }
+                    });
+                    this.percentText.x = this.width - 10;
+                    this.percentText.y = this.height / 2;
+                    this.percentText.anchor.set(1, 0.5);
+                    this.container.addChild(this.percentText);
+                }
+
+                this.updateFill();
+            }
+
+            updateFill() {
+                const percentage = Math.max(0, Math.min(1, this.displayValue / this.maxValue));
+                const fillWidth = Math.max(0, (this.width - 8) * percentage);
+
+                this.fill.clear();
+                if (fillWidth > 0) {
+                    this.fill.roundRect(4, 4, fillWidth, this.height - 8, (this.height - 8) / 2);
+                    this.fill.fill(this.color);
+                }
+
+                if (this.percentText) {
+                    this.percentText.text = `${Math.round(percentage * 100)}%`;
+                }
+            }
+
+            setValue(value) {
+                this.value = value;
+            }
+
+            setPosition(x, y) {
+                this.container.x = x;
+                this.container.y = y;
+            }
+
+            update() {
+                if (this.animated) {
+                    this.displayValue += (this.value - this.displayValue) * 0.1;
+                } else {
+                    this.displayValue = this.value;
+                }
+                this.updateFill();
+            }
+        }
+
+        // Card Component
+        class Card {
+            constructor(options) {
+                this.container = new PIXI.Container();
+                this.width = options.width || 180;
+                this.height = options.height || 240;
+                this.title = options.title || 'Card';
+                this.icon = options.icon || '?';
+                this.description = options.description || '';
+                this.rarity = options.rarity || 'common';
+                this.onClick = options.onClick || (() => {});
+
+                this.isHovered = false;
+                this.rotation = 0;
+                this.targetRotation = 0;
+
+                this.create();
+            }
+
+            create() {
+                const rarityColors = {
+                    common: 0x888888,
+                    rare: 0x3b82f6,
+                    epic: 0x8b5cf6,
+                    legendary: 0xf59e0b
+                };
+                const color = rarityColors[this.rarity] || rarityColors.common;
+
+                // Card background
+                this.bg = new PIXI.Graphics();
+                this.bg.roundRect(0, 0, this.width, this.height, 16);
+                this.bg.fill({ color: 0x1a1a2e, alpha: 0.95 });
+                this.bg.stroke({ width: 3, color: color });
+                this.container.addChild(this.bg);
+
+                // Gradient overlay
+                this.overlay = new PIXI.Graphics();
+                this.overlay.roundRect(0, 0, this.width, this.height / 2, 16);
+                this.overlay.fill({ color: color, alpha: 0.1 });
+                this.container.addChild(this.overlay);
+
+                // Icon circle
+                this.iconBg = new PIXI.Graphics();
+                this.iconBg.circle(this.width / 2, 70, 40);
+                this.iconBg.fill(color);
+                this.container.addChild(this.iconBg);
+
+                // Icon text
+                this.iconText = new PIXI.Text({
+                    text: this.icon,
+                    style: { fill: 0xffffff, fontSize: 36 }
+                });
+                this.iconText.anchor.set(0.5);
+                this.iconText.x = this.width / 2;
+                this.iconText.y = 70;
+                this.container.addChild(this.iconText);
+
+                // Title
+                this.titleText = new PIXI.Text({
+                    text: this.title,
+                    style: {
+                        fill: 0xffffff,
+                        fontSize: 16,
+                        fontWeight: 'bold',
+                        wordWrap: true,
+                        wordWrapWidth: this.width - 20
+                    }
+                });
+                this.titleText.anchor.set(0.5, 0);
+                this.titleText.x = this.width / 2;
+                this.titleText.y = 130;
+                this.container.addChild(this.titleText);
+
+                // Description
+                this.descText = new PIXI.Text({
+                    text: this.description,
+                    style: {
+                        fill: 0x888888,
+                        fontSize: 12,
+                        wordWrap: true,
+                        wordWrapWidth: this.width - 30
+                    }
+                });
+                this.descText.anchor.set(0.5, 0);
+                this.descText.x = this.width / 2;
+                this.descText.y = 160;
+                this.container.addChild(this.descText);
+
+                // Rarity badge
+                this.badge = new PIXI.Graphics();
+                this.badge.roundRect(this.width / 2 - 40, this.height - 40, 80, 24, 12);
+                this.badge.fill(color);
+                this.container.addChild(this.badge);
+
+                this.badgeText = new PIXI.Text({
+                    text: this.rarity.toUpperCase(),
+                    style: { fill: 0xffffff, fontSize: 11, fontWeight: 'bold' }
+                });
+                this.badgeText.anchor.set(0.5);
+                this.badgeText.x = this.width / 2;
+                this.badgeText.y = this.height - 28;
+                this.container.addChild(this.badgeText);
+
+                // Interactive
+                this.container.eventMode = 'static';
+                this.container.cursor = 'pointer';
+
+                this.container.on('pointerover', () => {
+                    this.isHovered = true;
+                    this.targetRotation = 0.05;
+                });
+
+                this.container.on('pointerout', () => {
+                    this.isHovered = false;
+                    this.targetRotation = 0;
+                });
+
+                this.container.on('pointerdown', () => {
+                    this.onClick();
+                });
+            }
+
+            setPosition(x, y) {
+                this.container.x = x;
+                this.container.y = y;
+                this.container.pivot.set(this.width / 2, this.height / 2);
+            }
+
+            update() {
+                this.rotation += (this.targetRotation - this.rotation) * 0.1;
+                this.container.rotation = this.rotation;
+                this.container.scale.set(this.isHovered ? 1.05 : 1);
+            }
+        }
+
+        // Toast Notification
+        class Toast {
+            constructor(stage, text, type = 'success') {
+                this.stage = stage;
+                this.container = new PIXI.Container();
+                this.life = 3;
+
+                const colors = {
+                    success: 0x22c55e,
+                    error: 0xef4444,
+                    warning: 0xf59e0b,
+                    info: 0x3b82f6
+                };
+                const color = colors[type] || colors.info;
+
+                // Background
+                const bg = new PIXI.Graphics();
+                bg.roundRect(0, 0, 300, 50, 10);
+                bg.fill({ color: 0x1a1a2e, alpha: 0.95 });
+                bg.stroke({ width: 2, color: color });
+                this.container.addChild(bg);
+
+                // Icon
+                const icon = new PIXI.Graphics();
+                icon.circle(25, 25, 12);
+                icon.fill(color);
+                this.container.addChild(icon);
+
+                // Text
+                const textObj = new PIXI.Text({
+                    text,
+                    style: { fill: 0xffffff, fontSize: 14 }
+                });
+                textObj.x = 50;
+                textObj.y = 17;
+                this.container.addChild(textObj);
+
+                this.container.x = window.innerWidth / 2 - 150;
+                this.container.y = -60;
+                this.targetY = 20;
+
+                stage.addChild(this.container);
+            }
+
+            update(deltaTime) {
+                // Slide in
+                this.container.y += (this.targetY - this.container.y) * 0.15;
+
+                this.life -= deltaTime;
+                if (this.life < 1) {
+                    this.container.alpha = this.life;
+                }
+
+                if (this.life <= 0) {
+                    this.stage.removeChild(this.container);
+                    return false;
+                }
+                return true;
+            }
+        }
+
+        // Initialize
+        (async () => {
+            const container = document.getElementById('game-container');
+            const { app, stage } = await GameByte.quick2D(container, window.innerWidth, window.innerHeight);
+
+            // Background
+            const bg = new PIXI.Graphics();
+            bg.rect(0, 0, window.innerWidth, window.innerHeight);
+            bg.fill(0x0f0f1a);
+            stage.addChild(bg);
+
+            // Title
+            const title = new PIXI.Text({
+                text: 'GameByte UI Components',
+                style: {
+                    fill: 0xffffff,
+                    fontSize: 32,
+                    fontWeight: 'bold'
+                }
+            });
+            title.anchor.set(0.5, 0);
+            title.x = window.innerWidth / 2;
+            title.y = 30;
+            stage.addChild(title);
+
+            const subtitle = new PIXI.Text({
+                text: 'Interactive canvas-based UI built with PixiJS',
+                style: {
+                    fill: 0x888888,
+                    fontSize: 16
+                }
+            });
+            subtitle.anchor.set(0.5, 0);
+            subtitle.x = window.innerWidth / 2;
+            subtitle.y = 70;
+            stage.addChild(subtitle);
+
+            // Store all updateable components
+            const components = [];
+            const toasts = [];
+
+            // --- BUTTONS SECTION ---
+            const buttonSection = new PIXI.Text({
+                text: 'Buttons',
+                style: { fill: 0x8b5cf6, fontSize: 20, fontWeight: 'bold' }
+            });
+            buttonSection.x = 50;
+            buttonSection.y = 120;
+            stage.addChild(buttonSection);
+
+            const primaryBtn = new AnimatedButton({
+                text: 'Primary Action',
+                width: 180,
+                height: 50,
+                color: 0x8b5cf6,
+                onClick: () => toasts.push(new Toast(stage, 'Primary button clicked!', 'info'))
+            });
+            primaryBtn.setPosition(140, 190);
+            stage.addChild(primaryBtn.container);
+            components.push(primaryBtn);
+
+            const successBtn = new AnimatedButton({
+                text: 'Success',
+                width: 140,
+                height: 50,
+                color: 0x22c55e,
+                onClick: () => toasts.push(new Toast(stage, 'Action completed successfully!', 'success'))
+            });
+            successBtn.setPosition(320, 190);
+            stage.addChild(successBtn.container);
+            components.push(successBtn);
+
+            const dangerBtn = new AnimatedButton({
+                text: 'Danger',
+                width: 120,
+                height: 50,
+                color: 0xef4444,
+                onClick: () => toasts.push(new Toast(stage, 'Warning! Dangerous action!', 'error'))
+            });
+            dangerBtn.setPosition(460, 190);
+            stage.addChild(dangerBtn.container);
+            components.push(dangerBtn);
+
+            // --- PROGRESS BARS SECTION ---
+            const progressSection = new PIXI.Text({
+                text: 'Progress Bars',
+                style: { fill: 0x22c55e, fontSize: 20, fontWeight: 'bold' }
+            });
+            progressSection.x = 50;
+            progressSection.y = 260;
+            stage.addChild(progressSection);
+
+            const healthBar = new ProgressBar({
+                width: 250,
+                height: 28,
+                value: 75,
+                maxValue: 100,
+                color: 0xef4444,
+                label: 'HP'
+            });
+            healthBar.setPosition(50, 300);
+            stage.addChild(healthBar.container);
+            components.push(healthBar);
+
+            const xpBar = new ProgressBar({
+                width: 250,
+                height: 28,
+                value: 45,
+                maxValue: 100,
+                color: 0x8b5cf6,
+                label: 'XP'
+            });
+            xpBar.setPosition(50, 340);
+            stage.addChild(xpBar.container);
+            components.push(xpBar);
+
+            const energyBar = new ProgressBar({
+                width: 250,
+                height: 28,
+                value: 90,
+                maxValue: 100,
+                color: 0x3b82f6,
+                label: 'Energy'
+            });
+            energyBar.setPosition(50, 380);
+            stage.addChild(energyBar.container);
+            components.push(energyBar);
+
+            // --- CARDS SECTION ---
+            const cardsSection = new PIXI.Text({
+                text: 'Item Cards',
+                style: { fill: 0xf59e0b, fontSize: 20, fontWeight: 'bold' }
+            });
+            cardsSection.x = 50;
+            cardsSection.y = 440;
+            stage.addChild(cardsSection);
+
+            const card1 = new Card({
+                title: 'Fire Sword',
+                icon: '?',
+                description: '+25 Attack\n+10 Fire Damage',
+                rarity: 'legendary',
+                onClick: () => toasts.push(new Toast(stage, 'Legendary item selected!', 'warning'))
+            });
+            card1.setPosition(140, 600);
+            stage.addChild(card1.container);
+            components.push(card1);
+
+            const card2 = new Card({
+                title: 'Magic Shield',
+                icon: '?',
+                description: '+50 Defense\n+15 Magic Resist',
+                rarity: 'epic',
+                onClick: () => toasts.push(new Toast(stage, 'Epic item selected!', 'info'))
+            });
+            card2.setPosition(340, 600);
+            stage.addChild(card2.container);
+            components.push(card2);
+
+            const card3 = new Card({
+                title: 'Health Potion',
+                icon: '?',
+                description: 'Restores 50 HP\nInstant use',
+                rarity: 'rare',
+                onClick: () => {
+                    healthBar.setValue(Math.min(100, healthBar.value + 25));
+                    toasts.push(new Toast(stage, '+25 HP restored!', 'success'));
+                }
+            });
+            card3.setPosition(540, 600);
+            stage.addChild(card3.container);
+            components.push(card3);
+
+            // --- ARCHERO MENU (using framework component) ---
+            const menuSection = new PIXI.Text({
+                text: 'Archero-Style Menu',
+                style: { fill: 0xec4899, fontSize: 20, fontWeight: 'bold' }
+            });
+            menuSection.x = window.innerWidth - 400;
+            menuSection.y = 120;
+            stage.addChild(menuSection);
+
+            // Create a mini Archero menu
+            try {
+                const menu = new ArcheroMenu({
+                    sections: [
+                        { id: 'home', label: 'Home', icon: 'home' },
+                        { id: 'heroes', label: 'Heroes', icon: 'heroes' },
+                        { id: 'battle', label: 'Battle', icon: 'battle' },
+                        { id: 'shop', label: 'Shop', icon: 'shop' }
+                    ],
+                    activeSection: 2,
+                    canvasWidth: 350,
+                    canvasHeight: 120,
+                    callbacks: {
+                        onSectionChange: (index, section) => {
+                            toasts.push(new Toast(stage, `Switched to ${section.label}`, 'info'));
+                        }
+                    }
+                });
+                menu.container.x = window.innerWidth - 400;
+                menu.container.y = 160;
+                menu.container.scale.set(0.9);
+                stage.addChild(menu.container);
+            } catch (e) {
+                console.log('ArcheroMenu not available:', e);
+            }
+
+            // Stats panel
+            const statsPanel = new PIXI.Container();
+            statsPanel.x = window.innerWidth - 400;
+            statsPanel.y = 300;
+            stage.addChild(statsPanel);
+
+            const panelBg = new PIXI.Graphics();
+            panelBg.roundRect(0, 0, 350, 200, 16);
+            panelBg.fill({ color: 0x1a1a2e, alpha: 0.9 });
+            panelBg.stroke({ width: 2, color: 0x333355 });
+            statsPanel.addChild(panelBg);
+
+            const panelTitle = new PIXI.Text({
+                text: 'Player Stats',
+                style: { fill: 0xffffff, fontSize: 18, fontWeight: 'bold' }
+            });
+            panelTitle.x = 20;
+            panelTitle.y = 15;
+            statsPanel.addChild(panelTitle);
+
+            const stats = [
+                { label: 'Level', value: '42', color: 0xfbbf24 },
+                { label: 'Attack', value: '156', color: 0xef4444 },
+                { label: 'Defense', value: '89', color: 0x3b82f6 },
+                { label: 'Speed', value: '72', color: 0x22c55e }
+            ];
+
+            stats.forEach((stat, i) => {
+                const row = new PIXI.Container();
+                row.y = 50 + i * 35;
+                row.x = 20;
+
+                const label = new PIXI.Text({
+                    text: stat.label,
+                    style: { fill: 0x888888, fontSize: 14 }
+                });
+                row.addChild(label);
+
+                const value = new PIXI.Text({
+                    text: stat.value,
+                    style: { fill: stat.color, fontSize: 16, fontWeight: 'bold' }
+                });
+                value.x = 280;
+                value.anchor.set(1, 0);
+                row.addChild(value);
+
+                statsPanel.addChild(row);
+            });
+
+            // Animate progress bars
+            let time = 0;
+
+            // Update loop
+            app.ticker.add((ticker) => {
+                time += ticker.deltaMS / 1000;
+
+                // Update all components
+                components.forEach(c => c.update());
+
+                // Animate progress bars for demo
+                healthBar.setValue(50 + Math.sin(time * 0.5) * 30);
+                xpBar.setValue(50 + Math.sin(time * 0.7 + 1) * 40);
+                energyBar.setValue(50 + Math.sin(time * 0.3 + 2) * 45);
+
+                // Update toasts
+                for (let i = toasts.length - 1; i >= 0; i--) {
+                    if (!toasts[i].update(ticker.deltaMS / 1000)) {
+                        toasts.splice(i, 1);
+                    }
+                }
+            });
+
+            // Handle resize
+            window.addEventListener('resize', () => {
+                app.renderer.resize(window.innerWidth, window.innerHeight);
+                bg.clear();
+                bg.rect(0, 0, window.innerWidth, window.innerHeight);
+                bg.fill(0x0f0f1a);
+                title.x = window.innerWidth / 2;
+                subtitle.x = window.innerWidth / 2;
+            });
+        })();
+    </script>
+</body>
+</html>

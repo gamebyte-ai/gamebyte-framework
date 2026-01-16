@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sprite Animation - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #1a1a2e;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+        }
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 14px;
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            border-radius: 10px;
+        }
+        #controls p { margin: 5px 0; }
+        .key {
+            background: #333;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+    <div id="controls">
+        <p><span class="key">Arrow Keys</span> / <span class="key">WASD</span> - Move</p>
+        <p><span class="key">Space</span> - Jump</p>
+        <p><span class="key">Shift</span> - Run</p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="../../dist/gamebyte.umd.js"></script>
+
+    <script>
+        const { GameByte } = GameByteFramework;
+
+        // Animated character class
+        class AnimatedCharacter {
+            constructor(stage, x, y) {
+                this.container = new PIXI.Container();
+                this.container.x = x;
+                this.container.y = y;
+                stage.addChild(this.container);
+
+                this.vx = 0;
+                this.vy = 0;
+                this.speed = 5;
+                this.runMultiplier = 2;
+                this.jumpForce = 15;
+                this.gravity = 0.6;
+                this.isGrounded = true;
+                this.isRunning = false;
+                this.facingRight = true;
+                this.groundY = y;
+
+                // Animation state
+                this.currentFrame = 0;
+                this.frameTime = 0;
+                this.frameDelay = 100; // ms per frame
+                this.currentAnimation = 'idle';
+
+                // Create character parts (procedural sprite)
+                this.createCharacter();
+
+                // Animation frames
+                this.animations = {
+                    idle: { frames: 4, speed: 150 },
+                    walk: { frames: 6, speed: 80 },
+                    run: { frames: 6, speed: 50 },
+                    jump: { frames: 2, speed: 100 },
+                    fall: { frames: 2, speed: 100 }
+                };
+            }
+
+            createCharacter() {
+                // Body
+                this.body = new PIXI.Graphics();
+                this.body.roundRect(-20, -50, 40, 50, 8);
+                this.body.fill(0x4CAF50);
+                this.container.addChild(this.body);
+
+                // Head
+                this.head = new PIXI.Graphics();
+                this.head.circle(0, -65, 20);
+                this.head.fill(0xFFE4C4);
+                this.container.addChild(this.head);
+
+                // Eyes
+                this.leftEye = new PIXI.Graphics();
+                this.leftEye.circle(-8, -70, 4);
+                this.leftEye.fill(0x333333);
+                this.container.addChild(this.leftEye);
+
+                this.rightEye = new PIXI.Graphics();
+                this.rightEye.circle(8, -70, 4);
+                this.rightEye.fill(0x333333);
+                this.container.addChild(this.rightEye);
+
+                // Legs
+                this.leftLeg = new PIXI.Graphics();
+                this.leftLeg.roundRect(-15, 0, 12, 30, 4);
+                this.leftLeg.fill(0x2196F3);
+                this.container.addChild(this.leftLeg);
+
+                this.rightLeg = new PIXI.Graphics();
+                this.rightLeg.roundRect(3, 0, 12, 30, 4);
+                this.rightLeg.fill(0x2196F3);
+                this.container.addChild(this.rightLeg);
+
+                // Arms
+                this.leftArm = new PIXI.Graphics();
+                this.leftArm.roundRect(-28, -45, 10, 35, 4);
+                this.leftArm.fill(0xFFE4C4);
+                this.container.addChild(this.leftArm);
+
+                this.rightArm = new PIXI.Graphics();
+                this.rightArm.roundRect(18, -45, 10, 35, 4);
+                this.rightArm.fill(0xFFE4C4);
+                this.container.addChild(this.rightArm);
+            }
+
+            setAnimation(name) {
+                if (this.currentAnimation !== name) {
+                    this.currentAnimation = name;
+                    this.currentFrame = 0;
+                    this.frameTime = 0;
+                }
+            }
+
+            update(deltaTime, keys) {
+                // Movement
+                let moveX = 0;
+                if (keys.left) moveX = -1;
+                if (keys.right) moveX = 1;
+
+                this.isRunning = keys.shift;
+                const actualSpeed = this.speed * (this.isRunning ? this.runMultiplier : 1);
+                this.vx = moveX * actualSpeed;
+
+                // Facing direction
+                if (moveX !== 0) {
+                    this.facingRight = moveX > 0;
+                }
+
+                // Jump
+                if (keys.space && this.isGrounded) {
+                    this.vy = -this.jumpForce;
+                    this.isGrounded = false;
+                }
+
+                // Gravity
+                this.vy += this.gravity;
+
+                // Update position
+                this.container.x += this.vx;
+                this.container.y += this.vy;
+
+                // Ground collision
+                if (this.container.y >= this.groundY) {
+                    this.container.y = this.groundY;
+                    this.vy = 0;
+                    this.isGrounded = true;
+                }
+
+                // Screen bounds
+                if (this.container.x < 50) this.container.x = 50;
+                if (this.container.x > window.innerWidth - 50) this.container.x = window.innerWidth - 50;
+
+                // Determine animation
+                if (!this.isGrounded) {
+                    this.setAnimation(this.vy < 0 ? 'jump' : 'fall');
+                } else if (Math.abs(this.vx) > 0) {
+                    this.setAnimation(this.isRunning ? 'run' : 'walk');
+                } else {
+                    this.setAnimation('idle');
+                }
+
+                // Update animation frame
+                this.frameTime += deltaTime;
+                const anim = this.animations[this.currentAnimation];
+                if (this.frameTime >= anim.speed) {
+                    this.frameTime = 0;
+                    this.currentFrame = (this.currentFrame + 1) % anim.frames;
+                }
+
+                // Apply animation
+                this.applyAnimation();
+
+                // Flip based on direction
+                this.container.scale.x = this.facingRight ? 1 : -1;
+            }
+
+            applyAnimation() {
+                const t = this.currentFrame / this.animations[this.currentAnimation].frames;
+                const bounce = Math.sin(t * Math.PI * 2);
+
+                switch (this.currentAnimation) {
+                    case 'idle':
+                        // Subtle breathing
+                        this.body.y = Math.sin(t * Math.PI * 2) * 2;
+                        this.head.y = Math.sin(t * Math.PI * 2) * 1;
+                        this.leftLeg.y = 0;
+                        this.rightLeg.y = 0;
+                        this.leftArm.rotation = 0;
+                        this.rightArm.rotation = 0;
+                        break;
+
+                    case 'walk':
+                        // Walking animation
+                        this.body.y = Math.abs(bounce) * 3;
+                        this.head.y = Math.abs(bounce) * 2;
+                        this.leftLeg.rotation = bounce * 0.4;
+                        this.rightLeg.rotation = -bounce * 0.4;
+                        this.leftArm.rotation = -bounce * 0.3;
+                        this.rightArm.rotation = bounce * 0.3;
+                        break;
+
+                    case 'run':
+                        // Running animation (faster, more exaggerated)
+                        this.body.y = Math.abs(bounce) * 5;
+                        this.body.rotation = bounce * 0.05;
+                        this.head.y = Math.abs(bounce) * 3;
+                        this.leftLeg.rotation = bounce * 0.6;
+                        this.rightLeg.rotation = -bounce * 0.6;
+                        this.leftArm.rotation = -bounce * 0.5;
+                        this.rightArm.rotation = bounce * 0.5;
+                        break;
+
+                    case 'jump':
+                        // Jump pose
+                        this.body.y = 0;
+                        this.leftLeg.rotation = -0.3;
+                        this.rightLeg.rotation = 0.3;
+                        this.leftArm.rotation = -0.5;
+                        this.rightArm.rotation = 0.5;
+                        break;
+
+                    case 'fall':
+                        // Falling pose
+                        this.body.y = 0;
+                        this.leftLeg.rotation = 0.2;
+                        this.rightLeg.rotation = -0.2;
+                        this.leftArm.rotation = 0.3;
+                        this.rightArm.rotation = -0.3;
+                        break;
+                }
+            }
+        }
+
+        // Floating platform class
+        class FloatingPlatform {
+            constructor(stage, x, y, width, moveRange = 0, speed = 1) {
+                this.graphics = new PIXI.Graphics();
+                this.graphics.roundRect(-width/2, -10, width, 20, 6);
+                this.graphics.fill(0x888888);
+                this.graphics.stroke({ width: 3, color: 0x666666 });
+                this.graphics.x = x;
+                this.graphics.y = y;
+                stage.addChild(this.graphics);
+
+                this.startX = x;
+                this.moveRange = moveRange;
+                this.speed = speed;
+                this.time = Math.random() * Math.PI * 2;
+            }
+
+            update(deltaTime) {
+                if (this.moveRange > 0) {
+                    this.time += deltaTime * 0.001 * this.speed;
+                    this.graphics.x = this.startX + Math.sin(this.time) * this.moveRange;
+                }
+            }
+
+            getBounds() {
+                return {
+                    x: this.graphics.x - this.graphics.width / 2,
+                    y: this.graphics.y - 10,
+                    width: this.graphics.width,
+                    height: 20
+                };
+            }
+        }
+
+        // Initialize
+        (async () => {
+            const container = document.getElementById('game-container');
+            const { app, stage } = await GameByte.quick2D(container, window.innerWidth, window.innerHeight);
+
+            // Background gradient
+            const bg = new PIXI.Graphics();
+            bg.rect(0, 0, window.innerWidth, window.innerHeight);
+            bg.fill(0x1a1a2e);
+            stage.addChild(bg);
+
+            // Ground
+            const groundY = window.innerHeight - 100;
+            const ground = new PIXI.Graphics();
+            ground.rect(0, groundY + 30, window.innerWidth, 100);
+            ground.fill(0x444444);
+            stage.addChild(ground);
+
+            // Platforms
+            const platforms = [
+                new FloatingPlatform(stage, 200, groundY - 80, 150, 50, 0.8),
+                new FloatingPlatform(stage, 500, groundY - 160, 120, 0),
+                new FloatingPlatform(stage, 750, groundY - 100, 100, 80, 1.2),
+                new FloatingPlatform(stage, 400, groundY - 260, 180, 100, 0.5),
+            ];
+
+            // Create character
+            const character = new AnimatedCharacter(stage, window.innerWidth / 2, groundY);
+
+            // Input state
+            const keys = {
+                left: false,
+                right: false,
+                space: false,
+                shift: false
+            };
+
+            // Keyboard handlers
+            window.addEventListener('keydown', (e) => {
+                switch (e.key.toLowerCase()) {
+                    case 'arrowleft': case 'a': keys.left = true; break;
+                    case 'arrowright': case 'd': keys.right = true; break;
+                    case ' ': keys.space = true; e.preventDefault(); break;
+                    case 'shift': keys.shift = true; break;
+                }
+            });
+
+            window.addEventListener('keyup', (e) => {
+                switch (e.key.toLowerCase()) {
+                    case 'arrowleft': case 'a': keys.left = false; break;
+                    case 'arrowright': case 'd': keys.right = false; break;
+                    case ' ': keys.space = false; break;
+                    case 'shift': keys.shift = false; break;
+                }
+            });
+
+            // Touch controls
+            let touchStartX = 0;
+            container.addEventListener('touchstart', (e) => {
+                touchStartX = e.touches[0].clientX;
+                const touchY = e.touches[0].clientY;
+                if (touchY < window.innerHeight / 2) {
+                    keys.space = true;
+                }
+            });
+
+            container.addEventListener('touchmove', (e) => {
+                const touchX = e.touches[0].clientX;
+                const diff = touchX - touchStartX;
+                keys.left = diff < -30;
+                keys.right = diff > 30;
+                keys.shift = Math.abs(diff) > 80;
+            });
+
+            container.addEventListener('touchend', () => {
+                keys.left = false;
+                keys.right = false;
+                keys.space = false;
+                keys.shift = false;
+            });
+
+            // Update loop
+            let lastTime = 0;
+            app.ticker.add((ticker) => {
+                const deltaTime = ticker.deltaMS;
+
+                // Update platforms
+                platforms.forEach(p => p.update(deltaTime));
+
+                // Save previous character state
+                const prevY = character.container.y;
+
+                // Update character
+                character.update(deltaTime, keys);
+
+                // Platform collision
+                platforms.forEach(platform => {
+                    const bounds = platform.getBounds();
+                    const charX = character.container.x;
+                    const charY = character.container.y;
+
+                    // Check if character is above platform and falling
+                    if (character.vy >= 0 &&
+                        prevY <= bounds.y &&
+                        charY >= bounds.y &&
+                        charX >= bounds.x &&
+                        charX <= bounds.x + bounds.width) {
+                        character.container.y = bounds.y;
+                        character.vy = 0;
+                        character.isGrounded = true;
+                        character.groundY = bounds.y;
+                    }
+                });
+
+                // Reset ground if below main ground
+                if (character.container.y >= groundY) {
+                    character.groundY = groundY;
+                }
+            });
+
+            // Handle resize
+            window.addEventListener('resize', () => {
+                app.renderer.resize(window.innerWidth, window.innerHeight);
+                bg.clear();
+                bg.rect(0, 0, window.innerWidth, window.innerHeight);
+                bg.fill(0x1a1a2e);
+                ground.clear();
+                ground.rect(0, groundY + 30, window.innerWidth, 100);
+                ground.fill(0x444444);
+            });
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hybrid 2D+3D Demo - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a0b;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        #three-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        #pixi-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2;
+            pointer-events: none;
+        }
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 3;
+            pointer-events: none;
+        }
+        #ui-layer > * {
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="three-canvas"></canvas>
+        <div id="pixi-canvas"></div>
+        <div id="ui-layer"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // ==================== THREE.JS SETUP ====================
+        const threeCanvas = document.getElementById('three-canvas');
+        const pixiContainer = document.getElementById('pixi-canvas');
+
+        // Scene
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0f0f1a);
+
+        // Camera
+        const camera = new THREE.PerspectiveCamera(
+            60,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+        );
+        camera.position.set(0, 8, 15);
+        camera.lookAt(0, 0, 0);
+
+        // Renderer
+        const renderer = new THREE.WebGLRenderer({
+            canvas: threeCanvas,
+            antialias: true
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+
+        // Controls
+        const controls = new OrbitControls(camera, threeCanvas);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 8;
+        controls.maxDistance = 25;
+        controls.maxPolarAngle = Math.PI / 2.2;
+
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0x404060, 0.4);
+        scene.add(ambientLight);
+
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        sunLight.position.set(15, 25, 15);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 2048;
+        sunLight.shadow.mapSize.height = 2048;
+        sunLight.shadow.camera.near = 0.5;
+        sunLight.shadow.camera.far = 60;
+        sunLight.shadow.camera.left = -25;
+        sunLight.shadow.camera.right = 25;
+        sunLight.shadow.camera.top = 25;
+        sunLight.shadow.camera.bottom = -25;
+        scene.add(sunLight);
+
+        // Ground
+        const groundGeometry = new THREE.PlaneGeometry(40, 40);
+        const groundMaterial = new THREE.MeshStandardMaterial({
+            color: 0x1a1a2e,
+            roughness: 0.9
+        });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // Grid
+        const grid = new THREE.GridHelper(40, 40, 0x333355, 0x222244);
+        scene.add(grid);
+
+        // Player (3D character)
+        const playerGroup = new THREE.Group();
+
+        // Body
+        const bodyGeometry = new THREE.CapsuleGeometry(0.5, 1.2, 8, 16);
+        const bodyMaterial = new THREE.MeshStandardMaterial({
+            color: 0x4CAF50,
+            roughness: 0.5,
+            metalness: 0.3
+        });
+        const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+        body.position.y = 1.1;
+        body.castShadow = true;
+        playerGroup.add(body);
+
+        // Head
+        const headGeometry = new THREE.SphereGeometry(0.4, 16, 16);
+        const headMaterial = new THREE.MeshStandardMaterial({
+            color: 0xFFE4C4,
+            roughness: 0.5
+        });
+        const head = new THREE.Mesh(headGeometry, headMaterial);
+        head.position.y = 2.3;
+        head.castShadow = true;
+        playerGroup.add(head);
+
+        // Eyes
+        const eyeGeometry = new THREE.SphereGeometry(0.08, 8, 8);
+        const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0x333333 });
+        const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+        leftEye.position.set(-0.15, 2.35, 0.35);
+        playerGroup.add(leftEye);
+        const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+        rightEye.position.set(0.15, 2.35, 0.35);
+        playerGroup.add(rightEye);
+
+        scene.add(playerGroup);
+
+        // Collectibles
+        const collectibles = [];
+        const collectibleGeometry = new THREE.OctahedronGeometry(0.4, 0);
+        const collectibleMaterial = new THREE.MeshStandardMaterial({
+            color: 0xfbbf24,
+            roughness: 0.2,
+            metalness: 0.8,
+            emissive: 0xfbbf24,
+            emissiveIntensity: 0.3
+        });
+
+        for (let i = 0; i < 8; i++) {
+            const collectible = new THREE.Mesh(collectibleGeometry, collectibleMaterial.clone());
+            const angle = (i / 8) * Math.PI * 2;
+            collectible.position.set(
+                Math.cos(angle) * 8,
+                1.5,
+                Math.sin(angle) * 8
+            );
+            collectible.castShadow = true;
+            collectible.userData = { collected: false, index: i };
+            collectibles.push(collectible);
+            scene.add(collectible);
+        }
+
+        // Obstacles
+        const obstacles = [];
+        const obstacleGeometry = new THREE.BoxGeometry(2, 3, 2);
+        const obstacleMaterial = new THREE.MeshStandardMaterial({
+            color: 0xef4444,
+            roughness: 0.6,
+            metalness: 0.2
+        });
+
+        for (let i = 0; i < 4; i++) {
+            const obstacle = new THREE.Mesh(obstacleGeometry, obstacleMaterial);
+            const angle = (i / 4) * Math.PI * 2 + Math.PI / 4;
+            obstacle.position.set(
+                Math.cos(angle) * 5,
+                1.5,
+                Math.sin(angle) * 5
+            );
+            obstacle.castShadow = true;
+            obstacle.receiveShadow = true;
+            obstacles.push(obstacle);
+            scene.add(obstacle);
+        }
+
+        // ==================== PIXI.JS UI SETUP ====================
+        const pixiApp = new PIXI.Application();
+        await pixiApp.init({
+            width: window.innerWidth,
+            height: window.innerHeight,
+            backgroundAlpha: 0,
+            resolution: window.devicePixelRatio || 1,
+            autoDensity: true
+        });
+        pixiContainer.appendChild(pixiApp.canvas);
+
+        // Game state
+        let score = 0;
+        let health = 100;
+        let gameTime = 0;
+
+        // Create UI elements
+
+        // Health bar background
+        const healthBarBg = new PIXI.Graphics();
+        healthBarBg.roundRect(20, 20, 220, 30, 8);
+        healthBarBg.fill({ color: 0x333333, alpha: 0.8 });
+        healthBarBg.stroke({ width: 2, color: 0x555555 });
+        pixiApp.stage.addChild(healthBarBg);
+
+        // Health bar fill
+        const healthBarFill = new PIXI.Graphics();
+        pixiApp.stage.addChild(healthBarFill);
+
+        function updateHealthBar() {
+            healthBarFill.clear();
+            const width = (health / 100) * 210;
+            const color = health > 50 ? 0x22c55e : health > 25 ? 0xf59e0b : 0xef4444;
+            healthBarFill.roundRect(25, 25, width, 20, 5);
+            healthBarFill.fill(color);
+        }
+        updateHealthBar();
+
+        // Health label
+        const healthLabel = new PIXI.Text({
+            text: 'HP',
+            style: { fill: 0xffffff, fontSize: 14, fontWeight: 'bold' }
+        });
+        healthLabel.x = 30;
+        healthLabel.y = 27;
+        pixiApp.stage.addChild(healthLabel);
+
+        // Score display
+        const scoreContainer = new PIXI.Container();
+        scoreContainer.x = window.innerWidth - 200;
+        scoreContainer.y = 20;
+        pixiApp.stage.addChild(scoreContainer);
+
+        const scoreBg = new PIXI.Graphics();
+        scoreBg.roundRect(0, 0, 180, 50, 10);
+        scoreBg.fill({ color: 0x000000, alpha: 0.7 });
+        scoreBg.stroke({ width: 2, color: 0xfbbf24 });
+        scoreContainer.addChild(scoreBg);
+
+        const coinIcon = new PIXI.Graphics();
+        coinIcon.circle(30, 25, 15);
+        coinIcon.fill(0xfbbf24);
+        scoreContainer.addChild(coinIcon);
+
+        const scoreText = new PIXI.Text({
+            text: '0',
+            style: { fill: 0xffffff, fontSize: 24, fontWeight: 'bold' }
+        });
+        scoreText.x = 55;
+        scoreText.y = 12;
+        scoreContainer.addChild(scoreText);
+
+        // Timer display
+        const timerContainer = new PIXI.Container();
+        timerContainer.x = window.innerWidth / 2 - 60;
+        timerContainer.y = 20;
+        pixiApp.stage.addChild(timerContainer);
+
+        const timerBg = new PIXI.Graphics();
+        timerBg.roundRect(0, 0, 120, 40, 8);
+        timerBg.fill({ color: 0x000000, alpha: 0.7 });
+        timerBg.stroke({ width: 2, color: 0x8b5cf6 });
+        timerContainer.addChild(timerBg);
+
+        const timerText = new PIXI.Text({
+            text: '00:00',
+            style: { fill: 0xffffff, fontSize: 20, fontWeight: 'bold', fontFamily: 'monospace' }
+        });
+        timerText.x = 25;
+        timerText.y = 8;
+        timerContainer.addChild(timerText);
+
+        // Mini-map
+        const minimapSize = 150;
+        const minimapContainer = new PIXI.Container();
+        minimapContainer.x = window.innerWidth - minimapSize - 20;
+        minimapContainer.y = window.innerHeight - minimapSize - 20;
+        pixiApp.stage.addChild(minimapContainer);
+
+        const minimapBg = new PIXI.Graphics();
+        minimapBg.circle(minimapSize / 2, minimapSize / 2, minimapSize / 2);
+        minimapBg.fill({ color: 0x1a1a2e, alpha: 0.9 });
+        minimapBg.stroke({ width: 3, color: 0x555555 });
+        minimapContainer.addChild(minimapBg);
+
+        const minimapPlayer = new PIXI.Graphics();
+        minimapPlayer.circle(0, 0, 6);
+        minimapPlayer.fill(0x4CAF50);
+        minimapPlayer.x = minimapSize / 2;
+        minimapPlayer.y = minimapSize / 2;
+        minimapContainer.addChild(minimapPlayer);
+
+        const minimapCollectibles = [];
+        collectibles.forEach(() => {
+            const dot = new PIXI.Graphics();
+            dot.circle(0, 0, 4);
+            dot.fill(0xfbbf24);
+            minimapContainer.addChild(dot);
+            minimapCollectibles.push(dot);
+        });
+
+        // Notification system
+        const notifications = [];
+        function showNotification(text, color = 0x22c55e) {
+            const notification = new PIXI.Container();
+            notification.x = window.innerWidth / 2;
+            notification.y = window.innerHeight / 2 - 50;
+            notification.alpha = 0;
+
+            const bg = new PIXI.Graphics();
+            const textObj = new PIXI.Text({
+                text,
+                style: { fill: 0xffffff, fontSize: 28, fontWeight: 'bold' }
+            });
+            textObj.anchor.set(0.5);
+
+            bg.roundRect(-textObj.width / 2 - 20, -25, textObj.width + 40, 50, 10);
+            bg.fill({ color: color, alpha: 0.9 });
+            notification.addChild(bg);
+            notification.addChild(textObj);
+
+            pixiApp.stage.addChild(notification);
+            notifications.push({ container: notification, life: 2, velocity: -1 });
+        }
+
+        // ==================== GAME LOGIC ====================
+
+        // Player movement
+        const playerVelocity = { x: 0, z: 0 };
+        const playerSpeed = 0.15;
+        const keys = { w: false, a: false, s: false, d: false };
+
+        window.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            if (keys.hasOwnProperty(key)) keys[key] = true;
+        });
+
+        window.addEventListener('keyup', (e) => {
+            const key = e.key.toLowerCase();
+            if (keys.hasOwnProperty(key)) keys[key] = false;
+        });
+
+        // Touch/mobile controls
+        let touchStartX = 0, touchStartY = 0;
+        let touchActive = false;
+
+        threeCanvas.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            touchActive = true;
+        });
+
+        threeCanvas.addEventListener('touchmove', (e) => {
+            if (!touchActive) return;
+            const dx = e.touches[0].clientX - touchStartX;
+            const dy = e.touches[0].clientY - touchStartY;
+
+            keys.a = dx < -30;
+            keys.d = dx > 30;
+            keys.w = dy < -30;
+            keys.s = dy > 30;
+        });
+
+        threeCanvas.addEventListener('touchend', () => {
+            touchActive = false;
+            keys.w = keys.a = keys.s = keys.d = false;
+        });
+
+        // Animation loop
+        let time = 0;
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.016;
+            gameTime += 0.016;
+
+            controls.update();
+
+            // Player movement
+            playerVelocity.x = 0;
+            playerVelocity.z = 0;
+
+            if (keys.w) playerVelocity.z = -playerSpeed;
+            if (keys.s) playerVelocity.z = playerSpeed;
+            if (keys.a) playerVelocity.x = -playerSpeed;
+            if (keys.d) playerVelocity.x = playerSpeed;
+
+            // Normalize diagonal movement
+            if (playerVelocity.x !== 0 && playerVelocity.z !== 0) {
+                playerVelocity.x *= 0.707;
+                playerVelocity.z *= 0.707;
+            }
+
+            const newX = playerGroup.position.x + playerVelocity.x;
+            const newZ = playerGroup.position.z + playerVelocity.z;
+
+            // Boundary check
+            if (Math.abs(newX) < 18 && Math.abs(newZ) < 18) {
+                // Obstacle collision
+                let canMove = true;
+                obstacles.forEach(obstacle => {
+                    const dx = newX - obstacle.position.x;
+                    const dz = newZ - obstacle.position.z;
+                    if (Math.abs(dx) < 1.5 && Math.abs(dz) < 1.5) {
+                        canMove = false;
+                    }
+                });
+
+                if (canMove) {
+                    playerGroup.position.x = newX;
+                    playerGroup.position.z = newZ;
+                }
+            }
+
+            // Player rotation based on movement
+            if (playerVelocity.x !== 0 || playerVelocity.z !== 0) {
+                const targetRotation = Math.atan2(playerVelocity.x, playerVelocity.z);
+                playerGroup.rotation.y = THREE.MathUtils.lerp(
+                    playerGroup.rotation.y,
+                    targetRotation,
+                    0.2
+                );
+
+                // Walking animation
+                body.position.y = 1.1 + Math.sin(time * 10) * 0.05;
+                head.position.y = 2.3 + Math.sin(time * 10) * 0.03;
+            }
+
+            // Collectible animation and collection
+            collectibles.forEach((collectible, i) => {
+                if (collectible.userData.collected) return;
+
+                collectible.rotation.y += 0.03;
+                collectible.position.y = 1.5 + Math.sin(time * 2 + i) * 0.3;
+
+                // Collection check
+                const dx = playerGroup.position.x - collectible.position.x;
+                const dz = playerGroup.position.z - collectible.position.z;
+                const distance = Math.sqrt(dx * dx + dz * dz);
+
+                if (distance < 1.5) {
+                    collectible.userData.collected = true;
+                    scene.remove(collectible);
+                    score += 100;
+                    scoreText.text = score.toString();
+                    showNotification('+100', 0xfbbf24);
+                }
+            });
+
+            // Update minimap
+            const mapScale = minimapSize / 40;
+            minimapPlayer.x = minimapSize / 2 + playerGroup.position.x * mapScale;
+            minimapPlayer.y = minimapSize / 2 + playerGroup.position.z * mapScale;
+
+            collectibles.forEach((collectible, i) => {
+                if (collectible.userData.collected) {
+                    minimapCollectibles[i].visible = false;
+                } else {
+                    minimapCollectibles[i].x = minimapSize / 2 + collectible.position.x * mapScale;
+                    minimapCollectibles[i].y = minimapSize / 2 + collectible.position.z * mapScale;
+                }
+            });
+
+            // Update timer
+            const minutes = Math.floor(gameTime / 60);
+            const seconds = Math.floor(gameTime % 60);
+            timerText.text = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+            // Update notifications
+            for (let i = notifications.length - 1; i >= 0; i--) {
+                const notif = notifications[i];
+                notif.life -= 0.016;
+                notif.container.y += notif.velocity;
+                notif.container.alpha = Math.min(1, notif.life * 2);
+
+                if (notif.life <= 0) {
+                    pixiApp.stage.removeChild(notif.container);
+                    notifications.splice(i, 1);
+                }
+            }
+
+            // Check win condition
+            if (collectibles.every(c => c.userData.collected)) {
+                const allCollected = document.getElementById('all-collected');
+                if (!allCollected) {
+                    const winText = new PIXI.Text({
+                        text: 'ALL COLLECTED!',
+                        style: {
+                            fill: 0x22c55e,
+                            fontSize: 48,
+                            fontWeight: 'bold',
+                            dropShadow: true,
+                            dropShadowColor: 0x000000,
+                            dropShadowBlur: 4
+                        }
+                    });
+                    winText.anchor.set(0.5);
+                    winText.x = window.innerWidth / 2;
+                    winText.y = window.innerHeight / 2;
+                    pixiApp.stage.addChild(winText);
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // Handle resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            pixiApp.renderer.resize(window.innerWidth, window.innerHeight);
+
+            scoreContainer.x = window.innerWidth - 200;
+            timerContainer.x = window.innerWidth / 2 - 60;
+            minimapContainer.x = window.innerWidth - minimapSize - 20;
+            minimapContainer.y = window.innerHeight - minimapSize - 20;
+        });
+    </script>
+</body>
+</html>

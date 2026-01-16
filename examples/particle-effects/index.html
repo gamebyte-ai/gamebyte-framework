@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Particle Effects - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a0b;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+        }
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255,255,255,0.7);
+            font-size: 14px;
+            text-align: center;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+    <div id="instructions">Click or touch anywhere to create particle bursts</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="../../dist/gamebyte.umd.js"></script>
+
+    <script>
+        const { GameByte } = GameByteFramework;
+
+        // Particle class
+        class Particle {
+            constructor(x, y, color) {
+                this.graphics = new PIXI.Graphics();
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 15;
+                this.vy = (Math.random() - 0.5) * 15 - 5;
+                this.life = 1.0;
+                this.decay = 0.01 + Math.random() * 0.02;
+                this.size = 4 + Math.random() * 8;
+                this.color = color;
+                this.rotation = Math.random() * Math.PI * 2;
+                this.rotationSpeed = (Math.random() - 0.5) * 0.2;
+
+                this.draw();
+            }
+
+            draw() {
+                this.graphics.clear();
+                this.graphics.rect(-this.size/2, -this.size/2, this.size, this.size);
+                this.graphics.fill({ color: this.color, alpha: this.life });
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vy += 0.3; // gravity
+                this.life -= this.decay;
+                this.rotation += this.rotationSpeed;
+                this.size *= 0.98;
+
+                this.graphics.x = this.x;
+                this.graphics.y = this.y;
+                this.graphics.rotation = this.rotation;
+                this.graphics.alpha = this.life;
+
+                return this.life > 0;
+            }
+        }
+
+        // Trail particle for mouse movement
+        class TrailParticle {
+            constructor(x, y) {
+                this.graphics = new PIXI.Graphics();
+                this.x = x;
+                this.y = y;
+                this.life = 1.0;
+                this.size = 3 + Math.random() * 5;
+
+                const hue = (Date.now() / 20) % 360;
+                this.color = this.hslToHex(hue, 100, 60);
+
+                this.draw();
+            }
+
+            hslToHex(h, s, l) {
+                s /= 100;
+                l /= 100;
+                const a = s * Math.min(l, 1 - l);
+                const f = n => {
+                    const k = (n + h / 30) % 12;
+                    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+                    return Math.round(255 * color);
+                };
+                return (f(0) << 16) + (f(8) << 8) + f(4);
+            }
+
+            draw() {
+                this.graphics.clear();
+                this.graphics.circle(0, 0, this.size);
+                this.graphics.fill({ color: this.color, alpha: this.life * 0.8 });
+            }
+
+            update() {
+                this.life -= 0.03;
+                this.size *= 0.95;
+                this.graphics.alpha = this.life;
+                this.graphics.scale.set(this.size / 5);
+
+                return this.life > 0;
+            }
+        }
+
+        // Initialize
+        (async () => {
+            const container = document.getElementById('game-container');
+            const { app, stage } = await GameByte.quick2D(container, window.innerWidth, window.innerHeight);
+
+            const particles = [];
+            const trailParticles = [];
+            let mouseX = 0;
+            let mouseY = 0;
+            let isMouseDown = false;
+
+            // Particle colors
+            const colors = [0xff6b6b, 0x4ecdc4, 0xffe66d, 0x95e1d3, 0xf38181, 0xaa96da, 0xfcbad3];
+
+            // Create particle burst
+            function createBurst(x, y, count = 30) {
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                for (let i = 0; i < count; i++) {
+                    const particle = new Particle(x, y, color);
+                    particles.push(particle);
+                    stage.addChild(particle.graphics);
+                }
+            }
+
+            // Create trail particle
+            function createTrail(x, y) {
+                const particle = new TrailParticle(x, y);
+                trailParticles.push(particle);
+                stage.addChild(particle.graphics);
+            }
+
+            // Continuous emitter in center
+            const emitterContainer = new PIXI.Container();
+            stage.addChild(emitterContainer);
+            let emitterAngle = 0;
+
+            function createEmitterParticle() {
+                emitterAngle += 0.15;
+                const radius = 50 + Math.sin(emitterAngle * 0.5) * 30;
+                const x = window.innerWidth / 2 + Math.cos(emitterAngle) * radius;
+                const y = window.innerHeight / 2 + Math.sin(emitterAngle) * radius;
+
+                const hue = (emitterAngle * 20) % 360;
+                const color = hslToHex(hue, 80, 60);
+
+                const particle = new Particle(x, y, color);
+                particle.vx = Math.cos(emitterAngle) * 3;
+                particle.vy = Math.sin(emitterAngle) * 3;
+                particle.decay = 0.015;
+                particles.push(particle);
+                stage.addChild(particle.graphics);
+            }
+
+            function hslToHex(h, s, l) {
+                s /= 100;
+                l /= 100;
+                const a = s * Math.min(l, 1 - l);
+                const f = n => {
+                    const k = (n + h / 30) % 12;
+                    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+                    return Math.round(255 * color);
+                };
+                return (f(0) << 16) + (f(8) << 8) + f(4);
+            }
+
+            // Input handlers
+            const onPointerMove = (e) => {
+                mouseX = e.clientX || e.touches?.[0]?.clientX || mouseX;
+                mouseY = e.clientY || e.touches?.[0]?.clientY || mouseY;
+                createTrail(mouseX, mouseY);
+            };
+
+            const onPointerDown = (e) => {
+                isMouseDown = true;
+                const x = e.clientX || e.touches?.[0]?.clientX;
+                const y = e.clientY || e.touches?.[0]?.clientY;
+                createBurst(x, y, 50);
+            };
+
+            const onPointerUp = () => {
+                isMouseDown = false;
+            };
+
+            window.addEventListener('mousemove', onPointerMove);
+            window.addEventListener('touchmove', onPointerMove);
+            window.addEventListener('mousedown', onPointerDown);
+            window.addEventListener('touchstart', onPointerDown);
+            window.addEventListener('mouseup', onPointerUp);
+            window.addEventListener('touchend', onPointerUp);
+
+            // Update loop
+            let frameCount = 0;
+            app.ticker.add(() => {
+                frameCount++;
+
+                // Emit from center
+                if (frameCount % 2 === 0) {
+                    createEmitterParticle();
+                }
+
+                // Continuous burst when holding
+                if (isMouseDown && frameCount % 3 === 0) {
+                    createBurst(mouseX, mouseY, 5);
+                }
+
+                // Update particles
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    if (!particles[i].update()) {
+                        stage.removeChild(particles[i].graphics);
+                        particles.splice(i, 1);
+                    }
+                }
+
+                // Update trail particles
+                for (let i = trailParticles.length - 1; i >= 0; i--) {
+                    if (!trailParticles[i].update()) {
+                        stage.removeChild(trailParticles[i].graphics);
+                        trailParticles.splice(i, 1);
+                    }
+                }
+            });
+
+            // Handle resize
+            window.addEventListener('resize', () => {
+                app.renderer.resize(window.innerWidth, window.innerHeight);
+            });
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Physics Sandbox - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a0b;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+        }
+        #toolbar {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 15px 20px;
+            border-radius: 12px;
+            border: 1px solid #333;
+        }
+        .tool-btn {
+            padding: 10px 20px;
+            border: 2px solid #444;
+            background: #1a1a1a;
+            color: #fff;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .tool-btn:hover {
+            background: #2a2a2a;
+            border-color: #666;
+        }
+        .tool-btn.active {
+            background: #8b5cf6;
+            border-color: #a78bfa;
+        }
+        .tool-btn.danger {
+            border-color: #ef4444;
+        }
+        .tool-btn.danger:hover {
+            background: #ef4444;
+        }
+        #info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: #888;
+            font-size: 13px;
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            border-radius: 10px;
+        }
+        #stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: #888;
+            font-size: 13px;
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            border-radius: 10px;
+        }
+        #stats span {
+            color: #8b5cf6;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+    <div id="toolbar">
+        <button class="tool-btn active" data-tool="box">Box</button>
+        <button class="tool-btn" data-tool="circle">Circle</button>
+        <button class="tool-btn" data-tool="polygon">Polygon</button>
+        <button class="tool-btn" data-tool="drag">Drag</button>
+        <button class="tool-btn danger" data-tool="clear">Clear All</button>
+    </div>
+    <div id="info">
+        <p>Click anywhere to spawn objects</p>
+        <p>Drag mode: Click and drag objects</p>
+        <p>Scroll to change size</p>
+    </div>
+    <div id="stats">
+        Objects: <span id="object-count">0</span>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/matter-js@0.19.0/build/matter.min.js"></script>
+    <script src="../../dist/gamebyte.umd.js"></script>
+
+    <script>
+        const { GameByte } = GameByteFramework;
+
+        // Physics body with visual representation
+        class PhysicsBody {
+            constructor(body, graphics, color) {
+                this.body = body;
+                this.graphics = graphics;
+                this.color = color;
+                this.highlighted = false;
+            }
+
+            update() {
+                this.graphics.x = this.body.position.x;
+                this.graphics.y = this.body.position.y;
+                this.graphics.rotation = this.body.angle;
+            }
+
+            highlight(active) {
+                if (this.highlighted !== active) {
+                    this.highlighted = active;
+                    // Redraw with highlight
+                    this.graphics.alpha = active ? 1 : 0.9;
+                }
+            }
+        }
+
+        // Initialize
+        (async () => {
+            const container = document.getElementById('game-container');
+            const { app, stage } = await GameByte.quick2D(container, window.innerWidth, window.innerHeight);
+
+            // Matter.js setup
+            const Engine = Matter.Engine;
+            const World = Matter.World;
+            const Bodies = Matter.Bodies;
+            const Mouse = Matter.Mouse;
+            const MouseConstraint = Matter.MouseConstraint;
+            const Composite = Matter.Composite;
+
+            const engine = Engine.create();
+            const world = engine.world;
+            engine.world.gravity.y = 1;
+
+            // Bodies array for rendering
+            const bodies = [];
+
+            // Colors palette
+            const colors = [
+                0x8b5cf6, 0x6366f1, 0x3b82f6, 0x22c55e,
+                0xf59e0b, 0xef4444, 0xec4899, 0x14b8a6
+            ];
+
+            // Create walls
+            const wallThickness = 50;
+            const walls = [
+                // Bottom
+                Bodies.rectangle(
+                    window.innerWidth / 2, window.innerHeight + wallThickness / 2,
+                    window.innerWidth, wallThickness,
+                    { isStatic: true, label: 'wall' }
+                ),
+                // Left
+                Bodies.rectangle(
+                    -wallThickness / 2, window.innerHeight / 2,
+                    wallThickness, window.innerHeight,
+                    { isStatic: true, label: 'wall' }
+                ),
+                // Right
+                Bodies.rectangle(
+                    window.innerWidth + wallThickness / 2, window.innerHeight / 2,
+                    wallThickness, window.innerHeight,
+                    { isStatic: true, label: 'wall' }
+                )
+            ];
+            World.add(world, walls);
+
+            // Create platform
+            const platformBody = Bodies.rectangle(
+                window.innerWidth / 2, window.innerHeight - 150,
+                300, 20,
+                { isStatic: true, angle: 0.2, label: 'platform' }
+            );
+            World.add(world, platformBody);
+
+            const platform = new PIXI.Graphics();
+            platform.roundRect(-150, -10, 300, 20, 5);
+            platform.fill(0x444444);
+            stage.addChild(platform);
+
+            // Another platform
+            const platformBody2 = Bodies.rectangle(
+                window.innerWidth / 2 - 200, window.innerHeight - 300,
+                200, 20,
+                { isStatic: true, angle: -0.15, label: 'platform' }
+            );
+            World.add(world, platformBody2);
+
+            const platform2 = new PIXI.Graphics();
+            platform2.roundRect(-100, -10, 200, 20, 5);
+            platform2.fill(0x444444);
+            stage.addChild(platform2);
+
+            // Create dynamic body with graphics
+            function createBox(x, y, size) {
+                const color = colors[Math.floor(Math.random() * colors.length)];
+
+                const body = Bodies.rectangle(x, y, size, size, {
+                    restitution: 0.6,
+                    friction: 0.3,
+                    frictionAir: 0.01
+                });
+                World.add(world, body);
+
+                const graphics = new PIXI.Graphics();
+                graphics.roundRect(-size/2, -size/2, size, size, 4);
+                graphics.fill(color);
+                graphics.stroke({ width: 2, color: 0xffffff, alpha: 0.3 });
+                stage.addChild(graphics);
+
+                bodies.push(new PhysicsBody(body, graphics, color));
+                updateStats();
+            }
+
+            function createCircle(x, y, radius) {
+                const color = colors[Math.floor(Math.random() * colors.length)];
+
+                const body = Bodies.circle(x, y, radius, {
+                    restitution: 0.8,
+                    friction: 0.2,
+                    frictionAir: 0.005
+                });
+                World.add(world, body);
+
+                const graphics = new PIXI.Graphics();
+                graphics.circle(0, 0, radius);
+                graphics.fill(color);
+                graphics.stroke({ width: 2, color: 0xffffff, alpha: 0.3 });
+                // Add a line to show rotation
+                graphics.moveTo(0, 0);
+                graphics.lineTo(radius * 0.8, 0);
+                graphics.stroke({ width: 2, color: 0xffffff, alpha: 0.5 });
+                stage.addChild(graphics);
+
+                bodies.push(new PhysicsBody(body, graphics, color));
+                updateStats();
+            }
+
+            function createPolygon(x, y, radius, sides = 5) {
+                const color = colors[Math.floor(Math.random() * colors.length)];
+
+                const body = Bodies.polygon(x, y, sides, radius, {
+                    restitution: 0.5,
+                    friction: 0.4,
+                    frictionAir: 0.01
+                });
+                World.add(world, body);
+
+                const graphics = new PIXI.Graphics();
+                // Draw polygon
+                const vertices = body.vertices;
+                const centerX = body.position.x;
+                const centerY = body.position.y;
+
+                graphics.moveTo(
+                    vertices[0].x - centerX,
+                    vertices[0].y - centerY
+                );
+                for (let i = 1; i < vertices.length; i++) {
+                    graphics.lineTo(
+                        vertices[i].x - centerX,
+                        vertices[i].y - centerY
+                    );
+                }
+                graphics.closePath();
+                graphics.fill(color);
+                graphics.stroke({ width: 2, color: 0xffffff, alpha: 0.3 });
+                stage.addChild(graphics);
+
+                bodies.push(new PhysicsBody(body, graphics, color));
+                updateStats();
+            }
+
+            function clearAll() {
+                bodies.forEach(b => {
+                    World.remove(world, b.body);
+                    stage.removeChild(b.graphics);
+                });
+                bodies.length = 0;
+                updateStats();
+            }
+
+            function updateStats() {
+                document.getElementById('object-count').textContent = bodies.length;
+            }
+
+            // Tool selection
+            let currentTool = 'box';
+            let spawnSize = 40;
+
+            const toolButtons = document.querySelectorAll('.tool-btn');
+            toolButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const tool = btn.dataset.tool;
+
+                    if (tool === 'clear') {
+                        clearAll();
+                        return;
+                    }
+
+                    toolButtons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentTool = tool;
+                });
+            });
+
+            // Size adjustment
+            window.addEventListener('wheel', (e) => {
+                spawnSize = Math.max(20, Math.min(100, spawnSize - e.deltaY * 0.1));
+            });
+
+            // Mouse constraint for dragging
+            const mouse = Mouse.create(app.canvas);
+            const mouseConstraint = MouseConstraint.create(engine, {
+                mouse: mouse,
+                constraint: {
+                    stiffness: 0.2,
+                    render: { visible: false }
+                }
+            });
+
+            // Prevent Matter mouse from interfering when not in drag mode
+            let dragEnabled = false;
+
+            // Click to spawn
+            let lastClickTime = 0;
+            app.canvas.addEventListener('mousedown', (e) => {
+                if (currentTool === 'drag') {
+                    dragEnabled = true;
+                    World.add(world, mouseConstraint);
+                    return;
+                }
+
+                // Throttle spawning
+                const now = Date.now();
+                if (now - lastClickTime < 100) return;
+                lastClickTime = now;
+
+                const rect = app.canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                // Don't spawn if clicking toolbar area
+                if (y < 80) return;
+
+                switch (currentTool) {
+                    case 'box':
+                        createBox(x, y, spawnSize);
+                        break;
+                    case 'circle':
+                        createCircle(x, y, spawnSize / 2);
+                        break;
+                    case 'polygon':
+                        const sides = 3 + Math.floor(Math.random() * 4); // 3-6 sides
+                        createPolygon(x, y, spawnSize / 2, sides);
+                        break;
+                }
+            });
+
+            app.canvas.addEventListener('mouseup', () => {
+                if (dragEnabled) {
+                    World.remove(world, mouseConstraint);
+                    dragEnabled = false;
+                }
+            });
+
+            // Touch support
+            let touchSpawning = false;
+            app.canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = app.canvas.getBoundingClientRect();
+                const x = touch.clientX - rect.left;
+                const y = touch.clientY - rect.top;
+
+                if (y < 80) return;
+
+                if (currentTool === 'drag') {
+                    mouse.position.x = x;
+                    mouse.position.y = y;
+                    dragEnabled = true;
+                    World.add(world, mouseConstraint);
+                } else {
+                    touchSpawning = true;
+                    switch (currentTool) {
+                        case 'box':
+                            createBox(x, y, spawnSize);
+                            break;
+                        case 'circle':
+                            createCircle(x, y, spawnSize / 2);
+                            break;
+                        case 'polygon':
+                            createPolygon(x, y, spawnSize / 2, 5);
+                            break;
+                    }
+                }
+            });
+
+            app.canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (dragEnabled) {
+                    const touch = e.touches[0];
+                    const rect = app.canvas.getBoundingClientRect();
+                    mouse.position.x = touch.clientX - rect.left;
+                    mouse.position.y = touch.clientY - rect.top;
+                }
+            });
+
+            app.canvas.addEventListener('touchend', () => {
+                if (dragEnabled) {
+                    World.remove(world, mouseConstraint);
+                    dragEnabled = false;
+                }
+                touchSpawning = false;
+            });
+
+            // Initial bodies
+            for (let i = 0; i < 5; i++) {
+                createBox(
+                    200 + Math.random() * (window.innerWidth - 400),
+                    100 + Math.random() * 200,
+                    30 + Math.random() * 30
+                );
+            }
+            for (let i = 0; i < 5; i++) {
+                createCircle(
+                    200 + Math.random() * (window.innerWidth - 400),
+                    100 + Math.random() * 200,
+                    15 + Math.random() * 20
+                );
+            }
+
+            // Update loop
+            app.ticker.add((ticker) => {
+                // Update physics
+                Engine.update(engine, ticker.deltaMS);
+
+                // Update platforms
+                platform.x = platformBody.position.x;
+                platform.y = platformBody.position.y;
+                platform.rotation = platformBody.angle;
+
+                platform2.x = platformBody2.position.x;
+                platform2.y = platformBody2.position.y;
+                platform2.rotation = platformBody2.angle;
+
+                // Update body visuals
+                bodies.forEach(b => b.update());
+
+                // Remove bodies that fell off screen
+                for (let i = bodies.length - 1; i >= 0; i--) {
+                    if (bodies[i].body.position.y > window.innerHeight + 200) {
+                        World.remove(world, bodies[i].body);
+                        stage.removeChild(bodies[i].graphics);
+                        bodies.splice(i, 1);
+                        updateStats();
+                    }
+                }
+            });
+
+            // Handle resize
+            window.addEventListener('resize', () => {
+                app.renderer.resize(window.innerWidth, window.innerHeight);
+
+                // Update walls
+                Matter.Body.setPosition(walls[0], {
+                    x: window.innerWidth / 2,
+                    y: window.innerHeight + wallThickness / 2
+                });
+                Matter.Body.setVertices(walls[0], Matter.Vertices.fromPath(
+                    `0 0 ${window.innerWidth} 0 ${window.innerWidth} ${wallThickness} 0 ${wallThickness}`
+                ));
+
+                Matter.Body.setPosition(walls[2], {
+                    x: window.innerWidth + wallThickness / 2,
+                    y: window.innerHeight / 2
+                });
+            });
+        })();
+    </script>
+</body>
+</html>

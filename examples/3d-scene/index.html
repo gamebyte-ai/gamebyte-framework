@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Scene - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a0b;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+        }
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 14px;
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 250px;
+        }
+        #info h3 { margin-bottom: 10px; color: #8b5cf6; }
+        #info p { margin: 5px 0; color: #a1a1aa; }
+        .key { background: #333; padding: 2px 8px; border-radius: 4px; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+    <div id="info">
+        <h3>3D Scene Demo</h3>
+        <p>Interactive 3D environment</p>
+        <p><span class="key">Drag</span> to rotate camera</p>
+        <p><span class="key">Scroll</span> to zoom</p>
+        <p><span class="key">Click</span> objects to interact</p>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // Scene setup
+        const container = document.getElementById('game-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0a0b);
+
+        // Camera
+        const camera = new THREE.PerspectiveCamera(
+            60,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+        );
+        camera.position.set(8, 6, 10);
+
+        // Renderer
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        // Controls
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 5;
+        controls.maxDistance = 30;
+        controls.maxPolarAngle = Math.PI / 2 - 0.1;
+
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0x404060, 0.5);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(10, 20, 10);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        directionalLight.shadow.camera.near = 0.5;
+        directionalLight.shadow.camera.far = 50;
+        directionalLight.shadow.camera.left = -20;
+        directionalLight.shadow.camera.right = 20;
+        directionalLight.shadow.camera.top = 20;
+        directionalLight.shadow.camera.bottom = -20;
+        scene.add(directionalLight);
+
+        // Point lights for atmosphere
+        const pointLight1 = new THREE.PointLight(0x8b5cf6, 2, 15);
+        pointLight1.position.set(-5, 3, 0);
+        scene.add(pointLight1);
+
+        const pointLight2 = new THREE.PointLight(0x22c55e, 2, 15);
+        pointLight2.position.set(5, 3, 0);
+        scene.add(pointLight2);
+
+        // Ground
+        const groundGeometry = new THREE.PlaneGeometry(30, 30);
+        const groundMaterial = new THREE.MeshStandardMaterial({
+            color: 0x1a1a2e,
+            roughness: 0.8,
+            metalness: 0.2
+        });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // Grid helper
+        const gridHelper = new THREE.GridHelper(30, 30, 0x333355, 0x222244);
+        scene.add(gridHelper);
+
+        // Interactive objects array
+        const interactiveObjects = [];
+
+        // Create rotating cube
+        const cubeGeometry = new THREE.BoxGeometry(2, 2, 2);
+        const cubeMaterial = new THREE.MeshStandardMaterial({
+            color: 0x8b5cf6,
+            roughness: 0.3,
+            metalness: 0.7
+        });
+        const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+        cube.position.set(-3, 1.5, 0);
+        cube.castShadow = true;
+        cube.receiveShadow = true;
+        cube.userData = { type: 'cube', rotateSpeed: 0.01 };
+        scene.add(cube);
+        interactiveObjects.push(cube);
+
+        // Create sphere
+        const sphereGeometry = new THREE.SphereGeometry(1, 32, 32);
+        const sphereMaterial = new THREE.MeshStandardMaterial({
+            color: 0x22c55e,
+            roughness: 0.2,
+            metalness: 0.8
+        });
+        const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        sphere.position.set(3, 1.5, 0);
+        sphere.castShadow = true;
+        sphere.receiveShadow = true;
+        sphere.userData = { type: 'sphere', bounceSpeed: 2 };
+        scene.add(sphere);
+        interactiveObjects.push(sphere);
+
+        // Create torus
+        const torusGeometry = new THREE.TorusGeometry(1, 0.4, 16, 50);
+        const torusMaterial = new THREE.MeshStandardMaterial({
+            color: 0xf59e0b,
+            roughness: 0.4,
+            metalness: 0.6
+        });
+        const torus = new THREE.Mesh(torusGeometry, torusMaterial);
+        torus.position.set(0, 2, -3);
+        torus.castShadow = true;
+        torus.receiveShadow = true;
+        torus.userData = { type: 'torus', rotateSpeed: 0.02 };
+        scene.add(torus);
+        interactiveObjects.push(torus);
+
+        // Create cylinder
+        const cylinderGeometry = new THREE.CylinderGeometry(0.8, 0.8, 2.5, 32);
+        const cylinderMaterial = new THREE.MeshStandardMaterial({
+            color: 0xef4444,
+            roughness: 0.5,
+            metalness: 0.5
+        });
+        const cylinder = new THREE.Mesh(cylinderGeometry, cylinderMaterial);
+        cylinder.position.set(0, 1.25, 3);
+        cylinder.castShadow = true;
+        cylinder.receiveShadow = true;
+        cylinder.userData = { type: 'cylinder', rotateSpeed: 0.015 };
+        scene.add(cylinder);
+        interactiveObjects.push(cylinder);
+
+        // Create icosahedron
+        const icoGeometry = new THREE.IcosahedronGeometry(1, 0);
+        const icoMaterial = new THREE.MeshStandardMaterial({
+            color: 0x3b82f6,
+            roughness: 0.3,
+            metalness: 0.7,
+            flatShading: true
+        });
+        const icosahedron = new THREE.Mesh(icoGeometry, icoMaterial);
+        icosahedron.position.set(-5, 1.5, 3);
+        icosahedron.castShadow = true;
+        icosahedron.receiveShadow = true;
+        icosahedron.userData = { type: 'icosahedron', rotateSpeed: 0.012 };
+        scene.add(icosahedron);
+        interactiveObjects.push(icosahedron);
+
+        // Create cone
+        const coneGeometry = new THREE.ConeGeometry(1, 2, 32);
+        const coneMaterial = new THREE.MeshStandardMaterial({
+            color: 0xec4899,
+            roughness: 0.4,
+            metalness: 0.6
+        });
+        const cone = new THREE.Mesh(coneGeometry, coneMaterial);
+        cone.position.set(5, 1, 3);
+        cone.castShadow = true;
+        cone.receiveShadow = true;
+        cone.userData = { type: 'cone', rotateSpeed: 0.018 };
+        scene.add(cone);
+        interactiveObjects.push(cone);
+
+        // Raycaster for object interaction
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let selectedObject = null;
+
+        // Click handler
+        function onClick(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(interactiveObjects);
+
+            if (intersects.length > 0) {
+                const object = intersects[0].object;
+
+                // Scale animation
+                const originalScale = object.scale.clone();
+                object.scale.multiplyScalar(1.3);
+
+                // Color flash
+                const originalColor = object.material.color.clone();
+                object.material.color.setHex(0xffffff);
+
+                setTimeout(() => {
+                    object.scale.copy(originalScale);
+                    object.material.color.copy(originalColor);
+                }, 200);
+
+                // Speed boost
+                object.userData.boosted = true;
+                setTimeout(() => {
+                    object.userData.boosted = false;
+                }, 2000);
+            }
+        }
+
+        window.addEventListener('click', onClick);
+
+        // Floating particles
+        const particleCount = 100;
+        const particleGeometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(particleCount * 3);
+        const colors = new Float32Array(particleCount * 3);
+
+        const particleColors = [
+            new THREE.Color(0x8b5cf6),
+            new THREE.Color(0x22c55e),
+            new THREE.Color(0xf59e0b),
+            new THREE.Color(0x3b82f6)
+        ];
+
+        for (let i = 0; i < particleCount; i++) {
+            positions[i * 3] = (Math.random() - 0.5) * 25;
+            positions[i * 3 + 1] = Math.random() * 10 + 1;
+            positions[i * 3 + 2] = (Math.random() - 0.5) * 25;
+
+            const color = particleColors[Math.floor(Math.random() * particleColors.length)];
+            colors[i * 3] = color.r;
+            colors[i * 3 + 1] = color.g;
+            colors[i * 3 + 2] = color.b;
+        }
+
+        particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        particleGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+        const particleMaterial = new THREE.PointsMaterial({
+            size: 0.1,
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.8
+        });
+
+        const particles = new THREE.Points(particleGeometry, particleMaterial);
+        scene.add(particles);
+
+        // Animation loop
+        let time = 0;
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.016;
+
+            // Update controls
+            controls.update();
+
+            // Animate objects
+            const boostMultiplier = 3;
+
+            cube.rotation.x += cube.userData.rotateSpeed * (cube.userData.boosted ? boostMultiplier : 1);
+            cube.rotation.y += cube.userData.rotateSpeed * (cube.userData.boosted ? boostMultiplier : 1);
+
+            sphere.position.y = 1.5 + Math.sin(time * sphere.userData.bounceSpeed) * 0.5;
+
+            torus.rotation.x += torus.userData.rotateSpeed * (torus.userData.boosted ? boostMultiplier : 1);
+            torus.rotation.y += torus.userData.rotateSpeed * 0.5 * (torus.userData.boosted ? boostMultiplier : 1);
+
+            cylinder.rotation.y += cylinder.userData.rotateSpeed * (cylinder.userData.boosted ? boostMultiplier : 1);
+
+            icosahedron.rotation.x += icosahedron.userData.rotateSpeed * (icosahedron.userData.boosted ? boostMultiplier : 1);
+            icosahedron.rotation.z += icosahedron.userData.rotateSpeed * 0.7 * (icosahedron.userData.boosted ? boostMultiplier : 1);
+            icosahedron.position.y = 1.5 + Math.sin(time * 1.5) * 0.3;
+
+            cone.rotation.y += cone.userData.rotateSpeed * (cone.userData.boosted ? boostMultiplier : 1);
+
+            // Animate point lights
+            pointLight1.position.x = -5 + Math.sin(time * 0.5) * 3;
+            pointLight1.position.z = Math.cos(time * 0.5) * 3;
+            pointLight2.position.x = 5 + Math.sin(time * 0.5 + Math.PI) * 3;
+            pointLight2.position.z = Math.cos(time * 0.5 + Math.PI) * 3;
+
+            // Animate particles
+            const positions = particles.geometry.attributes.position.array;
+            for (let i = 0; i < particleCount; i++) {
+                positions[i * 3 + 1] += Math.sin(time + i) * 0.005;
+                if (positions[i * 3 + 1] > 12) positions[i * 3 + 1] = 1;
+            }
+            particles.geometry.attributes.position.needsUpdate = true;
+            particles.rotation.y += 0.0005;
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // Handle resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
