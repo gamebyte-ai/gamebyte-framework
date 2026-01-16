@@ -10,6 +10,7 @@ import {
   PhysicsPerformanceMetrics,
   PhysicsBody,
   PhysicsBodyConfig,
+  PhysicsShapeConfig,
   SimpleBodyConfig,
   Point,
   PlatformerPhysicsHelper,
@@ -330,7 +331,7 @@ export class PhysicsManager extends EventEmitter implements IPhysicsManager {
     if (simple.shape === 'circle') {
       shapeType = 'circle';
     } else if (simple.shape === 'polygon') {
-      shapeType = 'mesh';  // Use mesh type for polygon shapes
+      shapeType = 'mesh';
     }
 
     // Build dimensions based on shape type
@@ -339,7 +340,7 @@ export class PhysicsManager extends EventEmitter implements IPhysicsManager {
       const radius = simple.radius || 16;
       dimensions = { x: radius * 2, y: radius * 2 };
     } else if (simple.shape === 'polygon' && simple.vertices && simple.vertices.length > 0) {
-      // Calculate bounding box for polygon
+      // Calculate bounding box from vertices for polygon
       const xs = simple.vertices.map(v => v.x);
       const ys = simple.vertices.map(v => v.y);
       dimensions = {
@@ -350,15 +351,18 @@ export class PhysicsManager extends EventEmitter implements IPhysicsManager {
       dimensions = { x: simple.width || 32, y: simple.height || 32 };
     }
 
+    // Build shape config with vertices for polygon shapes
+    const shapeConfig: PhysicsShapeConfig = {
+      type: shapeType,
+      dimensions,
+      radius: simple.shape === 'circle' ? simple.radius : undefined,
+      vertices: simple.shape === 'polygon' ? simple.vertices : undefined
+    };
+
     const fullConfig: PhysicsBodyConfig = {
       type: options.isStatic ? 'static' : 'dynamic',
       position: { x: simple.x, y: simple.y },
-      shapes: [{
-        type: shapeType,
-        dimensions,
-        radius: simple.shape === 'circle' ? simple.radius : undefined,
-        vertices: simple.shape === 'polygon' ? simple.vertices : undefined
-      }],
+      shapes: [shapeConfig],
       isStatic: options.isStatic,
       isSensor: options.isSensor,
       rotation: options.angle,
