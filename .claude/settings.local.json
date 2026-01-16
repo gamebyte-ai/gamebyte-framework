@@ -31,7 +31,16 @@
       "Bash(gh pr:*)",
       "Bash(wc:*)",
       "Bash(md5:*)",
-      "Skill(superpowers:brainstorming)"
+      "Skill(superpowers:brainstorming)",
+      "Bash(xargs:*)",
+      "Bash(node extract-scripts.js:*)",
+      "Bash(node deep-analyze.js:*)",
+      "Bash(node find-game-logic.js:*)",
+      "Bash(node deobfuscate.js:*)",
+      "Bash(node extract-game-zip.js:*)",
+      "Bash(node analyze-game-code.js:*)",
+      "Bash(node extract-mechanics.js:*)",
+      "Bash(gh api:*)"
     ],
     "deny": [],
     "ask": []
