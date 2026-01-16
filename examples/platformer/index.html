@@ -84,11 +84,10 @@
                 }
             });
 
-            // Create player sprite
+            // Create player sprite (PIXI v8 API)
             const playerSprite = new PIXI.Graphics();
-            playerSprite.beginFill(0x4CAF50);
-            playerSprite.drawRect(-20, -30, 40, 60);
-            playerSprite.endFill();
+            playerSprite.rect(-20, -30, 40, 60);
+            playerSprite.fill(0x4CAF50);
             stage.addChild(playerSprite);
 
             // Create ground
@@ -104,11 +103,10 @@
                 }
             });
 
-            // Ground sprite
+            // Ground sprite (PIXI v8 API)
             const groundSprite = new PIXI.Graphics();
-            groundSprite.beginFill(0x888888);
-            groundSprite.drawRect(-400, -10, 800, 20);
-            groundSprite.endFill();
+            groundSprite.rect(-400, -10, 800, 20);
+            groundSprite.fill(0x888888);
             groundSprite.x = 400;
             groundSprite.y = 590;
             stage.addChild(groundSprite);
@@ -134,9 +132,8 @@
                 });
 
                 const sprite = new PIXI.Graphics();
-                sprite.beginFill(0x666666);
-                sprite.drawRect(-platform.width / 2, -platform.height / 2, platform.width, platform.height);
-                sprite.endFill();
+                sprite.rect(-platform.width / 2, -platform.height / 2, platform.width, platform.height);
+                sprite.fill(0x666666);
                 sprite.x = platform.x;
                 sprite.y = platform.y;
                 stage.addChild(sprite);
