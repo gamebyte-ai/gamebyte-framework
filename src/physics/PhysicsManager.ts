@@ -9,6 +9,9 @@ import {
   PhysicsMaterial,
   PhysicsPerformanceMetrics,
   PhysicsBody,
+  PhysicsBodyConfig,
+  SimpleBodyConfig,
+  Point,
   PlatformerPhysicsHelper,
   TopDownPhysicsHelper,
   TriggerZone,
@@ -77,7 +80,7 @@ export class PhysicsManager extends EventEmitter implements IPhysicsManager {
   async initialize(dimension: PhysicsDimension, engineType?: PhysicsEngineType): Promise<void> {
     try {
       this._dimension = dimension;
-      
+
       // Initialize the appropriate engine
       if (dimension === '2d') {
         this.engine2D = new Matter2DEngine();
@@ -100,12 +103,34 @@ export class PhysicsManager extends EventEmitter implements IPhysicsManager {
       // Initialize default materials
       this.initializeDefaultMaterials();
 
+      // Create a default physics world automatically
+      this.createDefaultWorld(dimension);
+
       this._isInitialized = true;
       this.emit('initialized', { dimension, engineType });
     } catch (error) {
       this.emit('error', error);
       throw error;
     }
+  }
+
+  /**
+   * Create the default physics world
+   */
+  private createDefaultWorld(dimension: PhysicsDimension): void {
+    const defaultConfig: PhysicsWorldConfig = {
+      dimension,
+      gravity: dimension === '2d'
+        ? { x: 0, y: 1 }  // 2D: positive Y is down (screen coordinates)
+        : { x: 0, y: -9.81, z: 0 },  // 3D: negative Y is down (world coordinates)
+      allowSleep: true,
+      iterations: { velocity: 4, position: 3 }
+    };
+
+    const world = this.createWorld(defaultConfig);
+
+    // Start the world immediately so physics simulation runs
+    world.start();
   }
 
   /**
@@ -251,6 +276,104 @@ export class PhysicsManager extends EventEmitter implements IPhysicsManager {
    */
   getCurrentEngine(): PhysicsEngine | null {
     return this.currentEngine;
+  }
+
+  /**
+   * Create a physics body in the active world
+   * Supports both simplified and full config formats
+   *
+   * @example Simplified format
+   * ```typescript
+   * const body = physicsManager.createBody({
+   *   shape: 'rectangle',
+   *   x: 100,
+   *   y: 100,
+   *   width: 40,
+   *   height: 60,
+   *   options: { friction: 0.1 }
+   * });
+   * ```
+   *
+   * @example Full format
+   * ```typescript
+   * const body = physicsManager.createBody({
+   *   type: 'dynamic',
+   *   position: { x: 100, y: 100 },
+   *   shapes: [{ type: 'box', dimensions: { x: 40, y: 60 } }]
+   * });
+   * ```
+   */
+  createBody(config: SimpleBodyConfig | PhysicsBodyConfig): PhysicsBody {
+    if (!this.activeWorld) {
+      throw new Error('No active physics world. Create a world first.');
+    }
+
+    // Check if it's a simplified config
+    if ('shape' in config) {
+      const fullConfig = this.convertSimpleToFullConfig(config as SimpleBodyConfig);
+      return this.activeWorld.createBody(fullConfig);
+    }
+
+    // It's a full config
+    return this.activeWorld.createBody(config as PhysicsBodyConfig);
+  }
+
+  /**
+   * Convert simplified body config to full config format
+   */
+  private convertSimpleToFullConfig(simple: SimpleBodyConfig): PhysicsBodyConfig {
+    const options = simple.options || {};
+
+    // Determine shape type for physics
+    let shapeType: 'box' | 'circle' = 'box';
+    if (simple.shape === 'circle') {
+      shapeType = 'circle';
+    }
+
+    // Build dimensions
+    let dimensions: Point;
+    if (simple.shape === 'circle') {
+      const radius = simple.radius || 16;
+      dimensions = { x: radius * 2, y: radius * 2 };
+    } else {
+      dimensions = { x: simple.width || 32, y: simple.height || 32 };
+    }
+
+    const fullConfig: PhysicsBodyConfig = {
+      type: options.isStatic ? 'static' : 'dynamic',
+      position: { x: simple.x, y: simple.y },
+      shapes: [{
+        type: shapeType,
+        dimensions,
+        radius: simple.shape === 'circle' ? simple.radius : undefined
+      }],
+      isStatic: options.isStatic,
+      isSensor: options.isSensor,
+      rotation: options.angle,
+      angularVelocity: options.angularVelocity,
+      fixedRotation: options.fixedRotation,
+      gravityScale: options.gravityScale,
+      collisionGroup: options.collisionGroup,
+      collisionMask: options.collisionMask,
+      mass: options.mass,
+      linearDamping: options.frictionAir,
+      userData: { label: options.label }
+    };
+
+    // Add material properties if specified
+    if (options.friction !== undefined || options.restitution !== undefined || options.density !== undefined) {
+      fullConfig.material = {
+        id: 'custom',
+        name: 'Custom Material',
+        friction: options.friction ?? 0.1,
+        restitution: options.restitution ?? 0,
+        density: options.density ?? 0.001,
+        frictionAir: options.frictionAir,
+        frictionStatic: options.frictionStatic
+      };
+    }
+
+    return fullConfig;
   }
 
   /**
