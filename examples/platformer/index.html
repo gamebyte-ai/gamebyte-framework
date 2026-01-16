@@ -142,15 +142,26 @@
                 stage.addChild(sprite);
             });
 
-            // Ground detection
-            physicsManager.on('collision:active', (bodyA, bodyB) => {
-                if (bodyA === playerBody && bodyB.label === 'ground') {
+            // Ground detection using physics world collision events
+            const world = physicsManager.getActiveWorld();
+            world.on('collision-active', (event) => {
+                const { bodyA, bodyB } = event;
+                const isPlayerCollision = bodyA === playerBody || bodyB === playerBody;
+                const otherBody = bodyA === playerBody ? bodyB : bodyA;
+                const otherLabel = otherBody.userData?.label;
+
+                if (isPlayerCollision && otherLabel === 'ground') {
                     isGrounded = true;
                 }
             });
 
-            physicsManager.on('collision:end', (bodyA, bodyB) => {
-                if (bodyA === playerBody && bodyB.label === 'ground') {
+            world.on('collision-end', (event) => {
+                const { bodyA, bodyB } = event;
+                const isPlayerCollision = bodyA === playerBody || bodyB === playerBody;
+                const otherBody = bodyA === playerBody ? bodyB : bodyA;
+                const otherLabel = otherBody.userData?.label;
+
+                if (isPlayerCollision && otherLabel === 'ground') {
                     isGrounded = false;
                 }
             });
@@ -178,10 +189,11 @@
                             keys.jump = true;
                             isJumping = true;
                             jumpHoldTime = 0;
-                            Matter.Body.setVelocity(playerBody, {
+                            // Use wrapper's velocity setter
+                            playerBody.velocity = {
                                 x: playerBody.velocity.x,
                                 y: jumpForce
-                            });
+                            };
                         }
                         break;
                 }
@@ -207,38 +219,35 @@
 
             // Update loop
             game.on('update', (deltaTime) => {
-                // Movement
+                // Movement - use wrapper's velocity setter
                 if (keys.left) {
-                    Matter.Body.setVelocity(playerBody, {
+                    playerBody.velocity = {
                         x: -speed,
                         y: playerBody.velocity.y
-                    });
+                    };
                 } else if (keys.right) {
-                    Matter.Body.setVelocity(playerBody, {
+                    playerBody.velocity = {
                         x: speed,
                         y: playerBody.velocity.y
-                    });
+                    };
                 } else {
                     // Apply friction
-                    Matter.Body.setVelocity(playerBody, {
+                    playerBody.velocity = {
                         x: playerBody.velocity.x * 0.9,
                         y: playerBody.velocity.y
-                    });
+                    };
                 }
 
-                // Variable jump height
+                // Variable jump height - use wrapper's applyForce method
                 if (isJumping && keys.jump && jumpHoldTime < maxJumpHoldTime) {
                     jumpHoldTime += deltaTime / 1000;
-                    Matter.Body.applyForce(playerBody, playerBody.position, {
-                        x: 0,
-                        y: -0.5
-                    });
+                    playerBody.applyForce({ x: 0, y: -0.005 });
                 }
 
-                // Update sprite position
+                // Update sprite position - use wrapper's position and rotation getters
                 playerSprite.x = playerBody.position.x;
                 playerSprite.y = playerBody.position.y;
-                playerSprite.rotation = playerBody.angle;
+                playerSprite.rotation = playerBody.rotation;
             });
 
             // Start game

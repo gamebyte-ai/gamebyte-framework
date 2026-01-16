@@ -22,20 +22,30 @@ export class PhysicsServiceProvider extends AbstractServiceProvider {
    */
   async boot(app: GameByte): Promise<void> {
     const physicsManager = app.make<PhysicsManager>('physics');
-    
+
     // Set up event listeners for scene transitions
     const sceneManager = app.make('scene.manager');
     if (sceneManager) {
       sceneManager.on('scene-changing', this.handleSceneChange.bind(this, physicsManager));
       sceneManager.on('scene-changed', this.handleSceneChanged.bind(this, physicsManager));
     }
-    
+
     // Set up render loop integration
     const renderer = app.make('renderer');
     if (renderer) {
       renderer.on('render', this.handleRenderLoop.bind(this, physicsManager));
     }
-    
+
+    // Initialize physics when app is initialized (after renderer mode is known)
+    app.on('initialized', async (data: { mode?: string }) => {
+      if (!physicsManager.isInitialized) {
+        // Determine physics dimension based on renderer mode
+        const is3D = data?.mode === '3d' || data?.mode === 'hybrid';
+        const dimension = is3D ? '3d' : '2d';
+        await physicsManager.initialize(dimension);
+      }
+    });
+
     // Emit physics service booted event
     app.emit('physics:booted', physicsManager);
   }

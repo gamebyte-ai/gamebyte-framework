@@ -102,6 +102,45 @@ export interface PhysicsBodyConfig {
 }
 
 /**
+ * Simplified body configuration for quick setup
+ * Provides a more intuitive API for common use cases
+ */
+export interface SimpleBodyConfig {
+  /** Shape type */
+  shape: 'rectangle' | 'circle' | 'polygon';
+  /** X position */
+  x: number;
+  /** Y position */
+  y: number;
+  /** Width (for rectangle) */
+  width?: number;
+  /** Height (for rectangle) */
+  height?: number;
+  /** Radius (for circle) */
+  radius?: number;
+  /** Vertices (for polygon) */
+  vertices?: Point[];
+  /** Additional options */
+  options?: {
+    isStatic?: boolean;
+    isSensor?: boolean;
+    friction?: number;
+    frictionAir?: number;
+    frictionStatic?: number;
+    restitution?: number;
+    density?: number;
+    mass?: number;
+    label?: string;
+    angle?: number;
+    angularVelocity?: number;
+    collisionGroup?: number;
+    collisionMask?: number;
+    fixedRotation?: boolean;
+    gravityScale?: number;
+  };
+}
+
+/**
  * Physics constraint/joint types
  */
 export type PhysicsConstraintType = 

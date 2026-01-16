@@ -159,17 +159,14 @@ export class Matter2DWorld extends EventEmitter implements PhysicsWorld {
 
   /**
    * Start the physics simulation
+   * Note: We don't use Matter.Runner here - PhysicsManager controls the update loop
+   * via the step() method for better integration with the game loop
    */
   start(): void {
     if (this.isRunning) return;
 
-    const nativeEngine = this.engine.getNativeEngine();
-    if (nativeEngine) {
-      this.runner = Matter.Runner.create();
-      Matter.Runner.run(this.runner, nativeEngine);
-      this._isRunning = true;
-      this.emit('started');
-    }
+    this._isRunning = true;
+    this.emit('started');
   }
 
   /**
@@ -178,11 +175,6 @@ export class Matter2DWorld extends EventEmitter implements PhysicsWorld {
   stop(): void {
     if (!this.isRunning) return;
 
-    if (this.runner) {
-      Matter.Runner.stop(this.runner);
-      this.runner = null;
-    }
-    
     this._isRunning = false;
     this.emit('stopped');
   }
