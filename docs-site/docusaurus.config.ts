@@ -4,8 +4,8 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: 'GameByte Framework',
-  tagline: 'Modern Mobile-First Game Development Framework',
-  favicon: 'img/favicon.ico',
+  tagline: 'Modern Mobile-First Game Development Framework for Building Hit Games',
+  favicon: 'img/favicon.svg',
 
   future: {
     v4: true,
@@ -53,17 +53,48 @@ const config: Config = {
   ],
 
   themeConfig: {
-    image: 'img/docusaurus-social-card.jpg',
+    // SEO social card
+    image: 'img/gamebyte-og.png',
+
+    // SEO metadata
+    metadata: [
+      { name: 'keywords', content: 'game development, mobile games, game framework, TypeScript, Pixi.js, Three.js, physics, UI components, game engine' },
+      { name: 'author', content: 'GameByte' },
+      { name: 'robots', content: 'index, follow' },
+      { property: 'og:type', content: 'website' },
+      { property: 'og:site_name', content: 'GameByte Framework' },
+      { property: 'og:locale', content: 'en_US' },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:site', content: '@gamebyte' },
+      { name: 'twitter:creator', content: '@gamebyte' },
+      { name: 'theme-color', content: '#7C44EA' },
+      { name: 'msapplication-TileColor', content: '#7C44EA' },
+      { name: 'apple-mobile-web-app-capable', content: 'yes' },
+      { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
+    ],
+
     colorMode: {
       defaultMode: 'dark',
       respectPrefersColorScheme: true,
     },
+
+    // Announcement bar (optional)
+    announcementBar: {
+      id: 'ai_friendly',
+      content: '🤖 AI-Agent Friendly! Check out <a href="/llms.txt">llms.txt</a> for AI integration',
+      backgroundColor: '#7C44EA',
+      textColor: '#ffffff',
+      isCloseable: true,
+    },
+
     navbar: {
-      title: 'GameByte',
+      title: '', // Remove title, use logo only
       logo: {
-        alt: 'GameByte Framework Logo',
-        src: 'img/logo-light.png',
-        srcDark: 'img/logo-dark.png',
+        alt: 'GameByte Framework',
+        src: 'img/logo-icon.svg',
+        srcDark: 'img/logo-icon-dark.svg',
+        width: 32,
+        height: 32,
       },
       items: [
         {
@@ -96,6 +127,12 @@ const config: Config = {
     },
     footer: {
       style: 'dark',
+      logo: {
+        alt: 'GameByte',
+        src: 'img/logo-full.svg',
+        href: 'https://gamebyte.ai',
+        width: 160,
+      },
       links: [
         {
           title: 'Documentation',
@@ -173,6 +210,13 @@ const config: Config = {
       darkTheme: prismThemes.dracula,
       additionalLanguages: ['typescript', 'bash', 'json'],
     },
+
+    // Algolia search (placeholder - configure when ready)
+    // algolia: {
+    //   appId: 'YOUR_APP_ID',
+    //   apiKey: 'YOUR_SEARCH_API_KEY',
+    //   indexName: 'gamebyte',
+    // },
   } satisfies Preset.ThemeConfig,
 
   // Plugins
@@ -191,6 +235,46 @@ const config: Config = {
         name: 'llms-txt',
         content: '/llms.txt',
       },
+    },
+    {
+      tagName: 'link',
+      attributes: {
+        rel: 'apple-touch-icon',
+        sizes: '180x180',
+        href: '/img/favicon.svg',
+      },
+    },
+    {
+      tagName: 'link',
+      attributes: {
+        rel: 'manifest',
+        href: '/manifest.json',
+      },
+    },
+    {
+      tagName: 'script',
+      attributes: {
+        type: 'application/ld+json',
+      },
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'SoftwareApplication',
+        name: 'GameByte Framework',
+        description: 'Modern Mobile-First Game Development Framework for Building Hit Games',
+        url: 'https://docs.gamebyte.dev',
+        applicationCategory: 'DeveloperApplication',
+        operatingSystem: 'Cross-platform',
+        offers: {
+          '@type': 'Offer',
+          price: '0',
+          priceCurrency: 'USD',
+        },
+        author: {
+          '@type': 'Organization',
+          name: 'GameByte',
+          url: 'https://gamebyte.ai',
+        },
+      }),
     },
   ],
 };
