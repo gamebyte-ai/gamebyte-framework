@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UIProgressBar Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #1a1a2e;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: system-ui, sans-serif;
+            padding: 20px;
+            gap: 30px;
+        }
+        .progress-section {
+            width: 100%;
+            max-width: 350px;
+        }
+        .section-label {
+            color: #9ca3af;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+        .progress-container {
+            background: #0f0f23;
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .progress-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .progress-label {
+            color: white;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .progress-value {
+            color: #9ca3af;
+            font-size: 0.75rem;
+        }
+        .progress-bar {
+            height: 12px;
+            background: #374151;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.5s ease;
+        }
+        .fill-green { background: linear-gradient(90deg, #22c55e, #16a34a); }
+        .fill-blue { background: linear-gradient(90deg, #3b82f6, #2563eb); }
+        .fill-purple { background: linear-gradient(90deg, #8b5cf6, #7c3aed); }
+        .fill-orange { background: linear-gradient(90deg, #f59e0b, #d97706); }
+        .fill-red { background: linear-gradient(90deg, #ef4444, #dc2626); }
+        .fill-animated {
+            background: linear-gradient(90deg, #6366f1, #8b5cf6, #6366f1);
+            background-size: 200% 100%;
+            animation: shimmer 2s linear infinite;
+        }
+        @keyframes shimmer {
+            0% { background-position: 100% 0; }
+            100% { background-position: -100% 0; }
+        }
+        .progress-striped .progress-fill {
+            background: repeating-linear-gradient(
+                45deg,
+                #22c55e,
+                #22c55e 10px,
+                #16a34a 10px,
+                #16a34a 20px
+            );
+            animation: stripes 1s linear infinite;
+        }
+        @keyframes stripes {
+            0% { background-position: 0 0; }
+            100% { background-position: 40px 0; }
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: white;
+            background: #6366f1;
+            transition: transform 0.2s;
+        }
+        .btn:hover { transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+    <div class="progress-section">
+        <div class="section-label">Progress Bar Styles</div>
+        <div class="progress-container">
+            <div class="progress-item">
+                <div class="progress-header">
+                    <span class="progress-label">Health</span>
+                    <span class="progress-value" id="healthVal">75%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill fill-green" id="healthFill" style="width: 75%"></div>
+                </div>
+            </div>
+            <div class="progress-item">
+                <div class="progress-header">
+                    <span class="progress-label">Mana</span>
+                    <span class="progress-value">60/100</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill fill-blue" style="width: 60%"></div>
+                </div>
+            </div>
+            <div class="progress-item">
+                <div class="progress-header">
+                    <span class="progress-label">Experience</span>
+                    <span class="progress-value">2,450 / 5,000</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill fill-purple" style="width: 49%"></div>
+                </div>
+            </div>
+            <div class="progress-item">
+                <div class="progress-header">
+                    <span class="progress-label">Loading</span>
+                    <span class="progress-value" id="loadingVal">0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill fill-animated" id="loadingFill" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="progress-item">
+                <div class="progress-header">
+                    <span class="progress-label">Upload</span>
+                    <span class="progress-value">Striped</span>
+                </div>
+                <div class="progress-bar progress-striped">
+                    <div class="progress-fill" style="width: 65%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn" onclick="simulateLoading()">Simulate Loading</button>
+        <button class="btn" onclick="randomHealth()">Random Health</button>
+    </div>
+
+    <script>
+        function simulateLoading() {
+            const fill = document.getElementById('loadingFill');
+            const val = document.getElementById('loadingVal');
+            let progress = 0;
+
+            fill.style.width = '0%';
+            val.textContent = '0%';
+
+            const interval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                }
+                fill.style.width = progress + '%';
+                val.textContent = Math.round(progress) + '%';
+            }, 200);
+        }
+
+        function randomHealth() {
+            const fill = document.getElementById('healthFill');
+            const val = document.getElementById('healthVal');
+            const health = Math.floor(Math.random() * 100);
+
+            fill.style.width = health + '%';
+            val.textContent = health + '%';
+
+            if (health < 25) {
+                fill.className = 'progress-fill fill-red';
+            } else if (health < 50) {
+                fill.className = 'progress-fill fill-orange';
+            } else {
+                fill.className = 'progress-fill fill-green';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -53,7 +53,7 @@ const config: Config = {
   ],
 
   themeConfig: {
-    image: 'img/gamebyte-social-card.png',
+    image: 'img/docusaurus-social-card.jpg',
     colorMode: {
       defaultMode: 'dark',
       respectPrefersColorScheme: true,
