@@ -10,6 +10,7 @@ import {
   PhysicsPerformanceMetrics,
   PhysicsBody,
   PhysicsBodyConfig,
+  PhysicsShapeConfig,
   SimpleBodyConfig,
   Point,
   PlatformerPhysicsHelper,
@@ -325,28 +326,42 @@ export class PhysicsManager extends EventEmitter implements IPhysicsManager {
     const options = simple.options || {};
 
     // Determine shape type for physics
-    let shapeType: 'box' | 'circle' = 'box';
+    let shapeType: 'box' | 'circle' | 'mesh' = 'box';
     if (simple.shape === 'circle') {
       shapeType = 'circle';
+    } else if (simple.shape === 'polygon') {
+      shapeType = 'mesh';
     }
 
-    // Build dimensions
+    // Build dimensions based on shape type
     let dimensions: Point;
     if (simple.shape === 'circle') {
       const radius = simple.radius || 16;
       dimensions = { x: radius * 2, y: radius * 2 };
+    } else if (simple.shape === 'polygon' && simple.vertices && simple.vertices.length > 0) {
+      // Calculate bounding box from vertices for polygon
+      const xs = simple.vertices.map(v => v.x);
+      const ys = simple.vertices.map(v => v.y);
+      dimensions = {
+        x: Math.max(...xs) - Math.min(...xs),
+        y: Math.max(...ys) - Math.min(...ys)
+      };
     } else {
       dimensions = { x: simple.width || 32, y: simple.height || 32 };
     }
 
+    // Build shape config with vertices for polygon shapes
+    const shapeConfig: PhysicsShapeConfig = {
+      type: shapeType,
+      dimensions,
+      radius: simple.shape === 'circle' ? simple.radius : undefined,
+      vertices: simple.shape === 'polygon' ? simple.vertices : undefined
+    };
+
     const fullConfig: PhysicsBodyConfig = {
       type: options.isStatic ? 'static' : 'dynamic',
       position: { x: simple.x, y: simple.y },
-      shapes: [{
-        type: shapeType,
-        dimensions,
-        radius: simple.shape === 'circle' ? simple.radius : undefined
-      }],
+      shapes: [shapeConfig],
       isStatic: options.isStatic,
       isSensor: options.isSensor,
       rotation: options.angle,
@@ -357,7 +372,7 @@ export class PhysicsManager extends EventEmitter implements IPhysicsManager {
       collisionMask: options.collisionMask,
       mass: options.mass,
       linearDamping: options.frictionAir,
-      userData: { label: options.label }
+      userData: options.label ? { label: options.label } : undefined
     };
 
     // Add material properties if specified
@@ -380,14 +395,20 @@ export class PhysicsManager extends EventEmitter implements IPhysicsManager {
    * Create a platformer physics helper
    */
   createPlatformerHelper(character: PhysicsBody): PlatformerPhysicsHelper {
-    return new GameBytePlatformerHelper(character, this.activeWorld!);
+    if (!this.activeWorld) {
+      throw new Error('No active physics world');
+    }
+    return new GameBytePlatformerHelper(character, this.activeWorld);
   }
 
   /**
    * Create a top-down physics helper
    */
   createTopDownHelper(character: PhysicsBody): TopDownPhysicsHelper {
-    return new GameByteTopDownHelper(character, this.activeWorld!);
+    if (!this.activeWorld) {
+      throw new Error('No active physics world');
+    }
+    return new GameByteTopDownHelper(character, this.activeWorld);
   }
 
   /**

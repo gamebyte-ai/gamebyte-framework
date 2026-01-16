@@ -66,6 +66,8 @@ export interface PhysicsShapeConfig {
   dimensions: Point | Vector3;
   radius?: number;
   height?: number;
+/** Vertices for polygon/mesh shapes */
+  vertices?: Point[] | Vector3[];
   material?: PhysicsMaterial;
   isSensor?: boolean;
   collisionGroup?: number;
@@ -211,6 +213,8 @@ export interface RaycastOptions {
  * Physics world configuration
  */
 export interface PhysicsWorldConfig {
+  /** Optional identifier for the world */
+  id?: string;
   dimension: PhysicsDimension;
   gravity: Point | Vector3;
   allowSleep?: boolean;
