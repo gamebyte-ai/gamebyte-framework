@@ -1,0 +1,2674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte Components - Showcase</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0b;
+            --bg-secondary: #141416;
+            --bg-tertiary: #1c1c1f;
+            --bg-card: #18181b;
+            --border-color: #27272a;
+            --text-primary: #fafafa;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --accent-primary: #8b5cf6;
+            --accent-secondary: #6366f1;
+            --accent-success: #22c55e;
+            --accent-warning: #f59e0b;
+            --accent-danger: #ef4444;
+            --accent-info: #3b82f6;
+            --gradient-primary: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            --gradient-gold: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+            --gradient-success: linear-gradient(135deg, #22c55e 0%, #4ade80 100%);
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.5);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+
+        .sidebar-logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient-primary);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .sidebar-logo-text {
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .sidebar-logo-version {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .sidebar-nav {
+            padding: 16px 12px;
+        }
+
+        .nav-section {
+            margin-bottom: 24px;
+        }
+
+        .nav-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            padding: 8px 12px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.15s ease;
+            cursor: pointer;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: rgba(139, 92, 246, 0.15);
+            color: var(--accent-primary);
+        }
+
+        .nav-item-icon {
+            width: 20px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .nav-item-badge {
+            margin-left: auto;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            background: var(--accent-primary);
+            color: white;
+            font-weight: 600;
+        }
+
+        /* Main Content */
+        .main {
+            margin-left: 280px;
+            min-height: 100vh;
+        }
+
+        .header {
+            position: sticky;
+            top: 0;
+            background: rgba(10, 10, 11, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 32px;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-title {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .header-btn {
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-decoration: none;
+        }
+
+        .header-btn:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border-color: var(--text-muted);
+        }
+
+        .content {
+            padding: 48px;
+            max-width: 1400px;
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 64px 0;
+            margin-bottom: 48px;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            background: rgba(139, 92, 246, 0.15);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 20px;
+            font-size: 13px;
+            color: var(--accent-primary);
+            font-weight: 500;
+            margin-bottom: 24px;
+        }
+
+        .hero h1 {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 18px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Component Section */
+        .section {
+            margin-bottom: 64px;
+            scroll-margin-top: 100px;
+        }
+
+        .section-header {
+            margin-bottom: 32px;
+        }
+
+        .section-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-title-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--gradient-primary);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .section-description {
+            color: var(--text-secondary);
+            font-size: 15px;
+        }
+
+        /* Component Card */
+        .component-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 24px;
+        }
+
+        .component-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .component-card:hover {
+            border-color: var(--text-muted);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .component-preview {
+            height: 200px;
+            background: var(--bg-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .component-preview::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(90deg, var(--border-color) 1px, transparent 1px),
+                linear-gradient(var(--border-color) 1px, transparent 1px);
+            background-size: 20px 20px;
+            opacity: 0.3;
+        }
+
+        .preview-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .component-info {
+            padding: 20px;
+        }
+
+        .component-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .component-tag {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .tag-core { background: rgba(139, 92, 246, 0.2); color: var(--accent-primary); }
+        .tag-new { background: rgba(34, 197, 94, 0.2); color: var(--accent-success); }
+        .tag-popular { background: rgba(245, 158, 11, 0.2); color: var(--accent-warning); }
+
+        .component-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        .component-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 8px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: scale(1.02);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        /* Code Block */
+        .code-section {
+            margin-top: 32px;
+        }
+
+        .code-block {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+        }
+
+        .code-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .code-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .code-copy {
+            padding: 4px 10px;
+            border-radius: var(--radius-sm);
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .code-copy:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .code-content {
+            padding: 16px;
+            overflow-x: auto;
+        }
+
+        .code-content pre {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        .code-content .keyword { color: #c792ea; }
+        .code-content .string { color: #c3e88d; }
+        .code-content .number { color: #f78c6c; }
+        .code-content .comment { color: #546e7a; }
+        .code-content .function { color: #82aaff; }
+        .code-content .property { color: #ffcb6b; }
+
+        /* Preview Components - Inline Styles */
+        .preview-button {
+            padding: 14px 32px;
+            border-radius: 12px;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .preview-button-primary {
+            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+        }
+
+        .preview-button-primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
+        }
+
+        .preview-button-success {
+            background: linear-gradient(135deg, #22c55e 0%, #4ade80 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+        }
+
+        .preview-button-gold {
+            background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+            color: #1c1c1f;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+        }
+
+        .preview-progress-container {
+            width: 280px;
+        }
+
+        .preview-progress {
+            height: 24px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+
+        .preview-progress-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+
+        .preview-progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 4px;
+            right: 4px;
+            height: 6px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 3px;
+        }
+
+        .preview-progress-health .preview-progress-fill {
+            background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
+            width: 75%;
+        }
+
+        .preview-progress-xp .preview-progress-fill {
+            background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
+            width: 45%;
+        }
+
+        .preview-progress-energy .preview-progress-fill {
+            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+            width: 60%;
+        }
+
+        .preview-progress-label {
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Currency Display */
+        .preview-currency {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0,0,0,0.4);
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+
+        .preview-currency-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .preview-currency-gold .preview-currency-icon {
+            background: linear-gradient(135deg, #f59e0b, #fbbf24);
+        }
+
+        .preview-currency-gem .preview-currency-icon {
+            background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+        }
+
+        .preview-currency-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .preview-currency-plus {
+            width: 24px;
+            height: 24px;
+            background: var(--accent-success);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+        }
+
+        /* Card Component */
+        .preview-card {
+            width: 160px;
+            background: linear-gradient(180deg, #2d2d35 0%, #1f1f25 100%);
+            border-radius: 16px;
+            padding: 16px;
+            border: 2px solid rgba(255,255,255,0.1);
+            text-align: center;
+        }
+
+        .preview-card-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 12px;
+            background: linear-gradient(135deg, #8b5cf6, #6366f1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+        }
+
+        .preview-card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 4px;
+        }
+
+        .preview-card-subtitle {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .preview-card-btn {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #22c55e, #4ade80);
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* Star Rating */
+        .preview-stars {
+            display: flex;
+            gap: 4px;
+        }
+
+        .preview-star {
+            font-size: 28px;
+            transition: transform 0.2s ease;
+        }
+
+        .preview-star.filled {
+            color: #fbbf24;
+            text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+        }
+
+        .preview-star.empty {
+            color: #3f3f46;
+        }
+
+        /* Toggle Switch */
+        .preview-toggle {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .preview-toggle-track {
+            width: 56px;
+            height: 32px;
+            background: #3f3f46;
+            border-radius: 16px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .preview-toggle-track.active {
+            background: var(--accent-success);
+        }
+
+        .preview-toggle-thumb {
+            width: 26px;
+            height: 26px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            transition: transform 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .preview-toggle-track.active .preview-toggle-thumb {
+            transform: translateX(24px);
+        }
+
+        .preview-toggle-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        /* Badge */
+        .preview-badge-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .preview-badge-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            border: 2px solid var(--border-color);
+        }
+
+        .preview-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            min-width: 20px;
+            height: 20px;
+            background: var(--accent-danger);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: white;
+            padding: 0 6px;
+        }
+
+        /* Timer */
+        .preview-timer {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0,0,0,0.5);
+            padding: 12px 20px;
+            border-radius: 12px;
+            border: 2px solid rgba(239, 68, 68, 0.5);
+        }
+
+        .preview-timer-icon {
+            font-size: 20px;
+            color: var(--accent-danger);
+        }
+
+        .preview-timer-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+        }
+
+        /* Avatar */
+        .preview-avatar-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .preview-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #8b5cf6, #6366f1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            border: 3px solid #fbbf24;
+            position: relative;
+        }
+
+        .preview-avatar-level {
+            position: absolute;
+            bottom: -4px;
+            right: -4px;
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, #f59e0b, #fbbf24);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: #1c1c1f;
+            border: 2px solid var(--bg-tertiary);
+        }
+
+        .preview-avatar-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-avatar-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .preview-avatar-title {
+            font-size: 12px;
+            color: var(--accent-primary);
+        }
+
+        /* Toast */
+        .preview-toast {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--bg-card);
+            padding: 14px 18px;
+            border-radius: 12px;
+            border-left: 4px solid var(--accent-success);
+            box-shadow: var(--shadow-lg);
+            min-width: 280px;
+        }
+
+        .preview-toast-icon {
+            width: 32px;
+            height: 32px;
+            background: rgba(34, 197, 94, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .preview-toast-content {
+            flex: 1;
+        }
+
+        .preview-toast-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .preview-toast-message {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .preview-toast-close {
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        /* Modal */
+        .preview-modal {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 24px;
+            width: 280px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .preview-modal-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 16px;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+        }
+
+        .preview-modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 8px;
+        }
+
+        .preview-modal-subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .preview-modal-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .preview-modal-buttons .btn {
+            flex: 1;
+            justify-content: center;
+            padding: 12px;
+        }
+
+        /* Leaderboard */
+        .preview-leaderboard {
+            width: 280px;
+        }
+
+        .preview-leaderboard-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--bg-card);
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .preview-leaderboard-item.gold {
+            border-color: rgba(251, 191, 36, 0.5);
+            background: linear-gradient(90deg, rgba(251, 191, 36, 0.1), transparent);
+        }
+
+        .preview-leaderboard-rank {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .preview-leaderboard-rank.rank-1 {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: #1c1c1f;
+        }
+
+        .preview-leaderboard-rank.rank-2 {
+            background: linear-gradient(135deg, #9ca3af, #d1d5db);
+            color: #1c1c1f;
+        }
+
+        .preview-leaderboard-rank.rank-3 {
+            background: linear-gradient(135deg, #d97706, #b45309);
+            color: white;
+        }
+
+        .preview-leaderboard-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--gradient-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .preview-leaderboard-info {
+            flex: 1;
+        }
+
+        .preview-leaderboard-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .preview-leaderboard-score {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Slider */
+        .preview-slider-container {
+            width: 240px;
+        }
+
+        .preview-slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .preview-slider-label span:first-child {
+            color: var(--text-secondary);
+        }
+
+        .preview-slider-label span:last-child {
+            color: white;
+            font-weight: 600;
+        }
+
+        .preview-slider-track {
+            height: 8px;
+            background: #3f3f46;
+            border-radius: 4px;
+            position: relative;
+        }
+
+        .preview-slider-fill {
+            height: 100%;
+            background: var(--gradient-primary);
+            border-radius: 4px;
+            width: 70%;
+        }
+
+        .preview-slider-thumb {
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 70%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            cursor: pointer;
+        }
+
+        /* Icon Button */
+        .preview-icon-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .preview-icon-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .preview-icon-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .preview-icon-btn.settings {
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .preview-icon-btn.share {
+            background: linear-gradient(135deg, #3b82f6, #60a5fa);
+            color: white;
+        }
+
+        .preview-icon-btn.favorite {
+            background: linear-gradient(135deg, #ef4444, #f87171);
+            color: white;
+        }
+
+        /* Daily Reward */
+        .preview-daily-reward {
+            display: flex;
+            gap: 8px;
+        }
+
+        .preview-daily-day {
+            width: 52px;
+            padding: 12px 8px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            text-align: center;
+            border: 2px solid var(--border-color);
+            position: relative;
+        }
+
+        .preview-daily-day.claimed {
+            border-color: var(--accent-success);
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .preview-daily-day.today {
+            border-color: var(--accent-primary);
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .preview-daily-day-num {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .preview-daily-day-icon {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        .preview-daily-day-value {
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .preview-daily-day.claimed::after {
+            content: '✓';
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            width: 18px;
+            height: 18px;
+            background: var(--accent-success);
+            border-radius: 50%;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .main {
+                margin-left: 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 24px;
+            }
+            .hero h1 {
+                font-size: 32px;
+            }
+            .component-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <a href="index.html" class="sidebar-logo">
+                <div class="sidebar-logo-icon">G</div>
+                <div>
+                    <div class="sidebar-logo-text">GameByte</div>
+                    <div class="sidebar-logo-version">Components v1.0</div>
+                </div>
+            </a>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-section">
+                <div class="nav-section-title">Getting Started</div>
+                <a href="#overview" class="nav-item active">
+                    <span class="nav-item-icon">📖</span>
+                    Overview
+                </a>
+                <a href="#installation" class="nav-item">
+                    <span class="nav-item-icon">📦</span>
+                    Installation
+                </a>
+            </div>
+            <div class="nav-section">
+                <div class="nav-section-title">Core Components</div>
+                <a href="#buttons" class="nav-item">
+                    <span class="nav-item-icon">🔘</span>
+                    Buttons
+                    <span class="nav-item-badge">4</span>
+                </a>
+                <a href="#progress" class="nav-item">
+                    <span class="nav-item-icon">📊</span>
+                    Progress Bars
+                    <span class="nav-item-badge">3</span>
+                </a>
+                <a href="#currency" class="nav-item">
+                    <span class="nav-item-icon">💰</span>
+                    Currency Display
+                </a>
+                <a href="#cards" class="nav-item">
+                    <span class="nav-item-icon">🃏</span>
+                    Cards
+                </a>
+            </div>
+            <div class="nav-section">
+                <div class="nav-section-title">Game UI</div>
+                <a href="#topbar" class="nav-item">
+                    <span class="nav-item-icon">📱</span>
+                    TopBar / HUD
+                </a>
+                <a href="#avatar" class="nav-item">
+                    <span class="nav-item-icon">👤</span>
+                    Avatar
+                </a>
+                <a href="#stars" class="nav-item">
+                    <span class="nav-item-icon">⭐</span>
+                    Star Rating
+                </a>
+                <a href="#timer" class="nav-item">
+                    <span class="nav-item-icon">⏱️</span>
+                    Timer
+                </a>
+                <a href="#leaderboard" class="nav-item">
+                    <span class="nav-item-icon">🏆</span>
+                    Leaderboard
+                </a>
+                <a href="#daily" class="nav-item">
+                    <span class="nav-item-icon">📅</span>
+                    Daily Rewards
+                </a>
+            </div>
+            <div class="nav-section">
+                <div class="nav-section-title">Feedback</div>
+                <a href="#toast" class="nav-item">
+                    <span class="nav-item-icon">💬</span>
+                    Toast
+                </a>
+                <a href="#modal" class="nav-item">
+                    <span class="nav-item-icon">🪟</span>
+                    Modal
+                </a>
+                <a href="#badge" class="nav-item">
+                    <span class="nav-item-icon">🔔</span>
+                    Badge
+                </a>
+            </div>
+            <div class="nav-section">
+                <div class="nav-section-title">Inputs</div>
+                <a href="#toggle" class="nav-item">
+                    <span class="nav-item-icon">🔄</span>
+                    Toggle
+                </a>
+                <a href="#slider" class="nav-item">
+                    <span class="nav-item-icon">🎚️</span>
+                    Slider
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main">
+        <header class="header">
+            <span class="header-title">Hybrid Casual Game Components</span>
+            <div class="header-actions">
+                <a href="https://github.com/nicklaros/gamebyte-framework" class="header-btn" target="_blank">GitHub</a>
+                <a href="index.html" class="header-btn">Demos</a>
+            </div>
+        </header>
+
+        <div class="content">
+            <!-- Hero -->
+            <section class="hero" id="overview">
+                <div class="hero-badge">
+                    <span>✨</span>
+                    <span>20+ Production-Ready Components</span>
+                </div>
+                <h1>GameByte Components</h1>
+                <p>Beautiful, mobile-first UI components designed for hybrid casual games. Built with performance in mind, fully customizable and easy to extend.</p>
+            </section>
+
+            <!-- Installation -->
+            <section class="section" id="installation">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <span class="section-title-icon">📦</span>
+                        Quick Start
+                    </h2>
+                    <p class="section-description">Get started with GameByte components in minutes</p>
+                </div>
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">
+                            <span>📄</span>
+                            Installation
+                        </span>
+                        <button class="code-copy" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <div class="code-content">
+<pre><span class="comment">// 1. Include the UMD bundle</span>
+&lt;script src="<span class="string">dist/gamebyte-framework.umd.js</span>"&gt;&lt;/script&gt;
+
+<span class="comment">// 2. Create a game instance</span>
+<span class="keyword">const</span> game = <span class="keyword">new</span> <span class="function">GameByte</span>({
+    <span class="property">width</span>: <span class="number">390</span>,
+    <span class="property">height</span>: <span class="number">844</span>,
+    <span class="property">backgroundColor</span>: <span class="number">0x1a1a2e</span>
+});
+
+<span class="comment">// 3. Initialize and create components</span>
+<span class="keyword">await</span> game.<span class="function">initialize</span>(<span class="string">'game-container'</span>);
+
+<span class="keyword">const</span> button = game.ui.<span class="function">createButton</span>({
+    <span class="property">text</span>: <span class="string">'PLAY'</span>,
+    <span class="property">x</span>: <span class="number">195</span>,
+    <span class="property">y</span>: <span class="number">400</span>
+});</pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Buttons Section -->
+            <section class="section" id="buttons">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <span class="section-title-icon">🔘</span>
+                        Buttons
+                    </h2>
+                    <p class="section-description">Interactive buttons with rich visual feedback, perfect for CTAs and game actions</p>
+                </div>
+                <div class="component-grid">
+                    <!-- Primary Button -->
+                    <div class="component-card">
+                        <div class="component-preview">
+                            <div class="preview-content">
+                                <button class="preview-button preview-button-primary">PLAY NOW</button>
+                            </div>
+                        </div>
+                        <div class="component-info">
+                            <div class="component-name">
+                                Primary Button
+                                <span class="component-tag tag-core">Core</span>
+                            </div>
+                            <p class="component-desc">Main CTA button with gradient background, glow effect and scale animation on press.</p>
+                            <div class="component-actions">
+                                <button class="btn btn-primary" onclick="showCode('btn-primary')">View Code</button>
+                                <button class="btn btn-secondary" onclick="openDemo('buttons')">Live Demo</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Success Button -->
+                    <div class="component-card">
+                        <div class="component-preview">
+                            <div class="preview-content">
+                                <button class="preview-button preview-button-success">CLAIM</button>
+                            </div>
+                        </div>
+                        <div class="component-info">
+                            <div class="component-name">
+                                Success Button
+                                <span class="component-tag tag-popular">Popular</span>
+                            </div>
+                            <p class="component-desc">Reward claim and positive action button with green gradient styling.</p>
+                            <div class="component-actions">
+                                <button class="btn btn-primary" onclick="showCode('btn-success')">View Code</button>
+                                <button class="btn btn-secondary" onclick="openDemo('buttons')">Live Demo</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gold Button -->
+                    <div class="component-card">
+                        <div class="component-preview">
+                            <div class="preview-content">
+                                <button class="preview-button preview-button-gold">UPGRADE</button>
+                            </div>
+                        </div>
+                        <div class="component-info">
+                            <div class="component-name">
+                                Premium Button
+                                <span class="component-tag tag-new">New</span>
+                            </div>
+                            <p class="component-desc">Premium/upgrade actions with gold gradient. Perfect for IAP buttons.</p>
+                            <div class="component-actions">
+                                <button class="btn btn-primary" onclick="showCode('btn-gold')">View Code</button>
+                                <button class="btn btn-secondary" onclick="openDemo('buttons')">Live Demo</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Icon Buttons -->
+                    <div class="component-card">
+                        <div class="component-preview">
+                            <div class="preview-content">
+                                <div class="preview-icon-buttons">
+                                    <button class="preview-icon-btn settings">⚙️</button>
+                                    <button class="preview-icon-btn share">📤</button>
+                                    <button class="preview-icon-btn favorite">❤️</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="component-info">
+                            <div class="component-name">
+                                Icon Buttons
+                                <span class="component-tag tag-core">Core</span>
+                            </div>
+                            <p class="component-desc">Compact icon-only buttons for settings, share, favorites and quick actions.</p>
+                            <div class="component-actions">
+                                <button class="btn btn-primary" onclick="showCode('btn-icon')">View Code</button>
+                                <button class="btn btn-secondary" onclick="openDemo('buttons')">Live Demo</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Code Example -->
+                <div class="code-section" id="code-btn-primary">
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-title">
+                                <span>📄</span>
+                                Button Usage
+                            </span>
+                            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+                        </div>
+                        <div class="code-content">
+<pre><span class="comment">// Create a primary CTA button</span>
+<span class="keyword">const</span> playButton = game.ui.<span class="function">createButton</span>({
+    <span class="property">text</span>: <span class="string">'PLAY NOW'</span>,
+    <span class="property">x</span>: <span class="number">195</span>,
+    <span class="property">y</span>: <span class="number">600</span>,
+    <span class="property">width</span>: <span class="number">200</span>,
+    <span class="property">height</span>: <span class="number">56</span>,
+    <span class="property">style</span>: {
+        <span class="property">backgroundColor</span>: { <span class="property">from</span>: <span class="number">0x8b5cf6</span>, <span class="property">to</span>: <span class="number">0x6366f1</span> },
+        <span class="property">borderRadius</span>: <span class="number">12</span>,
+        <span class="property">fontSize</span>: <span class="number">18</span>,
+        <span class="property">fontWeight</span>: <span class="string">'bold'</span>,
+        <span class="property">glow</span>: <span class="keyword">true</span>,
+        <span class="property">glowColor</span>: <span class="number">0x8b5cf6</span>,
+        <span class="property">glowIntensity</span>: <span class="number">0.4</span>
+    },
+    <span class="property">onClick</span>: () => {
+        console.<span class="function">log</span>(<span class="string">'Button clicked!'</span>);
+        game.<span class="function">startGame</span>();
+    }
+});
+
+<span class="comment">// Add to stage</span>
+game.stage.<span class="function">addChild</span>(playButton);
+
+<span class="comment">// Animate button entrance</span>
+playButton.<span class="function">animate</span>({
+    <span class="property">scale</span>: { <span class="property">x</span>: <span class="number">1</span>, <span class="property">y</span>: <span class="number">1</span> },
+    <span class="property">alpha</span>: <span class="number">1</span>
+}, { <span class="property">duration</span>: <span class="number">300</span>, <span class="property">easing</span>: <span class="string">'ease-out'</span> });</pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Progress Bars Section -->
+            <section class="section" id="progress">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <span class="section-title-icon">📊</span>
+                        Progress Bars
+                    </h2>
+                    <p class="section-description">Visual progress indicators for health, XP, energy and loading states</p>
+                </div>
+                <div class="component-grid">
+                    <!-- Health Bar -->
+                    <div class="component-card">
+                        <div class="component-preview">
+                            <div class="preview-content">
+                                <div class="preview-progress-container">
+                                    <div class="preview-progress preview-progress-health">
+                                        <div class="preview-progress-fill"></div>
+                                    </div>
+                                    <div class="preview-progress-label">
+                                        <span>❤️ Health</span>
+                                        <span>75/100</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="component-info">
+                            <div class="component-name">
+                                Health Bar
+                                <span class="component-tag tag-popular">Popular</span>
+                            </div>
+                            <p class="component-desc">Player health indicator with animated damage effects and color transitions.</p>
+                            <div class="component-actions">
+                                <button class="btn btn-primary" onclick="showCode('progress-health')">View Code</button>
+                                <button class="btn btn-secondary">Live Demo</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- XP Bar -->
+                    <div class="component-card">
+                        <div class="component-preview">
+                            <div class="preview-content">
+                                <div class="preview-progress-container">
+                                    <div class="preview-progress preview-progress-xp">
+                                        <div class="preview-progress-fill"></div>
+                                    </div>
+                                    <div class="preview-progress-label">
+                                        <span>⚡ Experience</span>
+                                        <span>4,500 / 10,000</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="component-info">
+                            <div class="component-name">
+                                XP / Level Bar
+                                <span class="component-tag tag-core">Core</span>
+                            </div>
+                            <p class="component-desc">Experience progress bar with level-up animations and milestone indicators.</p>
+                            <div class="component-actions">
+                                <button class="btn btn-primary" onclick="showCode('progress-xp')">View Code</button>
+                                <button class="btn btn-secondary">Live Demo</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Energy Bar -->
+                    <div class="component-card">
+                        <div class="component-preview">
+                            <div class="preview-content">
+                                <div class="preview-progress-container">
+                                    <div class="preview-progress preview-progress-energy">
+                                        <div class="preview-progress-fill"></div>
+                                    </div>
+                                    <div class="preview-progress-label">
+                                        <span>⚡ Energy</span>
+                                        <span>3/5</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="component-info">
+                            <div class="component-name">
+                                Energy Bar
+                                <span class="component-tag tag-new">New</span>
+                            </div>
+                            <p class="component-desc">Energy/stamina bar with regeneration timer and segmented display.</p>
+                            <div class="component-actions">
+                                <button class="btn btn-primary" onclick="showCode('progress-energy')">View Code</button>
+                                <button class="btn btn-secondary">Live Demo</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Code Example -->
+                <div class="code-section">
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-title">
+                                <span>📄</span>
+                                Progress Bar Usage
+                            </span>
+                            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+                        </div>
+                        <div class="code-content">
+<pre><span class="comment">// Create a health bar</span>
+<span class="keyword">const</span> healthBar = game.ui.<span class="function">createProgressBar</span>({
+    <span class="property">x</span>: <span class="number">20</span>,
+    <span class="property">y</span>: <span class="number">50</span>,
+    <span class="property">width</span>: <span class="number">200</span>,
+    <span class="property">height</span>: <span class="number">24</span>,
+    <span class="property">value</span>: <span class="number">75</span>,
+    <span class="property">maxValue</span>: <span class="number">100</span>,
+    <span class="property">style</span>: {
+        <span class="property">backgroundColor</span>: <span class="number">0x2d2d2d</span>,
+        <span class="property">fillColor</span>: { <span class="property">from</span>: <span class="number">0xef4444</span>, <span class="property">to</span>: <span class="number">0xf87171</span> },
+        <span class="property">borderRadius</span>: <span class="number">12</span>,
+        <span class="property">border</span>: { <span class="property">width</span>: <span class="number">2</span>, <span class="property">color</span>: <span class="number">0x404040</span> },
+        <span class="property">showLabel</span>: <span class="keyword">true</span>,
+        <span class="property">labelFormat</span>: <span class="string">'{value}/{max}'</span>
+    },
+    <span class="property">animated</span>: <span class="keyword">true</span>,
+    <span class="property">animationDuration</span>: <span class="number">300</span>
+});
+
+<span class="comment">// Update health with animation</span>
+healthBar.<span class="function">setValue</span>(<span class="number">50</span>); <span class="comment">// Smoothly animates to 50%</span>
+
+<span class="comment">// Listen for value changes</span>
+healthBar.<span class="function">on</span>(<span class="string">'change'</span>, (newValue, oldValue) => {
+    <span class="keyword">if</span> (newValue < <span class="number">25</span>) {
+        healthBar.<span class="function">flash</span>(<span class="number">0xff0000</span>); <span class="comment">// Low health warning</span>
+    }
+});</pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Currency Display Section -->
+            <section class="section" id="currency">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <span class="section-title-icon">💰</span>
+                        Currency Display
+                    </h2>
+                    <p class="section-description">Animated currency counters with add/subtract animations</p>
+                </div>
+                <div class="component-grid">
+                    <!-- Gold Currency -->
+                    <div class="component-card">
+                        <div class="component-preview">
+                            <div class="preview-content">
+                                <div class="preview-currency preview-currency-gold">
+                                    <div class="preview-currency-icon">🪙</div>
+                                    <span class="preview-currency-value">12,450</span>
+                                    <div class="preview-currency-plus">+</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="component-info">
+                            <div class="component-name">
+                                Coin Counter
+                                <span class="component-tag tag-popular">Popular</span>
+                            </div>
+                            <p class="component-desc">Soft currency display with animated value changes and shop button.</p>
+                            <div class="component-actions">
+                                <button class="btn btn-primary" onclick="showCode('currency-gold')">View Code</button>
+                                <button class="btn btn-secondary">Live Demo</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gem Currency -->
+                    <div class="component-card">
+                        <div class="component-preview">
+                            <div class="preview-content">
+                                <div class="preview-currency preview-currency-gem">
+                                    <div class="preview-currency-icon">💎</div>
+                                    <span class="preview-currency-value">358</span>
+                                    <div class="preview-currency-plus">+</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="component-info">
+                            <div class="component-name">
+                                Gem Counter
+                                <span class="component-tag tag-core">Core</span>
+                            </div>
+                            <p class="component-desc">Premium currency display with sparkle effects and purchase integration.</p>
+                            <div class="component-actions">
+                                <button class="btn btn-primary" onclick="showCode('currency-gem')">View Code</button>
+                                <button class="btn btn-secondary">Live Demo</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Code Example -->
+                <div class="code-section">
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-title">
+                                <span>📄</span>
+                                Currency Display Usage
+                            </span>
+                            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+                        </div>
+                        <div class="code-content">
+<pre><span class="comment">// Create currency display using TopBar</span>
+<span class="keyword">const</span> topBar = game.ui.<span class="function">createTopBar</span>({
+    <span class="property">items</span>: [
+        {
+            <span class="property">id</span>: <span class="string">'coins'</span>,
+            <span class="property">type</span>: <span class="string">'resource'</span>,
+            <span class="property">icon</span>: <span class="string">'🪙'</span>,
+            <span class="property">value</span>: <span class="number">12450</span>,
+            <span class="property">format</span>: <span class="string">'abbreviate'</span>, <span class="comment">// Shows 12.4K for large numbers</span>
+            <span class="property">showAddButton</span>: <span class="keyword">true</span>,
+            <span class="property">onAddClick</span>: () => game.<span class="function">openShop</span>(<span class="string">'coins'</span>)
+        },
+        {
+            <span class="property">id</span>: <span class="string">'gems'</span>,
+            <span class="property">type</span>: <span class="string">'resource'</span>,
+            <span class="property">icon</span>: <span class="string">'💎'</span>,
+            <span class="property">value</span>: <span class="number">358</span>,
+            <span class="property">showAddButton</span>: <span class="keyword">true</span>,
+            <span class="property">onAddClick</span>: () => game.<span class="function">openShop</span>(<span class="string">'gems'</span>)
+        }
+    ],
+    <span class="property">style</span>: {
+        <span class="property">backgroundColor</span>: <span class="number">0x000000</span>,
+        <span class="property">backgroundAlpha</span>: <span class="number">0.4</span>,
+        <span class="property">padding</span>: <span class="number">8</span>
+    }
+});
+
+<span class="comment">// Animate currency change</span>
+topBar.<span class="function">updateValue</span>(<span class="string">'coins'</span>, <span class="number">15000</span>, {
+    <span class="property">animated</span>: <span class="keyword">true</span>,
+    <span class="property">flyFrom</span>: { <span class="property">x</span>: <span class="number">200</span>, <span class="property">y</span>: <span class="number">400</span> } <span class="comment">// Coins fly from reward position</span>
+});</pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Cards Section -->
+            <section class="section" id="cards">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <span class="section-title-icon">🃏</span>
+                        Cards
+                    </h2>
+                    <p class="section-description">Versatile card components for upgrades, rewards, and item displays</p>
+                </div>
+                <div class="component-grid">
+                    <!-- Upgrade Card -->
+                    <div class="component-card">
+                        <div class="component-preview">
+                            <div class="preview-content">
+                                <div class="preview-card">
+                                    <div class="preview-card-icon">⚔️</div>
+                                    <div class="preview-card-title">Attack +5</div>
+                                    <div class="preview-card-subtitle">Level 3 → 4</div>
+                                    <button class="preview-card-btn">500 🪙</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="component-info">
+                            <div class="component-name">
+                                Upgrade Card
+                                <span class="component-tag tag-popular">Popular</span>
+                            </div>
+                            <p class="component-desc">Stat upgrade cards with level progression and cost display.</p>
+                            <div class="component-actions">
+                                <button class="btn btn-primary" onclick="showCode('card-upgrade')">View Code</button>
+                                <button class="btn btn-secondary">Live Demo</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Code Example -->
+                <div class="code-section">
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-title">
+                                <span>📄</span>
+                                Card Component Usage
+                            </span>
+                            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+                        </div>
+                        <div class="code-content">
+<pre><span class="comment">// Create an upgrade card</span>
+<span class="keyword">const</span> upgradeCard = game.ui.<span class="function">createCard</span>({
+    <span class="property">type</span>: <span class="string">'upgrade'</span>,
+    <span class="property">x</span>: <span class="number">100</span>,
+    <span class="property">y</span>: <span class="number">200</span>,
+    <span class="property">width</span>: <span class="number">160</span>,
+    <span class="property">data</span>: {
+        <span class="property">icon</span>: <span class="string">'⚔️'</span>,
+        <span class="property">title</span>: <span class="string">'Attack +5'</span>,
+        <span class="property">subtitle</span>: <span class="string">'Level 3 → 4'</span>,
+        <span class="property">cost</span>: <span class="number">500</span>,
+        <span class="property">currency</span>: <span class="string">'coins'</span>
+    },
+    <span class="property">style</span>: {
+        <span class="property">backgroundColor</span>: { <span class="property">from</span>: <span class="number">0x2d2d35</span>, <span class="property">to</span>: <span class="number">0x1f1f25</span> },
+        <span class="property">borderRadius</span>: <span class="number">16</span>,
+        <span class="property">iconSize</span>: <span class="number">64</span>
+    },
+    <span class="property">onClick</span>: () => {
+        <span class="keyword">if</span> (player.coins >= <span class="number">500</span>) {
+            player.<span class="function">upgrade</span>(<span class="string">'attack'</span>);
+            upgradeCard.<span class="function">playPurchaseAnimation</span>();
+        }
+    }
+});</pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TopBar Section -->
+            <section class="section" id="topbar">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <span class="section-title-icon">📱</span>
+                        TopBar / HUD
+                    </h2>
+                    <p class="section-description">Flexible top bar for game HUD with resources, scores and timers</p>
+                </div>
+
+                <!-- Code Example -->
+                <div class="code-section">
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-title">
+                                <span>📄</span>
+                                TopBar Usage
+                            </span>
+                            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+                        </div>
+                        <div class="code-content">
+<pre><span class="comment">// Create a complete game HUD</span>
+<span class="keyword">const</span> hud = game.ui.<span class="function">createTopBar</span>({
+    <span class="property">items</span>: [
+        { <span class="property">id</span>: <span class="string">'coins'</span>, <span class="property">type</span>: <span class="string">'resource'</span>, <span class="property">icon</span>: <span class="string">'🪙'</span>, <span class="property">value</span>: <span class="number">1250</span> },
+        { <span class="property">id</span>: <span class="string">'gems'</span>, <span class="property">type</span>: <span class="string">'resource'</span>, <span class="property">icon</span>: <span class="string">'💎'</span>, <span class="property">value</span>: <span class="number">45</span> },
+        { <span class="property">id</span>: <span class="string">'score'</span>, <span class="property">type</span>: <span class="string">'score'</span>, <span class="property">value</span>: <span class="number">0</span>, <span class="property">label</span>: <span class="string">'Score'</span> },
+        { <span class="property">id</span>: <span class="string">'timer'</span>, <span class="property">type</span>: <span class="string">'timer'</span>, <span class="property">value</span>: <span class="number">60</span>, <span class="property">format</span>: <span class="string">'time'</span> },
+        { <span class="property">id</span>: <span class="string">'settings'</span>, <span class="property">type</span>: <span class="string">'button'</span>, <span class="property">icon</span>: <span class="string">'⚙️'</span>, <span class="property">onClick</span>: openSettings }
+    ],
+    <span class="property">layout</span>: <span class="string">'space-between'</span>,
+    <span class="property">theme</span>: <span class="string">'dark'</span>
+});
+
+<span class="comment">// Update values during gameplay</span>
+hud.<span class="function">updateValue</span>(<span class="string">'score'</span>, player.score);
+hud.<span class="function">startTimer</span>(<span class="string">'timer'</span>, {
+    <span class="property">onComplete</span>: () => game.<span class="function">gameOver</span>()
+});</pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Avatar Section -->
+            <section class="section" id="avatar">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <span class="section-title-icon">👤</span>
+                        Avatar
+                    </h2>
+                    <p class="section-description">Player profile avatars with level badges and status indicators</p>
+                </div>
+                <div class="component-grid">
+                    <div class="component-card">
+                        <div class="component-preview">
+                            <div class="preview-content">
+                                <div class="preview-avatar-container">
+                                    <div class="preview-avatar">
+                                        🦊
+                                        <div class="preview-avatar-level">42</div>
+                                    </div>
+                                    <div class="preview-avatar-info">
+                                        <div class="preview-avatar-name">PlayerOne</div>
+                                        <div class="preview-avatar-title">Elite Champion</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="component-info">
+                            <div class="component-name">
+                                Player Avatar
+                                <span class="component-tag tag-core">Core</span>
+                            </div>
+                            <p class="component-desc">Profile display with avatar image, level badge, name and title.</p>
+                            <div class="component-actions">
+                                <button class="btn btn-primary" onclick="showCode('avatar')">View Code</button>
+                                <button class="btn btn-secondary">Live Demo</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Code Example -->
+                <div class="code-section">
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-title">
+                                <span>📄</span>
+                                Avatar Usage
+                            </span>
+                            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+                        </div>
+                        <div class="code-content">
+<pre><span class="comment">// Create player avatar</span>
+<span class="keyword">const</span> avatar = game.ui.<span class="function">createAvatar</span>({
+    <span class="property">x</span>: <span class="number">20</span>,
+    <span class="property">y</span>: <span class="number">20</span>,
+    <span class="property">size</span>: <span class="number">56</span>,
+    <span class="property">image</span>: <span class="string">'🦊'</span>, <span class="comment">// or texture path</span>
+    <span class="property">level</span>: <span class="number">42</span>,
+    <span class="property">name</span>: <span class="string">'PlayerOne'</span>,
+    <span class="property">title</span>: <span class="string">'Elite Champion'</span>,
+    <span class="property">style</span>: {
+        <span class="property">borderColor</span>: <span class="number">0xfbbf24</span>, <span class="comment">// Gold border</span>
+        <span class="property">borderWidth</span>: <span class="number">3</span>,
+        <span class="property">showLevel</span>: <span class="keyword">true</span>,
+        <span class="property">levelBadgeColor</span>: { <span class="property">from</span>: <span class="number">0xf59e0b</span>, <span class="property">to</span>: <span class="number">0xfbbf24</span> }
+    },
+    <span class="property">onClick</span>: () => game.<span class="function">openProfile</span>()
+});</pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Star Rating Section -->
+            <section class="section" id="stars">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <span class="section-title-icon">⭐</span>
+                        Star Rating
+                    </h2>
+                    <p class="section-description">Level completion ratings and review displays</p>
+                </div>
+                <div class="component-grid">
+                    <div class="component-card">
+                        <div class="component-preview">
+                            <div class="preview-content">
+                                <div class="preview-stars">
+                                    <span class="preview-star filled">★</span>
+                                    <span class="preview-star filled">★</span>
+                                    <span class="preview-star filled">★</span>
+                                    <span class="preview-star empty">★</span>
+                                    <span class="preview-star empty">★</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="component-info">
+                            <div class="component-name">
+                                Star Rating
+                                <span class="component-tag tag-popular">Popular</span>
+                            </div>
+                            <p class="component-desc">Animated star display for level completion with sequential reveal.</p>
+                            <div class="component-actions">
+                                <button class="btn btn-primary" onclick="showCode('stars')">View Code</button>
+                                <button class="btn btn-secondary">Live Demo</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Code Example -->
+                <div class="code-section">
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-title">
+                                <span>📄</span>
+                                Star Rating Usage
+                            </span>
+                            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+                        </div>
+                        <div class="code-content">
+<pre><span class="comment">// Create star rating</span>
+<span class="keyword">const</span> stars = game.ui.<span class="function">createStarRating</span>({
+    <span class="property">x</span>: <span class="number">195</span>,
+    <span class="property">y</span>: <span class="number">200</span>,
+    <span class="property">maxStars</span>: <span class="number">5</span>,
+    <span class="property">value</span>: <span class="number">3</span>,
+    <span class="property">size</span>: <span class="number">32</span>,
+    <span class="property">gap</span>: <span class="number">8</span>,
+    <span class="property">style</span>: {
+        <span class="property">filledColor</span>: <span class="number">0xfbbf24</span>,
+        <span class="property">emptyColor</span>: <span class="number">0x3f3f46</span>,
+        <span class="property">glowOnFilled</span>: <span class="keyword">true</span>
+    }
+});
+
+<span class="comment">// Animate stars on level complete</span>
+stars.<span class="function">animateReveal</span>(<span class="number">3</span>, {
+    <span class="property">delay</span>: <span class="number">200</span>, <span class="comment">// Delay between each star</span>
+    <span class="property">easing</span>: <span class="string">'bounce'</span>,
+    <span class="property">onComplete</span>: () => console.<span class="function">log</span>(<span class="string">'Stars revealed!'</span>)
+});</pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Timer Section -->
+            <section class="section" id="timer">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <span class="section-title-icon">⏱️</span>
+                        Timer
+                    </h2>
+                    <p class="section-description">Countdown and stopwatch timers with visual urgency states</p>
+                </div>
+                <div class="component-grid">
+                    <div class="component-card">
+                        <div class="component-preview">
+                            <div class="preview-content">
+                                <div class="preview-timer">
+                                    <span class="preview-timer-icon">⏱️</span>
+                                    <span class="preview-timer-value">02:34</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="component-info">
+                            <div class="component-name">
+                                Countdown Timer
+                                <span class="component-tag tag-popular">Popular</span>
+                            </div>
+                            <p class="component-desc">Game timer with urgency colors and completion callbacks.</p>
+                            <div class="component-actions">
+                                <button class="btn btn-primary" onclick="showCode('timer')">View Code</button>
+                                <button class="btn btn-secondary">Live Demo</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Code Example -->
+                <div class="code-section">
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-title">
+                                <span>📄</span>
+                                Timer Usage
+                            </span>
+                            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+                        </div>
+                        <div class="code-content">
+<pre><span class="comment">// Create countdown timer</span>
+<span class="keyword">const</span> timer = game.ui.<span class="function">createTimer</span>({
+    <span class="property">x</span>: <span class="number">195</span>,
+    <span class="property">y</span>: <span class="number">50</span>,
+    <span class="property">initialTime</span>: <span class="number">180</span>, <span class="comment">// 3 minutes in seconds</span>
+    <span class="property">format</span>: <span class="string">'mm:ss'</span>,
+    <span class="property">style</span>: {
+        <span class="property">fontSize</span>: <span class="number">24</span>,
+        <span class="property">fontFamily</span>: <span class="string">'monospace'</span>,
+        <span class="property">normalColor</span>: <span class="number">0xffffff</span>,
+        <span class="property">warningColor</span>: <span class="number">0xf59e0b</span>, <span class="comment">// Under 30s</span>
+        <span class="property">dangerColor</span>: <span class="number">0xef4444</span>,  <span class="comment">// Under 10s</span>
+        <span class="property">warningThreshold</span>: <span class="number">30</span>,
+        <span class="property">dangerThreshold</span>: <span class="number">10</span>
+    },
+    <span class="property">onTick</span>: (remaining) => { <span class="comment">/* every second */</span> },
+    <span class="property">onWarning</span>: () => game.audio.<span class="function">play</span>(<span class="string">'tick'</span>),
+    <span class="property">onComplete</span>: () => game.<span class="function">timeUp</span>()
+});
+
+timer.<span class="function">start</span>();
+timer.<span class="function">pause</span>();
+timer.<span class="function">resume</span>();
+timer.<span class="function">addTime</span>(<span class="number">30</span>); <span class="comment">// Add 30 seconds bonus</span></pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Leaderboard Section -->
+            <section class="section" id="leaderboard">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <span class="section-title-icon">🏆</span>
+                        Leaderboard
+                    </h2>
+                    <p class="section-description">Competitive ranking displays with player entries</p>
+                </div>
+                <div class="component-grid">
+                    <div class="component-card">
+                        <div class="component-preview">
+                            <div class="preview-content">
+                                <div class="preview-leaderboard">
+                                    <div class="preview-leaderboard-item gold">
+                                        <div class="preview-leaderboard-rank rank-1">1</div>
+                                        <div class="preview-leaderboard-avatar">🦊</div>
+                                        <div class="preview-leaderboard-info">
+                                            <div class="preview-leaderboard-name">ProGamer</div>
+                                            <div class="preview-leaderboard-score">125,400</div>
+                                        </div>
+                                    </div>
+                                    <div class="preview-leaderboard-item">
+                                        <div class="preview-leaderboard-rank rank-2">2</div>
+                                        <div class="preview-leaderboard-avatar">🐺</div>
+                                        <div class="preview-leaderboard-info">
+                                            <div class="preview-leaderboard-name">NightWolf</div>
+                                            <div class="preview-leaderboard-score">98,200</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="component-info">
+                            <div class="component-name">
+                                Leaderboard Entry
+                                <span class="component-tag tag-popular">Popular</span>
+                            </div>
+                            <p class="component-desc">Ranked player entries with medals and highlight for current player.</p>
+                            <div class="component-actions">
+                                <button class="btn btn-primary" onclick="showCode('leaderboard')">View Code</button>
+                                <button class="btn btn-secondary">Live Demo</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Code Example -->
+                <div class="code-section">
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-title">
+                                <span>📄</span>
+                                Leaderboard Usage
+                            </span>
+                            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+                        </div>
+                        <div class="code-content">
+<pre><span class="comment">// Create leaderboard</span>
+<span class="keyword">const</span> leaderboard = game.ui.<span class="function">createLeaderboard</span>({
+    <span class="property">x</span>: <span class="number">20</span>,
+    <span class="property">y</span>: <span class="number">100</span>,
+    <span class="property">width</span>: <span class="number">350</span>,
+    <span class="property">entries</span>: [
+        { <span class="property">rank</span>: <span class="number">1</span>, <span class="property">name</span>: <span class="string">'ProGamer'</span>, <span class="property">score</span>: <span class="number">125400</span>, <span class="property">avatar</span>: <span class="string">'🦊'</span> },
+        { <span class="property">rank</span>: <span class="number">2</span>, <span class="property">name</span>: <span class="string">'NightWolf'</span>, <span class="property">score</span>: <span class="number">98200</span>, <span class="property">avatar</span>: <span class="string">'🐺'</span> },
+        { <span class="property">rank</span>: <span class="number">3</span>, <span class="property">name</span>: <span class="string">'StarPlayer'</span>, <span class="property">score</span>: <span class="number">87500</span>, <span class="property">avatar</span>: <span class="string">'⭐'</span> }
+    ],
+    <span class="property">currentPlayerId</span>: <span class="string">'player123'</span>, <span class="comment">// Highlights current player</span>
+    <span class="property">style</span>: {
+        <span class="property">itemHeight</span>: <span class="number">60</span>,
+        <span class="property">gap</span>: <span class="number">8</span>,
+        <span class="property">medalColors</span>: {
+            <span class="property">gold</span>: <span class="number">0xfbbf24</span>,
+            <span class="property">silver</span>: <span class="number">0x9ca3af</span>,
+            <span class="property">bronze</span>: <span class="number">0xd97706</span>
+        }
+    }
+});</pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Daily Rewards Section -->
+            <section class="section" id="daily">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <span class="section-title-icon">📅</span>
+                        Daily Rewards
+                    </h2>
+                    <p class="section-description">Daily login bonus calendars with claim states</p>
+                </div>
+                <div class="component-grid">
+                    <div class="component-card">
+                        <div class="component-preview">
+                            <div class="preview-content">
+                                <div class="preview-daily-reward">
+                                    <div class="preview-daily-day claimed">
+                                        <div class="preview-daily-day-num">Day 1</div>
+                                        <div class="preview-daily-day-icon">🪙</div>
+                                        <div class="preview-daily-day-value">100</div>
+                                    </div>
+                                    <div class="preview-daily-day claimed">
+                                        <div class="preview-daily-day-num">Day 2</div>
+                                        <div class="preview-daily-day-icon">🪙</div>
+                                        <div class="preview-daily-day-value">150</div>
+                                    </div>
+                                    <div class="preview-daily-day today">
+                                        <div class="preview-daily-day-num">Day 3</div>
+                                        <div class="preview-daily-day-icon">💎</div>
+                                        <div class="preview-daily-day-value">10</div>
+                                    </div>
+                                    <div class="preview-daily-day">
+                                        <div class="preview-daily-day-num">Day 4</div>
+                                        <div class="preview-daily-day-icon">🎁</div>
+                                        <div class="preview-daily-day-value">???</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="component-info">
+                            <div class="component-name">
+                                Daily Rewards
+                                <span class="component-tag tag-popular">Popular</span>
+                            </div>
+                            <p class="component-desc">7-day reward calendar with claimed, today and upcoming states.</p>
+                            <div class="component-actions">
+                                <button class="btn btn-primary" onclick="showCode('daily')">View Code</button>
+                                <button class="btn btn-secondary">Live Demo</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Code Example -->
+                <div class="code-section">
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-title">
+                                <span>📄</span>
+                                Daily Rewards Usage
+                            </span>
+                            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+                        </div>
+                        <div class="code-content">
+<pre><span class="comment">// Create daily rewards calendar</span>
+<span class="keyword">const</span> dailyRewards = game.ui.<span class="function">createDailyRewards</span>({
+    <span class="property">x</span>: <span class="number">20</span>,
+    <span class="property">y</span>: <span class="number">150</span>,
+    <span class="property">currentDay</span>: <span class="number">3</span>,
+    <span class="property">rewards</span>: [
+        { <span class="property">day</span>: <span class="number">1</span>, <span class="property">icon</span>: <span class="string">'🪙'</span>, <span class="property">amount</span>: <span class="number">100</span>, <span class="property">claimed</span>: <span class="keyword">true</span> },
+        { <span class="property">day</span>: <span class="number">2</span>, <span class="property">icon</span>: <span class="string">'🪙'</span>, <span class="property">amount</span>: <span class="number">150</span>, <span class="property">claimed</span>: <span class="keyword">true</span> },
+        { <span class="property">day</span>: <span class="number">3</span>, <span class="property">icon</span>: <span class="string">'💎'</span>, <span class="property">amount</span>: <span class="number">10</span>, <span class="property">claimed</span>: <span class="keyword">false</span> },
+        { <span class="property">day</span>: <span class="number">4</span>, <span class="property">icon</span>: <span class="string">'🪙'</span>, <span class="property">amount</span>: <span class="number">200</span> },
+        { <span class="property">day</span>: <span class="number">5</span>, <span class="property">icon</span>: <span class="string">'💎'</span>, <span class="property">amount</span>: <span class="number">25</span> },
+        { <span class="property">day</span>: <span class="number">6</span>, <span class="property">icon</span>: <span class="string">'🪙'</span>, <span class="property">amount</span>: <span class="number">300</span> },
+        { <span class="property">day</span>: <span class="number">7</span>, <span class="property">icon</span>: <span class="string">'🎁'</span>, <span class="property">type</span>: <span class="string">'special'</span> }
+    ],
+    <span class="property">onClaim</span>: (day, reward) => {
+        player.<span class="function">addReward</span>(reward);
+        dailyRewards.<span class="function">markClaimed</span>(day);
+    }
+});</pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Toast Section -->
+            <section class="section" id="toast">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <span class="section-title-icon">💬</span>
+                        Toast Notifications
+                    </h2>
+                    <p class="section-description">Non-intrusive feedback messages for game events</p>
+                </div>
+                <div class="component-grid">
+                    <div class="component-card">
+                        <div class="component-preview">
+                            <div class="preview-content">
+                                <div class="preview-toast">
+                                    <div class="preview-toast-icon">✓</div>
+                                    <div class="preview-toast-content">
+                                        <div class="preview-toast-title">Level Complete!</div>
+                                        <div class="preview-toast-message">You earned 500 coins</div>
+                                    </div>
+                                    <span class="preview-toast-close">×</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="component-info">
+                            <div class="component-name">
+                                Toast Notification
+                                <span class="component-tag tag-core">Core</span>
+                            </div>
+                            <p class="component-desc">Slide-in notifications with auto-dismiss and action buttons.</p>
+                            <div class="component-actions">
+                                <button class="btn btn-primary" onclick="showCode('toast')">View Code</button>
+                                <button class="btn btn-secondary">Live Demo</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Code Example -->
+                <div class="code-section">
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-title">
+                                <span>📄</span>
+                                Toast Usage
+                            </span>
+                            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+                        </div>
+                        <div class="code-content">
+<pre><span class="comment">// Show success toast</span>
+game.ui.<span class="function">showToast</span>({
+    <span class="property">type</span>: <span class="string">'success'</span>,
+    <span class="property">title</span>: <span class="string">'Level Complete!'</span>,
+    <span class="property">message</span>: <span class="string">'You earned 500 coins'</span>,
+    <span class="property">duration</span>: <span class="number">3000</span>,
+    <span class="property">position</span>: <span class="string">'top'</span>, <span class="comment">// 'top' | 'bottom' | 'center'</span>
+    <span class="property">icon</span>: <span class="string">'✓'</span>
+});
+
+<span class="comment">// Show error toast</span>
+game.ui.<span class="function">showToast</span>({
+    <span class="property">type</span>: <span class="string">'error'</span>,
+    <span class="property">title</span>: <span class="string">'Not enough coins!'</span>,
+    <span class="property">message</span>: <span class="string">'You need 200 more coins'</span>,
+    <span class="property">action</span>: {
+        <span class="property">label</span>: <span class="string">'Get Coins'</span>,
+        <span class="property">onClick</span>: () => game.<span class="function">openShop</span>()
+    }
+});</pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Modal Section -->
+            <section class="section" id="modal">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <span class="section-title-icon">🪟</span>
+                        Modal / Popup
+                    </h2>
+                    <p class="section-description">Overlay dialogs for rewards, confirmations and important messages</p>
+                </div>
+                <div class="component-grid">
+                    <div class="component-card">
+                        <div class="component-preview">
+                            <div class="preview-content">
+                                <div class="preview-modal">
+                                    <div class="preview-modal-icon">🏆</div>
+                                    <div class="preview-modal-title">Victory!</div>
+                                    <div class="preview-modal-subtitle">You defeated the boss and earned epic loot!</div>
+                                    <div class="preview-modal-buttons">
+                                        <button class="btn btn-secondary">Share</button>
+                                        <button class="btn btn-primary">Claim</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="component-info">
+                            <div class="component-name">
+                                Victory Modal
+                                <span class="component-tag tag-popular">Popular</span>
+                            </div>
+                            <p class="component-desc">Celebration popup with animated entrance and reward display.</p>
+                            <div class="component-actions">
+                                <button class="btn btn-primary" onclick="showCode('modal')">View Code</button>
+                                <button class="btn btn-secondary">Live Demo</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Code Example -->
+                <div class="code-section">
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-title">
+                                <span>📄</span>
+                                Modal Usage
+                            </span>
+                            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+                        </div>
+                        <div class="code-content">
+<pre><span class="comment">// Show victory modal</span>
+<span class="keyword">const</span> modal = game.ui.<span class="function">showModal</span>({
+    <span class="property">type</span>: <span class="string">'victory'</span>,
+    <span class="property">icon</span>: <span class="string">'🏆'</span>,
+    <span class="property">title</span>: <span class="string">'Victory!'</span>,
+    <span class="property">message</span>: <span class="string">'You defeated the boss and earned epic loot!'</span>,
+    <span class="property">rewards</span>: [
+        { <span class="property">icon</span>: <span class="string">'🪙'</span>, <span class="property">amount</span>: <span class="number">1000</span> },
+        { <span class="property">icon</span>: <span class="string">'💎'</span>, <span class="property">amount</span>: <span class="number">50</span> }
+    ],
+    <span class="property">buttons</span>: [
+        { <span class="property">label</span>: <span class="string">'Share'</span>, <span class="property">style</span>: <span class="string">'secondary'</span>, <span class="property">onClick</span>: share },
+        { <span class="property">label</span>: <span class="string">'Claim'</span>, <span class="property">style</span>: <span class="string">'primary'</span>, <span class="property">onClick</span>: claimRewards }
+    ],
+    <span class="property">animation</span>: <span class="string">'bounce'</span>,
+    <span class="property">closeOnOverlay</span>: <span class="keyword">false</span>
+});
+
+<span class="comment">// Close modal programmatically</span>
+modal.<span class="function">close</span>();</pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Badge Section -->
+            <section class="section" id="badge">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <span class="section-title-icon">🔔</span>
+                        Badge / Indicator
+                    </h2>
+                    <p class="section-description">Notification badges and status indicators</p>
+                </div>
+                <div class="component-grid">
+                    <div class="component-card">
+                        <div class="component-preview">
+                            <div class="preview-content" style="display: flex; gap: 24px;">
+                                <div class="preview-badge-container">
+                                    <div class="preview-badge-icon">📬</div>
+                                    <div class="preview-badge">3</div>
+                                </div>
+                                <div class="preview-badge-container">
+                                    <div class="preview-badge-icon">🎁</div>
+                                    <div class="preview-badge" style="background: var(--accent-success);">!</div>
+                                </div>
+                                <div class="preview-badge-container">
+                                    <div class="preview-badge-icon">⚔️</div>
+                                    <div class="preview-badge" style="background: var(--accent-warning);">NEW</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="component-info">
+                            <div class="component-name">
+                                Notification Badge
+                                <span class="component-tag tag-core">Core</span>
+                            </div>
+                            <p class="component-desc">Counter badges for unread items, new content and alerts.</p>
+                            <div class="component-actions">
+                                <button class="btn btn-primary" onclick="showCode('badge')">View Code</button>
+                                <button class="btn btn-secondary">Live Demo</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Code Example -->
+                <div class="code-section">
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-title">
+                                <span>📄</span>
+                                Badge Usage
+                            </span>
+                            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+                        </div>
+                        <div class="code-content">
+<pre><span class="comment">// Add badge to any component</span>
+<span class="keyword">const</span> mailButton = game.ui.<span class="function">createIconButton</span>({
+    <span class="property">icon</span>: <span class="string">'📬'</span>,
+    <span class="property">x</span>: <span class="number">350</span>,
+    <span class="property">y</span>: <span class="number">20</span>,
+    <span class="property">badge</span>: {
+        <span class="property">value</span>: <span class="number">3</span>,
+        <span class="property">color</span>: <span class="number">0xef4444</span>,
+        <span class="property">pulse</span>: <span class="keyword">true</span> <span class="comment">// Attention animation</span>
+    },
+    <span class="property">onClick</span>: () => game.<span class="function">openMail</span>()
+});
+
+<span class="comment">// Update badge count</span>
+mailButton.<span class="function">setBadge</span>(<span class="number">5</span>);
+mailButton.<span class="function">clearBadge</span>();
+
+<span class="comment">// Badge with text</span>
+shopButton.<span class="function">setBadge</span>(<span class="string">'NEW'</span>, { <span class="property">color</span>: <span class="number">0xf59e0b</span> });</pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Toggle Section -->
+            <section class="section" id="toggle">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <span class="section-title-icon">🔄</span>
+                        Toggle Switch
+                    </h2>
+                    <p class="section-description">On/off switches for settings and preferences</p>
+                </div>
+                <div class="component-grid">
+                    <div class="component-card">
+                        <div class="component-preview">
+                            <div class="preview-content">
+                                <div class="preview-toggle">
+                                    <div class="preview-toggle-track active" onclick="this.classList.toggle('active')">
+                                        <div class="preview-toggle-thumb"></div>
+                                    </div>
+                                    <span class="preview-toggle-label">Sound Effects</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="component-info">
+                            <div class="component-name">
+                                Toggle Switch
+                                <span class="component-tag tag-core">Core</span>
+                            </div>
+                            <p class="component-desc">Smooth animated toggle for boolean settings like sound and vibration.</p>
+                            <div class="component-actions">
+                                <button class="btn btn-primary" onclick="showCode('toggle')">View Code</button>
+                                <button class="btn btn-secondary">Live Demo</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Code Example -->
+                <div class="code-section">
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-title">
+                                <span>📄</span>
+                                Toggle Usage
+                            </span>
+                            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+                        </div>
+                        <div class="code-content">
+<pre><span class="comment">// Create toggle switch</span>
+<span class="keyword">const</span> soundToggle = game.ui.<span class="function">createToggle</span>({
+    <span class="property">x</span>: <span class="number">250</span>,
+    <span class="property">y</span>: <span class="number">100</span>,
+    <span class="property">value</span>: <span class="keyword">true</span>,
+    <span class="property">label</span>: <span class="string">'Sound Effects'</span>,
+    <span class="property">style</span>: {
+        <span class="property">trackWidth</span>: <span class="number">56</span>,
+        <span class="property">trackHeight</span>: <span class="number">32</span>,
+        <span class="property">activeColor</span>: <span class="number">0x22c55e</span>,
+        <span class="property">inactiveColor</span>: <span class="number">0x3f3f46</span>
+    },
+    <span class="property">onChange</span>: (value) => {
+        game.audio.<span class="function">setMuted</span>(!value);
+        game.<span class="function">saveSettings</span>();
+    }
+});
+
+<span class="comment">// Programmatic control</span>
+soundToggle.<span class="function">setValue</span>(<span class="keyword">false</span>);
+<span class="keyword">const</span> isEnabled = soundToggle.<span class="function">getValue</span>();</pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slider Section -->
+            <section class="section" id="slider">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <span class="section-title-icon">🎚️</span>
+                        Slider
+                    </h2>
+                    <p class="section-description">Range input for volume, brightness and numeric settings</p>
+                </div>
+                <div class="component-grid">
+                    <div class="component-card">
+                        <div class="component-preview">
+                            <div class="preview-content">
+                                <div class="preview-slider-container">
+                                    <div class="preview-slider-label">
+                                        <span>🔊 Volume</span>
+                                        <span>70%</span>
+                                    </div>
+                                    <div class="preview-slider-track">
+                                        <div class="preview-slider-fill"></div>
+                                        <div class="preview-slider-thumb"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="component-info">
+                            <div class="component-name">
+                                Volume Slider
+                                <span class="component-tag tag-core">Core</span>
+                            </div>
+                            <p class="component-desc">Draggable slider with real-time value display and haptic feedback.</p>
+                            <div class="component-actions">
+                                <button class="btn btn-primary" onclick="showCode('slider')">View Code</button>
+                                <button class="btn btn-secondary">Live Demo</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Code Example -->
+                <div class="code-section">
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-title">
+                                <span>📄</span>
+                                Slider Usage
+                            </span>
+                            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+                        </div>
+                        <div class="code-content">
+<pre><span class="comment">// Create volume slider</span>
+<span class="keyword">const</span> volumeSlider = game.ui.<span class="function">createSlider</span>({
+    <span class="property">x</span>: <span class="number">50</span>,
+    <span class="property">y</span>: <span class="number">200</span>,
+    <span class="property">width</span>: <span class="number">240</span>,
+    <span class="property">min</span>: <span class="number">0</span>,
+    <span class="property">max</span>: <span class="number">100</span>,
+    <span class="property">value</span>: <span class="number">70</span>,
+    <span class="property">step</span>: <span class="number">5</span>,
+    <span class="property">label</span>: <span class="string">'🔊 Volume'</span>,
+    <span class="property">showValue</span>: <span class="keyword">true</span>,
+    <span class="property">valueFormat</span>: <span class="string">'{value}%'</span>,
+    <span class="property">style</span>: {
+        <span class="property">trackHeight</span>: <span class="number">8</span>,
+        <span class="property">thumbSize</span>: <span class="number">20</span>,
+        <span class="property">fillColor</span>: { <span class="property">from</span>: <span class="number">0x8b5cf6</span>, <span class="property">to</span>: <span class="number">0x6366f1</span> },
+        <span class="property">trackColor</span>: <span class="number">0x3f3f46</span>
+    },
+    <span class="property">onChange</span>: (value) => {
+        game.audio.<span class="function">setVolume</span>(value / <span class="number">100</span>);
+    },
+    <span class="property">onDragEnd</span>: () => {
+        game.<span class="function">saveSettings</span>();
+    }
+});
+
+<span class="comment">// Get/set value</span>
+volumeSlider.<span class="function">setValue</span>(<span class="number">50</span>);
+<span class="keyword">const</span> vol = volumeSlider.<span class="function">getValue</span>();</pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <script>
+        // Smooth scroll for navigation
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                const href = item.getAttribute('href');
+                if (href && href.startsWith('#')) {
+                    e.preventDefault();
+                    const target = document.querySelector(href);
+                    if (target) {
+                        target.scrollIntoView({ behavior: 'smooth' });
+                    }
+                    // Update active state
+                    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                    item.classList.add('active');
+                }
+            });
+        });
+
+        // Copy code functionality
+        function copyCode(button) {
+            const codeBlock = button.closest('.code-block');
+            const code = codeBlock.querySelector('pre').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                button.style.background = 'var(--accent-success)';
+                button.style.color = 'white';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.background = '';
+                    button.style.color = '';
+                }, 2000);
+            });
+        }
+
+        // Show code section
+        function showCode(id) {
+            const section = document.getElementById('code-' + id);
+            if (section) {
+                section.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        // Open live demo
+        function openDemo(type) {
+            window.open('test-ui-umd.html', '_blank');
+        }
+
+        // Highlight active section on scroll
+        const sections = document.querySelectorAll('.section');
+        const navItems = document.querySelectorAll('.nav-item');
+
+        const observerOptions = {
+            rootMargin: '-100px 0px -70% 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const id = entry.target.id;
+                    navItems.forEach(item => {
+                        item.classList.remove('active');
+                        if (item.getAttribute('href') === '#' + id) {
+                            item.classList.add('active');
+                        }
+                    });
+                }
+            });
+        }, observerOptions);
+
+        sections.forEach(section => {
+            if (section.id) {
+                observer.observe(section);
+            }
+        });
+    </script>
+</body>
+</html>
