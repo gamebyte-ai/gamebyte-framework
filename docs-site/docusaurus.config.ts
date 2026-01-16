@@ -62,7 +62,7 @@ const config: Config = {
       title: 'GameByte',
       logo: {
         alt: 'GameByte Framework Logo',
-        src: 'img/logo.svg',
+        src: 'img/logo.png',
       },
       items: [
         {
