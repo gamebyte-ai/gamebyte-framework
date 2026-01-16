@@ -373,7 +373,7 @@ export class PhysicsManager extends EventEmitter implements IPhysicsManager {
       collisionMask: options.collisionMask,
       mass: options.mass,
       linearDamping: options.frictionAir,
-      userData: { label: options.label }
+      userData: options.label ? { label: options.label } : undefined
     };
 
     // Add material properties if specified
@@ -396,14 +396,20 @@ export class PhysicsManager extends EventEmitter implements IPhysicsManager {
    * Create a platformer physics helper
    */
   createPlatformerHelper(character: PhysicsBody): PlatformerPhysicsHelper {
-    return new GameBytePlatformerHelper(character, this.activeWorld!);
+    if (!this.activeWorld) {
+      throw new Error('No active physics world');
+    }
+    return new GameBytePlatformerHelper(character, this.activeWorld);
   }
 
   /**
    * Create a top-down physics helper
    */
   createTopDownHelper(character: PhysicsBody): TopDownPhysicsHelper {
-    return new GameByteTopDownHelper(character, this.activeWorld!);
+    if (!this.activeWorld) {
+      throw new Error('No active physics world');
+    }
+    return new GameByteTopDownHelper(character, this.activeWorld);
   }
 
   /**
