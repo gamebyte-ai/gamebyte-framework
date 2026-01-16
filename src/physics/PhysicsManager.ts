@@ -326,16 +326,26 @@ export class PhysicsManager extends EventEmitter implements IPhysicsManager {
     const options = simple.options || {};
 
     // Determine shape type for physics
-    let shapeType: 'box' | 'circle' = 'box';
+    let shapeType: 'box' | 'circle' | 'mesh' = 'box';
     if (simple.shape === 'circle') {
       shapeType = 'circle';
+    } else if (simple.shape === 'polygon') {
+      shapeType = 'mesh';  // Use mesh type for polygon shapes
     }
 
-    // Build dimensions
+    // Build dimensions based on shape type
     let dimensions: Point;
     if (simple.shape === 'circle') {
       const radius = simple.radius || 16;
       dimensions = { x: radius * 2, y: radius * 2 };
+    } else if (simple.shape === 'polygon' && simple.vertices && simple.vertices.length > 0) {
+      // Calculate bounding box for polygon
+      const xs = simple.vertices.map(v => v.x);
+      const ys = simple.vertices.map(v => v.y);
+      dimensions = {
+        x: Math.max(...xs) - Math.min(...xs),
+        y: Math.max(...ys) - Math.min(...ys)
+      };
     } else {
       dimensions = { x: simple.width || 32, y: simple.height || 32 };
     }
@@ -346,7 +356,8 @@ export class PhysicsManager extends EventEmitter implements IPhysicsManager {
       shapes: [{
         type: shapeType,
         dimensions,
-        radius: simple.shape === 'circle' ? simple.radius : undefined
+        radius: simple.shape === 'circle' ? simple.radius : undefined,
+        vertices: simple.shape === 'polygon' ? simple.vertices : undefined
       }],
       isStatic: options.isStatic,
       isSensor: options.isSensor,

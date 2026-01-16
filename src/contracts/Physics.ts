@@ -66,6 +66,7 @@ export interface PhysicsShapeConfig {
   dimensions: Point | Vector3;
   radius?: number;
   height?: number;
+  vertices?: Point[];  // For polygon/mesh shapes
   material?: PhysicsMaterial;
   isSensor?: boolean;
   collisionGroup?: number;
