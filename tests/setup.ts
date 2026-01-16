@@ -1,52 +1,62 @@
 // Test setup file for GameByte framework
 // Mocks and global configuration for Jest tests
 
-// Mock Canvas API
-const mockCanvas = {
-  getContext: jest.fn((contextType: string) => {
+// Mock 2D Context
+const mock2DContext = {
+  clearRect: jest.fn(),
+  fillRect: jest.fn(),
+  drawImage: jest.fn(),
+  getImageData: jest.fn(() => ({ data: new Uint8ClampedArray(4) })),
+  putImageData: jest.fn(),
+  canvas: { width: 800, height: 600 }
+};
+
+// Mock WebGL Context
+const mockWebGLContextBase = {
+  getExtension: jest.fn(() => null),
+  getParameter: jest.fn(() => 'Mock WebGL Renderer'),
+  createShader: jest.fn(),
+  createProgram: jest.fn(),
+  attachShader: jest.fn(),
+  linkProgram: jest.fn(),
+  useProgram: jest.fn()
+};
+
+// Factory function to create mock canvas instances
+const createMockCanvas = () => {
+  const getContext = (contextType: string) => {
     if (contextType === '2d') {
-      return {
-        clearRect: jest.fn(),
-        fillRect: jest.fn(),
-        drawImage: jest.fn(),
-        getImageData: jest.fn(() => ({ data: new Uint8ClampedArray(4) })),
-        putImageData: jest.fn(),
-        canvas: { width: 800, height: 600 }
-      };
+      return mock2DContext;
     }
     if (contextType === 'webgl' || contextType === 'experimental-webgl') {
-      return {
-        getExtension: jest.fn(() => null),
-        getParameter: jest.fn(() => 'Mock WebGL Renderer'),
-        createShader: jest.fn(),
-        createProgram: jest.fn(),
-        attachShader: jest.fn(),
-        linkProgram: jest.fn(),
-        useProgram: jest.fn()
-      };
+      return mockWebGLContextBase;
     }
     return null;
-  }),
-  width: 800,
-  height: 600,
-  toDataURL: jest.fn(() => 'data:image/png;base64,'),
-  addEventListener: jest.fn(),
-  removeEventListener: jest.fn()
+  };
+
+  return {
+    getContext,
+    width: 800,
+    height: 600,
+    toDataURL: () => 'data:image/png;base64,',
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn()
+  };
 };
 
 // Mock HTMLCanvasElement
 Object.defineProperty(window, 'HTMLCanvasElement', {
-  value: jest.fn(() => mockCanvas),
+  value: jest.fn(() => createMockCanvas()),
   writable: true
 });
 
 // Mock document.createElement for canvas
-const originalCreateElement = document.createElement;
-document.createElement = jest.fn((tagName: string) => {
+const originalCreateElement = document.createElement.bind(document);
+document.createElement = jest.fn((tagName: string): any => {
   if (tagName === 'canvas') {
-    return mockCanvas as any;
+    return createMockCanvas();
   }
-  return originalCreateElement.call(document, tagName);
+  return originalCreateElement(tagName);
 });
 
 // Mock Image constructor
@@ -157,24 +167,13 @@ const mockAudioContext = {
 global.AudioContext = jest.fn(() => mockAudioContext) as any;
 (global as any).webkitAudioContext = jest.fn(() => mockAudioContext) as any;
 
-// Mock WebGL context
-const mockWebGLContext = {
-  getExtension: jest.fn(() => null),
-  getParameter: jest.fn(() => 'Mock WebGL Renderer'),
-  createShader: jest.fn(),
-  createProgram: jest.fn(),
-  attachShader: jest.fn(),
-  linkProgram: jest.fn(),
-  useProgram: jest.fn()
-};
-
-// Mock WebGL support
-HTMLCanvasElement.prototype.getContext = jest.fn((contextType: string) => {
+// Mock WebGL support on HTMLCanvasElement prototype
+HTMLCanvasElement.prototype.getContext = jest.fn(function(this: any, contextType: string) {
   if (contextType === 'webgl' || contextType === 'experimental-webgl') {
-    return mockWebGLContext;
+    return mockWebGLContextBase;
   }
   if (contextType === '2d') {
-    return mockCanvas.getContext();
+    return mock2DContext;
   }
   return null;
 });

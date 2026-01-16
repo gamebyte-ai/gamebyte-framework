@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hybrid 2D/3D Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #1a1a2e;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: system-ui, sans-serif;
+            padding: 20px;
+            gap: 20px;
+        }
+        .game-container {
+            width: 100%;
+            max-width: 500px;
+            height: 350px;
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        #canvas3d {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .ui-layer {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+        .hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: auto;
+        }
+        .hud-item {
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            padding: 8px 16px;
+            border-radius: 8px;
+            color: white;
+            font-size: 0.875rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .minimap {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            width: 100px;
+            height: 100px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 8px;
+            border: 2px solid rgba(99, 102, 241, 0.5);
+            overflow: hidden;
+        }
+        .minimap-dot {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .minimap-player {
+            background: #6366f1;
+            box-shadow: 0 0 10px #6366f1;
+        }
+        .minimap-enemy {
+            background: #ef4444;
+        }
+        .minimap-item {
+            background: #fbbf24;
+            width: 6px;
+            height: 6px;
+        }
+        .crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+        }
+        .crosshair::before, .crosshair::after {
+            content: '';
+            position: absolute;
+            background: rgba(255, 255, 255, 0.8);
+        }
+        .crosshair::before {
+            width: 2px;
+            height: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .crosshair::after {
+            height: 2px;
+            width: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .info {
+            color: #9ca3af;
+            font-size: 0.875rem;
+            text-align: center;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: white;
+            background: #6366f1;
+            transition: transform 0.2s;
+        }
+        .btn:hover { transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <canvas id="canvas3d"></canvas>
+        <div class="ui-layer">
+            <div class="hud">
+                <div class="hud-item">❤️ <span id="health">100</span></div>
+                <div class="hud-item">⭐ <span id="score">0</span></div>
+                <div class="hud-item">🎯 <span id="combo">x1</span></div>
+            </div>
+            <div class="crosshair"></div>
+            <div class="minimap" id="minimap">
+                <div class="minimap-dot minimap-player" id="mapPlayer"></div>
+            </div>
+        </div>
+    </div>
+
+    <p class="info">Hybrid rendering: 3D world + 2D UI overlay</p>
+
+    <div class="controls">
+        <button class="btn" onclick="collectItem()">Collect Item</button>
+        <button class="btn" onclick="takeDamage()">Take Damage</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas3d');
+        const ctx = canvas.getContext('2d');
+        const minimap = document.getElementById('minimap');
+        const mapPlayer = document.getElementById('mapPlayer');
+        const healthEl = document.getElementById('health');
+        const scoreEl = document.getElementById('score');
+        const comboEl = document.getElementById('combo');
+
+        let width, height;
+        let time = 0;
+        let health = 100;
+        let score = 0;
+        let combo = 1;
+        let playerPos = { x: 50, y: 50 };
+
+        // Minimap enemies
+        const enemies = [
+            { x: 20, y: 30 },
+            { x: 70, y: 20 },
+            { x: 80, y: 70 }
+        ];
+
+        const items = [
+            { x: 40, y: 60 },
+            { x: 60, y: 40 }
+        ];
+
+        function resize() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            width = canvas.width = rect.width * window.devicePixelRatio;
+            height = canvas.height = rect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        }
+
+        function draw3D() {
+            const w = width / window.devicePixelRatio;
+            const h = height / window.devicePixelRatio;
+
+            // Sky gradient
+            const sky = ctx.createLinearGradient(0, 0, 0, h * 0.6);
+            sky.addColorStop(0, '#1a1a3e');
+            sky.addColorStop(1, '#2d1b4e');
+            ctx.fillStyle = sky;
+            ctx.fillRect(0, 0, w, h * 0.6);
+
+            // Stars
+            for (let i = 0; i < 50; i++) {
+                const sx = (i * 137) % w;
+                const sy = (i * 71) % (h * 0.5);
+                const twinkle = Math.sin(time * 3 + i) * 0.5 + 0.5;
+                ctx.fillStyle = `rgba(255, 255, 255, ${twinkle * 0.8})`;
+                ctx.fillRect(sx, sy, 2, 2);
+            }
+
+            // Ground
+            const ground = ctx.createLinearGradient(0, h * 0.6, 0, h);
+            ground.addColorStop(0, '#1a3a2e');
+            ground.addColorStop(1, '#0f1f18');
+            ctx.fillStyle = ground;
+            ctx.fillRect(0, h * 0.6, w, h * 0.4);
+
+            // Grid perspective
+            ctx.strokeStyle = 'rgba(34, 197, 94, 0.2)';
+            ctx.lineWidth = 1;
+
+            const horizon = h * 0.6;
+            const vanishX = w / 2;
+
+            for (let i = 0; i < 20; i++) {
+                const x = (i - 10) * 80 + (time * 50) % 80;
+                ctx.beginPath();
+                ctx.moveTo(vanishX, horizon);
+                ctx.lineTo(x, h);
+                ctx.stroke();
+            }
+
+            for (let i = 1; i <= 8; i++) {
+                const y = horizon + (h - horizon) * (i / 8);
+                const spread = (y - horizon) / (h - horizon);
+                ctx.beginPath();
+                ctx.moveTo(vanishX - w * spread, y);
+                ctx.lineTo(vanishX + w * spread, y);
+                ctx.stroke();
+            }
+
+            // 3D objects
+            for (let i = 0; i < 5; i++) {
+                const depth = ((time * 0.5 + i * 0.2) % 1);
+                const scale = 0.1 + depth * 0.9;
+                const objY = horizon + (h - horizon) * depth;
+                const objX = w * 0.3 + i * w * 0.1;
+                const size = 30 * scale;
+
+                ctx.fillStyle = `rgba(99, 102, 241, ${0.3 + depth * 0.7})`;
+                ctx.fillRect(objX - size/2, objY - size, size, size);
+            }
+
+            time += 0.016;
+            requestAnimationFrame(draw3D);
+        }
+
+        function updateMinimap() {
+            // Update player position
+            playerPos.x = 50 + Math.sin(time) * 20;
+            playerPos.y = 50 + Math.cos(time * 0.7) * 20;
+            mapPlayer.style.left = playerPos.x + '%';
+            mapPlayer.style.top = playerPos.y + '%';
+
+            // Update enemies
+            document.querySelectorAll('.minimap-enemy').forEach(e => e.remove());
+            enemies.forEach(e => {
+                const dot = document.createElement('div');
+                dot.className = 'minimap-dot minimap-enemy';
+                dot.style.left = e.x + '%';
+                dot.style.top = e.y + '%';
+                minimap.appendChild(dot);
+            });
+
+            // Update items
+            document.querySelectorAll('.minimap-item').forEach(e => e.remove());
+            items.forEach(item => {
+                const dot = document.createElement('div');
+                dot.className = 'minimap-dot minimap-item';
+                dot.style.left = item.x + '%';
+                dot.style.top = item.y + '%';
+                minimap.appendChild(dot);
+            });
+        }
+
+        function collectItem() {
+            if (items.length === 0) return;
+            items.pop();
+            score += 100 * combo;
+            combo = Math.min(combo + 1, 5);
+            scoreEl.textContent = score;
+            comboEl.textContent = `x${combo}`;
+            updateMinimap();
+        }
+
+        function takeDamage() {
+            health = Math.max(0, health - 15);
+            combo = 1;
+            healthEl.textContent = health;
+            comboEl.textContent = 'x1';
+
+            healthEl.parentElement.style.animation = 'none';
+            healthEl.parentElement.offsetHeight;
+            healthEl.parentElement.style.animation = 'shake 0.3s ease';
+        }
+
+        setInterval(updateMinimap, 100);
+
+        resize();
+        window.addEventListener('resize', resize);
+        draw3D();
+    </script>
+</body>
+</html>

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Archero Menu (Simple) - Dev</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            overflow: hidden;
+            background: #000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            touch-action: none;
+        }
+        #game-container {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            height: 100vh;
+        }
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 24px;
+            z-index: 100;
+            text-align: center;
+        }
+        #info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 14px;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 50;
+        }
+        .hot-reload {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">Loading...</div>
+    <div id="game-container"></div>
+    <div id="info" style="display: none;">
+        <strong>ArcheroMenu Demo</strong><br>
+        <span class="hot-reload">🔥 Hot Reload Active</span><br>
+        <span id="current-section">Section: Campaign</span>
+    </div>
+
+    <script type="module">
+        import * as PIXI from 'pixi.js';
+        import { gsap } from 'gsap';
+        import { ArcheroMenu, ARCHERO_COLORS } from '../src/plugins/menus/ArcheroMenu/index.ts';
+
+        // Make gsap available globally for animations
+        window.gsap = gsap;
+
+        (async () => {
+            try {
+                console.log('🚀 Starting ArcheroMenu Demo (Hot Reload)...');
+
+                const BASE_WIDTH = 1080;
+                const BASE_HEIGHT = 1920;
+
+                // Create canvas
+                const canvas = document.createElement('canvas');
+                canvas.width = BASE_WIDTH;
+                canvas.height = BASE_HEIGHT;
+                canvas.style.width = '100vw';
+                canvas.style.height = '100vh';
+                canvas.style.display = 'block';
+                canvas.style.objectFit = 'fill';
+
+                document.getElementById('game-container').appendChild(canvas);
+
+                // Debug: Log canvas dimensions
+                console.log('📐 Canvas Debug:');
+                console.log('- Canvas width:', canvas.width);
+                console.log('- Canvas height:', canvas.height);
+                console.log('- Canvas style.width:', canvas.style.width);
+                console.log('- Canvas style.height:', canvas.style.height);
+                console.log('- Canvas clientWidth:', canvas.clientWidth);
+                console.log('- Canvas clientHeight:', canvas.clientHeight);
+                console.log('- Canvas offsetWidth:', canvas.offsetWidth);
+                console.log('- Canvas offsetHeight:', canvas.offsetHeight);
+                console.log('- Window innerWidth:', window.innerWidth);
+                console.log('- Window innerHeight:', window.innerHeight);
+                console.log('- DevicePixelRatio:', window.devicePixelRatio);
+
+                // Create PixiJS Application
+                const app = new PIXI.Application();
+                await app.init({
+                    canvas,
+                    width: BASE_WIDTH,
+                    height: BASE_HEIGHT,
+                    backgroundColor: 0x1a1a2e,
+                    resolution: window.devicePixelRatio || 1,
+                    autoDensity: true
+                });
+
+                // Re-apply CSS styles after PixiJS initialization
+                canvas.style.width = '100vw';
+                canvas.style.height = '100vh';
+                canvas.style.display = 'block';
+                canvas.style.objectFit = 'fill';
+
+                console.log('✅ PixiJS initialized');
+
+                // Create background
+                const background = new PIXI.Graphics();
+                background.rect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+                background.fill(0x1a1a2e);
+                app.stage.addChild(background);
+
+                // Define sections
+                const sections = [
+                    { name: 'Shop', icon: '🛒', iconColor: ARCHERO_COLORS.red },
+                    { name: 'Gear', icon: '⚙️', iconColor: ARCHERO_COLORS.purple },
+                    { name: 'Campaign', icon: '🎯', iconColor: ARCHERO_COLORS.activeYellow },
+                    { name: 'Trophy', icon: '🏆', iconColor: ARCHERO_COLORS.green },
+                    { name: 'Chest', icon: '📦', iconColor: ARCHERO_COLORS.blue }
+                ];
+
+                console.log('📋 Creating ArcheroMenu...');
+
+                // Create menu
+                const menu = new ArcheroMenu({
+                    sections,
+                    activeSection: 2,
+                    canvasWidth: BASE_WIDTH,
+                    canvasHeight: BASE_HEIGHT,
+                    callbacks: {
+                        onSectionChange: (index, section) => {
+                            console.log('✨ Section:', section.name);
+                            document.getElementById('current-section').textContent =
+                                'Section: ' + section.name;
+                        }
+                    },
+                    enableSwipe: true,
+                    style: {
+                        enableParticles: true
+                    }
+                });
+
+                app.stage.addChild(menu);
+
+                console.log('✅ Menu added to stage');
+
+                // Force initial render to trigger layout
+                app.renderer.render(app.stage);
+
+                // Hide loading
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('info').style.display = 'block';
+
+                // Debug: Log final dimensions after rendering
+                console.log('📐 Final Canvas Dimensions:');
+                console.log('- Canvas clientWidth:', canvas.clientWidth);
+                console.log('- Canvas clientHeight:', canvas.clientHeight);
+                console.log('- Canvas offsetWidth:', canvas.offsetWidth);
+                console.log('- Canvas offsetHeight:', canvas.offsetHeight);
+                console.log('- Canvas computed style:', window.getComputedStyle(canvas));
+
+                // Resize handler
+                window.addEventListener('resize', () => {
+                    canvas.style.width = '100vw';
+                    canvas.style.height = '100vh';
+                    canvas.style.objectFit = 'fill';
+                });
+
+                console.log('🎉 Demo ready!');
+
+            } catch (error) {
+                console.error('❌ Error:', error);
+                document.getElementById('loading').textContent = 'Error: ' + error.message;
+                document.getElementById('loading').style.color = 'red';
+            }
+        })();
+    </script>
+</body>
+</html>

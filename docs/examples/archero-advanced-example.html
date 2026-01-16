@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>ArcheroMenu Advanced Configuration - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            overflow: hidden;
+            background: #1a1a2e;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            touch-action: none;
+        }
+        #game-container {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            height: 100vh;
+        }
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 18px;
+            z-index: 100;
+        }
+        #controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.9);
+            padding: 15px;
+            border-radius: 10px;
+            z-index: 100;
+            color: white;
+            font-size: 12px;
+            max-width: 220px;
+        }
+        #controls h3 {
+            margin-bottom: 10px;
+            color: #4ecca3;
+            font-size: 14px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+        .control-group {
+            margin-bottom: 12px;
+        }
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #aaa;
+            font-size: 11px;
+        }
+        .control-btn {
+            display: inline-block;
+            padding: 6px 10px;
+            margin: 2px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            background: #333;
+            color: white;
+            transition: all 0.2s;
+        }
+        .control-btn:hover {
+            background: #4ecca3;
+            color: #000;
+        }
+        .control-btn.active {
+            background: #4ecca3;
+            color: #000;
+        }
+        #event-log {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.9);
+            padding: 15px;
+            border-radius: 10px;
+            z-index: 100;
+            color: white;
+            font-size: 11px;
+            max-width: 280px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        #event-log h3 {
+            color: #ff6b6b;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid #222;
+            font-family: monospace;
+        }
+        .log-entry.callback { color: #4ecca3; }
+        .log-entry.action { color: #ffff6b; }
+        .log-entry.section { color: #ff6b6b; }
+    </style>
+</head>
+<body>
+    <div id="loading">Loading Advanced Demo...</div>
+    <div id="game-container"></div>
+
+    <div id="controls" style="display: none;">
+        <h3>Dynamic Section Management</h3>
+
+        <div class="control-group">
+            <label>Add/Remove Sections</label>
+            <button class="control-btn" id="btn-add">+ Add Section</button>
+            <button class="control-btn" id="btn-remove">- Remove Last</button>
+        </div>
+
+        <div class="control-group">
+            <label>Update Section</label>
+            <button class="control-btn" id="btn-rename">Rename Active</button>
+            <button class="control-btn" id="btn-recolor">Change Color</button>
+        </div>
+
+        <div class="control-group">
+            <label>Navigation</label>
+            <button class="control-btn" id="btn-first">Go First</button>
+            <button class="control-btn" id="btn-last">Go Last</button>
+        </div>
+
+        <div class="control-group">
+            <label>Section Count: <span id="section-count">5</span></label>
+        </div>
+    </div>
+
+    <div id="event-log" style="display: none;">
+        <h3>Event Log (Callbacks)</h3>
+        <div id="log-entries"></div>
+    </div>
+
+    <!-- Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+    <script src="../../dist/gamebyte.umd.js"></script>
+
+    <script>
+        (async () => {
+            try {
+                const { GameByte, ArcheroMenu, ARCHERO_COLORS, graphics } = GameByteFramework;
+
+                const BASE_WIDTH = 540;
+                const BASE_HEIGHT = 960;
+
+                // Event logging
+                const logEntries = document.getElementById('log-entries');
+                let logCount = 0;
+
+                function log(message, type = 'action') {
+                    logCount++;
+                    const entry = document.createElement('div');
+                    entry.className = 'log-entry ' + type;
+                    entry.textContent = `[${logCount}] ${message}`;
+                    logEntries.insertBefore(entry, logEntries.firstChild);
+
+                    // Keep only last 15 entries
+                    while (logEntries.children.length > 15) {
+                        logEntries.removeChild(logEntries.lastChild);
+                    }
+                }
+
+                // Create game
+                const game = await GameByte.quick2D('#game-container', BASE_WIDTH, BASE_HEIGHT, {
+                    backgroundColor: 0x1a1a2e
+                });
+
+                const gfx = graphics();
+
+                // Background
+                const background = gfx.createGraphics();
+                background.rect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+                background.fill({ color: 0x1a1a2e });
+                game.stage.addChild(background);
+
+                // Title
+                const title = gfx.createText('Advanced Configuration', {
+                    fontSize: 28,
+                    fill: 0x4ecca3,
+                    fontWeight: 'bold',
+                    fontFamily: 'Arial'
+                });
+                title.x = BASE_WIDTH / 2;
+                title.y = 60;
+                if (title.anchor) title.anchor.set(0.5);
+                game.stage.addChild(title);
+
+                // Section info display
+                const sectionInfo = gfx.createText('Active: Campaign', {
+                    fontSize: 20,
+                    fill: 0xcccccc,
+                    fontFamily: 'Arial'
+                });
+                sectionInfo.x = BASE_WIDTH / 2;
+                sectionInfo.y = 110;
+                if (sectionInfo.anchor) sectionInfo.anchor.set(0.5);
+                game.stage.addChild(sectionInfo);
+
+                // Random icons and colors for new sections
+                const availableIcons = ['star', 'heart', 'diamond', 'crown', 'bolt', 'fire', 'moon', 'sun'];
+                const availableColors = [0xFF6B6B, 0x6BFF6B, 0x6B6BFF, 0xFFFF6B, 0xFF6BFF, 0x6BFFFF];
+                let sectionCounter = 5;
+
+                // Initial sections
+                let sections = [
+                    { name: 'Shop', icon: 'shop', iconColor: ARCHERO_COLORS.red },
+                    { name: 'Gear', icon: 'gear', iconColor: ARCHERO_COLORS.purple },
+                    { name: 'Campaign', icon: 'campaign', iconColor: ARCHERO_COLORS.activeYellow },
+                    { name: 'Trophy', icon: 'trophy', iconColor: ARCHERO_COLORS.green },
+                    { name: 'Chest', icon: 'chest', iconColor: ARCHERO_COLORS.blue }
+                ];
+
+                // Create menu with all callbacks
+                let menu = new ArcheroMenu({
+                    sections,
+                    activeSection: 2,
+                    canvasWidth: BASE_WIDTH,
+                    canvasHeight: BASE_HEIGHT,
+                    enableSwipe: true,
+                    callbacks: {
+                        onBeforeTransition: (fromIndex, toIndex) => {
+                            log(`onBeforeTransition: ${fromIndex} -> ${toIndex}`, 'callback');
+                            return true; // Allow transition
+                        },
+                        onAfterTransition: (fromIndex, toIndex) => {
+                            log(`onAfterTransition: ${fromIndex} -> ${toIndex}`, 'callback');
+                        },
+                        onSectionChange: (index, section) => {
+                            log(`onSectionChange: ${section.name} (${index})`, 'section');
+                            sectionInfo.text = `Active: ${section.name}`;
+                        },
+                        onButtonPress: (index) => {
+                            log(`onButtonPress: index ${index}`, 'callback');
+                        },
+                        onSwipe: (direction) => {
+                            log(`onSwipe: ${direction}`, 'callback');
+                        }
+                    },
+                    style: {
+                        enableParticles: true,
+                        buttonSize: 90,
+                        activeButtonSize: 160,
+                        navHeight: 150,
+                        padding: 20
+                    }
+                });
+
+                game.stage.addChild(menu);
+
+                function updateSectionCount() {
+                    document.getElementById('section-count').textContent = sections.length;
+                }
+
+                // Button: Add Section
+                document.getElementById('btn-add').addEventListener('click', () => {
+                    if (sections.length >= 7) {
+                        log('Max 7 sections allowed', 'action');
+                        return;
+                    }
+
+                    sectionCounter++;
+                    const newSection = {
+                        name: `Section ${sectionCounter}`,
+                        icon: availableIcons[Math.floor(Math.random() * availableIcons.length)],
+                        iconColor: availableColors[Math.floor(Math.random() * availableColors.length)]
+                    };
+
+                    sections.push(newSection);
+                    menu.addSection(newSection);
+                    updateSectionCount();
+                    log(`Added: ${newSection.name}`, 'action');
+                });
+
+                // Button: Remove Section
+                document.getElementById('btn-remove').addEventListener('click', () => {
+                    if (sections.length <= 2) {
+                        log('Minimum 2 sections required', 'action');
+                        return;
+                    }
+
+                    const removedSection = sections.pop();
+                    menu.removeSection(sections.length);
+                    updateSectionCount();
+                    log(`Removed: ${removedSection.name}`, 'action');
+                });
+
+                // Button: Rename Active
+                document.getElementById('btn-rename').addEventListener('click', () => {
+                    const activeIndex = menu.getActiveSection();
+                    const newName = `Renamed ${Date.now() % 1000}`;
+                    sections[activeIndex].name = newName;
+                    menu.updateSection(activeIndex, { name: newName });
+                    sectionInfo.text = `Active: ${newName}`;
+                    log(`Renamed to: ${newName}`, 'action');
+                });
+
+                // Button: Change Color
+                document.getElementById('btn-recolor').addEventListener('click', () => {
+                    const activeIndex = menu.getActiveSection();
+                    const newColor = availableColors[Math.floor(Math.random() * availableColors.length)];
+                    sections[activeIndex].iconColor = newColor;
+                    menu.updateSection(activeIndex, { iconColor: newColor });
+                    log(`Changed color: #${newColor.toString(16)}`, 'action');
+                });
+
+                // Button: Go First
+                document.getElementById('btn-first').addEventListener('click', () => {
+                    menu.setActiveSection(0);
+                    log('Navigated to first section', 'action');
+                });
+
+                // Button: Go Last
+                document.getElementById('btn-last').addEventListener('click', () => {
+                    menu.setActiveSection(sections.length - 1);
+                    log('Navigated to last section', 'action');
+                });
+
+                // Hide loading, show UI
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('controls').style.display = 'block';
+                document.getElementById('event-log').style.display = 'block';
+
+                log('Demo initialized', 'action');
+                log('Try the controls to see callbacks', 'callback');
+
+                console.log('Advanced configuration demo ready!');
+
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('loading').textContent = 'Error: ' + error.message;
+                document.getElementById('loading').style.color = '#ff6b6b';
+            }
+        })();
+    </script>
+</body>
+</html>

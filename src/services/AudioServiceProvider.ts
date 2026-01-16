@@ -6,8 +6,9 @@ import {
   MobileAudioConfig,
   AudioPerformanceTier,
   AudioBusType,
-  AudioFadeType
+  AudioFadeType,
 } from '../contracts/Audio';
+import { getAudioConfigForTier, mapToAudioPerformanceTier } from '../config/DeviceConfigurations';
 
 /**
  * Audio Service Provider for GameByte Framework
@@ -108,89 +109,43 @@ export class AudioServiceProvider extends AbstractServiceProvider {
   }
 
   /**
-   * Get mobile audio configuration based on detected device
+   * Get mobile audio configuration based on detected device.
+   * Uses centralized DeviceConfigurations for tier-based settings.
    */
   private getMobileAudioConfig(app: GameByte): Partial<MobileAudioConfig> {
     // Try to get performance manager for device detection
     let performanceTier = AudioPerformanceTier.MEDIUM;
-    
+
     try {
       if (app.getContainer().bound('performance.manager')) {
         const performanceManager = app.make('performance.manager');
         if (performanceManager && performanceManager.getDeviceCapabilities) {
           const capabilities = performanceManager.getDeviceCapabilities();
-          performanceTier = this.mapPerformanceTier(capabilities.tier);
+          performanceTier = mapToAudioPerformanceTier(capabilities.tier);
         }
       }
-    } catch (error) {
+    } catch {
       // Performance manager not available, use defaults
     }
-    
-    // Configure based on performance tier
+
+    // Get tier-based configuration from centralized config
+    const tierConfig = getAudioConfigForTier(performanceTier);
+
+    // Base mobile-specific config
     const baseConfig: Partial<MobileAudioConfig> = {
       batteryOptimization: true,
-      backgroundAudio: false, // Disabled by default for mobile
       interruptionHandling: true,
-      hardwareAcceleration: true,
-      adaptiveQuality: true
     };
-    
-    switch (performanceTier) {
-      case AudioPerformanceTier.LOW:
-        return {
-          ...baseConfig,
-          maxConcurrentSounds: 16,
-          memoryLimit: 32,
-          cpuLimit: 10,
-          adaptiveQuality: true
-        };
-        
-      case AudioPerformanceTier.MEDIUM:
-        return {
-          ...baseConfig,
-          maxConcurrentSounds: 32,
-          memoryLimit: 64,
-          cpuLimit: 15
-        };
-        
-      case AudioPerformanceTier.HIGH:
-        return {
-          ...baseConfig,
-          maxConcurrentSounds: 64,
-          memoryLimit: 128,
-          cpuLimit: 20,
-          backgroundAudio: true // Allow background audio on high-end devices
-        };
-        
-      case AudioPerformanceTier.PREMIUM:
-        return {
-          ...baseConfig,
-          maxConcurrentSounds: 128,
-          memoryLimit: 256,
-          cpuLimit: 25,
-          backgroundAudio: true,
-          hardwareAcceleration: true
-        };
-        
-      default:
-        return baseConfig;
-    }
-  }
 
-  /**
-   * Map framework performance tier to audio performance tier
-   */
-  private mapPerformanceTier(frameworkTier: any): AudioPerformanceTier {
-    if (typeof frameworkTier === 'string') {
-      switch (frameworkTier.toLowerCase()) {
-        case 'low': return AudioPerformanceTier.LOW;
-        case 'medium': return AudioPerformanceTier.MEDIUM;
-        case 'high': return AudioPerformanceTier.HIGH;
-        case 'premium': return AudioPerformanceTier.PREMIUM;
-        default: return AudioPerformanceTier.MEDIUM;
-      }
-    }
-    return AudioPerformanceTier.MEDIUM;
+    return {
+      ...baseConfig,
+      maxConcurrentSounds: tierConfig.maxConcurrentSounds,
+      memoryLimit: tierConfig.memoryLimit,
+      cpuLimit: tierConfig.cpuLimit,
+      backgroundAudio: tierConfig.backgroundAudio,
+      adaptiveQuality: tierConfig.adaptiveQuality,
+      hardwareAcceleration: tierConfig.hardwareAcceleration,
+    };
   }
 
   /**

@@ -20,9 +20,23 @@
       "Bash(lsof:*)",
       "Bash(xargs kill:*)",
       "Bash(python3:*)",
-      "Bash(npm run build)"
+      "Bash(npm run build)",
+      "Skill(superpowers:writing-plans)",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)",
+      "Skill(superpowers:subagent-driven-development)",
+      "Bash(test:*)",
+      "Bash(tree:*)",
+      "Bash(./scripts/validate-agent-docs.sh:*)",
+      "Bash(gh pr:*)",
+      "Bash(wc:*)",
+      "Bash(md5:*)",
+      "Skill(superpowers:brainstorming)"
     ],
     "deny": [],
     "ask": []
+  },
+  "remote": {
+    "defaultEnvironmentId": "env_01LcATEsoDrYJjCnzEMj9qKD"
   }
 }

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Hybrid Renderer Example - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #000;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            touch-action: none;
+        }
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        #game-container canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        #info {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 14px;
+            background: rgba(0,0,0,0.8);
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-align: center;
+            z-index: 100;
+        }
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 18px;
+            z-index: 200;
+        }
+        .layer-label {
+            position: fixed;
+            right: 20px;
+            color: white;
+            font-size: 12px;
+            background: rgba(0,0,0,0.6);
+            padding: 6px 12px;
+            border-radius: 4px;
+            z-index: 100;
+        }
+        #three-label { top: 20px; border-left: 3px solid #4ecca3; }
+        #pixi-label { top: 50px; border-left: 3px solid #ff6b6b; }
+    </style>
+</head>
+<body>
+    <div id="loading">Loading Hybrid Renderer...</div>
+    <div id="game-container"></div>
+    <div id="info" style="display: none;">
+        <strong>Hybrid Renderer: Three.js + Pixi.js</strong><br>
+        3D background with 2D UI overlay
+    </div>
+    <div class="layer-label" id="three-label" style="display: none;">Three.js (3D Layer)</div>
+    <div class="layer-label" id="pixi-label" style="display: none;">Pixi.js (2D UI Layer)</div>
+
+    <!-- Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+    <script src="../../dist/gamebyte.umd.js"></script>
+
+    <script>
+        (async () => {
+            try {
+                const container = document.getElementById('game-container');
+                const BASE_WIDTH = 800;
+                const BASE_HEIGHT = 600;
+
+                // === THREE.JS SETUP (3D Background Layer) ===
+                const threeCanvas = document.createElement('canvas');
+                threeCanvas.width = BASE_WIDTH;
+                threeCanvas.height = BASE_HEIGHT;
+                threeCanvas.style.zIndex = '1';
+                container.appendChild(threeCanvas);
+
+                const threeRenderer = new THREE.WebGLRenderer({
+                    canvas: threeCanvas,
+                    antialias: true
+                });
+                threeRenderer.setSize(BASE_WIDTH, BASE_HEIGHT);
+
+                const scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x0a0e1a);
+
+                const camera = new THREE.PerspectiveCamera(75, BASE_WIDTH / BASE_HEIGHT, 0.1, 1000);
+                camera.position.z = 5;
+
+                // Lighting
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+                scene.add(ambientLight);
+
+                const pointLight = new THREE.PointLight(0x4ecca3, 1, 100);
+                pointLight.position.set(3, 3, 3);
+                scene.add(pointLight);
+
+                // 3D Objects
+                const cubeGeometry = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+                const cubeMaterial = new THREE.MeshPhongMaterial({
+                    color: 0x4ecca3,
+                    emissive: 0x1a3a5e,
+                    shininess: 80
+                });
+                const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+                scene.add(cube);
+
+                // Orbiting spheres
+                const sphereGeometry = new THREE.SphereGeometry(0.3, 16, 16);
+                const spheres = [];
+                const colors = [0xff6b6b, 0x6b6bff, 0xffff6b];
+
+                for (let i = 0; i < 3; i++) {
+                    const sphereMaterial = new THREE.MeshPhongMaterial({
+                        color: colors[i],
+                        emissive: colors[i],
+                        emissiveIntensity: 0.3
+                    });
+                    const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+                    spheres.push(sphere);
+                    scene.add(sphere);
+                }
+
+                // === PIXI.JS SETUP (2D UI Overlay) ===
+                const pixiCanvas = document.createElement('canvas');
+                pixiCanvas.width = BASE_WIDTH;
+                pixiCanvas.height = BASE_HEIGHT;
+                pixiCanvas.style.zIndex = '2';
+                pixiCanvas.style.pointerEvents = 'auto';
+                container.appendChild(pixiCanvas);
+
+                const pixiApp = new PIXI.Application();
+                await pixiApp.init({
+                    canvas: pixiCanvas,
+                    width: BASE_WIDTH,
+                    height: BASE_HEIGHT,
+                    backgroundAlpha: 0,
+                    resolution: window.devicePixelRatio || 1,
+                    autoDensity: true
+                });
+
+                // UI Panel
+                const panel = new PIXI.Graphics();
+                panel.roundRect(20, BASE_HEIGHT - 120, 200, 100, 10);
+                panel.fill({ color: 0x1a1a2e, alpha: 0.9 });
+                panel.stroke({ color: 0x4ecca3, width: 2 });
+                pixiApp.stage.addChild(panel);
+
+                // Title text
+                const title = new PIXI.Text({
+                    text: 'Hybrid Renderer',
+                    style: {
+                        fontFamily: 'Arial',
+                        fontSize: 24,
+                        fill: 0x4ecca3,
+                        fontWeight: 'bold'
+                    }
+                });
+                title.x = BASE_WIDTH / 2;
+                title.y = 30;
+                title.anchor.set(0.5, 0);
+                pixiApp.stage.addChild(title);
+
+                // Info text in panel
+                const infoText = new PIXI.Text({
+                    text: '3D: Three.js\n2D: Pixi.js\nFPS: --',
+                    style: {
+                        fontFamily: 'Arial',
+                        fontSize: 14,
+                        fill: 0xffffff,
+                        lineHeight: 20
+                    }
+                });
+                infoText.x = 35;
+                infoText.y = BASE_HEIGHT - 105;
+                pixiApp.stage.addChild(infoText);
+
+                // Interactive button
+                const button = new PIXI.Graphics();
+                button.roundRect(0, 0, 150, 40, 8);
+                button.fill({ color: 0x4ecca3 });
+                button.x = BASE_WIDTH - 170;
+                button.y = BASE_HEIGHT - 60;
+                button.eventMode = 'static';
+                button.cursor = 'pointer';
+                pixiApp.stage.addChild(button);
+
+                const buttonText = new PIXI.Text({
+                    text: 'Toggle Rotation',
+                    style: {
+                        fontFamily: 'Arial',
+                        fontSize: 14,
+                        fill: 0x0a0e1a,
+                        fontWeight: 'bold'
+                    }
+                });
+                buttonText.x = button.x + 75;
+                buttonText.y = button.y + 20;
+                buttonText.anchor.set(0.5);
+                pixiApp.stage.addChild(buttonText);
+
+                let isRotating = true;
+                button.on('pointerdown', () => {
+                    isRotating = !isRotating;
+                    gsap.to(button, {
+                        pixi: { scale: 0.95 },
+                        duration: 0.1,
+                        yoyo: true,
+                        repeat: 1
+                    });
+                });
+
+                button.on('pointerover', () => {
+                    gsap.to(button, { alpha: 0.8, duration: 0.2 });
+                });
+
+                button.on('pointerout', () => {
+                    gsap.to(button, { alpha: 1, duration: 0.2 });
+                });
+
+                // === ANIMATION LOOPS ===
+                let frameCount = 0;
+                let lastTime = performance.now();
+
+                function animate() {
+                    requestAnimationFrame(animate);
+
+                    // FPS calculation
+                    frameCount++;
+                    const now = performance.now();
+                    if (now - lastTime >= 1000) {
+                        infoText.text = `3D: Three.js\n2D: Pixi.js\nFPS: ${frameCount}`;
+                        frameCount = 0;
+                        lastTime = now;
+                    }
+
+                    // Three.js updates
+                    if (isRotating) {
+                        cube.rotation.x += 0.01;
+                        cube.rotation.y += 0.015;
+                    }
+
+                    // Orbiting spheres
+                    const time = Date.now() * 0.001;
+                    spheres.forEach((sphere, i) => {
+                        const angle = time + (i * Math.PI * 2 / 3);
+                        sphere.position.x = Math.cos(angle) * 2.5;
+                        sphere.position.z = Math.sin(angle) * 2.5;
+                        sphere.position.y = Math.sin(time * 2 + i) * 0.5;
+                    });
+
+                    // Render Three.js
+                    threeRenderer.render(scene, camera);
+                }
+
+                animate();
+
+                // Hide loading, show UI
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('info').style.display = 'block';
+                document.getElementById('three-label').style.display = 'block';
+                document.getElementById('pixi-label').style.display = 'block';
+
+                console.log('Hybrid Renderer example ready!');
+
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('loading').textContent = 'Error: ' + error.message;
+                document.getElementById('loading').style.color = '#ff6b6b';
+            }
+        })();
+    </script>
+</body>
+</html>

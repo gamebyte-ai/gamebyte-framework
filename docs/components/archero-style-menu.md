@@ -1,5 +1,15 @@
 # Archero-Style Bottom Navigation Menu
 
+## Live Example
+
+<div style="border: 1px solid #333; border-radius: 8px; overflow: hidden; margin: 20px 0;">
+  <iframe src="../examples/archero-style-example.html" width="100%" height="600" style="border: none;"></iframe>
+</div>
+
+> **Interactive Demo**: Style customization showcase. Click the theme buttons to dynamically change the menu appearance. Themes include Gold (default), Fire, Ocean, Forest, and Dark Night.
+
+---
+
 A mobile-optimized (9:16 portrait) bottom navigation menu system inspired by Archero, featuring glossy buttons, smooth animations, and touch gestures.
 
 ## Features

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Pixel Flow - GameByte Template Demo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #1a1a2e;
+      overflow: hidden;
+      touch-action: none;
+      font-family: Arial, sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+  <script src="./dist/gamebyte.umd.js"></script>
+  <script>
+    /**
+     * Pixel Flow - Example Game using GameByte Template System
+     *
+     * This demonstrates how AI agents can create games with minimal code:
+     * 1. Define game config (JSON-like structure)
+     * 2. GameTemplate handles all screens, navigation, and state
+     * 3. Agent only implements the actual gameplay logic
+     */
+    (async () => {
+      const { GameTemplate, NanoBananaPrompts, graphics } = GameByteFramework;
+
+      // ================================================
+      // STEP 1: Define Game Configuration (Agent-Friendly)
+      // ================================================
+      const gameConfig = {
+        name: 'Pixel Flow',
+        style: 'pixel-flow',
+        width: 1080,
+        height: 1920,
+        screens: ['splash', 'main-menu', 'game', 'game-over', 'victory'],
+        features: ['levels', 'currency'],
+        levels: {
+          totalLevels: 50,
+          unlockedLevels: 1,
+          starsPerLevel: 3,
+          rewards: {
+            baseGold: 100,
+            goldPerStar: 25
+          }
+        },
+        currency: {
+          name: 'Coins',
+          icon: '🪙',
+          startingAmount: 500
+        },
+        callbacks: {
+          onGameStart: () => console.log('Game started!'),
+          onLevelStart: (level) => console.log(`Starting level ${level}`),
+          onLevelComplete: (level, stars, score) => {
+            console.log(`Level ${level} complete! Stars: ${stars}, Score: ${score}`);
+          },
+          onGameOver: (score) => console.log(`Game over! Score: ${score}`)
+        }
+      };
+
+      // ================================================
+      // STEP 2: Create Game from Template
+      // ================================================
+      const game = await GameTemplate.create(gameConfig);
+
+      // ================================================
+      // STEP 3: Generate Asset Prompts for AI (Nano Banana)
+      // ================================================
+      const assetPrompts = game.generateAssetPrompts();
+      console.log('Generated Asset Prompts for AI:');
+      console.log('Backgrounds:', assetPrompts.backgrounds);
+      console.log('Icons:', assetPrompts.icons);
+
+      // Log a sample prompt for reference
+      console.log('\nSample Background Prompt (for main-menu):');
+      const menuPrompt = assetPrompts.backgrounds.find(p => p.screen === 'main-menu');
+      if (menuPrompt) {
+        console.log(JSON.stringify(menuPrompt, null, 2));
+      }
+
+      // ================================================
+      // STEP 4: Listen for Game Events
+      // ================================================
+      game.on('game:start', () => {
+        console.log('Event: game:start');
+        startGameplay();
+      });
+
+      game.on('screen:change', ({ from, to }) => {
+        console.log(`Screen changed: ${from} -> ${to}`);
+
+        // When transitioning to game screen, setup gameplay
+        if (to === 'game') {
+          setupGameplayUI();
+        }
+      });
+
+      // ================================================
+      // STEP 5: Implement Simple Gameplay (Agent's Custom Logic)
+      // ================================================
+      let gameplayLayer = null;
+      let player = null;
+      let score = 0;
+      let isPlaying = false;
+
+      function setupGameplayUI() {
+        // Create gameplay layer if not exists
+        if (!gameplayLayer) {
+          gameplayLayer = game.createGameplayLayer();
+        }
+
+        // Clear any existing gameplay elements
+        gameplayLayer.removeChildren();
+
+        // Create background grid (Pixel Flow style)
+        const gfx = graphics();
+        const bg = gfx.createGraphics();
+
+        // Draw grid pattern
+        const gridSize = 60;
+        const colors = game.palette;
+
+        bg.rect(0, 0, 1080, 1920);
+        bg.fill({ color: colors.background });
+
+        // Grid lines
+        for (let x = 0; x <= 1080; x += gridSize) {
+          bg.rect(x, 0, 2, 1920);
+          bg.fill({ color: colors.surface, alpha: 0.3 });
+        }
+        for (let y = 0; y <= 1920; y += gridSize) {
+          bg.rect(0, y, 1080, 2);
+          bg.fill({ color: colors.surface, alpha: 0.3 });
+        }
+        gameplayLayer.addChild(bg);
+
+        // Create player (simple colored square)
+        player = gfx.createGraphics();
+        player.roundRect(-40, -40, 80, 80, 12);
+        player.fill(colors.primary);
+        player.x = 540;
+        player.y = 1600;
+        gameplayLayer.addChild(player);
+
+        // Create some target blocks
+        for (let i = 0; i < 5; i++) {
+          const block = gfx.createGraphics();
+          block.roundRect(-30, -30, 60, 60, 8);
+          block.fill(colors.secondary);
+          block.x = 100 + i * 200;
+          block.y = 400 + Math.random() * 600;
+          block.name = 'target';
+          gameplayLayer.addChild(block);
+        }
+
+        // Add score text
+        const scoreText = new PIXI.Text({
+          text: 'Score: 0',
+          style: {
+            fontSize: 32,
+            fontWeight: 'bold',
+            fill: colors.text
+          }
+        });
+        scoreText.x = 40;
+        scoreText.y = 60;
+        scoreText.name = 'scoreText';
+        gameplayLayer.addChild(scoreText);
+
+        // Add level text
+        const levelText = new PIXI.Text({
+          text: `Level ${game.currentLevel}`,
+          style: {
+            fontSize: 24,
+            fill: colors.textSecondary
+          }
+        });
+        levelText.x = 40;
+        levelText.y = 100;
+        gameplayLayer.addChild(levelText);
+      }
+
+      function startGameplay() {
+        isPlaying = true;
+        score = 0;
+
+        // Simple game loop - move player with touch/mouse
+        if (gameplayLayer) {
+          gameplayLayer.eventMode = 'static';
+          gameplayLayer.on('pointermove', (e) => {
+            if (player && isPlaying) {
+              player.x = e.globalX;
+            }
+          });
+        }
+
+        // Animate targets falling
+        animateTargets();
+      }
+
+      function animateTargets() {
+        if (!isPlaying || !gameplayLayer) return;
+
+        const colors = game.palette;
+        const targets = gameplayLayer.children.filter(c => c.name === 'target');
+        const scoreText = gameplayLayer.children.find(c => c.name === 'scoreText');
+
+        targets.forEach((target) => {
+          target.y += 3;
+
+          // Check collision with player
+          if (player) {
+            const dx = Math.abs(target.x - player.x);
+            const dy = Math.abs(target.y - player.y);
+            if (dx < 60 && dy < 60) {
+              // Collected!
+              score += 10;
+              game.addScore(10);
+              game.addCurrency(1);
+
+              if (scoreText instanceof PIXI.Text) {
+                scoreText.text = `Score: ${score}`;
+              }
+
+              // Reset target position
+              target.y = -100;
+              target.x = 100 + Math.random() * 880;
+            }
+          }
+
+          // Reset if off screen
+          if (target.y > 2000) {
+            target.y = -100;
+            target.x = 100 + Math.random() * 880;
+          }
+        });
+
+        // Check win condition
+        if (score >= 100) {
+          isPlaying = false;
+          const stars = score >= 150 ? 3 : score >= 120 ? 2 : 1;
+          game.completeLevel(stars);
+          game.showGameOver(true, stars);
+          return;
+        }
+
+        requestAnimationFrame(animateTargets);
+      }
+
+      // ================================================
+      // STEP 6: Ready! Game starts with splash screen
+      // ================================================
+      console.log('Pixel Flow game initialized with GameByte Template!');
+      console.log('Palette:', game.palette);
+      console.log('Current Level:', game.currentLevel);
+      console.log('Currency:', game.currency);
+
+    })();
+  </script>
+</body>
+</html>

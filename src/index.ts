@@ -260,43 +260,39 @@ export { TopBar, TopBarItemType } from './ui/components/TopBar';
 export type { TopBarConfig, TopBarItemConfig, TopBarTheme } from './ui/components/TopBar';
 
 // Layout & UI Adapters (@pixi/layout, @pixi/ui)
-export { LayoutAdapter } from './adapters/LayoutAdapter';
-export type {
-  FlexDirection,
-  JustifyContent,
-  AlignItems,
-  AlignSelf,
-  FlexWrap,
-  LayoutSize,
-  Padding,
-  FlexContainerConfig,
-  FlexItemConfig,
-  ResponsiveConfig as LayoutResponsiveConfig
-} from './adapters/LayoutAdapter';
+// NOTE: These adapters are temporarily disabled pending refactoring
+// export { LayoutAdapter } from './adapters/LayoutAdapter';
+// export type {
+//   FlexDirection,
+//   JustifyContent,
+//   AlignItems,
+//   AlignSelf,
+//   FlexWrap,
+//   LayoutSize,
+//   Padding,
+//   FlexContainerConfig,
+//   FlexItemConfig,
+//   ResponsiveConfig as LayoutResponsiveConfig
+// } from './adapters/LayoutAdapter';
 
-export { UIAdapter } from './adapters/UIAdapter';
-export type {
-  ButtonConfig,
-  ProgressBarConfig,
-  SliderConfig
-} from './adapters/UIAdapter';
+// export { UIAdapter } from './adapters/UIAdapter';
+// export type {
+//   ButtonConfig,
+//   ProgressBarConfig,
+//   SliderConfig
+// } from './adapters/UIAdapter';
 
-export { FlexLayoutHelper } from './ui/layouts/FlexLayoutHelper';
-export type {
-  ResponsiveNavBarConfig,
-  GridLayoutConfig
-} from './ui/layouts/FlexLayoutHelper';
+// export { FlexLayoutHelper } from './ui/layouts/FlexLayoutHelper';
+// export type {
+//   ResponsiveNavBarConfig,
+//   GridLayoutConfig
+// } from './ui/layouts/FlexLayoutHelper';
 
 // UI Menu Components (Plugins)
 export {
   ArcheroMenu,
-  ArcheroButton,
-  ArcheroAnimations,
-  ArcheroParticles,
-  ArcheroInteractions,
-  ARCHERO_COLORS,
-  DEFAULT_STYLE
-} from './plugins/menus/ArcheroMenu';
+  ARCHERO_COLORS
+} from './ui/menus/ArcheroMenu';
 export type {
   ArcheroMenuOptions,
   ArcheroMenuStyleConfig,
@@ -306,12 +302,13 @@ export type {
   GradientConfig as ArcheroGradientConfig,
   ShineGradientConfig as ArcheroShineGradientConfig,
   SectionStyleOverride as ArcheroSectionStyleOverride
-} from './plugins/menus/ArcheroMenu';
+} from './ui/menus/ArcheroMenu';
 
 // UI Screen Components
 export { BaseUIScreen } from './ui/screens/BaseUIScreen';
 export { SplashScreen } from './ui/screens/SplashScreen';
-export { LoadingScreen } from './ui/screens/LoadingScreen';
+// LoadingScreen temporarily disabled - file doesn't exist yet
+// export { LoadingScreen } from './ui/screens/LoadingScreen';
 // MainMenuScreen temporarily disabled - needs refactoring to work with UIComponent
 // export { MainMenuScreen } from './ui/screens/MainMenuScreen';
 
@@ -332,8 +329,9 @@ export { GameByteUIInputSystem } from './ui/input/UIInputSystem';
 
 // UI Layout System
 export { ResponsiveLayoutManager } from './ui/layouts/ResponsiveLayoutManager';
-export { ScreenLayoutManager } from './ui/layouts/ScreenLayoutManager';
-export type { ScreenLayout, LayoutRegion, ScreenLayoutConfig } from './ui/layouts/ScreenLayoutManager';
+// ScreenLayoutManager temporarily disabled - file doesn't exist yet
+// export { ScreenLayoutManager } from './ui/layouts/ScreenLayoutManager';
+// export type { ScreenLayout, LayoutRegion, ScreenLayoutConfig } from './ui/layouts/ScreenLayoutManager';
 
 // Input System Components
 export { GameByteInputManager } from './input/InputManager';

@@ -289,6 +289,26 @@ export class GameByte extends EventEmitter {
 
   /**
    * Initialize the framework with a canvas element.
+   *
+   * @example Basic 2D game
+   * ```typescript
+   * const game = createGame();
+   * await game.initialize(canvas, '2d');
+   * game.start();
+   * ```
+   *
+   * @example 3D game with options
+   * ```typescript
+   * await game.initialize(canvas, '3d', {
+   *   antialias: true,
+   *   shadowMap: { enabled: true }
+   * });
+   * ```
+   *
+   * @param canvas - HTML canvas element
+   * @param mode - Rendering mode ('2d' or '3d')
+   * @param options - Optional renderer configuration
+   * @returns Promise resolving to game instance
    */
   async initialize(canvas: HTMLCanvasElement, mode: RenderingMode, options?: RendererOptions): Promise<this> {
     this.canvas = canvas;

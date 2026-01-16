@@ -1,12 +1,12 @@
 import { EventEmitter } from 'eventemitter3';
-import { 
-  AssetLoader, 
-  AssetConfig, 
-  AssetType, 
-  AssetLoadingProgress, 
+import {
+  AssetLoader,
+  AssetConfig,
+  AssetType,
+  AssetLoadingProgress,
   AssetLoadingState,
-  AssetPriority 
 } from '../../contracts/AssetManager';
+import { withRetry, ASSET_LOADING_RETRY_OPTIONS, RetryOptions } from '../../utils/RetryUtils';
 
 /**
  * Abstract base class for asset loaders with common functionality.
@@ -138,40 +138,25 @@ export abstract class BaseAssetLoader<T = any> extends EventEmitter implements A
   
   /**
    * Load data using XMLHttpRequest with retry logic.
+   * Uses centralized RetryUtils for retry handling.
    */
   protected async loadWithXHR<T>(
     config: AssetConfig,
     responseType: XMLHttpRequestResponseType = 'blob',
     processor?: (data: any) => T | Promise<T>
   ): Promise<T> {
-    const maxRetries = config.options?.maxRetries || 3;
-    let lastError: Error;
-    
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      try {
+    const retryOptions: RetryOptions = {
+      ...ASSET_LOADING_RETRY_OPTIONS,
+      maxRetries: config.options?.maxRetries || ASSET_LOADING_RETRY_OPTIONS.maxRetries,
+    };
+
+    return withRetry(
+      async () => {
         const data = await this.performXHRRequest(config, responseType);
         return processor ? await processor(data) : data;
-      } catch (error) {
-        lastError = error as Error;
-        
-        // Don't retry on certain error types
-        if (error instanceof Error && (
-          error.message.includes('404') ||
-          error.message.includes('403') ||
-          error.message.includes('401')
-        )) {
-          break;
-        }
-        
-        // Exponential backoff for retries
-        if (attempt < maxRetries - 1) {
-          const delay = Math.pow(2, attempt) * 1000;
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
-      }
-    }
-    
-    throw lastError!;
+      },
+      retryOptions
+    );
   }
   
   /**

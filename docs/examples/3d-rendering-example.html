@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Rendering Example - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0e1a;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        canvas {
+            max-width: 100%;
+            max-height: 100%;
+        }
+        #info {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 14px;
+            background: rgba(0,0,0,0.7);
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">Loading 3D Scene...</div>
+    <div id="game-container"></div>
+    <div id="info" style="display: none;">
+        <strong>3D Rendering with GameByte Framework</strong><br>
+        Rotating cube using Three.js + GameByte
+    </div>
+
+    <!-- Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="../../dist/gamebyte.umd.js"></script>
+
+    <script>
+        (async () => {
+            try {
+                const { GameByte } = GameByteFramework;
+
+                // Create canvas
+                const canvas = document.createElement('canvas');
+                canvas.width = 800;
+                canvas.height = 600;
+                document.getElementById('game-container').appendChild(canvas);
+
+                // Initialize GameByte with 3D renderer
+                const game = GameByte.create();
+                await game.initialize(canvas, '3d');
+
+                // Get renderer
+                const renderer = game.make('renderer');
+
+                // Create THREE.js scene
+                const scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x0a0e1a);
+
+                // Create camera
+                const camera = new THREE.PerspectiveCamera(75, 800 / 600, 0.1, 1000);
+                camera.position.z = 5;
+
+                // Add lighting
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+                scene.add(ambientLight);
+
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(5, 5, 5);
+                scene.add(directionalLight);
+
+                const pointLight = new THREE.PointLight(0x4ecca3, 1, 100);
+                pointLight.position.set(-3, 3, 3);
+                scene.add(pointLight);
+
+                // Create rotating cube
+                const geometry = new THREE.BoxGeometry(2, 2, 2);
+                const material = new THREE.MeshPhongMaterial({
+                    color: 0x4ecca3,
+                    emissive: 0x1a3a5e,
+                    shininess: 100,
+                    specular: 0x555555
+                });
+                const cube = new THREE.Mesh(geometry, material);
+                scene.add(cube);
+
+                // Create additional objects
+                const torusGeometry = new THREE.TorusGeometry(0.5, 0.2, 16, 32);
+                const torusMaterial = new THREE.MeshPhongMaterial({
+                    color: 0xff6b6b,
+                    emissive: 0x3a1a1a,
+                    shininess: 80
+                });
+
+                const torus1 = new THREE.Mesh(torusGeometry, torusMaterial);
+                torus1.position.set(3, 0, 0);
+                scene.add(torus1);
+
+                const torus2 = new THREE.Mesh(torusGeometry, torusMaterial.clone());
+                torus2.material.color.setHex(0x6b6bff);
+                torus2.position.set(-3, 0, 0);
+                scene.add(torus2);
+
+                // Set scene and camera
+                renderer.setScene(scene);
+                renderer.setCamera(camera);
+
+                // Animation loop
+                renderer.on('tick', (deltaTime) => {
+                    cube.rotation.x += 0.01;
+                    cube.rotation.y += 0.015;
+
+                    torus1.rotation.x += 0.02;
+                    torus1.rotation.z += 0.01;
+
+                    torus2.rotation.y += 0.02;
+                    torus2.rotation.z -= 0.01;
+
+                    // Float animation
+                    cube.position.y = Math.sin(Date.now() * 0.001) * 0.3;
+                });
+
+                // Start game loop
+                game.start();
+
+                // Hide loading, show info
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('info').style.display = 'block';
+
+                console.log('3D Rendering example ready!');
+
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('loading').textContent = 'Error: ' + error.message;
+                document.getElementById('loading').style.color = '#ff6b6b';
+            }
+        })();
+    </script>
+</body>
+</html>

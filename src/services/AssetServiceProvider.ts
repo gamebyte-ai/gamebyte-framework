@@ -1,12 +1,25 @@
 import { AbstractServiceProvider } from '../contracts/ServiceProvider';
 import { GameByte } from '../core/GameByte';
 import { GameByteAssetManager, AssetManagerConfig } from '../assets/GameByteAssetManager';
-import { 
-  AssetManager, 
-  CacheEvictionStrategy, 
+import {
+  AssetManager,
   DevicePerformanceTier,
-  DeviceCapabilities 
+  DeviceCapabilities,
+  CacheEvictionStrategy,
 } from '../contracts/AssetManager';
+import {
+  getUnifiedDeviceCapabilities,
+  detectPlatform,
+  detectGPUTier,
+  getScreenInfo,
+  detectConnectionType,
+} from '../utils/DeviceDetectionUtils';
+import { getSupportedTextureFormats, getSupportedAudioFormats } from '../utils/FormatDetectionUtils';
+import {
+  getCacheConfigForTier,
+  getConcurrencyConfigForTier,
+  TierCacheConfig,
+} from '../config/DeviceConfigurations';
 
 /**
  * Asset service provider configuration.
@@ -132,208 +145,62 @@ export class AssetServiceProvider extends AbstractServiceProvider {
   
   /**
    * Create cache configuration based on device capabilities.
+   * Uses centralized DeviceConfigurations for tier-based settings.
    */
   private createCacheConfig(deviceCapabilities: DeviceCapabilities) {
-    const config = this.config.cacheConfig || {};
-    
-    // Calculate optimal cache size based on device tier
-    let maxSizeMB: number;
-    switch (deviceCapabilities.performanceTier) {
-      case DevicePerformanceTier.LOW:
-        maxSizeMB = config.maxSizeMB || 25;
-        break;
-      case DevicePerformanceTier.MEDIUM:
-        maxSizeMB = config.maxSizeMB || 50;
-        break;
-      case DevicePerformanceTier.HIGH:
-        maxSizeMB = config.maxSizeMB || 100;
-        break;
-      case DevicePerformanceTier.PREMIUM:
-        maxSizeMB = config.maxSizeMB || 200;
-        break;
-      default:
-        maxSizeMB = config.maxSizeMB || 50;
-    }
-    
-    const maxItems = config.maxItems || Math.floor(maxSizeMB / 2); // Estimate 2MB per asset average
-    const ttl = config.ttlMinutes ? config.ttlMinutes * 60 * 1000 : undefined;
-    
+    const userConfig = this.config.cacheConfig || {};
+
+    // Get tier-based config from centralized configuration
+    const tierConfig: TierCacheConfig = getCacheConfigForTier(deviceCapabilities.performanceTier, {
+      maxSizeMB: userConfig.maxSizeMB,
+    });
+
+    const maxItems = userConfig.maxItems || tierConfig.maxItems;
+    const ttl = userConfig.ttlMinutes ? userConfig.ttlMinutes * 60 * 1000 : undefined;
+
     return {
-      maxSize: maxSizeMB * 1024 * 1024, // Convert to bytes
+      maxSize: tierConfig.maxSizeMB * 1024 * 1024, // Convert to bytes
       maxItems,
-      evictionStrategy: config.evictionStrategy || CacheEvictionStrategy.LRU,
+      evictionStrategy: userConfig.evictionStrategy || tierConfig.evictionStrategy,
       ttl,
-      persistent: config.enablePersistent !== false, // Default to true
-      version: '1.0.0'
+      persistent: userConfig.enablePersistent !== false ? tierConfig.persistent : false,
+      version: '1.0.0',
     };
   }
   
   /**
    * Get optimal concurrent loads based on device capabilities.
+   * Uses centralized DeviceConfigurations for tier-based settings.
    */
   private getOptimalConcurrentLoads(deviceCapabilities: DeviceCapabilities): number {
-    const baseConcurrency = deviceCapabilities.screen.width > 1024 ? 8 : 6;
-    
-    switch (deviceCapabilities.performanceTier) {
-      case DevicePerformanceTier.LOW:
-        return Math.min(baseConcurrency - 2, 3);
-      case DevicePerformanceTier.MEDIUM:
-        return baseConcurrency - 1;
-      case DevicePerformanceTier.HIGH:
-        return baseConcurrency;
-      case DevicePerformanceTier.PREMIUM:
-        return baseConcurrency + 2;
-      default:
-        return baseConcurrency;
-    }
+    const concurrencyConfig = getConcurrencyConfigForTier(
+      deviceCapabilities.performanceTier,
+      deviceCapabilities.screen.width
+    );
+    return concurrencyConfig.maxConcurrentLoads;
   }
   
   /**
    * Detect device capabilities.
+   * Uses centralized DeviceDetectionUtils and FormatDetectionUtils.
    */
   private detectDeviceCapabilities(): DeviceCapabilities {
-    const screen = window.screen;
-    const nav = navigator as any;
-    
-    // Detect available memory
-    const deviceMemory = nav.deviceMemory || this.estimateDeviceMemory();
-    const hardwareConcurrency = nav.hardwareConcurrency || 4;
-    
-    // Detect performance tier
-    let performanceTier: DevicePerformanceTier = DevicePerformanceTier.MEDIUM;
-    
-    // Use multiple heuristics for performance detection
-    const pixelRatio = window.devicePixelRatio || 1;
-    const screenSize = screen.width * screen.height;
-    const connectionType = nav.connection?.effectiveType || '4g';
-    
-    if (deviceMemory >= 8 && hardwareConcurrency >= 8 && pixelRatio >= 2) {
-      performanceTier = DevicePerformanceTier.PREMIUM;
-    } else if (deviceMemory >= 6 && hardwareConcurrency >= 6) {
-      performanceTier = DevicePerformanceTier.HIGH;
-    } else if (deviceMemory <= 2 || hardwareConcurrency <= 2 || connectionType === 'slow-2g') {
-      performanceTier = DevicePerformanceTier.LOW;
-    }
-    
+    const unified = getUnifiedDeviceCapabilities();
+    const screenInfo = getScreenInfo();
+    const gpuInfo = detectGPUTier();
+    const connectionType = detectConnectionType();
+    const platform = detectPlatform();
+
     return {
-      performanceTier,
-      availableMemory: deviceMemory * 1024, // Convert to MB
-      gpuTier: this.detectGPUTier(),
-      supportedTextureFormats: this.detectTextureFormats(),
-      supportedAudioFormats: this.detectAudioFormats(),
-      connectionType: connectionType as any,
-      screen: {
-        width: screen.width,
-        height: screen.height,
-        pixelRatio
-      },
-      platform: this.detectPlatform()
+      performanceTier: unified.performanceTier,
+      availableMemory: unified.availableMemory,
+      gpuTier: gpuInfo.tier,
+      supportedTextureFormats: getSupportedTextureFormats(),
+      supportedAudioFormats: getSupportedAudioFormats(),
+      connectionType: connectionType,
+      screen: screenInfo,
+      platform: platform,
     };
-  }
-  
-  /**
-   * Estimate device memory if not available.
-   */
-  private estimateDeviceMemory(): number {
-    const ua = navigator.userAgent.toLowerCase();
-    
-    // Very rough estimates based on user agent
-    if (/iphone|ipad/.test(ua)) {
-      if (/iphone.*15|ipad.*15/.test(ua)) return 6; // iPhone 15 series
-      if (/iphone.*14|ipad.*14/.test(ua)) return 6; // iPhone 14 series
-      if (/iphone.*13|ipad.*13/.test(ua)) return 4; // iPhone 13 series
-      return 3; // Older iPhones
-    }
-    
-    if (/android/.test(ua)) {
-      // Most Android devices have 4-8GB RAM
-      return 4;
-    }
-    
-    // Desktop/other
-    return 8;
-  }
-  
-  /**
-   * Detect GPU tier.
-   */
-  private detectGPUTier(): string {
-    try {
-      const canvas = document.createElement('canvas');
-      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-      
-      if (!gl) return 'none';
-      
-      const webglContext = gl as WebGLRenderingContext;
-      const debugInfo = webglContext.getExtension('WEBGL_debug_renderer_info');
-      if (debugInfo) {
-        const renderer = webglContext.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
-        
-        if (/nvidia|geforce/i.test(renderer)) return 'high';
-        if (/amd|radeon/i.test(renderer)) return 'high';
-        if (/intel/i.test(renderer)) return 'medium';
-        if (/apple/i.test(renderer)) return 'high';
-        if (/mali|adreno|powerVR/i.test(renderer)) return 'medium';
-      }
-      
-      return 'unknown';
-    } catch {
-      return 'none';
-    }
-  }
-  
-  /**
-   * Detect supported texture formats.
-   */
-  private detectTextureFormats(): string[] {
-    const formats: string[] = [];
-    const canvas = document.createElement('canvas');
-    
-    try {
-      // Test WebP support
-      if (canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0) {
-        formats.push('webp');
-      }
-      
-      // Test AVIF support
-      if (canvas.toDataURL('image/avif').indexOf('data:image/avif') === 0) {
-        formats.push('avif');
-      }
-    } catch {
-      // Ignore errors
-    }
-    
-    // Always supported
-    formats.push('jpeg', 'png');
-    
-    return formats;
-  }
-  
-  /**
-   * Detect supported audio formats.
-   */
-  private detectAudioFormats(): string[] {
-    const formats: string[] = [];
-    const audio = document.createElement('audio');
-    
-    if (audio.canPlayType('audio/mpeg;')) formats.push('mp3');
-    if (audio.canPlayType('audio/ogg; codecs="vorbis"')) formats.push('ogg');
-    if (audio.canPlayType('audio/webm; codecs="vorbis"')) formats.push('webm');
-    if (audio.canPlayType('audio/aac;')) formats.push('aac');
-    if (audio.canPlayType('audio/wav; codecs="1"')) formats.push('wav');
-    
-    return formats;
-  }
-  
-  /**
-   * Detect platform.
-   */
-  private detectPlatform(): 'ios' | 'android' | 'web' {
-    const ua = navigator.userAgent.toLowerCase();
-    
-    if (/iphone|ipad|ipod/.test(ua)) return 'ios';
-    if (/android/.test(ua)) return 'android';
-    return 'web';
   }
   
   /**

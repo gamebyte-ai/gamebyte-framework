@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Physics Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #1a1a2e;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: system-ui, sans-serif;
+            padding: 20px;
+            gap: 15px;
+        }
+        .canvas-container {
+            width: 100%;
+            max-width: 500px;
+            height: 350px;
+            background: #0f0f23;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+        #canvas {
+            width: 100%;
+            height: 100%;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: white;
+            transition: transform 0.2s;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn-cube { background: #6366f1; }
+        .btn-sphere { background: #22c55e; }
+        .btn-explode { background: #f59e0b; }
+        .btn-reset { background: #ef4444; }
+        .info-panel {
+            background: #0f0f23;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            display: flex;
+            gap: 20px;
+            font-size: 0.875rem;
+        }
+        .info-item span { color: #6366f1; font-weight: bold; }
+        .info {
+            color: #9ca3af;
+            font-size: 0.75rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="canvas-container">
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <div class="info-panel">
+        <div class="info-item">Objects: <span id="objCount">0</span></div>
+        <div class="info-item">Gravity: <span>-9.8</span></div>
+    </div>
+
+    <div class="controls">
+        <button class="btn btn-cube" onclick="spawnCube()">+ Cube</button>
+        <button class="btn btn-sphere" onclick="spawnSphere()">+ Sphere</button>
+        <button class="btn btn-explode" onclick="explode()">Explode!</button>
+        <button class="btn btn-reset" onclick="reset()">Reset</button>
+    </div>
+
+    <p class="info">Watch 3D physics simulation with gravity and collisions</p>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const objCountEl = document.getElementById('objCount');
+
+        let width, height;
+        let objects = [];
+        let time = 0;
+
+        const gravity = -0.015;
+        const groundY = -1.5;
+        const restitution = 0.7;
+
+        class PhysicsObject3D {
+            constructor(x, y, z, isSphere = false) {
+                this.x = x;
+                this.y = y;
+                this.z = z;
+                this.vx = (Math.random() - 0.5) * 0.05;
+                this.vy = Math.random() * 0.02;
+                this.vz = (Math.random() - 0.5) * 0.05;
+                this.size = 0.2 + Math.random() * 0.2;
+                this.isSphere = isSphere;
+                this.color = isSphere ? '#22c55e' : '#6366f1';
+                this.rotation = Math.random() * Math.PI * 2;
+                this.rotSpeed = (Math.random() - 0.5) * 0.1;
+            }
+
+            update(dt) {
+                this.vy += gravity * dt;
+                this.x += this.vx * dt;
+                this.y += this.vy * dt;
+                this.z += this.vz * dt;
+                this.rotation += this.rotSpeed * dt;
+
+                // Ground collision
+                if (this.y - this.size < groundY) {
+                    this.y = groundY + this.size;
+                    this.vy *= -restitution;
+                    this.vx *= 0.95;
+                    this.vz *= 0.95;
+                    this.rotSpeed *= 0.9;
+                }
+
+                // Walls
+                if (Math.abs(this.x) > 2) {
+                    this.x = Math.sign(this.x) * 2;
+                    this.vx *= -restitution;
+                }
+                if (Math.abs(this.z) > 2) {
+                    this.z = Math.sign(this.z) * 2;
+                    this.vz *= -restitution;
+                }
+            }
+        }
+
+        function resize() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            width = canvas.width = rect.width * window.devicePixelRatio;
+            height = canvas.height = rect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        }
+
+        function project(x, y, z) {
+            const rotY = time * 0.2;
+            const cosY = Math.cos(rotY);
+            const sinY = Math.sin(rotY);
+            const x1 = x * cosY - z * sinY;
+            const z1 = x * sinY + z * cosY;
+
+            const fov = 3;
+            const scale = fov / (fov + z1 + 3);
+            const w = width / window.devicePixelRatio;
+            const h = height / window.devicePixelRatio;
+
+            return {
+                x: w / 2 + x1 * scale * w * 0.25,
+                y: h / 2 - y * scale * h * 0.25,
+                scale: scale,
+                z: z1
+            };
+        }
+
+        function drawGround() {
+            const w = width / window.devicePixelRatio;
+            const h = height / window.devicePixelRatio;
+
+            ctx.strokeStyle = 'rgba(99, 102, 241, 0.2)';
+            ctx.lineWidth = 1;
+
+            for (let i = -2; i <= 2; i += 0.5) {
+                const p1 = project(i, groundY, -2);
+                const p2 = project(i, groundY, 2);
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.stroke();
+
+                const p3 = project(-2, groundY, i);
+                const p4 = project(2, groundY, i);
+                ctx.beginPath();
+                ctx.moveTo(p3.x, p3.y);
+                ctx.lineTo(p4.x, p4.y);
+                ctx.stroke();
+            }
+        }
+
+        function drawObject(obj) {
+            const p = project(obj.x, obj.y, obj.z);
+            const size = obj.size * p.scale * 80;
+
+            if (obj.isSphere) {
+                const gradient = ctx.createRadialGradient(
+                    p.x - size * 0.3, p.y - size * 0.3, 0,
+                    p.x, p.y, size
+                );
+                gradient.addColorStop(0, '#4ade80');
+                gradient.addColorStop(1, '#16a34a');
+
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(obj.rotation);
+
+                const gradient = ctx.createLinearGradient(-size, -size, size, size);
+                gradient.addColorStop(0, '#818cf8');
+                gradient.addColorStop(1, '#4f46e5');
+
+                ctx.fillStyle = gradient;
+                ctx.fillRect(-size, -size, size * 2, size * 2);
+
+                ctx.strokeStyle = '#a5b4fc';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(-size, -size, size * 2, size * 2);
+
+                ctx.restore();
+            }
+
+            // Shadow
+            const shadowP = project(obj.x, groundY, obj.z);
+            const shadowSize = obj.size * shadowP.scale * 40;
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.beginPath();
+            ctx.ellipse(shadowP.x, shadowP.y, shadowSize, shadowSize * 0.3, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function draw() {
+            const w = width / window.devicePixelRatio;
+            const h = height / window.devicePixelRatio;
+
+            ctx.fillStyle = '#0a0a1a';
+            ctx.fillRect(0, 0, w, h);
+
+            drawGround();
+
+            // Sort by Z for proper rendering
+            const sortedObjects = [...objects].sort((a, b) => {
+                const pA = project(a.x, a.y, a.z);
+                const pB = project(b.x, b.y, b.z);
+                return pA.z - pB.z;
+            });
+
+            sortedObjects.forEach(obj => {
+                obj.update(1);
+                drawObject(obj);
+            });
+
+            time += 0.016;
+            requestAnimationFrame(draw);
+        }
+
+        function spawnCube() {
+            objects.push(new PhysicsObject3D(
+                (Math.random() - 0.5) * 2,
+                2,
+                (Math.random() - 0.5) * 2,
+                false
+            ));
+            updateCount();
+        }
+
+        function spawnSphere() {
+            objects.push(new PhysicsObject3D(
+                (Math.random() - 0.5) * 2,
+                2,
+                (Math.random() - 0.5) * 2,
+                true
+            ));
+            updateCount();
+        }
+
+        function explode() {
+            objects.forEach(obj => {
+                obj.vx += (Math.random() - 0.5) * 0.2;
+                obj.vy += Math.random() * 0.15;
+                obj.vz += (Math.random() - 0.5) * 0.2;
+            });
+        }
+
+        function reset() {
+            objects = [];
+            updateCount();
+        }
+
+        function updateCount() {
+            objCountEl.textContent = objects.length;
+        }
+
+        resize();
+        window.addEventListener('resize', resize);
+
+        // Start with some objects
+        spawnCube();
+        spawnSphere();
+        spawnCube();
+
+        draw();
+    </script>
+</body>
+</html>

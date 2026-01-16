@@ -1,0 +1,20 @@
+{
+  "name": "GameByte Framework Documentation",
+  "short_name": "GameByte Docs",
+  "description": "Modern Mobile-First Game Development Framework for Building Hit Games",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#7C44EA",
+  "icons": [
+    {
+      "src": "/img/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["developer tools", "games"],
+  "lang": "en",
+  "dir": "ltr"
+}

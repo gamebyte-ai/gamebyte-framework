@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Platformer Tutorial Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #1a1a2e;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: system-ui, sans-serif;
+            padding: 20px;
+            gap: 15px;
+        }
+        .game-container {
+            width: 100%;
+            max-width: 500px;
+            height: 300px;
+            background: linear-gradient(180deg, #1e3a5f 0%, #0f0f23 100%);
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid #374151;
+        }
+        .ground {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: linear-gradient(180deg, #22c55e, #16a34a);
+        }
+        .platform {
+            position: absolute;
+            background: linear-gradient(180deg, #8b5cf6, #7c3aed);
+            border-radius: 4px;
+        }
+        .player {
+            position: absolute;
+            width: 30px;
+            height: 40px;
+            background: linear-gradient(180deg, #6366f1, #4f46e5);
+            border-radius: 6px 6px 2px 2px;
+            transition: left 0.05s linear;
+            left: 50px;
+            bottom: 40px;
+            z-index: 10;
+        }
+        .player::before {
+            content: '👀';
+            position: absolute;
+            top: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.75rem;
+        }
+        .coin {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            border-radius: 50%;
+            animation: coinSpin 1s linear infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6rem;
+            color: #92400e;
+            font-weight: bold;
+        }
+        @keyframes coinSpin {
+            0%, 100% { transform: scaleX(1); }
+            50% { transform: scaleX(0.3); }
+        }
+        .coin.collected {
+            animation: collect 0.3s ease forwards;
+        }
+        @keyframes collect {
+            to { transform: scale(0); opacity: 0; }
+        }
+        .hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .hud-item {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 6px 12px;
+            border-radius: 6px;
+            color: white;
+            font-size: 0.875rem;
+            font-weight: bold;
+        }
+        .controls-hint {
+            color: #9ca3af;
+            font-size: 0.75rem;
+            text-align: center;
+        }
+        .mobile-controls {
+            display: flex;
+            gap: 10px;
+        }
+        .control-btn {
+            width: 60px;
+            height: 60px;
+            background: rgba(99, 102, 241, 0.3);
+            border: 2px solid #6366f1;
+            border-radius: 12px;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        .control-btn:active {
+            background: rgba(99, 102, 241, 0.6);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container" id="game">
+        <div class="hud">
+            <div class="hud-item">🪙 <span id="score">0</span></div>
+            <div class="hud-item">⏱️ <span id="time">0:00</span></div>
+        </div>
+
+        <div class="ground"></div>
+        <div class="platform" style="width: 100px; height: 15px; bottom: 100px; left: 50px;"></div>
+        <div class="platform" style="width: 80px; height: 15px; bottom: 160px; left: 200px;"></div>
+        <div class="platform" style="width: 100px; height: 15px; bottom: 100px; right: 50px;"></div>
+
+        <div class="coin" style="bottom: 125px; left: 90px;">$</div>
+        <div class="coin" style="bottom: 185px; left: 230px;">$</div>
+        <div class="coin" style="bottom: 125px; right: 90px;">$</div>
+        <div class="coin" style="bottom: 60px; left: 250px;">$</div>
+
+        <div class="player" id="player"></div>
+    </div>
+
+    <p class="controls-hint">Use Arrow Keys or A/D to move, Space/W to jump</p>
+
+    <div class="mobile-controls">
+        <button class="control-btn" id="leftBtn">←</button>
+        <button class="control-btn" id="jumpBtn">↑</button>
+        <button class="control-btn" id="rightBtn">→</button>
+    </div>
+
+    <script>
+        const player = document.getElementById('player');
+        const game = document.getElementById('game');
+        const scoreEl = document.getElementById('score');
+        const timeEl = document.getElementById('time');
+        const coins = document.querySelectorAll('.coin');
+        const platforms = document.querySelectorAll('.platform');
+
+        let x = 50, y = 40;
+        let vx = 0, vy = 0;
+        let onGround = true;
+        let score = 0;
+        let startTime = Date.now();
+
+        const keys = {};
+        const groundY = 40;
+        const gravity = 0.5;
+        const jumpForce = -12;
+        const moveSpeed = 5;
+
+        function update() {
+            // Horizontal movement
+            if (keys.left) vx = -moveSpeed;
+            else if (keys.right) vx = moveSpeed;
+            else vx *= 0.8;
+
+            // Apply gravity
+            vy += gravity;
+
+            // Apply velocity
+            x += vx;
+            y += vy;
+
+            // Ground collision
+            if (y <= groundY) {
+                y = groundY;
+                vy = 0;
+                onGround = true;
+            }
+
+            // Platform collision
+            const gameRect = game.getBoundingClientRect();
+            platforms.forEach(platform => {
+                const pRect = platform.getBoundingClientRect();
+                const pBottom = gameRect.height - (pRect.top - gameRect.top);
+                const pTop = pBottom + pRect.height;
+                const pLeft = pRect.left - gameRect.left;
+                const pRight = pLeft + pRect.width;
+
+                if (x + 15 > pLeft && x + 15 < pRight &&
+                    y + 40 >= pBottom && y + 40 <= pBottom + 10 && vy < 0) {
+                    y = pBottom;
+                    vy = 0;
+                    onGround = true;
+                }
+            });
+
+            // Bounds
+            if (x < 0) x = 0;
+            if (x > game.offsetWidth - 30) x = game.offsetWidth - 30;
+
+            // Coin collection
+            coins.forEach(coin => {
+                if (coin.classList.contains('collected')) return;
+                const coinRect = coin.getBoundingClientRect();
+                const coinX = coinRect.left - gameRect.left;
+                const coinY = gameRect.height - (coinRect.top - gameRect.top) - coinRect.height;
+
+                if (Math.abs((x + 15) - (coinX + 10)) < 25 &&
+                    Math.abs((y + 20) - (coinY + 10)) < 30) {
+                    coin.classList.add('collected');
+                    score++;
+                    scoreEl.textContent = score;
+                }
+            });
+
+            // Update position
+            player.style.left = x + 'px';
+            player.style.bottom = y + 'px';
+
+            // Update time
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const mins = Math.floor(elapsed / 60);
+            const secs = elapsed % 60;
+            timeEl.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+
+            requestAnimationFrame(update);
+        }
+
+        function jump() {
+            if (onGround) {
+                vy = jumpForce;
+                onGround = false;
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = true;
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = true;
+            if ((e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') && onGround) jump();
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
+        });
+
+        // Mobile controls
+        document.getElementById('leftBtn').addEventListener('touchstart', () => keys.left = true);
+        document.getElementById('leftBtn').addEventListener('touchend', () => keys.left = false);
+        document.getElementById('rightBtn').addEventListener('touchstart', () => keys.right = true);
+        document.getElementById('rightBtn').addEventListener('touchend', () => keys.right = false);
+        document.getElementById('jumpBtn').addEventListener('touchstart', jump);
+
+        update();
+    </script>
+</body>
+</html>

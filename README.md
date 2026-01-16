@@ -85,6 +85,53 @@ game.start();
 
 ---
 
+## 🤖 For AI Agents & Code Assistants
+
+GameByte is optimized for AI-driven development with tiered documentation and discoverable patterns.
+
+### Quick Start for Agents
+
+**1. Load Core Knowledge (Required)**
+- Read: [`docs/agent-guide/CORE_API.md`](./docs/agent-guide/CORE_API.md) (~2000 tokens)
+- Cheatsheet: [`docs/agent-guide/QUICK_REFERENCE.md`](./docs/agent-guide/QUICK_REFERENCE.md) (~500 tokens)
+
+**2. Discover Advanced Topics (As Needed)**
+```bash
+# Search guides by keyword
+grep -r "physics" docs/guides/
+grep -r "mobile.*optimization" docs/guides/
+```
+
+**3. Reference Working Examples**
+- Platformer: `examples/platformer/`
+- UI Components: `examples/ui-showcase/`
+
+### Documentation Tiers
+
+| Tier | Content | When to Load |
+|------|---------|--------------|
+| **Tier 1** | Core API (~2000 tokens) | Always (pre-loaded) |
+| **Tier 2** | Advanced guides | On-demand (grep/semantic search) |
+| **Tier 3** | Working examples | For patterns/templates |
+
+### Key Features for AI
+
+- **Minimal context** - Core API is ~2000 tokens
+- **Smart defaults** - 40+ auto-configured settings
+- **Discoverable** - Keyword-enriched markdown for grep
+- **Type-rich** - JSDoc examples for autocomplete
+- **4-line games** - `createGame()` → `initialize()` → `start()`
+
+### Integration with RAG Systems
+
+All markdown docs include semantic keywords for vector search:
+
+```markdown
+<!-- keywords: physics, collision, 2d, 3d, matter, cannon -->
+```
+
+---
+
 ## 🎨 UI Components
 
 ### Modern Button
@@ -264,7 +311,7 @@ const texture = Assets.get('player');
 
 GameByte supports 3D rendering with Three.js:
 
-- **UMD Build**: Use direct Three.js API (see `docs/3D_RENDERING_GUIDE.md`)
+- **UMD Build**: Use direct Three.js API (see `docs/guides/rendering-3d-setup.md`)
 - **ESM/CJS**: Import `ThreeRenderer` and `BaseScene3D` directly
 
 ```typescript
@@ -281,7 +328,7 @@ const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
 // ... rest of Three.js setup
 ```
 
-📖 **[Full 3D Rendering Guide →](docs/3D_RENDERING_GUIDE.md)**
+📖 **[Full 3D Rendering Guide →](docs/guides/rendering-3d-setup.md)**
 
 ---
 
@@ -308,7 +355,8 @@ gamebyte-framework/
 │   └── renderers/
 │       └── three3d.js     # 3D renderer bundle
 ├── docs/
-│   └── 3D_RENDERING_GUIDE.md
+│   └── guides/
+│       └── rendering-3d-setup.md
 ├── index.html             # Demo hub
 ├── test-*.html            # Demo pages
 └── README.md
@@ -350,7 +398,7 @@ npx http-server -p 8080
 
 ## 📚 Documentation
 
-- 📖 **[3D Rendering Guide](docs/3D_RENDERING_GUIDE.md)** - Complete 3D setup guide
+- 📖 **[3D Rendering Guide](docs/guides/rendering-3d-setup.md)** - Complete 3D setup guide
 - 📝 **[Changelog](CHANGELOG.md)** - Version history
 - 🤝 **[Contributing](CONTRIBUTING.md)** - Contribution guidelines
 - 🗺️ **[Roadmap](ROADMAP.md)** - Development roadmap

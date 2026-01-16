@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Basic Shapes Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #1a1a2e;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: system-ui, sans-serif;
+            padding: 20px;
+            gap: 20px;
+        }
+        .canvas-container {
+            width: 100%;
+            max-width: 500px;
+            height: 350px;
+            background: #0f0f23;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+        #canvas {
+            width: 100%;
+            height: 100%;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: white;
+            transition: transform 0.2s;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn-cube { background: #6366f1; }
+        .btn-sphere { background: #22c55e; }
+        .btn-cylinder { background: #f59e0b; }
+        .btn-torus { background: #ec4899; }
+        .btn.active { box-shadow: 0 0 15px currentColor; }
+        .info {
+            color: #9ca3af;
+            font-size: 0.875rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="canvas-container">
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <div class="controls">
+        <button class="btn btn-cube active" onclick="setShape('cube')">Cube</button>
+        <button class="btn btn-sphere" onclick="setShape('sphere')">Sphere</button>
+        <button class="btn btn-cylinder" onclick="setShape('cylinder')">Cylinder</button>
+        <button class="btn btn-torus" onclick="setShape('torus')">Torus</button>
+    </div>
+
+    <p class="info">Drag to rotate • Scroll to zoom</p>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+        let rotX = 0.5, rotY = 0.5;
+        let zoom = 150;
+        let currentShape = 'cube';
+        let dragging = false;
+        let lastX, lastY;
+
+        function resize() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            width = canvas.width = rect.width * window.devicePixelRatio;
+            height = canvas.height = rect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        }
+
+        function project(x, y, z) {
+            // Rotate around Y
+            const cosY = Math.cos(rotY);
+            const sinY = Math.sin(rotY);
+            let x1 = x * cosY - z * sinY;
+            let z1 = x * sinY + z * cosY;
+
+            // Rotate around X
+            const cosX = Math.cos(rotX);
+            const sinX = Math.sin(rotX);
+            let y1 = y * cosX - z1 * sinX;
+            let z2 = y * sinX + z1 * cosX;
+
+            // Project
+            const scale = zoom / (zoom + z2 + 3);
+            return {
+                x: width / window.devicePixelRatio / 2 + x1 * scale * zoom * 0.5,
+                y: height / window.devicePixelRatio / 2 - y1 * scale * zoom * 0.5,
+                z: z2
+            };
+        }
+
+        function drawLine(p1, p2, color) {
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        function drawCube() {
+            const v = [
+                [-1,-1,-1], [1,-1,-1], [1,1,-1], [-1,1,-1],
+                [-1,-1,1], [1,-1,1], [1,1,1], [-1,1,1]
+            ].map(([x,y,z]) => project(x, y, z));
+
+            const edges = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+            edges.forEach(([a,b]) => drawLine(v[a], v[b], '#6366f1'));
+        }
+
+        function drawSphere() {
+            const segments = 20;
+            for (let i = 0; i < segments; i++) {
+                const lat1 = (i / segments) * Math.PI - Math.PI / 2;
+                const lat2 = ((i + 1) / segments) * Math.PI - Math.PI / 2;
+
+                for (let j = 0; j < segments; j++) {
+                    const lon1 = (j / segments) * Math.PI * 2;
+                    const lon2 = ((j + 1) / segments) * Math.PI * 2;
+
+                    const p1 = project(Math.cos(lat1)*Math.cos(lon1), Math.sin(lat1), Math.cos(lat1)*Math.sin(lon1));
+                    const p2 = project(Math.cos(lat1)*Math.cos(lon2), Math.sin(lat1), Math.cos(lat1)*Math.sin(lon2));
+                    const p3 = project(Math.cos(lat2)*Math.cos(lon1), Math.sin(lat2), Math.cos(lat2)*Math.sin(lon1));
+
+                    drawLine(p1, p2, '#22c55e');
+                    drawLine(p1, p3, '#22c55e');
+                }
+            }
+        }
+
+        function drawCylinder() {
+            const segments = 20;
+            for (let i = 0; i < segments; i++) {
+                const a1 = (i / segments) * Math.PI * 2;
+                const a2 = ((i + 1) / segments) * Math.PI * 2;
+
+                const top1 = project(Math.cos(a1), 1, Math.sin(a1));
+                const top2 = project(Math.cos(a2), 1, Math.sin(a2));
+                const bot1 = project(Math.cos(a1), -1, Math.sin(a1));
+                const bot2 = project(Math.cos(a2), -1, Math.sin(a2));
+
+                drawLine(top1, top2, '#f59e0b');
+                drawLine(bot1, bot2, '#f59e0b');
+                drawLine(top1, bot1, '#f59e0b');
+            }
+        }
+
+        function drawTorus() {
+            const segments = 24;
+            const tube = 8;
+            const R = 0.7, r = 0.3;
+
+            for (let i = 0; i < segments; i++) {
+                const a1 = (i / segments) * Math.PI * 2;
+                const a2 = ((i + 1) / segments) * Math.PI * 2;
+
+                for (let j = 0; j < tube; j++) {
+                    const b1 = (j / tube) * Math.PI * 2;
+                    const b2 = ((j + 1) / tube) * Math.PI * 2;
+
+                    const p1 = project((R+r*Math.cos(b1))*Math.cos(a1), r*Math.sin(b1), (R+r*Math.cos(b1))*Math.sin(a1));
+                    const p2 = project((R+r*Math.cos(b1))*Math.cos(a2), r*Math.sin(b1), (R+r*Math.cos(b1))*Math.sin(a2));
+                    const p3 = project((R+r*Math.cos(b2))*Math.cos(a1), r*Math.sin(b2), (R+r*Math.cos(b2))*Math.sin(a1));
+
+                    drawLine(p1, p2, '#ec4899');
+                    drawLine(p1, p3, '#ec4899');
+                }
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, width, height);
+
+            if (currentShape === 'cube') drawCube();
+            else if (currentShape === 'sphere') drawSphere();
+            else if (currentShape === 'cylinder') drawCylinder();
+            else if (currentShape === 'torus') drawTorus();
+
+            rotY += 0.005;
+            requestAnimationFrame(draw);
+        }
+
+        function setShape(shape) {
+            currentShape = shape;
+            document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+            document.querySelector(`.btn-${shape}`).classList.add('active');
+        }
+
+        canvas.addEventListener('mousedown', (e) => { dragging = true; lastX = e.clientX; lastY = e.clientY; });
+        canvas.addEventListener('mousemove', (e) => {
+            if (!dragging) return;
+            rotY += (e.clientX - lastX) * 0.01;
+            rotX += (e.clientY - lastY) * 0.01;
+            lastX = e.clientX;
+            lastY = e.clientY;
+        });
+        canvas.addEventListener('mouseup', () => dragging = false);
+        canvas.addEventListener('mouseleave', () => dragging = false);
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            zoom = Math.max(50, Math.min(300, zoom - e.deltaY * 0.5));
+        });
+
+        resize();
+        window.addEventListener('resize', resize);
+        draw();
+    </script>
+</body>
+</html>

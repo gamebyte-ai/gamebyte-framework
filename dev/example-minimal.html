@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte Framework - Minimal Example</title>
+    <style>
+        * { margin: 0; padding: 0; }
+        body { overflow: hidden; background: #000; }
+    </style>
+</head>
+<body>
+    <!-- Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+
+    <!-- GameByte Framework -->
+    <script src="dist/gamebyte.umd.js"></script>
+
+    <script>
+        // Debug: Check if @pixi/layout is loaded
+        console.log('PIXI.Container.prototype.layout:', PIXI.Container.prototype.layout);
+        console.log('@pixi/layout loaded:', typeof PIXI.Layout !== 'undefined');
+
+        // Import from framework
+        const { ArcheroMenu, ARCHERO_COLORS } = GameByteFramework;
+
+        (async () => {
+            // Base dimensions (mobile portrait)
+            const BASE_WIDTH = 1080;
+            const BASE_HEIGHT = 1920;
+
+            // Create PixiJS app
+            const app = new PIXI.Application();
+            await app.init({
+                width: BASE_WIDTH,
+                height: BASE_HEIGHT,
+                backgroundColor: 0x1a1a2e,
+                resolution: window.devicePixelRatio || 1,
+                autoDensity: true,
+                resizeTo: window
+            });
+            document.body.appendChild(app.canvas);
+
+            // Create menu with framework
+            const menu = new ArcheroMenu({
+                sections: [
+                    { name: 'Shop', icon: '🛒', iconColor: ARCHERO_COLORS.red },
+                    { name: 'Campaign', icon: '🎯', iconColor: ARCHERO_COLORS.activeYellow },
+                    { name: 'Trophy', icon: '🏆', iconColor: ARCHERO_COLORS.green }
+                ],
+                activeSection: 1,
+                canvasWidth: app.screen.width,
+                canvasHeight: app.screen.height,
+                enableSwipe: true,
+                callbacks: {
+                    onSectionChange: (index, section) => {
+                        console.log('✨ Section:', section.name);
+                    }
+                }
+            });
+
+            app.stage.addChild(menu);
+
+            // Auto-resize handler
+            window.addEventListener('resize', () => {
+                menu.resize(app.screen.width, app.screen.height);
+            });
+
+            console.log('🎉 GameByte Framework loaded!');
+        })();
+    </script>
+</body>
+</html>
