@@ -339,13 +339,40 @@ export { SplashScreen } from './ui/screens/SplashScreen';
 export { GameByteUIAnimationSystem, GameByteUITimeline } from './ui/animations/UIAnimationSystem';
 
 // UI Themes
-export { 
-  DefaultUITheme, 
-  VibrantUITheme, 
-  MinimalUITheme, 
-  DarkGamingUITheme, 
-  UIThemeManager 
+export {
+  DefaultUITheme,
+  VibrantUITheme,
+  MinimalUITheme,
+  DarkGamingUITheme,
+  UIThemeManager
 } from './ui/themes/DefaultUITheme';
+
+// Game Style UI Theme
+export {
+  GameStyleUITheme,
+  GameStyleColors,
+  createGameButtonGradient,
+  createSkyGradient,
+  numberToHex,
+  lightenColor,
+  darkenColor
+} from './ui/themes/GameStyleUITheme';
+
+// Game Style UI Components
+export { GameStyleButton, GameButtons } from './ui/components/GameStyleButton';
+export type { GameStyleButtonConfig, GameButtonColorScheme } from './ui/components/GameStyleButton';
+
+export { HexagonLevelButton } from './ui/components/HexagonLevelButton';
+export type { HexagonLevelButtonConfig, HexagonColorScheme, LevelState } from './ui/components/HexagonLevelButton';
+
+export { GameTopBar } from './ui/components/GameTopBar';
+export type { GameTopBarConfig, ResourceItemConfig, ResourceType } from './ui/components/GameTopBar';
+
+export { LevelPath } from './ui/components/LevelPath';
+export type { LevelPathConfig, LevelData } from './ui/components/LevelPath';
+
+export { GameBottomNav } from './ui/components/GameBottomNav';
+export type { GameBottomNavConfig, NavItemConfig, NavItemType } from './ui/components/GameBottomNav';
 
 // UI Input System
 export { GameByteUIInputSystem } from './ui/input/UIInputSystem';

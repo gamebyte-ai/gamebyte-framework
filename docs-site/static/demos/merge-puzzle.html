@@ -3,8 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>GameByte - Merge Puzzle Game Example</title>
+  <title>GameByte - Merge Puzzle Game</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');
+
     * {
       margin: 0;
       padding: 0;
@@ -15,8 +17,8 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(180deg, #1A237E 0%, #3949AB 50%, #5C6BC0 100%);
+      font-family: 'Fredoka One', 'Arial Black', sans-serif;
     }
 
     #game-container {
@@ -30,98 +32,171 @@
 
     #game-canvas {
       touch-action: none;
-      border-radius: 16px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      border-radius: 20px;
+      box-shadow:
+        0 0 0 4px #1A237E,
+        0 8px 0 #0D1642,
+        0 12px 30px rgba(0, 0, 0, 0.4);
     }
 
     .game-ui {
       position: absolute;
-      top: 20px;
+      top: 15px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
-      gap: 20px;
+      gap: 15px;
       z-index: 100;
     }
 
     .ui-panel {
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(10px);
-      padding: 12px 24px;
-      border-radius: 12px;
+      background: linear-gradient(180deg, #3949AB 0%, #3949AB 45%, #283593 55%, #283593 100%);
+      border: 3px solid #1A237E;
+      border-radius: 16px;
+      padding: 10px 20px;
       color: white;
-      font-size: 18px;
+      font-size: 16px;
       font-weight: bold;
       display: flex;
       align-items: center;
       gap: 8px;
+      box-shadow:
+        0 4px 0 #0D1642,
+        0 6px 12px rgba(0,0,0,0.3);
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    }
+
+    .ui-panel::before {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 10%;
+      right: 10%;
+      height: 30%;
+      background: linear-gradient(180deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 100%);
+      border-radius: 10px;
+      pointer-events: none;
+    }
+
+    .score-icon, .level-icon {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .score-value {
       color: #FFD700;
+      text-shadow: 1px 1px 0 #B8860B;
     }
 
     .level-value {
-      color: #4CAF50;
+      color: #76FF03;
+      text-shadow: 1px 1px 0 #33691E;
     }
 
     .spawn-btn {
       position: absolute;
-      bottom: 30px;
+      bottom: 25px;
       left: 50%;
       transform: translateX(-50%);
-      padding: 16px 48px;
-      font-size: 20px;
+      padding: 16px 50px;
+      font-size: 22px;
       font-weight: bold;
-      background: linear-gradient(180deg, #4CAF50 0%, #388E3C 100%);
+      font-family: 'Fredoka One', 'Arial Black', sans-serif;
+      background: linear-gradient(180deg, #7DD87D 0%, #7DD87D 45%, #4CAF50 55%, #4CAF50 100%);
       color: white;
-      border: none;
-      border-radius: 30px;
+      text-shadow: 2px 2px 0 #1B5E20;
+      border: 4px solid #2E7D32;
+      border-radius: 20px;
       cursor: pointer;
-      box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+      box-shadow:
+        0 6px 0 #1B5E20,
+        0 10px 20px rgba(0, 0, 0, 0.3);
       transition: transform 0.1s, box-shadow 0.1s;
       z-index: 100;
     }
 
+    .spawn-btn::before {
+      content: '';
+      position: absolute;
+      top: 4px;
+      left: 8px;
+      right: 8px;
+      height: 35%;
+      background: linear-gradient(180deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 100%);
+      border-radius: 12px;
+      pointer-events: none;
+    }
+
     .spawn-btn:active {
-      transform: translateX(-50%) scale(0.95);
-      box-shadow: 0 3px 10px rgba(76, 175, 80, 0.4);
+      transform: translateX(-50%) translateY(4px);
+      box-shadow:
+        0 2px 0 #1B5E20,
+        0 4px 10px rgba(0, 0, 0, 0.2);
     }
 
     .spawn-btn:disabled {
-      background: #666;
+      background: linear-gradient(180deg, #9E9E9E 0%, #9E9E9E 45%, #757575 55%, #757575 100%);
+      border-color: #616161;
+      box-shadow:
+        0 6px 0 #424242,
+        0 10px 20px rgba(0, 0, 0, 0.3);
       cursor: not-allowed;
-      box-shadow: none;
+      text-shadow: 1px 1px 0 #424242;
     }
 
     .instructions {
       position: absolute;
-      bottom: 100px;
+      bottom: 90px;
       left: 50%;
       transform: translateX(-50%);
-      color: rgba(255, 255, 255, 0.7);
+      color: rgba(255, 255, 255, 0.85);
       font-size: 14px;
       text-align: center;
       z-index: 100;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+      background: rgba(26, 35, 126, 0.5);
+      padding: 8px 20px;
+      border-radius: 10px;
+    }
+
+    /* Decorative elements */
+    .decoration {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 50%;
+      pointer-events: none;
     }
   </style>
 </head>
 <body>
   <div id="game-container">
+    <!-- Decorative bubbles -->
+    <div class="decoration" style="top: 10%; left: 5%;"></div>
+    <div class="decoration" style="top: 30%; right: 8%;"></div>
+    <div class="decoration" style="top: 60%; left: 3%;"></div>
+    <div class="decoration" style="top: 80%; right: 5%;"></div>
+
     <canvas id="game-canvas"></canvas>
 
     <div class="game-ui">
       <div class="ui-panel">
+        <span class="score-icon">&#11088;</span>
         Score: <span class="score-value" id="score">0</span>
       </div>
       <div class="ui-panel">
+        <span class="level-icon">&#9733;</span>
         Level: <span class="level-value" id="level">1</span>
       </div>
     </div>
 
     <p class="instructions">Drag items to merge! Same tier items combine into higher tier.</p>
 
-    <button class="spawn-btn" id="spawn-btn">+ Spawn Item</button>
+    <button class="spawn-btn" id="spawn-btn">+ Spawn</button>
   </div>
 
   <script type="module">
@@ -136,9 +211,9 @@
     const app = new PIXI.Application();
     await app.init({
       canvas: document.getElementById('game-canvas'),
-      width: 450,
-      height: 600,
-      backgroundColor: 0x1a1a2e,
+      width: 420,
+      height: 520,
+      backgroundColor: 0x283593,
       antialias: true,
       resolution: window.devicePixelRatio || 1,
       autoDensity: true
@@ -147,23 +222,23 @@
     // Grid configuration
     const GRID_ROWS = 5;
     const GRID_COLS = 5;
-    const CELL_SIZE = 70;
-    const CELL_GAP = 10;
+    const CELL_SIZE = 65;
+    const CELL_GAP = 8;
     const GRID_PADDING = 20;
 
-    // Tier colors (vibrant mobile game palette)
+    // Tier colors (vibrant mobile game palette with gradients)
     const TIER_COLORS = [
-      0x9E9E9E,  // Tier 0: Gray
-      0x4CAF50,  // Tier 1: Green
-      0x2196F3,  // Tier 2: Blue
-      0x9C27B0,  // Tier 3: Purple
-      0xFF9800,  // Tier 4: Orange
-      0xF44336,  // Tier 5: Red
-      0xFFEB3B,  // Tier 6: Yellow/Gold
-      0x00BCD4,  // Tier 7: Cyan
-      0xE91E63,  // Tier 8: Pink
-      0x673AB7,  // Tier 9: Deep Purple
-      0xFFD700,  // Tier 10+: Gold (max tier)
+      { main: 0x9E9E9E, light: 0xBDBDBD, dark: 0x757575 },  // Tier 0: Gray
+      { main: 0x4CAF50, light: 0x81C784, dark: 0x388E3C },  // Tier 1: Green
+      { main: 0x2196F3, light: 0x64B5F6, dark: 0x1976D2 },  // Tier 2: Blue
+      { main: 0x9C27B0, light: 0xBA68C8, dark: 0x7B1FA2 },  // Tier 3: Purple
+      { main: 0xFF9800, light: 0xFFB74D, dark: 0xF57C00 },  // Tier 4: Orange
+      { main: 0xF44336, light: 0xE57373, dark: 0xD32F2F },  // Tier 5: Red
+      { main: 0xFFEB3B, light: 0xFFF176, dark: 0xFBC02D },  // Tier 6: Yellow
+      { main: 0x00BCD4, light: 0x4DD0E1, dark: 0x0097A7 },  // Tier 7: Cyan
+      { main: 0xE91E63, light: 0xF06292, dark: 0xC2185B },  // Tier 8: Pink
+      { main: 0x673AB7, light: 0x9575CD, dark: 0x512DA8 },  // Tier 9: Deep Purple
+      { main: 0xFFD700, light: 0xFFE066, dark: 0xB8860B },  // Tier 10+: Gold
     ];
 
     // Grid state
@@ -179,12 +254,17 @@
     const gridHeight = GRID_ROWS * CELL_SIZE + (GRID_ROWS - 1) * CELL_GAP + GRID_PADDING * 2;
 
     gridContainer.x = (app.screen.width - gridWidth) / 2;
-    gridContainer.y = (app.screen.height - gridHeight) / 2 - 20;
+    gridContainer.y = (app.screen.height - gridHeight) / 2;
 
-    // Draw grid background
+    // Draw grid background with game style
     const gridBg = new PIXI.Graphics();
+    // Shadow
+    gridBg.roundRect(3, 6, gridWidth, gridHeight, 16);
+    gridBg.fill({ color: 0x0D1642, alpha: 0.5 });
+    // Main background
     gridBg.roundRect(0, 0, gridWidth, gridHeight, 16);
-    gridBg.fill({ color: 0x16213e, alpha: 0.8 });
+    gridBg.fill({ color: 0x1A237E });
+    gridBg.stroke({ color: 0x3949AB, width: 3 });
     gridContainer.addChild(gridBg);
 
     // Create cells
@@ -225,24 +305,33 @@
     function drawCell(graphics, x, y, highlighted, canDrop = true) {
       graphics.clear();
 
+      // Cell shadow
+      graphics.roundRect(x + 2, y + 3, CELL_SIZE, CELL_SIZE, 10);
+      graphics.fill({ color: 0x0D1642, alpha: 0.4 });
+
       // Cell background
-      graphics.roundRect(x, y, CELL_SIZE, CELL_SIZE, 8);
-      graphics.fill({ color: highlighted ? (canDrop ? 0x4CAF50 : 0xF44336) : 0x2a2a4a, alpha: highlighted ? 0.5 : 1 });
-      graphics.stroke({ color: 0x444464, width: 2 });
+      const bgColor = highlighted
+        ? (canDrop ? 0x4CAF50 : 0xF44336)
+        : 0x3949AB;
+
+      graphics.roundRect(x, y, CELL_SIZE, CELL_SIZE, 10);
+      graphics.fill({ color: bgColor, alpha: highlighted ? 0.6 : 0.8 });
+      graphics.stroke({ color: highlighted ? (canDrop ? 0x2E7D32 : 0xB71C1C) : 0x5C6BC0, width: 2 });
 
       if (!highlighted) {
+        // Inner highlight
+        graphics.roundRect(x + 3, y + 3, CELL_SIZE - 6, CELL_SIZE * 0.3, 8);
+        graphics.fill({ color: 0x7986CB, alpha: 0.3 });
+
         // Empty indicator
-        graphics.moveTo(x + CELL_SIZE/2 - 10, y + CELL_SIZE/2);
-        graphics.lineTo(x + CELL_SIZE/2 + 10, y + CELL_SIZE/2);
-        graphics.moveTo(x + CELL_SIZE/2, y + CELL_SIZE/2 - 10);
-        graphics.lineTo(x + CELL_SIZE/2, y + CELL_SIZE/2 + 10);
-        graphics.stroke({ color: 0x555575, width: 2 });
+        graphics.circle(x + CELL_SIZE/2, y + CELL_SIZE/2, 8);
+        graphics.fill({ color: 0x5C6BC0, alpha: 0.5 });
       }
     }
 
-    // Create a merge item
+    // Create a merge item with game style
     function createItem(tier, cell) {
-      const size = CELL_SIZE * 0.75;
+      const size = CELL_SIZE * 0.72;
       const container = new PIXI.Container();
       container.x = cell.x + CELL_SIZE / 2;
       container.y = cell.y + CELL_SIZE / 2;
@@ -255,13 +344,18 @@
       const label = new PIXI.Text({
         text: tier.toString(),
         style: {
-          fontFamily: 'Arial Black',
-          fontSize: size * 0.4,
+          fontFamily: 'Fredoka One, Arial Black',
+          fontSize: size * 0.45,
           fill: 0xFFFFFF,
           fontWeight: 'bold',
-          dropShadow: true,
-          dropShadowColor: 0x000000,
-          dropShadowDistance: 2
+          stroke: { color: getTierColors(tier).dark, width: 3 },
+          dropShadow: {
+            alpha: 0.5,
+            angle: Math.PI / 2,
+            blur: 2,
+            color: 0x000000,
+            distance: 2
+          }
         }
       });
       label.anchor.set(0.5);
@@ -297,23 +391,39 @@
       return item;
     }
 
-    function drawItem(graphics, tier, size) {
+    function getTierColors(tier) {
       const colorIndex = Math.min(tier, TIER_COLORS.length - 1);
-      const color = TIER_COLORS[colorIndex];
+      return TIER_COLORS[colorIndex];
+    }
+
+    function drawItem(graphics, tier, size) {
+      const colors = getTierColors(tier);
 
       graphics.clear();
 
       // Shadow
-      graphics.roundRect(-size/2 + 3, -size/2 + 3, size, size, size * 0.2);
-      graphics.fill({ color: 0x000000, alpha: 0.3 });
+      graphics.roundRect(-size/2 + 3, -size/2 + 4, size, size, size * 0.22);
+      graphics.fill({ color: 0x000000, alpha: 0.35 });
 
-      // Main shape
-      graphics.roundRect(-size/2, -size/2, size, size, size * 0.2);
-      graphics.fill({ color: color });
+      // Border/outer
+      graphics.roundRect(-size/2 - 2, -size/2 - 2, size + 4, size + 4, size * 0.24);
+      graphics.fill({ color: colors.dark });
 
-      // Highlight
-      graphics.roundRect(-size/2 + 4, -size/2 + 4, size - 8, size * 0.3, size * 0.15);
-      graphics.fill({ color: 0xFFFFFF, alpha: 0.3 });
+      // Main shape (top half lighter)
+      graphics.roundRect(-size/2, -size/2, size, size/2, size * 0.2);
+      graphics.fill({ color: colors.light });
+
+      // Main shape (bottom half darker)
+      graphics.roundRect(-size/2, 0, size, size/2, size * 0.2);
+      graphics.fill({ color: colors.main });
+
+      // Connect the two halves
+      graphics.rect(-size/2, 0, size, 2);
+      graphics.fill({ color: colors.main });
+
+      // Top highlight
+      graphics.roundRect(-size/2 + 4, -size/2 + 4, size - 8, size * 0.28, size * 0.12);
+      graphics.fill({ color: 0xFFFFFF, alpha: 0.4 });
     }
 
     // Drag handlers
@@ -321,18 +431,14 @@
       draggedItem = item;
       draggedFromCell = item.cell;
 
-      // Store original position
       item.originalPos = { x: item.container.x, y: item.container.y };
 
-      // Remove from cell
       item.cell.item = null;
       item.cell = null;
 
-      // Bring to front
       itemsContainer.setChildIndex(item.container, itemsContainer.children.length - 1);
 
-      // Scale up slightly
-      animateScale(item.container, 1.1, 0.1);
+      animateScale(item.container, 1.15, 0.1);
     }
 
     function onDragMove(e, item) {
@@ -342,10 +448,8 @@
       item.container.x = pos.x;
       item.container.y = pos.y;
 
-      // Find cell under cursor
       const cellUnder = getCellAt(pos.x, pos.y);
 
-      // Update highlights
       if (highlightedCell && highlightedCell !== cellUnder) {
         drawCell(highlightedCell.graphics, highlightedCell.x, highlightedCell.y, false);
         highlightedCell.highlighted = false;
@@ -362,14 +466,12 @@
     function onDragEnd(e, item) {
       if (draggedItem !== item) return;
 
-      // Clear highlight
       if (highlightedCell) {
         drawCell(highlightedCell.graphics, highlightedCell.x, highlightedCell.y, false);
         highlightedCell.highlighted = false;
         highlightedCell = null;
       }
 
-      // Scale back
       animateScale(item.container, 1, 0.1);
 
       const pos = e.getLocalPosition(gridContainer);
@@ -377,17 +479,13 @@
 
       if (targetCell) {
         if (!targetCell.item) {
-          // Place in empty cell
           placeItemInCell(item, targetCell);
         } else if (targetCell.item.tier === item.tier) {
-          // Merge!
           performMerge(item, targetCell.item, targetCell);
         } else {
-          // Return to original
           returnToCell(item, draggedFromCell);
         }
       } else {
-        // Dropped outside grid
         returnToCell(item, draggedFromCell);
       }
 
@@ -411,8 +509,6 @@
     function placeItemInCell(item, cell) {
       item.cell = cell;
       cell.item = item;
-
-      // Animate to cell center
       animatePosition(item.container, cell.x + CELL_SIZE/2, cell.y + CELL_SIZE/2, 0.15);
     }
 
@@ -425,31 +521,24 @@
     function performMerge(droppedItem, existingItem, cell) {
       const newTier = existingItem.tier + 1;
 
-      // Animate both items shrinking
       animateScale(droppedItem.container, 0, 0.2);
       animateScale(existingItem.container, 0, 0.2);
 
-      // After animation, create new item
       setTimeout(() => {
-        // Remove old items
         removeItem(droppedItem);
         removeItem(existingItem);
 
-        // Create merged item
         const newItem = createItem(newTier, cell);
 
-        // Update score
         score += newTier * 100;
         mergeCount++;
         updateUI();
 
-        // Check for level up
         if (mergeCount >= level * 5) {
           level++;
           updateUI();
         }
 
-        // Check for max tier
         if (newTier >= 10) {
           showMaxTierCelebration();
         }
@@ -504,7 +593,6 @@
         const elapsed = performance.now() - startTime;
         const progress = Math.min(elapsed / durationMs, 1);
 
-        // Ease out
         const easedProgress = 1 - Math.pow(1 - progress, 3);
 
         target.x = startX + (toX - startX) * easedProgress;
@@ -525,7 +613,6 @@
     }
 
     function showMaxTierCelebration() {
-      // Simple celebration effect
       console.log('MAX TIER REACHED!');
     }
 
@@ -551,7 +638,6 @@
 
       const cell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
 
-      // Random tier (weighted towards lower tiers)
       const tierRoll = Math.random();
       let tier = 1;
       if (tierRoll > 0.9) tier = 3;
@@ -559,7 +645,6 @@
 
       createItem(tier, cell);
 
-      // Update button state
       if (emptyCells.length <= 1) {
         document.getElementById('spawn-btn').disabled = true;
       }
