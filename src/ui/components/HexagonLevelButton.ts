@@ -17,6 +17,8 @@ export interface HexagonColorScheme {
   highlight: number;
   text: number;
   textStroke: number;
+  outerBorder?: number; // Golden outer border for candy crush style
+  glow?: number; // Glow color for current level
 }
 
 /**
@@ -67,6 +69,7 @@ export class HexagonLevelButton extends EventEmitter {
   private levelText: IText;
   private lockIcon?: IGraphics;
   private starsContainer?: IContainer;
+  private glowGraphics?: IGraphics;
 
   private config: Required<HexagonLevelButtonConfig>;
   private isPressed: boolean = false;
@@ -111,6 +114,11 @@ export class HexagonLevelButton extends EventEmitter {
     // Create stars if enabled and completed
     if (this.config.showStars && this.config.state === 'completed') {
       this.createStars();
+    }
+
+    // Create glow for current level
+    if (this.config.state === 'current' && this.config.colorScheme.glow) {
+      this.createGlow();
     }
 
     // Initial render
@@ -221,6 +229,41 @@ export class HexagonLevelButton extends EventEmitter {
   }
 
   /**
+   * Create glow effect for current level
+   */
+  private createGlow(): void {
+    const { size, colorScheme } = this.config;
+    const glowColor = colorScheme.glow || 0x00FFFF;
+
+    this.glowGraphics = graphics().createGraphics();
+
+    // Multiple glow layers for soft effect
+    for (let i = 4; i >= 0; i--) {
+      const alpha = 0.15 - (i * 0.025);
+      const glowSize = size + (i * 25);
+
+      this.glowGraphics.circle(0, 0, glowSize / 2);
+      this.glowGraphics.fill({ color: glowColor, alpha: alpha });
+    }
+
+    // Add glow behind everything
+    this.container.addChild(this.glowGraphics);
+    this.container.setChildIndex(this.glowGraphics, 0);
+  }
+
+  /**
+   * Animate glow pulsing (call from game update loop)
+   */
+  public updateGlow(time: number): void {
+    if (this.glowGraphics) {
+      this.glowGraphics.alpha = 0.6 + Math.sin(time * 0.003) * 0.25;
+      const glowScale = 0.95 + Math.sin(time * 0.0024) * 0.05;
+      this.glowGraphics.scale.x = glowScale;
+      this.glowGraphics.scale.y = glowScale;
+    }
+  }
+
+  /**
    * Draw a 5-pointed star
    */
   private drawStar(g: IGraphics, x: number, y: number, radius: number, filled: boolean): void {
@@ -270,7 +313,7 @@ export class HexagonLevelButton extends EventEmitter {
 
     const pressOffset = this.isPressed ? 2 : 0;
     const shadowOffset = this.isPressed ? 2 : 6;
-    const borderWidth = 4;
+    const borderWidth = colorScheme.outerBorder ? 6 : 4; // Thicker border for candy style
 
     // Get colors
     const colors = colorScheme;
@@ -279,13 +322,45 @@ export class HexagonLevelButton extends EventEmitter {
     this.drawHexagon(this.shadowGraphics, 0, shadowOffset, size - 4);
     this.shadowGraphics.fill({ color: 0x000000, alpha: 0.4 });
 
-    // 2. Outer border (dark)
-    this.drawHexagon(this.borderGraphics, 0, pressOffset, size);
-    this.borderGraphics.fill({ color: colors.border });
+    // 2. Outer border (golden for candy style, dark otherwise)
+    if (colors.outerBorder) {
+      // Draw darker outer ring first (3D effect)
+      this.drawHexagon(this.borderGraphics, 0, pressOffset + 2, size + 4);
+      this.borderGraphics.fill({ color: colors.outerBorder });
 
-    // 3. Main fill
+      // Then golden border
+      this.drawHexagon(this.borderGraphics, 0, pressOffset, size);
+      this.borderGraphics.fill({ color: colors.border });
+    } else {
+      this.drawHexagon(this.borderGraphics, 0, pressOffset, size);
+      this.borderGraphics.fill({ color: colors.border });
+    }
+
+    // 3. Main fill (blue hexagon)
     this.drawHexagon(this.fillGraphics, 0, pressOffset, size - borderWidth * 2);
     this.fillGraphics.fill({ color: colors.fill });
+
+    // 3.5 Inner bevel effect for 3D look
+    if (colors.outerBorder) {
+      // Top inner highlight
+      this.drawHexagonBevel(
+        this.fillGraphics,
+        0,
+        pressOffset - 3,
+        size - borderWidth * 2 - 6,
+        0xFFFFFF,
+        0.2
+      );
+      // Bottom inner shadow
+      this.drawHexagonBevel(
+        this.fillGraphics,
+        0,
+        pressOffset + 3,
+        size - borderWidth * 2 - 6,
+        0x000000,
+        0.15
+      );
+    }
 
     // 4. Inner highlight (top half)
     if (!this.isPressed) {
@@ -303,6 +378,32 @@ export class HexagonLevelButton extends EventEmitter {
     if (this.lockIcon) {
       this.lockIcon.y = pressOffset + 2;
     }
+  }
+
+  /**
+   * Draw hexagon bevel effect for 3D depth
+   */
+  private drawHexagonBevel(
+    g: IGraphics,
+    cx: number,
+    cy: number,
+    size: number,
+    color: number,
+    alpha: number
+  ): void {
+    const vertices: number[] = [];
+    const sides = 6;
+    const angleOffset = Math.PI / 6;
+
+    // Only draw top portion for highlight, bottom for shadow
+    for (let i = 0; i <= 3; i++) {
+      const angle = (i * 2 * Math.PI) / sides + angleOffset;
+      vertices.push(cx + Math.cos(angle) * (size / 2));
+      vertices.push(cy + Math.sin(angle) * (size / 2));
+    }
+
+    g.poly(vertices);
+    g.fill({ color: color, alpha: alpha });
   }
 
   /**
@@ -417,6 +518,17 @@ export class HexagonLevelButton extends EventEmitter {
 
     // Update interactivity
     this.container.cursor = state === 'locked' ? 'default' : 'pointer';
+
+    // Handle glow for current state
+    if (state === 'current' && this.config.colorScheme.glow) {
+      if (!this.glowGraphics) {
+        this.createGlow();
+      }
+    } else if (this.glowGraphics) {
+      this.container.removeChild(this.glowGraphics);
+      this.glowGraphics.destroy();
+      this.glowGraphics = undefined;
+    }
 
     this.render();
     return this;
