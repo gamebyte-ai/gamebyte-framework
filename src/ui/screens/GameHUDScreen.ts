@@ -1,8 +1,9 @@
-import { SimpleScreen } from './SimpleScreen';
-import { IContainer, IGraphics, IText } from '../../contracts/Graphics';
-import { graphics } from '../../graphics/GraphicsEngine';
-import { GameStyleButton } from '../components/GameStyleButton';
-import { GameStyleColors } from '../themes/GameStyleUITheme';
+import { SimpleScreen } from './SimpleScreen.js';
+import { IContainer, IGraphics, IText } from '../../contracts/Graphics.js';
+import { graphics } from '../../graphics/GraphicsEngine.js';
+import { GameStyleButton } from '../components/GameStyleButton.js';
+import { GameStyleColors } from '../themes/GameStyleUITheme.js';
+import { formatNumber, formatTime } from '../utils/format.js';
 
 /**
  * HUD configuration
@@ -416,7 +417,7 @@ export class GameHUDScreen extends SimpleScreen {
   public setScore(score: number): void {
     this._score = score;
     if (this.scoreText) {
-      this.scoreText.text = `Score: ${this.formatNumber(score)}`;
+      this.scoreText.text = `Score: ${formatNumber(score)}`;
     }
     this.emit('score-changed', score);
   }
@@ -441,9 +442,7 @@ export class GameHUDScreen extends SimpleScreen {
   public setTime(seconds: number): void {
     this._time = seconds;
     if (this.timerText) {
-      const mins = Math.floor(seconds / 60);
-      const secs = Math.floor(seconds % 60);
-      this.timerText.text = `${mins}:${secs.toString().padStart(2, '0')}`;
+      this.timerText.text = formatTime(seconds);
     }
   }
 
@@ -491,19 +490,6 @@ export class GameHUDScreen extends SimpleScreen {
    */
   public isPaused(): boolean {
     return this._isPaused;
-  }
-
-  /**
-   * Format large numbers
-   */
-  private formatNumber(num: number): string {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1) + 'M';
-    }
-    if (num >= 1000) {
-      return (num / 1000).toFixed(1) + 'K';
-    }
-    return num.toString();
   }
 
   /**

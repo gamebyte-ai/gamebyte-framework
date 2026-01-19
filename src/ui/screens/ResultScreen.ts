@@ -1,8 +1,10 @@
-import { SimpleScreen } from './SimpleScreen';
-import { IContainer, IGraphics, ITexture } from '../../contracts/Graphics';
-import { graphics } from '../../graphics/GraphicsEngine';
-import { GameStyleButton } from '../components/GameStyleButton';
-import { GameStyleColors } from '../themes/GameStyleUITheme';
+import { SimpleScreen } from './SimpleScreen.js';
+import { IContainer, IGraphics, ITexture } from '../../contracts/Graphics.js';
+import { graphics } from '../../graphics/GraphicsEngine.js';
+import { GameStyleButton } from '../components/GameStyleButton.js';
+import { GameStyleColors } from '../themes/GameStyleUITheme.js';
+import { animate, Easing, lerp } from '../utils/animation.js';
+import { formatNumber, darkenColor } from '../utils/format.js';
 
 /**
  * Result type
@@ -237,7 +239,7 @@ export class ResultScreen extends SimpleScreen {
 
     g.poly(vertices);
     g.fill({ color });
-    g.stroke({ color: this.darkenColor(color, 0.3), width: 2 });
+    g.stroke({ color: darkenColor(color, 0.3), width: 2 });
   }
 
   /**
@@ -259,7 +261,7 @@ export class ResultScreen extends SimpleScreen {
     container.addChild(scoreLabel);
 
     // Score value
-    const scoreValue = factory.createText(this.formatNumber(this.resultConfig.score || 0), {
+    const scoreValue = factory.createText(formatNumber(this.resultConfig.score || 0), {
       fontFamily: '"Fredoka One", "Arial Black", sans-serif',
       fontSize: 56,
       fontWeight: 'bold',
@@ -275,7 +277,7 @@ export class ResultScreen extends SimpleScreen {
     // Best score
     if (this.resultConfig.bestScore !== undefined) {
       const isNewBest = (this.resultConfig.score || 0) >= this.resultConfig.bestScore;
-      const bestText = isNewBest ? 'NEW BEST!' : `Best: ${this.formatNumber(this.resultConfig.bestScore)}`;
+      const bestText = isNewBest ? 'NEW BEST!' : `Best: ${formatNumber(this.resultConfig.bestScore)}`;
       const bestLabel = factory.createText(bestText, {
         fontFamily: '"Fredoka One", "Arial Black", sans-serif',
         fontSize: 18,
@@ -338,7 +340,7 @@ export class ResultScreen extends SimpleScreen {
       }
 
       // Amount
-      const amountText = factory.createText(`+${this.formatNumber(reward.amount)}`, {
+      const amountText = factory.createText(`+${formatNumber(reward.amount)}`, {
         fontFamily: '"Fredoka One", "Arial Black", sans-serif',
         fontSize: 16,
         fontWeight: 'bold',
@@ -399,33 +401,9 @@ export class ResultScreen extends SimpleScreen {
   }
 
   /**
-   * Format large numbers
-   */
-  private formatNumber(num: number): string {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1) + 'M';
-    }
-    if (num >= 1000) {
-      return (num / 1000).toFixed(1) + 'K';
-    }
-    return num.toString();
-  }
-
-  /**
-   * Darken a color
-   */
-  private darkenColor(color: number, amount: number): number {
-    const r = Math.max(0, ((color >> 16) & 0xFF) - Math.floor(255 * amount));
-    const g = Math.max(0, ((color >> 8) & 0xFF) - Math.floor(255 * amount));
-    const b = Math.max(0, (color & 0xFF) - Math.floor(255 * amount));
-    return (r << 16) | (g << 8) | b;
-  }
-
-  /**
    * Handle resize
    */
   protected onResize(width: number, height: number): void {
-    // Clear and recreate content
     this.contentContainer.removeChildren();
     this.drawBackground(width, height);
     this.createContent(width, height);
@@ -439,47 +417,22 @@ export class ResultScreen extends SimpleScreen {
     this.contentContainer.scale.y = 0.8;
     this.contentContainer.alpha = 0;
 
-    return new Promise((resolve) => {
-      const startTime = Date.now();
-      const duration = 400;
-
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const eased = this.easeOutBack(progress);
-
-        this.contentContainer.scale.x = 0.8 + 0.2 * eased;
-        this.contentContainer.scale.y = 0.8 + 0.2 * eased;
+    return animate({
+      duration: 400,
+      easing: Easing.easeOutBack,
+      onUpdate: (progress, eased) => {
+        const scale = lerp(0.8, 1, eased);
+        this.contentContainer.scale.x = scale;
+        this.contentContainer.scale.y = scale;
         this.contentContainer.alpha = progress;
-
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        } else {
-          this.contentContainer.scale.x = 1;
-          this.contentContainer.scale.y = 1;
-          this.contentContainer.alpha = 1;
-          resolve();
-        }
-      };
-
-      requestAnimationFrame(animate);
+      },
     });
-  }
-
-  /**
-   * Ease out back
-   */
-  private easeOutBack(t: number): number {
-    const c1 = 1.70158;
-    const c3 = c1 + 1;
-    return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
   }
 
   /**
    * Handle back button
    */
   public onBackButton(): boolean {
-    // Don't handle back on result screen
     return false;
   }
 }

@@ -1,6 +1,7 @@
-import { GamePanel, GamePanelConfig } from './GamePanel';
-import { graphics } from '../../graphics/GraphicsEngine';
-import { IGraphics } from '../../contracts/Graphics';
+import { GamePanel, GamePanelConfig } from './GamePanel.js';
+import { graphics } from '../../graphics/GraphicsEngine.js';
+import { IGraphics } from '../../contracts/Graphics.js';
+import { animate, Easing, lerp } from '../utils/animation.js';
 
 /**
  * Bottom sheet height options
@@ -216,22 +217,14 @@ export class GameBottomSheet extends GamePanel {
   private animateSnapBack(): void {
     const startY = this.panelContainer.y;
     const targetY = this.screenHeight - this.config.height;
-    const startTime = Date.now();
-    const duration = 200;
 
-    const animate = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = this.easeOutCubic(progress);
-
-      this.panelContainer.y = startY + (targetY - startY) * eased;
-
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      }
-    };
-
-    requestAnimationFrame(animate);
+    animate({
+      duration: 200,
+      easing: Easing.easeOutCubic,
+      onUpdate: (_, eased) => {
+        this.panelContainer.y = lerp(startY, targetY, eased);
+      },
+    });
   }
 
   /**
@@ -278,34 +271,20 @@ export class GameBottomSheet extends GamePanel {
    * Slide-up animation
    */
   protected async animateShow(): Promise<void> {
-    return new Promise((resolve) => {
-      const targetY = this.screenHeight - this.config.height;
-      const startY = this.screenHeight;
+    const targetY = this.screenHeight - this.config.height;
+    const startY = this.screenHeight;
+    const overlayAlpha = this.theme.overlayAlpha || 0.6;
 
-      this.panelContainer.y = startY;
-      this.overlay.alpha = 0;
+    this.panelContainer.y = startY;
+    this.overlay.alpha = 0;
 
-      const startTime = Date.now();
-      const duration = this.animationDuration;
-
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const eased = this.easeOutCubic(progress);
-
-        this.panelContainer.y = startY + (targetY - startY) * eased;
-        this.overlay.alpha = (this.theme.overlayAlpha || 0.6) * progress;
-
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        } else {
-          this.panelContainer.y = targetY;
-          this.overlay.alpha = this.theme.overlayAlpha || 0.6;
-          resolve();
-        }
-      };
-
-      requestAnimationFrame(animate);
+    return animate({
+      duration: this.animationDuration,
+      easing: Easing.easeOutCubic,
+      onUpdate: (progress, eased) => {
+        this.panelContainer.y = lerp(startY, targetY, eased);
+        this.overlay.alpha = overlayAlpha * progress;
+      },
     });
   }
 
@@ -313,45 +292,17 @@ export class GameBottomSheet extends GamePanel {
    * Slide-down animation
    */
   protected async animateHide(): Promise<void> {
-    return new Promise((resolve) => {
-      const startY = this.panelContainer.y;
-      const targetY = this.screenHeight;
+    const startY = this.panelContainer.y;
+    const targetY = this.screenHeight;
+    const overlayAlpha = this.theme.overlayAlpha || 0.6;
 
-      const startTime = Date.now();
-      const duration = this.animationDuration * 0.8;
-
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const eased = this.easeInCubic(progress);
-
-        this.panelContainer.y = startY + (targetY - startY) * eased;
-        this.overlay.alpha = (this.theme.overlayAlpha || 0.6) * (1 - progress);
-
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        } else {
-          this.panelContainer.y = targetY;
-          this.overlay.alpha = 0;
-          resolve();
-        }
-      };
-
-      requestAnimationFrame(animate);
+    return animate({
+      duration: this.animationDuration * 0.8,
+      easing: Easing.easeInCubic,
+      onUpdate: (progress, eased) => {
+        this.panelContainer.y = lerp(startY, targetY, eased);
+        this.overlay.alpha = overlayAlpha * (1 - progress);
+      },
     });
-  }
-
-  /**
-   * Ease out cubic
-   */
-  private easeOutCubic(t: number): number {
-    return 1 - Math.pow(1 - t, 3);
-  }
-
-  /**
-   * Ease in cubic
-   */
-  private easeInCubic(t: number): number {
-    return t * t * t;
   }
 }

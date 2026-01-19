@@ -1,7 +1,7 @@
 import { EventEmitter } from 'eventemitter3';
-import { IContainer } from '../../contracts/Graphics';
-import { graphics } from '../../graphics/GraphicsEngine';
-import { GamePanel } from '../panels/GamePanel';
+import { IContainer } from '../../contracts/Graphics.js';
+import { graphics } from '../../graphics/GraphicsEngine.js';
+import { GamePanel } from '../panels/GamePanel.js';
 
 /**
  * PanelManager configuration

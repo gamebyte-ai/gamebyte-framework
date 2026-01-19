@@ -1,4 +1,5 @@
-import { GamePanel, GamePanelConfig } from './GamePanel';
+import { GamePanel, GamePanelConfig } from './GamePanel.js';
+import { animate, Easing, lerp } from '../utils/animation.js';
 
 /**
  * GameModalPanel configuration
@@ -66,34 +67,20 @@ export class GameModalPanel extends GamePanel {
    * Scale-in animation
    */
   protected async animateShow(): Promise<void> {
-    return new Promise((resolve) => {
-      this.setScaleFromCenter(0.8);
-      this.panelContainer.alpha = 0;
-      this.overlay.alpha = 0;
+    this.setScaleFromCenter(0.8);
+    this.panelContainer.alpha = 0;
+    this.overlay.alpha = 0;
 
-      const startTime = Date.now();
-      const duration = this.animationDuration;
+    const overlayAlpha = this.theme.overlayAlpha || 0.6;
 
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const eased = this.easeOutBack(progress);
-
-        this.setScaleFromCenter(0.8 + 0.2 * eased);
+    return animate({
+      duration: this.animationDuration,
+      easing: Easing.easeOutBack,
+      onUpdate: (progress, eased) => {
+        this.setScaleFromCenter(lerp(0.8, 1, eased));
         this.panelContainer.alpha = progress;
-        this.overlay.alpha = (this.theme.overlayAlpha || 0.6) * progress;
-
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        } else {
-          this.setScaleFromCenter(1);
-          this.panelContainer.alpha = 1;
-          this.overlay.alpha = this.theme.overlayAlpha || 0.6;
-          resolve();
-        }
-      };
-
-      requestAnimationFrame(animate);
+        this.overlay.alpha = overlayAlpha * progress;
+      },
     });
   }
 
@@ -101,46 +88,16 @@ export class GameModalPanel extends GamePanel {
    * Scale-out animation
    */
   protected async animateHide(): Promise<void> {
-    return new Promise((resolve) => {
-      const startTime = Date.now();
-      const duration = this.animationDuration * 0.8;
+    const overlayAlpha = this.theme.overlayAlpha || 0.6;
 
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const eased = this.easeInCubic(progress);
-
-        this.setScaleFromCenter(1 - 0.2 * eased);
+    return animate({
+      duration: this.animationDuration * 0.8,
+      easing: Easing.easeInCubic,
+      onUpdate: (progress, eased) => {
+        this.setScaleFromCenter(lerp(1, 0.8, eased));
         this.panelContainer.alpha = 1 - progress;
-        this.overlay.alpha = (this.theme.overlayAlpha || 0.6) * (1 - progress);
-
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        } else {
-          this.setScaleFromCenter(0.8);
-          this.panelContainer.alpha = 0;
-          this.overlay.alpha = 0;
-          resolve();
-        }
-      };
-
-      requestAnimationFrame(animate);
+        this.overlay.alpha = overlayAlpha * (1 - progress);
+      },
     });
-  }
-
-  /**
-   * Ease out back (slight overshoot)
-   */
-  private easeOutBack(t: number): number {
-    const c1 = 1.70158;
-    const c3 = c1 + 1;
-    return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
-  }
-
-  /**
-   * Ease in cubic
-   */
-  private easeInCubic(t: number): number {
-    return t * t * t;
   }
 }

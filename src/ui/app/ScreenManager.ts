@@ -1,7 +1,8 @@
 import { EventEmitter } from 'eventemitter3';
-import { IContainer } from '../../contracts/Graphics';
-import { graphics } from '../../graphics/GraphicsEngine';
-import { SimpleScreen } from '../screens/SimpleScreen';
+import { IContainer } from '../../contracts/Graphics.js';
+import { graphics } from '../../graphics/GraphicsEngine.js';
+import { SimpleScreen } from '../screens/SimpleScreen.js';
+import { animate, Easing, lerp } from '../utils/animation.js';
 
 /**
  * Transition type for screen navigation
@@ -369,26 +370,13 @@ export class ScreenManager extends EventEmitter {
     to: number,
     duration: number
   ): Promise<void> {
-    return new Promise((resolve) => {
-      const startTime = Date.now();
-      container.x = from;
-
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const eased = this.easeOutCubic(progress);
-
-        container.x = from + (to - from) * eased;
-
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        } else {
-          container.x = to;
-          resolve();
-        }
-      };
-
-      requestAnimationFrame(animate);
+    container.x = from;
+    return animate({
+      duration,
+      easing: Easing.easeOutCubic,
+      onUpdate: (_, eased) => {
+        container.x = lerp(from, to, eased);
+      },
     });
   }
 
@@ -401,34 +389,14 @@ export class ScreenManager extends EventEmitter {
     to: number,
     duration: number
   ): Promise<void> {
-    return new Promise((resolve) => {
-      const startTime = Date.now();
-      container.alpha = from;
-
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const eased = this.easeOutCubic(progress);
-
-        container.alpha = from + (to - from) * eased;
-
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        } else {
-          container.alpha = to;
-          resolve();
-        }
-      };
-
-      requestAnimationFrame(animate);
+    container.alpha = from;
+    return animate({
+      duration,
+      easing: Easing.easeOutCubic,
+      onUpdate: (_, eased) => {
+        container.alpha = lerp(from, to, eased);
+      },
     });
-  }
-
-  /**
-   * Ease out cubic function
-   */
-  private easeOutCubic(t: number): number {
-    return 1 - Math.pow(1 - t, 3);
   }
 
   /**

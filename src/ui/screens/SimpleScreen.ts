@@ -1,6 +1,7 @@
 import { EventEmitter } from 'eventemitter3';
-import { IContainer } from '../../contracts/Graphics';
-import { graphics } from '../../graphics/GraphicsEngine';
+import { IContainer } from '../../contracts/Graphics.js';
+import { graphics } from '../../graphics/GraphicsEngine.js';
+import { AnimationPresets } from '../utils/animation.js';
 
 /**
  * SimpleScreen - A lightweight screen base class for game UI
@@ -65,49 +66,14 @@ export abstract class SimpleScreen extends EventEmitter {
    * Animate in (can be overridden)
    */
   protected async animateIn(): Promise<void> {
-    return new Promise((resolve) => {
-      this.container.alpha = 0;
-      const startTime = Date.now();
-      const duration = 300;
-
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        this.container.alpha = progress;
-
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        } else {
-          resolve();
-        }
-      };
-
-      requestAnimationFrame(animate);
-    });
+    return AnimationPresets.fadeIn(this.container, 300);
   }
 
   /**
    * Animate out (can be overridden)
    */
   protected async animateOut(): Promise<void> {
-    return new Promise((resolve) => {
-      const startTime = Date.now();
-      const duration = 200;
-
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        this.container.alpha = 1 - progress;
-
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        } else {
-          resolve();
-        }
-      };
-
-      requestAnimationFrame(animate);
-    });
+    return AnimationPresets.fadeOut(this.container, 200);
   }
 
   /**

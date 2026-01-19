@@ -1,6 +1,6 @@
 import { EventEmitter } from 'eventemitter3';
-import { IContainer, IGraphics, IText } from '../../contracts/Graphics';
-import { graphics } from '../../graphics/GraphicsEngine';
+import { IContainer, IGraphics, IText } from '../../contracts/Graphics.js';
+import { graphics } from '../../graphics/GraphicsEngine.js';
 
 /**
  * Panel color scheme

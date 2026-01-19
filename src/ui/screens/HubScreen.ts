@@ -1,8 +1,8 @@
-import { SimpleScreen } from './SimpleScreen';
-import { GameTopBar, ResourceItemConfig } from '../components/GameTopBar';
-import { GameBottomNav, NavItemConfig } from '../components/GameBottomNav';
-import { IContainer, IGraphics } from '../../contracts/Graphics';
-import { graphics } from '../../graphics/GraphicsEngine';
+import { SimpleScreen } from './SimpleScreen.js';
+import { GameTopBar, ResourceItemConfig } from '../components/GameTopBar.js';
+import { GameBottomNav, NavItemConfig } from '../components/GameBottomNav.js';
+import { IContainer, IGraphics } from '../../contracts/Graphics.js';
+import { graphics } from '../../graphics/GraphicsEngine.js';
 
 /**
  * Hub tab content configuration
