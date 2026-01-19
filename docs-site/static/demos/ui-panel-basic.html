@@ -3,122 +3,119 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UIPanel Basic Demo</title>
+    <title>UIPanel Basic Demo - GameByte Framework</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: #1a1a2e;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            font-family: system-ui, sans-serif;
-            padding: 20px;
-        }
-        .panel {
-            background: linear-gradient(135deg, #1e1e3f 0%, #0f0f23 100%);
-            border-radius: 16px;
-            padding: 24px;
-            width: 100%;
-            max-width: 320px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-        }
-        .panel-header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .panel-title {
-            color: white;
-            font-size: 1.5rem;
-            font-weight: bold;
-            margin-bottom: 8px;
-        }
-        .panel-subtitle {
-            color: #9ca3af;
-            font-size: 0.875rem;
-        }
-        .panel-content {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .menu-item {
-            background: rgba(99, 102, 241, 0.1);
-            border: 1px solid rgba(99, 102, 241, 0.2);
-            border-radius: 8px;
-            padding: 14px 16px;
-            color: white;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .menu-item:hover {
-            background: rgba(99, 102, 241, 0.2);
-            border-color: rgba(99, 102, 241, 0.4);
-            transform: translateX(4px);
-        }
-        .menu-item.active {
-            background: linear-gradient(135deg, #6366f1, #4f46e5);
-            border-color: transparent;
-        }
-        .menu-icon {
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .panel-footer {
-            margin-top: 20px;
-            padding-top: 16px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            text-align: center;
-        }
-        .footer-text {
-            color: #6b7280;
-            font-size: 0.75rem;
-        }
+        body { overflow: hidden; background: #1a1a2e; }
+        canvas { display: block; margin: 0 auto; }
     </style>
 </head>
 <body>
-    <div class="panel">
-        <div class="panel-header">
-            <h2 class="panel-title">Game Menu</h2>
-            <p class="panel-subtitle">Select an option</p>
-        </div>
-        <div class="panel-content">
-            <div class="menu-item active" onclick="selectItem(this)">
-                <span class="menu-icon">🎮</span>
-                <span>Continue Game</span>
-            </div>
-            <div class="menu-item" onclick="selectItem(this)">
-                <span class="menu-icon">🆕</span>
-                <span>New Game</span>
-            </div>
-            <div class="menu-item" onclick="selectItem(this)">
-                <span class="menu-icon">⚙️</span>
-                <span>Settings</span>
-            </div>
-            <div class="menu-item" onclick="selectItem(this)">
-                <span class="menu-icon">🏆</span>
-                <span>Achievements</span>
-            </div>
-        </div>
-        <div class="panel-footer">
-            <p class="footer-text">GameByte Framework v1.0</p>
-        </div>
-    </div>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
 
     <script>
-        function selectItem(el) {
-            document.querySelectorAll('.menu-item').forEach(item => {
-                item.classList.remove('active');
+        const { createGame } = GameByteFramework;
+
+        const CONFIG = { width: 400, height: 280 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.body.appendChild(canvas);
+
+        const game = createGame();
+
+        (async () => {
+            await game.initialize(canvas, '2d');
+            const renderer = game.make('renderer');
+            const stage = renderer.getStage();
+
+            // Background
+            const bg = new PIXI.Graphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill(0x1a1a2e);
+            stage.addChild(bg);
+
+            // Panel with shadow
+            const shadowPanel = new PIXI.Graphics();
+            shadowPanel.roundRect(65, 45, 280, 200, 16);
+            shadowPanel.fill({ color: 0x000000, alpha: 0.3 });
+            stage.addChild(shadowPanel);
+
+            // Main panel
+            const panel = new PIXI.Graphics();
+            panel.roundRect(60, 40, 280, 200, 16);
+            panel.fill(0x2d3748);
+            stage.addChild(panel);
+
+            // Title
+            const title = new PIXI.Text({
+                text: 'Settings',
+                style: {
+                    fontFamily: 'Arial',
+                    fontSize: 24,
+                    fontWeight: 'bold',
+                    fill: 0xffffff
+                }
             });
-            el.classList.add('active');
-        }
+            title.x = 160;
+            title.y = 60;
+            stage.addChild(title);
+
+            // Sound button
+            const soundBtn = new PIXI.Graphics();
+            soundBtn.roundRect(85, 110, 230, 44, 8);
+            soundBtn.fill(0x6366f1);
+            stage.addChild(soundBtn);
+
+            const soundText = new PIXI.Text({
+                text: 'Sound: ON',
+                style: { fontFamily: 'Arial', fontSize: 16, fill: 0xffffff }
+            });
+            soundText.x = 160;
+            soundText.y = 122;
+            stage.addChild(soundText);
+
+            // Music button
+            const musicBtn = new PIXI.Graphics();
+            musicBtn.roundRect(85, 165, 230, 44, 8);
+            musicBtn.fill(0x4b5563);
+            stage.addChild(musicBtn);
+
+            const musicText = new PIXI.Text({
+                text: 'Music: ON',
+                style: { fontFamily: 'Arial', fontSize: 16, fill: 0xffffff }
+            });
+            musicText.x = 163;
+            musicText.y = 177;
+            stage.addChild(musicText);
+
+            // Make buttons interactive
+            soundBtn.eventMode = 'static';
+            soundBtn.cursor = 'pointer';
+            let soundOn = true;
+            soundBtn.on('pointerdown', () => {
+                soundOn = !soundOn;
+                soundText.text = `Sound: ${soundOn ? 'ON' : 'OFF'}`;
+                soundBtn.clear();
+                soundBtn.roundRect(85, 110, 230, 44, 8);
+                soundBtn.fill(soundOn ? 0x6366f1 : 0x4b5563);
+            });
+
+            musicBtn.eventMode = 'static';
+            musicBtn.cursor = 'pointer';
+            let musicOn = true;
+            musicBtn.on('pointerdown', () => {
+                musicOn = !musicOn;
+                musicText.text = `Music: ${musicOn ? 'ON' : 'OFF'}`;
+                musicBtn.clear();
+                musicBtn.roundRect(85, 165, 230, 44, 8);
+                musicBtn.fill(musicOn ? 0x6366f1 : 0x4b5563);
+            });
+
+            game.start();
+        })();
     </script>
 </body>
 </html>

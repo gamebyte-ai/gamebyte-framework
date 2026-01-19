@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HexagonLevelButton Demo - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #4DA6FF; }
+        canvas { display: block; margin: 0 auto; }
+    </style>
+</head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
+
+    <script>
+        const { createGame, HexagonLevelButton, GameStyleColors } = GameByteFramework;
+
+        const CONFIG = { width: 400, height: 450 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.body.appendChild(canvas);
+
+        const game = createGame();
+
+        (async () => {
+            await game.initialize(canvas, '2d');
+            const renderer = game.make('renderer');
+            const stage = renderer.getStage();
+
+            // Sky gradient background
+            const bg = new PIXI.Graphics();
+            const gradCanvas = document.createElement('canvas');
+            gradCanvas.width = CONFIG.width;
+            gradCanvas.height = CONFIG.height;
+            const ctx = gradCanvas.getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, CONFIG.height);
+            gradient.addColorStop(0, '#4DA6FF');
+            gradient.addColorStop(1, '#7DD3FF');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
+            bg.texture(PIXI.Texture.from(gradCanvas));
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill();
+            stage.addChild(bg);
+
+            // Title
+            const title = new PIXI.Text({
+                text: 'HexagonLevelButton',
+                style: { fontFamily: 'Arial Black', fontSize: 20, fill: 0xffffff }
+            });
+            title.x = CONFIG.width / 2 - title.width / 2;
+            title.y = 15;
+            stage.addChild(title);
+
+            // Row 1: Candy Crush Style (with golden border)
+            const label1 = new PIXI.Text({
+                text: 'Candy Style:',
+                style: { fontFamily: 'Arial', fontSize: 14, fill: 0xffffff }
+            });
+            label1.x = 20;
+            label1.y = 55;
+            stage.addChild(label1);
+
+            const candyCurrent = new HexagonLevelButton({
+                level: 17,
+                size: 70,
+                state: 'current',
+                colorScheme: GameStyleColors.HEXAGON_CANDY_CURRENT,
+                showStars: false
+            });
+            candyCurrent.setPosition(80, 130);
+            stage.addChild(candyCurrent.getContainer());
+
+            const candyAvailable = new HexagonLevelButton({
+                level: 18,
+                size: 70,
+                state: 'available',
+                colorScheme: GameStyleColors.HEXAGON_CANDY_BLUE,
+                showStars: false
+            });
+            candyAvailable.setPosition(170, 130);
+            stage.addChild(candyAvailable.getContainer());
+
+            const candyLocked = new HexagonLevelButton({
+                level: 19,
+                size: 70,
+                state: 'locked',
+                colorScheme: GameStyleColors.HEXAGON_CANDY_LOCKED,
+                showStars: false
+            });
+            candyLocked.setPosition(260, 130);
+            stage.addChild(candyLocked.getContainer());
+
+            // Row 2: Classic Style
+            const label2 = new PIXI.Text({
+                text: 'Classic Style:',
+                style: { fontFamily: 'Arial', fontSize: 14, fill: 0xffffff }
+            });
+            label2.x = 20;
+            label2.y = 190;
+            stage.addChild(label2);
+
+            const classicCurrent = new HexagonLevelButton({
+                level: 5,
+                size: 70,
+                state: 'current',
+                showStars: false
+            });
+            classicCurrent.setPosition(80, 265);
+            stage.addChild(classicCurrent.getContainer());
+
+            const classicCompleted = new HexagonLevelButton({
+                level: 4,
+                size: 70,
+                state: 'completed',
+                stars: 3,
+                showStars: true
+            });
+            classicCompleted.setPosition(170, 265);
+            stage.addChild(classicCompleted.getContainer());
+
+            const classicLocked = new HexagonLevelButton({
+                level: 6,
+                size: 70,
+                state: 'locked',
+                showStars: false
+            });
+            classicLocked.setPosition(260, 265);
+            stage.addChild(classicLocked.getContainer());
+
+            // Row 3: Small sizes
+            const label3 = new PIXI.Text({
+                text: 'Small Size:',
+                style: { fontFamily: 'Arial', fontSize: 14, fill: 0xffffff }
+            });
+            label3.x = 20;
+            label3.y = 330;
+            stage.addChild(label3);
+
+            for (let i = 0; i < 5; i++) {
+                const small = new HexagonLevelButton({
+                    level: i + 1,
+                    size: 50,
+                    state: i < 3 ? 'completed' : i === 3 ? 'current' : 'locked',
+                    colorScheme: GameStyleColors.HEXAGON_CANDY_BLUE,
+                    showStars: false
+                });
+                small.setPosition(60 + i * 70, 390);
+                stage.addChild(small.getContainer());
+            }
+
+            // Click handlers
+            [candyCurrent, candyAvailable, classicCurrent, classicCompleted].forEach(btn => {
+                btn.on('click', ({ level }) => console.log(`Level ${level} clicked!`));
+            });
+
+            game.start();
+        })();
+    </script>
+</body>
+</html>

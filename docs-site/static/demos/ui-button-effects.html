@@ -3,160 +3,121 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UIButton Effects Demo</title>
+    <title>UIButton Effects Demo - GameByte Framework</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: #1a1a2e;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            font-family: system-ui, sans-serif;
-            gap: 30px;
-            padding: 20px;
-        }
-        .button-row {
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-        .effect-label {
-            color: #9ca3af;
-            font-size: 0.875rem;
-            text-align: center;
-            margin-bottom: 10px;
-        }
-        .demo-button {
-            padding: 16px 32px;
-            font-size: 1rem;
-            font-weight: bold;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            color: white;
-            min-width: 140px;
-            position: relative;
-            overflow: hidden;
-        }
-        /* Glow Effect */
-        .btn-glow {
-            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-            box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
-            animation: glow 2s ease-in-out infinite;
-        }
-        @keyframes glow {
-            0%, 100% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.5); }
-            50% { box-shadow: 0 0 40px rgba(99, 102, 241, 0.8), 0 0 60px rgba(99, 102, 241, 0.4); }
-        }
-        /* Ripple Effect */
-        .btn-ripple {
-            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-        }
-        .ripple {
-            position: absolute;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.4);
-            transform: scale(0);
-            animation: rippleAnim 0.6s ease-out;
-            pointer-events: none;
-        }
-        @keyframes rippleAnim {
-            to { transform: scale(4); opacity: 0; }
-        }
-        /* Pulse Effect */
-        .btn-pulse {
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            animation: pulse 1.5s ease-in-out infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-        /* Shadow Lift */
-        .btn-shadow {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
-            transition: all 0.3s;
-        }
-        .btn-shadow:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 30px rgba(239, 68, 68, 0.5);
-        }
-        /* Gradient Shift */
-        .btn-gradient {
-            background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #06b6d4 100%);
-            background-size: 200% 200%;
-            animation: gradientShift 3s ease infinite;
-        }
-        @keyframes gradientShift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-        /* Outline Animation */
-        .btn-outline {
-            background: transparent;
-            border: 2px solid #6366f1;
-            color: #6366f1;
-            position: relative;
-        }
-        .btn-outline::before {
-            content: '';
-            position: absolute;
-            inset: -4px;
-            border: 2px solid #6366f1;
-            border-radius: 12px;
-            opacity: 0;
-            animation: outlinePulse 2s ease-in-out infinite;
-        }
-        @keyframes outlinePulse {
-            0%, 100% { opacity: 0; transform: scale(1); }
-            50% { opacity: 0.5; transform: scale(1.05); }
-        }
-        .info {
-            color: #9ca3af;
-            font-size: 0.875rem;
-            text-align: center;
-        }
+        body { overflow: hidden; background: #1a1a2e; }
+        canvas { display: block; margin: 0 auto; }
     </style>
 </head>
 <body>
-    <div class="effect-label">Visual Effects</div>
-    <div class="button-row">
-        <button class="demo-button btn-glow">GLOW</button>
-        <button class="demo-button btn-ripple" onclick="createRipple(event)">RIPPLE</button>
-        <button class="demo-button btn-pulse">PULSE</button>
-    </div>
-
-    <div class="effect-label">Interaction Effects</div>
-    <div class="button-row">
-        <button class="demo-button btn-shadow">SHADOW LIFT</button>
-        <button class="demo-button btn-gradient">GRADIENT</button>
-        <button class="demo-button btn-outline">OUTLINE</button>
-    </div>
-
-    <p class="info">Hover and click to see interactive effects</p>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
 
     <script>
-        function createRipple(event) {
-            const button = event.currentTarget;
-            const rect = button.getBoundingClientRect();
-            const size = Math.max(rect.width, rect.height);
-            const x = event.clientX - rect.left - size / 2;
-            const y = event.clientY - rect.top - size / 2;
+        const { createGame, GameStyleButton, GameStyleColors } = GameByteFramework;
 
-            const ripple = document.createElement('span');
-            ripple.className = 'ripple';
-            ripple.style.width = ripple.style.height = size + 'px';
-            ripple.style.left = x + 'px';
-            ripple.style.top = y + 'px';
+        const CONFIG = { width: 400, height: 320 };
 
-            button.appendChild(ripple);
-            setTimeout(() => ripple.remove(), 600);
-        }
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.body.appendChild(canvas);
+
+        const game = createGame();
+
+        (async () => {
+            await game.initialize(canvas, '2d');
+            const renderer = game.make('renderer');
+            const stage = renderer.getStage();
+
+            // Background
+            const bg = new PIXI.Graphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill(0x1a1a2e);
+            stage.addChild(bg);
+
+            // Title
+            const title = new PIXI.Text({
+                text: 'Button Effects',
+                style: { fontFamily: 'Arial Black', fontSize: 18, fill: 0xffffff }
+            });
+            title.x = CONFIG.width / 2 - title.width / 2;
+            title.y = 15;
+            stage.addChild(title);
+
+            // Yellow button (Gradient)
+            const yellowBtn = new GameStyleButton({
+                text: 'GRADIENT',
+                width: 170,
+                height: 55,
+                fontSize: 18,
+                colorScheme: GameStyleColors.YELLOW_BUTTON
+            });
+            yellowBtn.setPosition(20, 55);
+            stage.addChild(yellowBtn.getContainer());
+
+            // Green button (Glow)
+            const greenBtn = new GameStyleButton({
+                text: 'GLOW',
+                width: 170,
+                height: 55,
+                fontSize: 18,
+                colorScheme: GameStyleColors.GREEN_BUTTON
+            });
+            greenBtn.setPosition(210, 55);
+            stage.addChild(greenBtn.getContainer());
+
+            // Blue button (Shadow)
+            const blueBtn = new GameStyleButton({
+                text: 'SHADOW',
+                width: 170,
+                height: 55,
+                fontSize: 18,
+                colorScheme: GameStyleColors.BLUE_BUTTON
+            });
+            blueBtn.setPosition(20, 125);
+            stage.addChild(blueBtn.getContainer());
+
+            // Red button (Ripple)
+            const redBtn = new GameStyleButton({
+                text: 'RIPPLE',
+                width: 170,
+                height: 55,
+                fontSize: 18,
+                colorScheme: GameStyleColors.RED_BUTTON
+            });
+            redBtn.setPosition(210, 125);
+            stage.addChild(redBtn.getContainer());
+
+            // Purple button (All effects - pill shape)
+            const purpleBtn = new GameStyleButton({
+                text: 'ALL EFFECTS',
+                width: 360,
+                height: 65,
+                fontSize: 22,
+                colorScheme: GameStyleColors.PURPLE_BUTTON,
+                borderRadius: 32
+            });
+            purpleBtn.setPosition(20, 200);
+            stage.addChild(purpleBtn.getContainer());
+
+            // Info text
+            const info = new PIXI.Text({
+                text: 'Click buttons to see press animation',
+                style: { fontFamily: 'Arial', fontSize: 12, fill: 0x888888 }
+            });
+            info.x = CONFIG.width / 2 - info.width / 2;
+            info.y = 285;
+            stage.addChild(info);
+
+            // Click handlers
+            [yellowBtn, greenBtn, blueBtn, redBtn, purpleBtn].forEach(btn => {
+                btn.on('click', () => console.log(`${btn.config?.text || 'Button'} clicked!`));
+            });
+
+            game.start();
+        })();
     </script>
 </body>
 </html>

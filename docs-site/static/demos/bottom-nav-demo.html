@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameBottomNav Demo - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #4DA6FF; }
+        canvas { display: block; margin: 0 auto; }
+    </style>
+</head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
+
+    <script>
+        const { createGame, GameBottomNav } = GameByteFramework;
+
+        const CONFIG = { width: 400, height: 250 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.body.appendChild(canvas);
+
+        const game = createGame();
+
+        (async () => {
+            await game.initialize(canvas, '2d');
+            const renderer = game.make('renderer');
+            const stage = renderer.getStage();
+
+            // Sky gradient background
+            const bg = new PIXI.Graphics();
+            const gradCanvas = document.createElement('canvas');
+            gradCanvas.width = CONFIG.width;
+            gradCanvas.height = CONFIG.height;
+            const ctx = gradCanvas.getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, CONFIG.height);
+            gradient.addColorStop(0, '#4DA6FF');
+            gradient.addColorStop(1, '#7DD3FF');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
+            bg.texture(PIXI.Texture.from(gradCanvas));
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill();
+            stage.addChild(bg);
+
+            // Title
+            const title = new PIXI.Text({
+                text: 'GameBottomNav',
+                style: { fontFamily: 'Arial Black', fontSize: 20, fill: 0xffffff }
+            });
+            title.x = CONFIG.width / 2 - title.width / 2;
+            title.y = 15;
+            stage.addChild(title);
+
+            // Bottom Nav - 3 items
+            const bottomNav1 = new GameBottomNav({
+                width: CONFIG.width,
+                height: 85,
+                items: [
+                    { id: 'shop', type: 'shop', label: '' },
+                    { id: 'play', type: 'play', label: 'Start', highlighted: true },
+                    { id: 'profile', type: 'profile', locked: true }
+                ],
+                backgroundColor: 0x1A237E
+            });
+            bottomNav1.setPosition(0, 60);
+            stage.addChild(bottomNav1.getContainer());
+
+            // Bottom Nav - 4 items with badge
+            const bottomNav2 = new GameBottomNav({
+                width: CONFIG.width,
+                height: 85,
+                items: [
+                    { id: 'shop', type: 'shop', badge: 3 },
+                    { id: 'play', type: 'play', label: 'Play', highlighted: true },
+                    { id: 'leaderboard', type: 'leaderboard' },
+                    { id: 'settings', type: 'settings' }
+                ],
+                backgroundColor: 0x283593
+            });
+            bottomNav2.setPosition(0, 160);
+            stage.addChild(bottomNav2.getContainer());
+
+            // Click handlers
+            bottomNav1.on('item-click', (id) => console.log(`Nav 1: ${id} clicked`));
+            bottomNav2.on('item-click', (id) => console.log(`Nav 2: ${id} clicked`));
+
+            game.start();
+        })();
+    </script>
+</body>
+</html>

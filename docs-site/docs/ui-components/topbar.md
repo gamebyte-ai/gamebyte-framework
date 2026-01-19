@@ -1,21 +1,155 @@
 ---
 id: topbar
 title: TopBar
-description: Resource and timer display bar
+description: Resource and timer display bar for game HUD
 sidebar_position: 5
-keywords: [topbar, hud, resources, timer, score]
-llm_summary: "TopBar: HUD for resources/timers. new TopBar({ width, items: [...] }). Item types: RESOURCE, TIMER, PROGRESS. Update with updateItem(id, value, animate)."
+keywords: [topbar, hud, resources, timer, score, settings, coins, lives]
+llm_summary: "GameTopBar: Mobile game style HUD with settings button, lives (heart icon with MAX label), coins with add button. Resources: lives, coins, gems, energy. Events: settings-click, add-click."
 ---
 
-<!-- llm-context: topbar, hud, resources, timer, score-display, game-ui -->
+<!-- llm-context: topbar, hud, resources, timer, score-display, game-ui, settings-button, coins, lives -->
 
 import LiveDemo from '@site/src/components/LiveDemo';
 
 # TopBar
 
-A heads-up display bar for showing resources, timers, and game stats.
+GameByte provides **GameTopBar** for mobile game style HUDs with settings button, lives, coins, and other resources.
 
-## Basic Usage
+## Live Demo
+
+<LiveDemo
+  src="/demos/game-topbar-demo.html"
+  height={220}
+  title="GameTopBar Demo"
+/>
+
+## GameTopBar
+
+A game-style top bar with circular settings button, heart icon with lives, coin display with add button.
+
+**Features:**
+- Settings gear button (circular, dark background)
+- Lives display with heart icon and MAX label
+- Coins display with coin icon and add (+) button
+- Gems display with gem icon
+- Energy display with lightning icon
+- Pill-shaped containers with game styling
+- Animated value changes
+
+### Basic Usage
+
+```typescript
+import { GameTopBar } from 'gamebyte-framework';
+
+const topBar = new GameTopBar({
+    width: 400,
+    height: 55,
+    resources: [
+        { type: 'lives', value: 5, label: 'MAX', icon: 'heart' },
+        { type: 'coins', value: 1340, showAddButton: true, icon: 'coin' }
+    ],
+    showSettings: true,
+    onSettingsClick: () => openSettings()
+});
+
+topBar.setPosition(0, 10);
+stage.addChild(topBar.getContainer());
+```
+
+### Configuration Options
+
+```typescript
+interface GameTopBarConfig {
+    width: number;
+    height?: number;           // Default: 60
+    padding?: number;          // Default: 15
+    resources?: ResourceItemConfig[];
+    showSettings?: boolean;    // Default: true
+    onSettingsClick?: () => void;
+}
+
+interface ResourceItemConfig {
+    type: 'lives' | 'coins' | 'gems' | 'energy' | 'custom';
+    value: number;
+    max?: number;              // For lives/energy with max display
+    icon?: 'heart' | 'coin' | 'gem' | 'energy' | 'custom';
+    iconColor?: number;
+    backgroundColor?: number;
+    showAddButton?: boolean;
+    label?: string;            // e.g., "MAX"
+    onClick?: () => void;
+    onAddClick?: () => void;
+}
+```
+
+### Resource Types
+
+```typescript
+// Lives with MAX label
+{
+    type: 'lives',
+    value: 5,
+    label: 'MAX',
+    icon: 'heart'
+}
+
+// Coins with add button
+{
+    type: 'coins',
+    value: 1340,
+    showAddButton: true,
+    icon: 'coin',
+    onAddClick: () => openShop()
+}
+
+// Gems
+{
+    type: 'gems',
+    value: 250,
+    showAddButton: true,
+    icon: 'gem'
+}
+
+// Energy
+{
+    type: 'energy',
+    value: 8,
+    max: 10,
+    icon: 'energy'
+}
+```
+
+### Updating Resources
+
+```typescript
+// Update with animation (default)
+topBar.updateResource('coins', 1500, true);
+
+// Update without animation
+topBar.updateResource('lives', 4, false);
+```
+
+### Events
+
+```typescript
+// Settings button clicked
+topBar.on('settings-click', () => {
+    openSettings();
+});
+
+// Add button clicked
+topBar.on('add-click', (resourceType) => {
+    if (resourceType === 'coins') {
+        openCoinShop();
+    }
+});
+```
+
+---
+
+## TopBar (Basic)
+
+For simpler HUD needs, use the basic `TopBar` component:
 
 ```typescript
 import { TopBar, TopBarItemType } from 'gamebyte-framework';
@@ -40,12 +174,6 @@ const topBar = new TopBar({
 
 scene.addChild(topBar.getContainer());
 ```
-
-<LiveDemo
-  src="/demos/ui-topbar.html"
-  height={150}
-  title="TopBar Demo"
-/>
 
 ## Configuration Options
 

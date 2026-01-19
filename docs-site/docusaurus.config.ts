@@ -109,45 +109,6 @@ const config: Config = {
           position: 'left',
         },
         {
-          type: 'dropdown',
-          label: 'Examples',
-          position: 'left',
-          items: [
-            {
-              label: 'Platformer Game',
-              href: '/demos/platformer-physics.html',
-            },
-            {
-              label: 'Merge Puzzle',
-              href: '/demos/merge-puzzle.html',
-            },
-            {
-              type: 'html',
-              value: '<hr style="margin: 4px 0;">',
-            },
-            {
-              label: 'Physics 2D',
-              href: '/demos/physics-2d.html',
-            },
-            {
-              label: 'Hybrid Game',
-              href: '/demos/hybrid-game.html',
-            },
-            {
-              label: 'UI Components',
-              href: '/demos/ui-button-basic.html',
-            },
-            {
-              type: 'html',
-              value: '<hr style="margin: 4px 0;">',
-            },
-            {
-              label: 'All Demos',
-              to: '/examples',
-            },
-          ],
-        },
-        {
           to: '/ai-agent-guide',
           label: 'AI Agents',
           position: 'left',

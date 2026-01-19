@@ -41,7 +41,9 @@
       "Bash(node analyze-game-code.js:*)",
       "Bash(node extract-mechanics.js:*)",
       "Bash(gh api:*)",
-      "Bash(yes:*)"
+      "Bash(yes:*)",
+      "Bash(/bin/rm:*)",
+      "Bash(/bin/cp:*)"
     ],
     "deny": [],
     "ask": []
