@@ -49,10 +49,13 @@ export class GameBottomSheet extends GamePanel {
   private isDragging: boolean = false;
   private dragStartY: number = 0;
   private panelStartY: number = 0;
+  private originalHeightConfig: BottomSheetHeight;
 
   constructor(config: GameBottomSheetConfig = {}) {
-    // Convert height to number for parent
-    const numericHeight = GameBottomSheet.resolveHeight(config.height, 1280);
+    // Store original height config for recalculation in initialize()
+    const heightConfig = config.height ?? 'auto';
+    // Use temporary height, will be recalculated in initialize() with actual screen dimensions
+    const numericHeight = GameBottomSheet.resolveHeight(heightConfig, 1280);
 
     super({
       ...config,
@@ -60,6 +63,7 @@ export class GameBottomSheet extends GamePanel {
       borderRadius: config.borderRadius || 24,
     });
 
+    this.originalHeightConfig = heightConfig;
     this.animationDuration = config.animationDuration || 300;
     this.showHandle = config.showHandle ?? true;
     this.dragToClose = config.dragToClose ?? true;
@@ -90,7 +94,8 @@ export class GameBottomSheet extends GamePanel {
   public initialize(screenWidth: number, screenHeight: number): void {
     this.screenHeight = screenHeight;
 
-    // Recalculate height if needed
+    // Recalculate height with actual screen dimensions
+    this.config.height = GameBottomSheet.resolveHeight(this.originalHeightConfig, screenHeight);
     // Update config width to match screen
     this.config.width = screenWidth;
 

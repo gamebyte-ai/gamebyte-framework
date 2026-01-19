@@ -125,6 +125,9 @@ export class PanelManager extends EventEmitter {
       // Panel was not a child of panelContainer, ignore
     }
 
+    // Destroy panel to free resources and prevent memory leaks
+    panel.destroy();
+
     this.emit('panel-closed', panel);
   }
 
