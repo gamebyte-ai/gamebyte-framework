@@ -114,55 +114,66 @@ export class GameStyleUITheme implements UITheme {
  * Game style color utilities
  */
 export const GameStyleColors = {
-  // Pre-defined button color schemes
+  // Pre-defined button color schemes - Mobile game style (Candy Crush, Brawl Stars)
   YELLOW_BUTTON: {
-    gradientTop: 0xFFE066,
-    gradientBottom: 0xFFB300,
-    border: 0xCC8800,
-    shadow: 0x996600,
-    highlight: 0xFFFFCC,
+    gradientTop: 0xFFD966,    // Bright golden yellow (top section)
+    gradientBottom: 0xE6A800, // Darker orange-gold (bottom section)
+    border: 0xB37700,         // Dark brown-orange border
+    shadow: 0x805500,         // Deep brown shadow
+    highlight: 0xFFF0B3,      // Light cream highlight
     text: 0xFFFFFF,
-    textStroke: 0x8B6914
+    textStroke: 0x805500
   },
 
   GREEN_BUTTON: {
-    gradientTop: 0x7DD87D,
-    gradientBottom: 0x4CAF50,
-    border: 0x2E7D32,
-    shadow: 0x1B5E20,
-    highlight: 0xC8E6C9,
+    gradientTop: 0x6DD66D,    // Bright lime green
+    gradientBottom: 0x3DA63D, // Forest green
+    border: 0x267326,         // Dark green border
+    shadow: 0x1A4D1A,         // Deep forest shadow
+    highlight: 0xB3FFB3,
     text: 0xFFFFFF,
-    textStroke: 0x1B5E20
+    textStroke: 0x1A4D1A
   },
 
   BLUE_BUTTON: {
-    gradientTop: 0x64B5F6,
-    gradientBottom: 0x2196F3,
-    border: 0x1565C0,
-    shadow: 0x0D47A1,
-    highlight: 0xBBDEFB,
+    gradientTop: 0x5DADEC,    // Sky blue
+    gradientBottom: 0x2E86C9, // Ocean blue
+    border: 0x1A5C8F,         // Dark navy border
+    shadow: 0x0D3A5C,         // Deep navy shadow
+    highlight: 0xB3DBFF,
     text: 0xFFFFFF,
-    textStroke: 0x0D47A1
+    textStroke: 0x0D3A5C
   },
 
   RED_BUTTON: {
-    gradientTop: 0xEF5350,
-    gradientBottom: 0xD32F2F,
-    border: 0xB71C1C,
-    shadow: 0x7F0000,
-    highlight: 0xFFCDD2,
+    gradientTop: 0xE85C5C,    // Coral red
+    gradientBottom: 0xC92A2A, // Deep red
+    border: 0x8F1A1A,         // Dark crimson border
+    shadow: 0x5C0D0D,         // Deep crimson shadow
+    highlight: 0xFFB3B3,
     text: 0xFFFFFF,
-    textStroke: 0x7F0000
+    textStroke: 0x5C0D0D
   },
 
   PURPLE_BUTTON: {
-    gradientTop: 0xBA68C8,
-    gradientBottom: 0x9C27B0,
-    border: 0x6A1B9A,
-    shadow: 0x4A148C,
-    highlight: 0xE1BEE7,
+    gradientTop: 0xAD6DD6,    // Lavender
+    gradientBottom: 0x8338B5, // Royal purple
+    border: 0x5C2680,         // Dark purple border
+    shadow: 0x3D1A54,         // Deep purple shadow
+    highlight: 0xDDB3FF,
     text: 0xFFFFFF,
-    textStroke: 0x4A148C
+    textStroke: 0x3D1A54
+  },
+
+  // Cream/Beige Play Button (Candy Crush style)
+  CREAM_BUTTON: {
+    gradientTop: 0xFFFBF0,
+    gradientBottom: 0xF5E6C8,
+    border: 0xD4A857,
+    shadow: 0x8B6914,
+    highlight: 0xFFFFFF,
+    text: 0x8B6914,
+    textStroke: 0xD4A857
   },
 
   // Hexagon level colors
@@ -196,6 +207,144 @@ export const GameStyleColors = {
     highlight: 0x8E99F3,
     text: 0xFFFFFF,
     textStroke: 0x283593
+  },
+
+  // Candy Crush style hexagon with golden border
+  HEXAGON_CANDY_BLUE: {
+    fill: 0x4A7BB7,
+    border: 0xFFB300,
+    highlight: 0x6B9BD1,
+    text: 0xFFFFFF,
+    textStroke: 0x2D4A6E,
+    outerBorder: 0xCC8800
+  },
+
+  HEXAGON_CANDY_CURRENT: {
+    fill: 0x5A9BD4,
+    border: 0xFFB300,
+    highlight: 0x7BB8E8,
+    text: 0xFFFFFF,
+    textStroke: 0x2D5A7E,
+    outerBorder: 0xCC8800,
+    glow: 0x00FFFF
+  },
+
+  HEXAGON_CANDY_LOCKED: {
+    fill: 0x4A5568,
+    border: 0x718096,
+    highlight: 0x5A6578,
+    text: 0xA0AEC0,
+    textStroke: 0x2D3748,
+    outerBorder: 0x4A5568
+  },
+
+  // Panel color schemes
+  PANEL_BLUE: {
+    fillTop: 0x5BA3E0,
+    fillBottom: 0x3B7BBF,
+    borderOuter: 0x1A4B7A,
+    borderInner: 0x2A6B9A,
+    borderWidth: 8,
+    titleColor: 0xFFFFFF,
+    titleStroke: 0x1A4B7A,
+    closeButtonBg: 0xE84C4C,
+    closeButtonBorder: 0x8B2020,
+    closeButtonX: 0xFFFFFF
+  },
+
+  PANEL_PURPLE: {
+    fillTop: 0xA478DC,
+    fillBottom: 0x7B4DB8,
+    borderOuter: 0x4A2878,
+    borderInner: 0x5A3888,
+    borderWidth: 8,
+    titleColor: 0xFFFFFF,
+    titleStroke: 0x4A2878,
+    closeButtonBg: 0xE84C4C,
+    closeButtonBorder: 0x8B2020,
+    closeButtonX: 0xFFFFFF
+  },
+
+  PANEL_GREEN: {
+    fillTop: 0x6FCF6F,
+    fillBottom: 0x4CAF50,
+    borderOuter: 0x2E7D32,
+    borderInner: 0x388E3C,
+    borderWidth: 8,
+    titleColor: 0xFFFFFF,
+    titleStroke: 0x2E7D32,
+    closeButtonBg: 0xE84C4C,
+    closeButtonBorder: 0x8B2020,
+    closeButtonX: 0xFFFFFF
+  },
+
+  PANEL_ORANGE: {
+    fillTop: 0xFFB74D,
+    fillBottom: 0xFF9800,
+    borderOuter: 0xE65100,
+    borderInner: 0xF57C00,
+    borderWidth: 8,
+    titleColor: 0xFFFFFF,
+    titleStroke: 0xE65100,
+    closeButtonBg: 0xE84C4C,
+    closeButtonBorder: 0x8B2020,
+    closeButtonX: 0xFFFFFF
+  },
+
+  PANEL_DARK: {
+    fillTop: 0x3D4A5C,
+    fillBottom: 0x2C3E50,
+    borderOuter: 0x1A252F,
+    borderInner: 0x2A3F4F,
+    borderWidth: 8,
+    titleColor: 0xFFFFFF,
+    titleStroke: 0x1A252F,
+    closeButtonBg: 0xE84C4C,
+    closeButtonBorder: 0x8B2020,
+    closeButtonX: 0xFFFFFF
+  },
+
+  PANEL_RED: {
+    fillTop: 0xE57373,
+    fillBottom: 0xD32F2F,
+    borderOuter: 0x8B1A1A,
+    borderInner: 0xB71C1C,
+    borderWidth: 8,
+    titleColor: 0xFFFFFF,
+    titleStroke: 0x8B1A1A,
+    closeButtonBg: 0x333333,
+    closeButtonBorder: 0x1A1A1A,
+    closeButtonX: 0xFFFFFF
+  },
+
+  // Top Bar Resource Pill Colors
+  TOP_BAR_LIVES: {
+    background: 0x1A1A2A,
+    border: 0x0D0D15,
+    iconColor: 0xFF4081,
+    textColor: 0xFFFFFF,
+    labelBackground: 0x2A2A3A,
+    labelColor: 0xFFFFFF
+  },
+
+  TOP_BAR_COINS: {
+    background: 0x4CAF50,
+    border: 0x2E7D32,
+    iconColor: 0xFFD700,
+    textColor: 0xFFFFFF,
+    addButtonBg: 0x66BB6A,
+    addButtonBorder: 0x43A047
+  },
+
+  // Bottom Navigation Colors
+  BOTTOM_NAV: {
+    background: 0x1A237E,
+    topBorder: 0x3949AB,
+    itemBackground: 0x283593,
+    itemHighlight: 0x3949AB,
+    itemActive: 0x5C6BC0,
+    textColor: 0xFFFFFF,
+    lockedColor: 0x757575
   }
 };
 
