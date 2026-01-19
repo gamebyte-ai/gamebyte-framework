@@ -1,21 +1,170 @@
 ---
 id: button
-title: UIButton
-description: Touch-friendly button component with visual effects
+title: Buttons
+description: Touch-friendly button components with game-style visual effects
 sidebar_position: 2
-keywords: [button, ui, click, touch, gradient, glow]
-llm_summary: "UIButton: new UIButton({ text, width, height, backgroundColor, gradient, glowEffect, rippleEffect }). Events: on('click', handler). Methods: setText(), setEnabled()."
+keywords: [button, ui, click, touch, gradient, glow, game-style]
+llm_summary: "GameStyleButton: Mobile game style buttons with multi-layer effects. UIButton: Basic buttons. GameStyleColors provides color schemes: YELLOW_BUTTON, GREEN_BUTTON, BLUE_BUTTON, RED_BUTTON, PURPLE_BUTTON."
 ---
 
-<!-- llm-context: ui-button, touch-friendly, gradient, glow-effect, ripple-effect, click-handler -->
+<!-- llm-context: ui-button, game-style-button, touch-friendly, gradient, glow-effect, candy-crush-style -->
 
 import LiveDemo from '@site/src/components/LiveDemo';
 
-# UIButton
+# Buttons
 
-A touch-friendly button with modern visual effects.
+GameByte provides two button components: **GameStyleButton** for mobile game UIs, and **UIButton** for basic buttons.
 
-## Basic Usage
+## Live Demo
+
+<LiveDemo
+  src="/demos/game-button-demo.html"
+  height={600}
+  title="GameStyleButton - Raised vs Flat Styles"
+/>
+
+## GameStyleButton
+
+A mobile-game style button with multi-layer effects inspired by Candy Crush, Brawl Stars, and Clash Royale.
+
+**Features:**
+- **Two visual styles:** `'raised'` (drop shadow) and `'flat'` (bottom edge)
+- Multi-layer border (dark outer, light inner)
+- Vertical gradient (light top, dark bottom)
+- Top shine/highlight effect
+- 3D bevel effect
+- Press animation with feedback
+- Bold text with stroke outline
+
+### Button Styles
+
+GameStyleButton supports two visual styles:
+
+| Style | Description | Best For |
+|-------|-------------|----------|
+| `'raised'` | Classic 3D with drop shadow | Candy Crush, Brawl Stars style |
+| `'flat'` | No shadow, thick bottom edge | Modern mobile games |
+
+```typescript
+// Raised style (default) - with drop shadow
+const raisedBtn = new GameStyleButton({
+    text: 'Play',
+    buttonStyle: 'raised',  // Default
+    colorScheme: GameStyleColors.YELLOW_BUTTON
+});
+
+// Flat style - bottom edge creates depth
+const flatBtn = new GameStyleButton({
+    text: 'Play',
+    buttonStyle: 'flat',
+    colorScheme: GameStyleColors.YELLOW_BUTTON
+});
+```
+
+### Basic Usage
+
+```typescript
+import { GameStyleButton, GameStyleColors } from 'gamebyte-framework';
+
+// Yellow Play Button (Candy Crush style)
+const playButton = new GameStyleButton({
+    text: 'Play',
+    width: 220,
+    height: 65,
+    fontSize: 30,
+    colorScheme: GameStyleColors.YELLOW_BUTTON
+});
+
+playButton.setPosition(100, 100);
+playButton.on('click', () => startGame());
+stage.addChild(playButton.getContainer());
+```
+
+### Color Schemes
+
+GameByte includes pre-defined color schemes for common button types:
+
+```typescript
+import { GameStyleButton, GameStyleColors } from 'gamebyte-framework';
+
+// Yellow (Play, Primary Action)
+const yellow = new GameStyleButton({
+    text: 'Play',
+    colorScheme: GameStyleColors.YELLOW_BUTTON
+});
+
+// Green (Success, Continue)
+const green = new GameStyleButton({
+    text: 'Continue',
+    colorScheme: GameStyleColors.GREEN_BUTTON
+});
+
+// Blue (Shop, Secondary)
+const blue = new GameStyleButton({
+    text: 'Shop',
+    colorScheme: GameStyleColors.BLUE_BUTTON
+});
+
+// Red (Cancel, Danger)
+const red = new GameStyleButton({
+    text: 'Cancel',
+    colorScheme: GameStyleColors.RED_BUTTON
+});
+
+// Purple (Special, Premium)
+const purple = new GameStyleButton({
+    text: 'Special',
+    colorScheme: GameStyleColors.PURPLE_BUTTON
+});
+```
+
+### Configuration Options
+
+```typescript
+interface GameStyleButtonConfig {
+    text?: string;
+    width?: number;              // Default: 200
+    height?: number;             // Default: 70
+    fontSize?: number;           // Default: 28
+    fontFamily?: string;         // Default: 'Fredoka One'
+    colorScheme?: GameButtonColorScheme;
+    buttonStyle?: 'raised' | 'flat';  // Default: 'raised'
+    borderRadius?: number;       // Default: 18
+    borderWidth?: number;        // Default: 5
+    shadowOffset?: number;       // Default: 5 (raised style only)
+    disabled?: boolean;
+}
+
+interface GameButtonColorScheme {
+    gradientTop: number;
+    gradientBottom: number;
+    border: number;
+    shadow: number;
+    highlight: number;
+    text: number;
+    textStroke: number;
+}
+```
+
+### Factory Functions
+
+Quick button creation with `GameButtons`:
+
+```typescript
+import { GameButtons } from 'gamebyte-framework';
+
+const play = GameButtons.play('Play', 220, 70);
+const success = GameButtons.success('Continue', 160, 56);
+const secondary = GameButtons.secondary('Shop', 160, 56);
+const danger = GameButtons.danger('Cancel', 160, 56);
+const special = GameButtons.special('Premium', 160, 56);
+```
+
+---
+
+## UIButton (Basic)
+
+For simpler button needs, use `UIButton`:
 
 ```typescript
 import { UIButton } from 'gamebyte-framework';
@@ -32,12 +181,6 @@ button.on('click', () => console.log('Button clicked!'));
 
 scene.addChild(button.getContainer());
 ```
-
-<LiveDemo
-  src="/demos/ui-button-basic.html"
-  height={200}
-  title="Basic Button"
-/>
 
 ## Configuration Options
 

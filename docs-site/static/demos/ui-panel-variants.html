@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UIPanel Variants Demo - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #0f172a; }
+        canvas { display: block; margin: 0 auto; }
+    </style>
+</head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
+
+    <script>
+        const { createGame } = GameByteFramework;
+
+        const CONFIG = { width: 400, height: 330 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.body.appendChild(canvas);
+
+        const game = createGame();
+
+        (async () => {
+            await game.initialize(canvas, '2d');
+            const renderer = game.make('renderer');
+            const stage = renderer.getStage();
+
+            // Background
+            const bg = new PIXI.Graphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill(0x0f172a);
+            stage.addChild(bg);
+
+            // Title
+            const title = new PIXI.Text({
+                text: 'Panel Variants',
+                style: { fontFamily: 'Arial Black', fontSize: 18, fill: 0xffffff }
+            });
+            title.x = CONFIG.width / 2 - title.width / 2;
+            title.y = 15;
+            stage.addChild(title);
+
+            // Card Style Panel (with shadow)
+            const cardShadow = new PIXI.Graphics();
+            cardShadow.roundRect(25, 60, 170, 100, 16);
+            cardShadow.fill({ color: 0x000000, alpha: 0.3 });
+            stage.addChild(cardShadow);
+
+            const card = new PIXI.Graphics();
+            card.roundRect(20, 55, 170, 100, 16);
+            card.fill(0x2d3748);
+            stage.addChild(card);
+
+            const cardLabel = new PIXI.Text({
+                text: 'Card Style',
+                style: { fontFamily: 'Arial', fontSize: 14, fill: 0xffffff }
+            });
+            cardLabel.x = 65;
+            cardLabel.y = 95;
+            stage.addChild(cardLabel);
+
+            // Glass Effect Panel
+            const glass = new PIXI.Graphics();
+            glass.roundRect(210, 55, 170, 100, 20);
+            glass.fill({ color: 0xffffff, alpha: 0.1 });
+            glass.stroke({ width: 1, color: 0xffffff, alpha: 0.3 });
+            stage.addChild(glass);
+
+            const glassLabel = new PIXI.Text({
+                text: 'Glass Effect',
+                style: { fontFamily: 'Arial', fontSize: 14, fill: 0xffffff }
+            });
+            glassLabel.x = 250;
+            glassLabel.y = 95;
+            stage.addChild(glassLabel);
+
+            // Gradient Header Panel
+            const gradientCanvas = document.createElement('canvas');
+            gradientCanvas.width = 360;
+            gradientCanvas.height = 60;
+            const ctx = gradientCanvas.getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, 60);
+            gradient.addColorStop(0, '#818cf8');
+            gradient.addColorStop(1, '#4f46e5');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.roundRect(0, 0, 360, 60, 12);
+            ctx.fill();
+
+            const gradPanel = new PIXI.Sprite(PIXI.Texture.from(gradientCanvas));
+            gradPanel.x = 20;
+            gradPanel.y = 175;
+            stage.addChild(gradPanel);
+
+            const gradLabel = new PIXI.Text({
+                text: 'Gradient Header',
+                style: { fontFamily: 'Arial', fontSize: 16, fontWeight: 'bold', fill: 0xffffff }
+            });
+            gradLabel.x = 145;
+            gradLabel.y = 195;
+            stage.addChild(gradLabel);
+
+            // Bordered Panel
+            const bordered = new PIXI.Graphics();
+            bordered.roundRect(20, 255, 360, 60, 8);
+            bordered.fill(0x1e293b);
+            bordered.stroke({ width: 2, color: 0x6366f1 });
+            stage.addChild(bordered);
+
+            const borderedLabel = new PIXI.Text({
+                text: 'Bordered Panel',
+                style: { fontFamily: 'Arial', fontSize: 14, fill: 0xffffff }
+            });
+            borderedLabel.x = 150;
+            borderedLabel.y = 278;
+            stage.addChild(borderedLabel);
+
+            game.start();
+        })();
+    </script>
+</body>
+</html>

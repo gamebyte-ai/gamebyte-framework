@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameStyleButton Demo - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #1a1a2e; }
+        canvas { display: block; margin: 0 auto; }
+    </style>
+</head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
+
+    <script>
+        const { createGame, GameStyleButton, GameStyleColors } = GameByteFramework;
+
+        const CONFIG = { width: 500, height: 680 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.body.appendChild(canvas);
+
+        const game = createGame();
+
+        (async () => {
+            await game.initialize(canvas, '2d');
+            const renderer = game.make('renderer');
+            const stage = renderer.getStage();
+
+            // Background
+            const bg = new PIXI.Graphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill(0x1a1a2e);
+            stage.addChild(bg);
+
+            // Title
+            const title = new PIXI.Text({
+                text: 'GameStyleButton',
+                style: { fontFamily: 'Arial Black', fontSize: 24, fill: 0xffffff }
+            });
+            title.x = CONFIG.width / 2 - title.width / 2;
+            title.y = 15;
+            stage.addChild(title);
+
+            // Style labels
+            const raisedLabel = new PIXI.Text({
+                text: "style: 'raised'",
+                style: { fontFamily: 'monospace', fontSize: 14, fill: 0x888888 }
+            });
+            raisedLabel.x = 70;
+            raisedLabel.y = 52;
+            stage.addChild(raisedLabel);
+
+            const flatLabel = new PIXI.Text({
+                text: "style: 'flat'",
+                style: { fontFamily: 'monospace', fontSize: 14, fill: 0x888888 }
+            });
+            flatLabel.x = 300;
+            flatLabel.y = 52;
+            stage.addChild(flatLabel);
+
+            // Button configurations
+            const buttonConfigs = [
+                { text: 'Play', colorScheme: GameStyleColors.YELLOW_BUTTON },
+                { text: 'Continue', colorScheme: GameStyleColors.GREEN_BUTTON },
+                { text: 'Shop', colorScheme: GameStyleColors.BLUE_BUTTON },
+                { text: 'Cancel', colorScheme: GameStyleColors.RED_BUTTON },
+                { text: 'Special', colorScheme: GameStyleColors.PURPLE_BUTTON },
+            ];
+
+            const startY = 75;
+            const buttonHeight = 60;
+            const buttonWidth = 180;
+            const gap = 15;
+
+            // Create raised style buttons (left column)
+            buttonConfigs.forEach((config, index) => {
+                const btn = new GameStyleButton({
+                    text: config.text,
+                    width: buttonWidth,
+                    height: buttonHeight,
+                    fontSize: 24,
+                    buttonStyle: 'raised',
+                    colorScheme: config.colorScheme
+                });
+                btn.setPosition(30, startY + index * (buttonHeight + gap));
+                btn.on('click', () => console.log(`${config.text} (raised) clicked!`));
+                stage.addChild(btn.getContainer());
+            });
+
+            // Create flat style buttons (right column)
+            buttonConfigs.forEach((config, index) => {
+                const btn = new GameStyleButton({
+                    text: config.text,
+                    width: buttonWidth,
+                    height: buttonHeight,
+                    fontSize: 24,
+                    buttonStyle: 'flat',
+                    colorScheme: config.colorScheme
+                });
+                btn.setPosition(260, startY + index * (buttonHeight + gap));
+                btn.on('click', () => console.log(`${config.text} (flat) clicked!`));
+                stage.addChild(btn.getContainer());
+            });
+
+            // Disabled button example
+            const disabledRaised = new GameStyleButton({
+                text: 'Locked',
+                width: buttonWidth,
+                height: 50,
+                fontSize: 20,
+                buttonStyle: 'raised',
+                disabled: true
+            });
+            disabledRaised.setPosition(30, startY + 5 * (buttonHeight + gap));
+            stage.addChild(disabledRaised.getContainer());
+
+            const disabledFlat = new GameStyleButton({
+                text: 'Locked',
+                width: buttonWidth,
+                height: 50,
+                fontSize: 20,
+                buttonStyle: 'flat',
+                disabled: true
+            });
+            disabledFlat.setPosition(260, startY + 5 * (buttonHeight + gap));
+            stage.addChild(disabledFlat.getContainer());
+
+            // Icon buttons row
+            const iconLabel = new PIXI.Text({
+                text: 'Icon Buttons:',
+                style: { fontFamily: 'monospace', fontSize: 14, fill: 0x888888 }
+            });
+            iconLabel.x = 30;
+            iconLabel.y = startY + 6 * (buttonHeight + gap) + 10;
+            stage.addChild(iconLabel);
+
+            const iconY = startY + 6 * (buttonHeight + gap) + 35;
+            const iconSize = 44;
+            const iconGap = 12;
+
+            // Close button
+            const closeBtn = GameByteFramework.GameButtons.close(iconSize);
+            closeBtn.setPosition(30, iconY);
+            closeBtn.on('click', () => console.log('Close clicked'));
+            stage.addChild(closeBtn.getContainer());
+
+            // Settings button
+            const settingsBtn = GameByteFramework.GameButtons.settings(iconSize);
+            settingsBtn.setPosition(30 + (iconSize + iconGap), iconY);
+            settingsBtn.on('click', () => console.log('Settings clicked'));
+            stage.addChild(settingsBtn.getContainer());
+
+            // Pause button
+            const pauseBtn = GameByteFramework.GameButtons.pause(iconSize);
+            pauseBtn.setPosition(30 + 2 * (iconSize + iconGap), iconY);
+            pauseBtn.on('click', () => console.log('Pause clicked'));
+            stage.addChild(pauseBtn.getContainer());
+
+            // Play icon button
+            const playIconBtn = GameByteFramework.GameButtons.playIcon(iconSize);
+            playIconBtn.setPosition(30 + 3 * (iconSize + iconGap), iconY);
+            playIconBtn.on('click', () => console.log('Play icon clicked'));
+            stage.addChild(playIconBtn.getContainer());
+
+            // Info button
+            const infoBtn = GameByteFramework.GameButtons.info(iconSize);
+            infoBtn.setPosition(30 + 4 * (iconSize + iconGap), iconY);
+            infoBtn.on('click', () => console.log('Info clicked'));
+            stage.addChild(infoBtn.getContainer());
+
+            // Home button
+            const homeBtn = GameByteFramework.GameButtons.home(iconSize);
+            homeBtn.setPosition(30 + 5 * (iconSize + iconGap), iconY);
+            homeBtn.on('click', () => console.log('Home clicked'));
+            stage.addChild(homeBtn.getContainer());
+
+            // Custom icon button
+            const customIcon = GameByteFramework.GameButtons.icon('♥', GameStyleColors.PURPLE_BUTTON, iconSize);
+            customIcon.setPosition(30 + 6 * (iconSize + iconGap), iconY);
+            customIcon.on('click', () => console.log('Heart clicked'));
+            stage.addChild(customIcon.getContainer());
+
+            game.start();
+        })();
+    </script>
+</body>
+</html>

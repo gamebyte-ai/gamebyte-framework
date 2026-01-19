@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UIButton Effects Demo - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #1a1a2e; }
+        canvas { display: block; margin: 0 auto; }
+    </style>
+</head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
+
+    <script>
+        const { createGame, GameStyleButton, GameStyleColors } = GameByteFramework;
+
+        const CONFIG = { width: 400, height: 320 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.body.appendChild(canvas);
+
+        const game = createGame();
+
+        (async () => {
+            await game.initialize(canvas, '2d');
+            const renderer = game.make('renderer');
+            const stage = renderer.getStage();
+
+            // Background
+            const bg = new PIXI.Graphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill(0x1a1a2e);
+            stage.addChild(bg);
+
+            // Title
+            const title = new PIXI.Text({
+                text: 'Button Effects',
+                style: { fontFamily: 'Arial Black', fontSize: 18, fill: 0xffffff }
+            });
+            title.x = CONFIG.width / 2 - title.width / 2;
+            title.y = 15;
+            stage.addChild(title);
+
+            // Yellow button (Gradient)
+            const yellowBtn = new GameStyleButton({
+                text: 'GRADIENT',
+                width: 170,
+                height: 55,
+                fontSize: 18,
+                colorScheme: GameStyleColors.YELLOW_BUTTON
+            });
+            yellowBtn.setPosition(20, 55);
+            stage.addChild(yellowBtn.getContainer());
+
+            // Green button (Glow)
+            const greenBtn = new GameStyleButton({
+                text: 'GLOW',
+                width: 170,
+                height: 55,
+                fontSize: 18,
+                colorScheme: GameStyleColors.GREEN_BUTTON
+            });
+            greenBtn.setPosition(210, 55);
+            stage.addChild(greenBtn.getContainer());
+
+            // Blue button (Shadow)
+            const blueBtn = new GameStyleButton({
+                text: 'SHADOW',
+                width: 170,
+                height: 55,
+                fontSize: 18,
+                colorScheme: GameStyleColors.BLUE_BUTTON
+            });
+            blueBtn.setPosition(20, 125);
+            stage.addChild(blueBtn.getContainer());
+
+            // Red button (Ripple)
+            const redBtn = new GameStyleButton({
+                text: 'RIPPLE',
+                width: 170,
+                height: 55,
+                fontSize: 18,
+                colorScheme: GameStyleColors.RED_BUTTON
+            });
+            redBtn.setPosition(210, 125);
+            stage.addChild(redBtn.getContainer());
+
+            // Purple button (All effects - pill shape)
+            const purpleBtn = new GameStyleButton({
+                text: 'ALL EFFECTS',
+                width: 360,
+                height: 65,
+                fontSize: 22,
+                colorScheme: GameStyleColors.PURPLE_BUTTON,
+                borderRadius: 32
+            });
+            purpleBtn.setPosition(20, 200);
+            stage.addChild(purpleBtn.getContainer());
+
+            // Info text
+            const info = new PIXI.Text({
+                text: 'Click buttons to see press animation',
+                style: { fontFamily: 'Arial', fontSize: 12, fill: 0x888888 }
+            });
+            info.x = CONFIG.width / 2 - info.width / 2;
+            info.y = 285;
+            stage.addChild(info);
+
+            // Click handlers
+            [yellowBtn, greenBtn, blueBtn, redBtn, purpleBtn].forEach(btn => {
+                btn.on('click', () => console.log(`${btn.config?.text || 'Button'} clicked!`));
+            });
+
+            game.start();
+        })();
+    </script>
+</body>
+</html>

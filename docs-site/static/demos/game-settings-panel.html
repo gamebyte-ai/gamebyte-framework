@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameStylePanel Settings Demo - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #1A2744; }
+        canvas { display: block; margin: 0 auto; }
+    </style>
+</head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
+
+    <script>
+        const { createGame, GameStylePanel, GameToggle, GameStyleButton, GameStyleColors } = GameByteFramework;
+
+        const CONFIG = { width: 400, height: 550 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.body.appendChild(canvas);
+
+        const game = createGame();
+
+        (async () => {
+            await game.initialize(canvas, '2d');
+            const renderer = game.make('renderer');
+            const stage = renderer.getStage();
+
+            // Dark background
+            const bg = new PIXI.Graphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill(0x1A2744);
+            stage.addChild(bg);
+
+            // Create Settings Panel
+            const settingsPanel = new GameStylePanel({
+                width: 360,
+                height: 480,
+                title: 'SETTINGS',
+                showCloseButton: true,
+                colorScheme: GameStyleColors.PANEL_BLUE,
+                onClose: () => console.log('Panel closed!')
+            });
+            settingsPanel.setPosition(20, 30);
+            stage.addChild(settingsPanel.getContainer());
+
+            // Get content container reference
+            const content = settingsPanel.getContentContainer();
+
+            // Settings row helper
+            function createSettingRow(iconText, label, y, toggleValue) {
+                const row = new PIXI.Container();
+                row.y = y;
+
+                // Icon background
+                const iconBg = new PIXI.Graphics();
+                iconBg.roundRect(0, 0, 44, 44, 10);
+                iconBg.fill(0xFFFFFF);
+                row.addChild(iconBg);
+
+                // Icon (emoji text)
+                const icon = new PIXI.Text({
+                    text: iconText,
+                    style: { fontSize: 24 }
+                });
+                icon.x = 10;
+                icon.y = 8;
+                row.addChild(icon);
+
+                // Label
+                const labelText = new PIXI.Text({
+                    text: label,
+                    style: {
+                        fontFamily: 'Arial Black',
+                        fontSize: 20,
+                        fill: 0xFFFFFF,
+                        fontWeight: 'bold'
+                    }
+                });
+                labelText.x = 60;
+                labelText.y = 10;
+                row.addChild(labelText);
+
+                // Toggle
+                const toggle = new GameToggle({
+                    width: 70,
+                    height: 36,
+                    value: toggleValue,
+                    onChange: (val) => console.log(`${label}: ${val}`)
+                });
+                toggle.setPosition(230, 4);
+                row.addChild(toggle.getContainer());
+
+                return row;
+            }
+
+            // Add setting rows
+            const musicRow = createSettingRow('🎵', 'Music', 0, true);
+            content.addChild(musicRow);
+
+            const soundsRow = createSettingRow('🔊', 'Sounds', 60, true);
+            content.addChild(soundsRow);
+
+            const hapticRow = createSettingRow('📳', 'Haptic', 120, false);
+            content.addChild(hapticRow);
+
+            // Action buttons row
+            const buttonsRow1 = new PIXI.Container();
+            buttonsRow1.y = 195;
+            content.addChild(buttonsRow1);
+
+            // Privacy Settings button
+            const privacyBtn = new GameStyleButton({
+                text: 'Privacy\nSettings',
+                width: 145,
+                height: 70,
+                fontSize: 15,
+                colorScheme: GameStyleColors.YELLOW_BUTTON
+            });
+            privacyBtn.setPosition(0, 0);
+            privacyBtn.on('click', () => console.log('Privacy Settings'));
+            buttonsRow1.addChild(privacyBtn.getContainer());
+
+            // Contact Us button
+            const contactBtn = new GameStyleButton({
+                text: 'Contact\nUs',
+                width: 145,
+                height: 70,
+                fontSize: 15,
+                colorScheme: GameStyleColors.GREEN_BUTTON
+            });
+            contactBtn.setPosition(155, 0);
+            contactBtn.on('click', () => console.log('Contact Us'));
+            buttonsRow1.addChild(contactBtn.getContainer());
+
+            // Restore Purchases button
+            const restoreBtn = new GameStyleButton({
+                text: 'Restore Purchases',
+                width: 300,
+                height: 60,
+                fontSize: 18,
+                colorScheme: GameStyleColors.PURPLE_BUTTON
+            });
+            restoreBtn.setPosition(0, 280);
+            restoreBtn.on('click', () => console.log('Restore Purchases'));
+            content.addChild(restoreBtn.getContainer());
+
+            // Version text
+            const version = new PIXI.Text({
+                text: '0.15.0 (2)',
+                style: {
+                    fontFamily: 'Arial',
+                    fontSize: 14,
+                    fill: 0x6B8CB8
+                }
+            });
+            version.x = 120;
+            version.y = 365;
+            content.addChild(version);
+
+            game.start();
+        })();
+    </script>
+</body>
+</html>

@@ -474,9 +474,14 @@ export class GameStyleButton extends EventEmitter {
     this.isPressed = true;
     this.render();
 
-    // Scale feedback
-    this.container.scale.x = 0.97;
-    this.container.scale.y = 0.97;
+    // Scale from center - apply scale and offset to compensate
+    const scale = 0.96;
+    const offsetX = this.config.width * (1 - scale) / 2;
+    const offsetY = this.config.height * (1 - scale) / 2;
+    this.container.scale.x = scale;
+    this.container.scale.y = scale;
+    this.container.x += offsetX;
+    this.container.y += offsetY;
 
     this.emit('press', event);
   }
@@ -484,12 +489,17 @@ export class GameStyleButton extends EventEmitter {
   private onPointerUp(event: any): void {
     if (this.config.disabled) return;
 
-    this.isPressed = false;
-    this.render();
-
-    // Scale back
+    // Restore position before scale reset
+    const scale = 0.96;
+    const offsetX = this.config.width * (1 - scale) / 2;
+    const offsetY = this.config.height * (1 - scale) / 2;
+    this.container.x -= offsetX;
+    this.container.y -= offsetY;
     this.container.scale.x = 1;
     this.container.scale.y = 1;
+
+    this.isPressed = false;
+    this.render();
 
     this.emit('click', event);
     this.emit('release', event);
@@ -498,11 +508,17 @@ export class GameStyleButton extends EventEmitter {
   private onPointerUpOutside(): void {
     if (this.config.disabled) return;
 
-    this.isPressed = false;
-    this.render();
-
+    // Restore position before scale reset
+    const scale = 0.96;
+    const offsetX = this.config.width * (1 - scale) / 2;
+    const offsetY = this.config.height * (1 - scale) / 2;
+    this.container.x -= offsetX;
+    this.container.y -= offsetY;
     this.container.scale.x = 1;
     this.container.scale.y = 1;
+
+    this.isPressed = false;
+    this.render();
 
     this.emit('cancel');
   }
@@ -649,5 +665,70 @@ export const GameButtons = {
       borderRadius: 18,
       shadowOffset: 5
     });
+  },
+
+  /**
+   * Create a small square icon button (e.g., close, settings)
+   * @param icon - Icon character (emoji or text like '✕', '⚙', '⏸')
+   * @param colorScheme - Color scheme (default: RED for close buttons)
+   * @param size - Button size (default: 40)
+   */
+  icon(
+    icon: string,
+    colorScheme: GameButtonColorScheme = GameStyleColors.RED_BUTTON,
+    size: number = 40
+  ): GameStyleButton {
+    return new GameStyleButton({
+      text: icon,
+      width: size,
+      height: size,
+      fontSize: Math.floor(size * 0.5),
+      colorScheme,
+      borderRadius: Math.floor(size * 0.25),
+      borderWidth: 2,
+      shadowOffset: 3
+    });
+  },
+
+  /**
+   * Create a close (X) icon button - red square
+   */
+  close(size: number = 40): GameStyleButton {
+    return GameButtons.icon('✕', GameStyleColors.RED_BUTTON, size);
+  },
+
+  /**
+   * Create a settings (gear) icon button
+   */
+  settings(size: number = 40): GameStyleButton {
+    return GameButtons.icon('⚙', GameStyleColors.BLUE_BUTTON, size);
+  },
+
+  /**
+   * Create a pause icon button
+   */
+  pause(size: number = 40): GameStyleButton {
+    return GameButtons.icon('⏸', GameStyleColors.YELLOW_BUTTON, size);
+  },
+
+  /**
+   * Create a play icon button (triangle)
+   */
+  playIcon(size: number = 40): GameStyleButton {
+    return GameButtons.icon('▶', GameStyleColors.GREEN_BUTTON, size);
+  },
+
+  /**
+   * Create an info icon button
+   */
+  info(size: number = 40): GameStyleButton {
+    return GameButtons.icon('ℹ', GameStyleColors.BLUE_BUTTON, size);
+  },
+
+  /**
+   * Create a home icon button
+   */
+  home(size: number = 40): GameStyleButton {
+    return GameButtons.icon('🏠', GameStyleColors.YELLOW_BUTTON, size);
   }
 };

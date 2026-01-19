@@ -9,9 +9,19 @@ llm_summary: "Mobile-first UI: 44px touch targets, gradients, glow effects. Comp
 
 <!-- llm-context: ui-system, mobile-first, touch-targets, components, gradients, glow-effects -->
 
+import LiveDemo from '@site/src/components/LiveDemo';
+
 # UI Components Overview
 
-GameByte provides a comprehensive UI system optimized for mobile games.
+GameByte provides a comprehensive UI system optimized for mobile games with **game-style components** inspired by hit titles like Candy Crush, Brawl Stars, and Clash Royale.
+
+## Live Demo
+
+<LiveDemo
+  src="/demos/game-ui-showcase.html"
+  height={700}
+  title="Game UI Showcase"
+/>
 
 ## Design Principles
 
@@ -31,54 +41,87 @@ GameByte provides a comprehensive UI system optimized for mobile games.
 
 ## Available Components
 
+### Game-Style Components
+
+Mobile game UI components with polished visuals:
+
+| Component | Description |
+|-----------|-------------|
+| [`GameStyleButton`](/ui-components/button) | Candy Crush style buttons with multi-layer effects |
+| [`GameTopBar`](/ui-components/topbar) | Resource bar with lives, coins, gems, settings |
+| [`HexagonLevelButton`](/ui-components/level-selector) | Hexagon level buttons with stars and states |
+| [`LevelPath`](/ui-components/level-selector) | Level map path connecting hexagon buttons |
+| [`GameBottomNav`](/ui-components/navigation) | Bottom navigation with shop, play, settings |
+
+### Basic Components
+
+Simple UI building blocks:
+
 | Component | Description |
 |-----------|-------------|
 | [`UIButton`](/ui-components/button) | Touch-friendly button with effects |
 | [`UIPanel`](/ui-components/panel) | Container with background/border |
 | [`UIText`](/ui-components/text) | Styled text display |
-| [`TopBar`](/ui-components/topbar) | Resource/timer bar at screen top |
+| [`TopBar`](/ui-components/topbar) | Basic resource/timer bar |
 | [`UIProgressBar`](/ui-components/progress-bar) | Progress/health indicators |
 | [`UIContainer`](/ui-components/responsive-layout) | Flexible layout container |
 
 ## Quick Example
 
 ```typescript
-import { UIButton, UIPanel, UIText, TopBar } from 'gamebyte-framework';
+import {
+    GameStyleButton,
+    GameStyleColors,
+    GameTopBar,
+    HexagonLevelButton,
+    GameBottomNav
+} from 'gamebyte-framework';
 
-// Create a menu panel
-const panel = new UIPanel({
-    width: 300,
-    height: 400,
-    backgroundColor: 0x1a1a2e,
-    borderRadius: 16,
-    shadowEffect: true
-});
-
-// Add title
-const title = new UIText({
-    text: 'MAIN MENU',
+// Game-style play button (Candy Crush style)
+const playButton = new GameStyleButton({
+    text: 'Play',
+    width: 220,
+    height: 70,
     fontSize: 32,
-    fontWeight: 'bold',
-    color: 0xffffff
+    colorScheme: GameStyleColors.YELLOW_BUTTON
 });
-
-// Add play button
-const playButton = new UIButton({
-    text: 'PLAY',
-    width: 200,
-    height: 60,
-    backgroundColor: 0x4CAF50,
-    gradient: { enabled: true },
-    glowEffect: true,
-    rippleEffect: true
-});
-
 playButton.on('click', () => startGame());
 
-// Add to scene
-panel.addChild(title.getContainer());
-panel.addChild(playButton.getContainer());
-scene.addChild(panel.getContainer());
+// Resource bar with lives and coins
+const topBar = new GameTopBar({
+    width: 400,
+    height: 55,
+    resources: [
+        { type: 'lives', value: 5, label: 'MAX', icon: 'heart' },
+        { type: 'coins', value: 1340, showAddButton: true, icon: 'coin' }
+    ],
+    showSettings: true
+});
+
+// Hexagon level button
+const levelButton = new HexagonLevelButton({
+    level: 17,
+    size: 70,
+    state: 'current',
+    colorScheme: GameStyleColors.HEXAGON_CANDY_CURRENT
+});
+
+// Bottom navigation
+const bottomNav = new GameBottomNav({
+    width: 400,
+    height: 85,
+    items: [
+        { id: 'shop', type: 'shop' },
+        { id: 'play', type: 'play', highlighted: true },
+        { id: 'settings', type: 'settings' }
+    ]
+});
+
+// Add to stage
+stage.addChild(topBar.getContainer());
+stage.addChild(playButton.getContainer());
+stage.addChild(levelButton.getContainer());
+stage.addChild(bottomNav.getContainer());
 ```
 
 ## Component Architecture

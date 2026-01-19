@@ -29,6 +29,7 @@ export interface IDisplayObject extends EventEmitter {
 export interface IContainer extends IDisplayObject {
   children: IDisplayObject[];
   eventMode?: string | 'none' | 'passive' | 'auto' | 'static' | 'dynamic';
+  hitArea?: { contains(x: number, y: number): boolean } | any;
 
   addChild(child: IDisplayObject): IDisplayObject;
   removeChild(child: IDisplayObject): IDisplayObject;

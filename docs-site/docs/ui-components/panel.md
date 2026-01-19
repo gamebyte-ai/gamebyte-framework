@@ -1,21 +1,261 @@
 ---
 id: panel
-title: UIPanel
-description: Container component with background and border
+title: Panels
+description: Game-style and basic panel components for containers and dialogs
 sidebar_position: 3
-keywords: [panel, container, background, border, card]
-llm_summary: "UIPanel: container with styled background. new UIPanel({ width, height, backgroundColor, borderRadius, shadowEffect }). Use addChild() to add content."
+keywords: [panel, container, background, border, card, game-style, settings, dialog]
+llm_summary: "GameStylePanel: Mobile game style skinnable panel with title bar, close button, gradient background. Color schemes: PANEL_BLUE, PANEL_PURPLE, PANEL_GREEN, PANEL_ORANGE, PANEL_DARK. UIPanel: Basic container."
 ---
 
-<!-- llm-context: ui-panel, container, background, border, card, modal, dialog -->
+<!-- llm-context: ui-panel, game-style-panel, container, background, border, card, modal, dialog, settings -->
 
 import LiveDemo from '@site/src/components/LiveDemo';
 
-# UIPanel
+# Panels
 
-A styled container for grouping UI elements.
+GameByte provides **GameStylePanel** for mobile game style dialogs with skinnable borders, and **UIPanel** for basic containers.
 
-## Basic Usage
+## Live Demo
+
+<LiveDemo
+  src="/demos/game-settings-panel.html"
+  height={570}
+  title="GameStylePanel Settings"
+/>
+
+## GameStylePanel
+
+A mobile game style panel with multi-layer borders, gradient backgrounds, title bar, and close button. Inspired by Candy Crush, Brawl Stars, and Clash Royale.
+
+**Features:**
+- Multi-layer border effect (outer + inner)
+- Vertical gradient background
+- Title bar with bold text and stroke
+- Close button (red X)
+- Customizable color schemes
+- Drop shadow
+- Content area with padding
+
+### Basic Usage
+
+```typescript
+import { GameStylePanel, GameStyleColors } from 'gamebyte-framework';
+
+const settingsPanel = new GameStylePanel({
+    width: 350,
+    height: 400,
+    title: 'SETTINGS',
+    showCloseButton: true,
+    colorScheme: GameStyleColors.PANEL_BLUE,
+    onClose: () => settingsPanel.hide()
+});
+
+settingsPanel.setPosition(25, 100);
+stage.addChild(settingsPanel.getContainer());
+```
+
+### Configuration Options
+
+```typescript
+interface GameStylePanelConfig {
+    width?: number;           // Default: 350
+    height?: number;          // Default: 400
+    title?: string;           // Panel title
+    showCloseButton?: boolean; // Default: true
+    colorScheme?: GamePanelColorScheme;
+    borderRadius?: number;    // Default: 24
+    borderWidth?: number;     // Default: 8
+    titleFontSize?: number;   // Default: 28
+    padding?: number;         // Default: 20
+    onClose?: () => void;     // Close button callback
+}
+
+interface GamePanelColorScheme {
+    fillTop: number;          // Gradient top color
+    fillBottom: number;       // Gradient bottom color
+    borderOuter: number;      // Outer border color
+    borderInner: number;      // Inner border color
+    borderWidth: number;
+    titleColor: number;       // Title text color
+    titleStroke: number;      // Title stroke color
+    closeButtonBg: number;    // Close button background
+    closeButtonBorder: number;
+    closeButtonX: number;     // X icon color
+}
+```
+
+### Color Schemes
+
+```typescript
+import { GameStylePanel, GameStyleColors } from 'gamebyte-framework';
+
+// Blue (default)
+GameStyleColors.PANEL_BLUE
+
+// Purple
+GameStyleColors.PANEL_PURPLE
+
+// Green
+GameStyleColors.PANEL_GREEN
+
+// Orange
+GameStyleColors.PANEL_ORANGE
+
+// Dark
+GameStyleColors.PANEL_DARK
+
+// Red
+GameStyleColors.PANEL_RED
+```
+
+### Adding Content
+
+```typescript
+const panel = new GameStylePanel({
+    width: 350,
+    height: 400,
+    title: 'SETTINGS'
+});
+
+// Get the content container
+const content = panel.getContentContainer();
+
+// Add your UI elements to content
+const musicToggle = new GameToggle({ value: true });
+musicToggle.setPosition(0, 0);
+content.addChild(musicToggle.getContainer());
+
+const playButton = new GameStyleButton({
+    text: 'Play',
+    colorScheme: GameStyleColors.GREEN_BUTTON
+});
+playButton.setPosition(0, 60);
+content.addChild(playButton.getContainer());
+```
+
+### Methods
+
+```typescript
+// Position
+panel.setPosition(x, y);
+const pos = panel.getPosition();
+
+// Visibility
+panel.show();
+panel.hide();
+panel.setVisible(visible);
+
+// Title
+panel.setTitle('NEW TITLE');
+
+// Color scheme
+panel.setColorScheme(GameStyleColors.PANEL_PURPLE);
+
+// Content
+panel.addContent(component);
+panel.removeContent(component);
+panel.clearContent();
+const contentContainer = panel.getContentContainer();
+
+// Size info
+const size = panel.getSize();
+const contentSize = panel.getContentSize();
+
+// Events
+panel.on('close', () => console.log('Close button clicked'));
+panel.on('show', () => console.log('Panel shown'));
+panel.on('hide', () => console.log('Panel hidden'));
+```
+
+### Settings Panel Example
+
+```typescript
+import {
+    GameStylePanel,
+    GameStyleButton,
+    GameToggle,
+    GameStyleColors
+} from 'gamebyte-framework';
+
+class SettingsScreen {
+    private panel: GameStylePanel;
+    private musicToggle: GameToggle;
+    private soundToggle: GameToggle;
+
+    constructor(stage: PIXI.Container) {
+        this.panel = new GameStylePanel({
+            width: 350,
+            height: 450,
+            title: 'SETTINGS',
+            colorScheme: GameStyleColors.PANEL_BLUE,
+            onClose: () => this.close()
+        });
+
+        const content = this.panel.getContentContainer();
+
+        // Music toggle
+        this.musicToggle = new GameToggle({ value: true });
+        this.musicToggle.setPosition(200, 0);
+        this.musicToggle.on('change', (val) => this.setMusic(val));
+        content.addChild(this.musicToggle.getContainer());
+
+        // Sound toggle
+        this.soundToggle = new GameToggle({ value: true });
+        this.soundToggle.setPosition(200, 50);
+        this.soundToggle.on('change', (val) => this.setSound(val));
+        content.addChild(this.soundToggle.getContainer());
+
+        // Save button
+        const saveBtn = new GameStyleButton({
+            text: 'Save',
+            width: 200,
+            height: 60,
+            colorScheme: GameStyleColors.GREEN_BUTTON
+        });
+        saveBtn.setPosition(50, 150);
+        saveBtn.on('click', () => this.save());
+        content.addChild(saveBtn.getContainer());
+
+        this.panel.setPosition(25, 75);
+        stage.addChild(this.panel.getContainer());
+    }
+
+    show(): void {
+        this.panel.show();
+    }
+
+    close(): void {
+        this.panel.hide();
+    }
+
+    private setMusic(enabled: boolean): void {
+        console.log('Music:', enabled);
+    }
+
+    private setSound(enabled: boolean): void {
+        console.log('Sound:', enabled);
+    }
+
+    private save(): void {
+        console.log('Settings saved');
+        this.close();
+    }
+}
+```
+
+---
+
+## UIPanel (Basic)
+
+For simpler panel needs, use the basic `UIPanel` component.
+
+<LiveDemo
+  src="/demos/ui-panel-basic.html"
+  height={300}
+  title="Basic Panel"
+/>
+
+### Basic Usage
 
 ```typescript
 import { UIPanel, UIText, UIButton } from 'gamebyte-framework';
@@ -31,13 +271,7 @@ panel.setPosition(250, 200);
 scene.addChild(panel.getContainer());
 ```
 
-<LiveDemo
-  src="/demos/ui-panel-basic.html"
-  height={300}
-  title="Basic Panel"
-/>
-
-## Configuration Options
+### Configuration Options
 
 ```typescript
 interface UIPanelConfig {
@@ -74,39 +308,15 @@ interface UIPanelConfig {
 }
 ```
 
-## Adding Content
+### Panel Variants
 
-```typescript
-const panel = new UIPanel({
-    width: 300,
-    height: 400,
-    backgroundColor: 0x1a1a2e,
-    layout: 'vertical',
-    gap: 16,
-    padding: 24
-});
+<LiveDemo
+  src="/demos/ui-panel-variants.html"
+  height={350}
+  title="Panel Variants"
+/>
 
-// Add title
-const title = new UIText({
-    text: 'Settings',
-    fontSize: 28,
-    fontWeight: 'bold'
-});
-panel.addChild(title.getContainer());
-
-// Add buttons
-const soundBtn = new UIButton({ text: 'Sound: ON', width: 250, height: 50 });
-const musicBtn = new UIButton({ text: 'Music: ON', width: 250, height: 50 });
-const backBtn = new UIButton({ text: 'Back', width: 250, height: 50 });
-
-panel.addChild(soundBtn.getContainer());
-panel.addChild(musicBtn.getContainer());
-panel.addChild(backBtn.getContainer());
-```
-
-## Panel Variants
-
-### Card Style
+#### Card Style
 
 ```typescript
 const card = new UIPanel({
@@ -119,7 +329,7 @@ const card = new UIPanel({
 });
 ```
 
-### Glass Effect
+#### Glass Effect
 
 ```typescript
 const glass = new UIPanel({
@@ -133,7 +343,7 @@ const glass = new UIPanel({
 });
 ```
 
-### Gradient Header
+#### Gradient Header
 
 ```typescript
 const headerPanel = new UIPanel({
@@ -147,150 +357,4 @@ const headerPanel = new UIPanel({
     },
     borderRadius: 12
 });
-```
-
-<LiveDemo
-  src="/demos/ui-panel-variants.html"
-  height={350}
-  title="Panel Variants"
-/>
-
-## Layout System
-
-### Vertical Layout
-
-```typescript
-const menu = new UIPanel({
-    width: 250,
-    height: 300,
-    backgroundColor: 0x1a1a2e,
-    layout: 'vertical',
-    gap: 12,
-    alignItems: 'center',
-    padding: 20
-});
-
-// Children stack vertically
-menu.addChild(btn1.getContainer());
-menu.addChild(btn2.getContainer());
-menu.addChild(btn3.getContainer());
-```
-
-### Horizontal Layout
-
-```typescript
-const toolbar = new UIPanel({
-    width: 300,
-    height: 60,
-    backgroundColor: 0x2d3748,
-    layout: 'horizontal',
-    gap: 8,
-    alignItems: 'center',
-    padding: 8
-});
-
-toolbar.addChild(iconBtn1.getContainer());
-toolbar.addChild(iconBtn2.getContainer());
-toolbar.addChild(iconBtn3.getContainer());
-```
-
-## Modal Dialog
-
-```typescript
-function showModal(title: string, message: string): UIPanel {
-    // Backdrop
-    const backdrop = new UIPanel({
-        width: 800,
-        height: 600,
-        backgroundColor: 0x000000,
-        backgroundAlpha: 0.7
-    });
-
-    // Dialog
-    const dialog = new UIPanel({
-        width: 350,
-        height: 200,
-        backgroundColor: 0x1f2937,
-        borderRadius: 16,
-        shadowEffect: true,
-        layout: 'vertical',
-        gap: 16,
-        padding: 24,
-        alignItems: 'center'
-    });
-
-    dialog.setPosition(225, 200);
-
-    // Title
-    const titleText = new UIText({
-        text: title,
-        fontSize: 24,
-        fontWeight: 'bold'
-    });
-    dialog.addChild(titleText.getContainer());
-
-    // Message
-    const messageText = new UIText({
-        text: message,
-        fontSize: 16,
-        color: 0xcccccc
-    });
-    dialog.addChild(messageText.getContainer());
-
-    // Buttons
-    const buttonRow = new UIPanel({
-        width: 300,
-        height: 50,
-        backgroundColor: 0x1f2937,
-        backgroundAlpha: 0,
-        layout: 'horizontal',
-        gap: 16,
-        alignItems: 'center'
-    });
-
-    const cancelBtn = new UIButton({
-        text: 'Cancel',
-        width: 140,
-        height: 44,
-        backgroundColor: 0x4b5563
-    });
-
-    const confirmBtn = new UIButton({
-        text: 'Confirm',
-        width: 140,
-        height: 44,
-        backgroundColor: 0x22c55e
-    });
-
-    buttonRow.addChild(cancelBtn.getContainer());
-    buttonRow.addChild(confirmBtn.getContainer());
-    dialog.addChild(buttonRow.getContainer());
-
-    backdrop.addChild(dialog.getContainer());
-
-    return backdrop;
-}
-```
-
-## Methods
-
-```typescript
-// Add/remove children
-panel.addChild(component.getContainer());
-panel.removeChild(component.getContainer());
-panel.removeAllChildren();
-
-// Position
-panel.setPosition(x, y);
-
-// Size
-panel.setSize(width, height);
-
-// Background
-panel.setBackgroundColor(0x2d3748);
-panel.setBackgroundAlpha(0.8);
-
-// Visibility
-panel.show();
-panel.hide();
 ```

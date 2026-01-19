@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UIPanel Basic Demo - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #1a1a2e; }
+        canvas { display: block; margin: 0 auto; }
+    </style>
+</head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
+
+    <script>
+        const { createGame } = GameByteFramework;
+
+        const CONFIG = { width: 400, height: 280 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.body.appendChild(canvas);
+
+        const game = createGame();
+
+        (async () => {
+            await game.initialize(canvas, '2d');
+            const renderer = game.make('renderer');
+            const stage = renderer.getStage();
+
+            // Background
+            const bg = new PIXI.Graphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill(0x1a1a2e);
+            stage.addChild(bg);
+
+            // Panel with shadow
+            const shadowPanel = new PIXI.Graphics();
+            shadowPanel.roundRect(65, 45, 280, 200, 16);
+            shadowPanel.fill({ color: 0x000000, alpha: 0.3 });
+            stage.addChild(shadowPanel);
+
+            // Main panel
+            const panel = new PIXI.Graphics();
+            panel.roundRect(60, 40, 280, 200, 16);
+            panel.fill(0x2d3748);
+            stage.addChild(panel);
+
+            // Title
+            const title = new PIXI.Text({
+                text: 'Settings',
+                style: {
+                    fontFamily: 'Arial',
+                    fontSize: 24,
+                    fontWeight: 'bold',
+                    fill: 0xffffff
+                }
+            });
+            title.x = 160;
+            title.y = 60;
+            stage.addChild(title);
+
+            // Sound button
+            const soundBtn = new PIXI.Graphics();
+            soundBtn.roundRect(85, 110, 230, 44, 8);
+            soundBtn.fill(0x6366f1);
+            stage.addChild(soundBtn);
+
+            const soundText = new PIXI.Text({
+                text: 'Sound: ON',
+                style: { fontFamily: 'Arial', fontSize: 16, fill: 0xffffff }
+            });
+            soundText.x = 160;
+            soundText.y = 122;
+            stage.addChild(soundText);
+
+            // Music button
+            const musicBtn = new PIXI.Graphics();
+            musicBtn.roundRect(85, 165, 230, 44, 8);
+            musicBtn.fill(0x4b5563);
+            stage.addChild(musicBtn);
+
+            const musicText = new PIXI.Text({
+                text: 'Music: ON',
+                style: { fontFamily: 'Arial', fontSize: 16, fill: 0xffffff }
+            });
+            musicText.x = 163;
+            musicText.y = 177;
+            stage.addChild(musicText);
+
+            // Make buttons interactive
+            soundBtn.eventMode = 'static';
+            soundBtn.cursor = 'pointer';
+            let soundOn = true;
+            soundBtn.on('pointerdown', () => {
+                soundOn = !soundOn;
+                soundText.text = `Sound: ${soundOn ? 'ON' : 'OFF'}`;
+                soundBtn.clear();
+                soundBtn.roundRect(85, 110, 230, 44, 8);
+                soundBtn.fill(soundOn ? 0x6366f1 : 0x4b5563);
+            });
+
+            musicBtn.eventMode = 'static';
+            musicBtn.cursor = 'pointer';
+            let musicOn = true;
+            musicBtn.on('pointerdown', () => {
+                musicOn = !musicOn;
+                musicText.text = `Music: ${musicOn ? 'ON' : 'OFF'}`;
+                musicBtn.clear();
+                musicBtn.roundRect(85, 165, 230, 44, 8);
+                musicBtn.fill(musicOn ? 0x6366f1 : 0x4b5563);
+            });
+
+            game.start();
+        })();
+    </script>
+</body>
+</html>
