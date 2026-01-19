@@ -41133,51 +41133,61 @@
 	 * Game style color utilities
 	 */
 	const GameStyleColors = {
-	    // Pre-defined button color schemes
+	    // Pre-defined button color schemes - Mobile game style (Candy Crush, Brawl Stars)
 	    YELLOW_BUTTON: {
-	        gradientTop: 0xFFE066,
-	        gradientBottom: 0xFFB300,
-	        border: 0xCC8800,
-	        shadow: 0x996600,
-	        highlight: 0xFFFFCC,
+	        gradientTop: 0xFFD966, // Bright golden yellow (top section)
+	        gradientBottom: 0xE6A800, // Darker orange-gold (bottom section)
+	        border: 0xB37700, // Dark brown-orange border
+	        shadow: 0x805500, // Deep brown shadow
+	        highlight: 0xFFF0B3, // Light cream highlight
 	        text: 0xFFFFFF,
-	        textStroke: 0x8B6914
+	        textStroke: 0x805500
 	    },
 	    GREEN_BUTTON: {
-	        gradientTop: 0x7DD87D,
-	        gradientBottom: 0x4CAF50,
-	        border: 0x2E7D32,
-	        shadow: 0x1B5E20,
-	        highlight: 0xC8E6C9,
+	        gradientTop: 0x6DD66D, // Bright lime green
+	        gradientBottom: 0x3DA63D, // Forest green
+	        border: 0x267326, // Dark green border
+	        shadow: 0x1A4D1A, // Deep forest shadow
+	        highlight: 0xB3FFB3,
 	        text: 0xFFFFFF,
-	        textStroke: 0x1B5E20
+	        textStroke: 0x1A4D1A
 	    },
 	    BLUE_BUTTON: {
-	        gradientTop: 0x64B5F6,
-	        gradientBottom: 0x2196F3,
-	        border: 0x1565C0,
-	        shadow: 0x0D47A1,
-	        highlight: 0xBBDEFB,
+	        gradientTop: 0x5DADEC, // Sky blue
+	        gradientBottom: 0x2E86C9, // Ocean blue
+	        border: 0x1A5C8F, // Dark navy border
+	        shadow: 0x0D3A5C, // Deep navy shadow
+	        highlight: 0xB3DBFF,
 	        text: 0xFFFFFF,
-	        textStroke: 0x0D47A1
+	        textStroke: 0x0D3A5C
 	    },
 	    RED_BUTTON: {
-	        gradientTop: 0xEF5350,
-	        gradientBottom: 0xD32F2F,
-	        border: 0xB71C1C,
-	        shadow: 0x7F0000,
-	        highlight: 0xFFCDD2,
+	        gradientTop: 0xE85C5C, // Coral red
+	        gradientBottom: 0xC92A2A, // Deep red
+	        border: 0x8F1A1A, // Dark crimson border
+	        shadow: 0x5C0D0D, // Deep crimson shadow
+	        highlight: 0xFFB3B3,
 	        text: 0xFFFFFF,
-	        textStroke: 0x7F0000
+	        textStroke: 0x5C0D0D
 	    },
 	    PURPLE_BUTTON: {
-	        gradientTop: 0xBA68C8,
-	        gradientBottom: 0x9C27B0,
-	        border: 0x6A1B9A,
-	        shadow: 0x4A148C,
-	        highlight: 0xE1BEE7,
+	        gradientTop: 0xAD6DD6, // Lavender
+	        gradientBottom: 0x8338B5, // Royal purple
+	        border: 0x5C2680, // Dark purple border
+	        shadow: 0x3D1A54, // Deep purple shadow
+	        highlight: 0xDDB3FF,
 	        text: 0xFFFFFF,
-	        textStroke: 0x4A148C
+	        textStroke: 0x3D1A54
+	    },
+	    // Cream/Beige Play Button (Candy Crush style)
+	    CREAM_BUTTON: {
+	        gradientTop: 0xFFFBF0,
+	        gradientBottom: 0xF5E6C8,
+	        border: 0xD4A857,
+	        shadow: 0x8B6914,
+	        highlight: 0xFFFFFF,
+	        text: 0x8B6914,
+	        textStroke: 0xD4A857
 	    },
 	    // Hexagon level colors
 	    HEXAGON_BLUE: {
@@ -41207,6 +41217,132 @@
 	        highlight: 0x8E99F3,
 	        text: 0xFFFFFF,
 	        textStroke: 0x283593
+	    },
+	    // Candy Crush style hexagon with golden border
+	    HEXAGON_CANDY_BLUE: {
+	        fill: 0x4A7BB7,
+	        border: 0xFFB300,
+	        highlight: 0x6B9BD1,
+	        text: 0xFFFFFF,
+	        textStroke: 0x2D4A6E,
+	        outerBorder: 0xCC8800
+	    },
+	    HEXAGON_CANDY_CURRENT: {
+	        fill: 0x5A9BD4,
+	        border: 0xFFB300,
+	        highlight: 0x7BB8E8,
+	        text: 0xFFFFFF,
+	        textStroke: 0x2D5A7E,
+	        outerBorder: 0xCC8800,
+	        glow: 0x00FFFF
+	    },
+	    HEXAGON_CANDY_LOCKED: {
+	        fill: 0x4A5568,
+	        border: 0x718096,
+	        highlight: 0x5A6578,
+	        text: 0xA0AEC0,
+	        textStroke: 0x2D3748,
+	        outerBorder: 0x4A5568
+	    },
+	    // Panel color schemes
+	    PANEL_BLUE: {
+	        fillTop: 0x5BA3E0,
+	        fillBottom: 0x3B7BBF,
+	        borderOuter: 0x1A4B7A,
+	        borderInner: 0x2A6B9A,
+	        borderWidth: 8,
+	        titleColor: 0xFFFFFF,
+	        titleStroke: 0x1A4B7A,
+	        closeButtonBg: 0xE84C4C,
+	        closeButtonBorder: 0x8B2020,
+	        closeButtonX: 0xFFFFFF
+	    },
+	    PANEL_PURPLE: {
+	        fillTop: 0xA478DC,
+	        fillBottom: 0x7B4DB8,
+	        borderOuter: 0x4A2878,
+	        borderInner: 0x5A3888,
+	        borderWidth: 8,
+	        titleColor: 0xFFFFFF,
+	        titleStroke: 0x4A2878,
+	        closeButtonBg: 0xE84C4C,
+	        closeButtonBorder: 0x8B2020,
+	        closeButtonX: 0xFFFFFF
+	    },
+	    PANEL_GREEN: {
+	        fillTop: 0x6FCF6F,
+	        fillBottom: 0x4CAF50,
+	        borderOuter: 0x2E7D32,
+	        borderInner: 0x388E3C,
+	        borderWidth: 8,
+	        titleColor: 0xFFFFFF,
+	        titleStroke: 0x2E7D32,
+	        closeButtonBg: 0xE84C4C,
+	        closeButtonBorder: 0x8B2020,
+	        closeButtonX: 0xFFFFFF
+	    },
+	    PANEL_ORANGE: {
+	        fillTop: 0xFFB74D,
+	        fillBottom: 0xFF9800,
+	        borderOuter: 0xE65100,
+	        borderInner: 0xF57C00,
+	        borderWidth: 8,
+	        titleColor: 0xFFFFFF,
+	        titleStroke: 0xE65100,
+	        closeButtonBg: 0xE84C4C,
+	        closeButtonBorder: 0x8B2020,
+	        closeButtonX: 0xFFFFFF
+	    },
+	    PANEL_DARK: {
+	        fillTop: 0x3D4A5C,
+	        fillBottom: 0x2C3E50,
+	        borderOuter: 0x1A252F,
+	        borderInner: 0x2A3F4F,
+	        borderWidth: 8,
+	        titleColor: 0xFFFFFF,
+	        titleStroke: 0x1A252F,
+	        closeButtonBg: 0xE84C4C,
+	        closeButtonBorder: 0x8B2020,
+	        closeButtonX: 0xFFFFFF
+	    },
+	    PANEL_RED: {
+	        fillTop: 0xE57373,
+	        fillBottom: 0xD32F2F,
+	        borderOuter: 0x8B1A1A,
+	        borderInner: 0xB71C1C,
+	        borderWidth: 8,
+	        titleColor: 0xFFFFFF,
+	        titleStroke: 0x8B1A1A,
+	        closeButtonBg: 0x333333,
+	        closeButtonBorder: 0x1A1A1A,
+	        closeButtonX: 0xFFFFFF
+	    },
+	    // Top Bar Resource Pill Colors
+	    TOP_BAR_LIVES: {
+	        background: 0x1A1A2A,
+	        border: 0x0D0D15,
+	        iconColor: 0xFF4081,
+	        textColor: 0xFFFFFF,
+	        labelBackground: 0x2A2A3A,
+	        labelColor: 0xFFFFFF
+	    },
+	    TOP_BAR_COINS: {
+	        background: 0x4CAF50,
+	        border: 0x2E7D32,
+	        iconColor: 0xFFD700,
+	        textColor: 0xFFFFFF,
+	        addButtonBg: 0x66BB6A,
+	        addButtonBorder: 0x43A047
+	    },
+	    // Bottom Navigation Colors
+	    BOTTOM_NAV: {
+	        background: 0x1A237E,
+	        topBorder: 0x3949AB,
+	        itemBackground: 0x283593,
+	        itemHighlight: 0x3949AB,
+	        itemActive: 0x5C6BC0,
+	        textColor: 0xFFFFFF,
+	        lockedColor: 0x757575
 	    }
 	};
 	/**
@@ -41257,6 +41393,35 @@
 	}
 
 	/**
+	 * Creates a vertical linear gradient texture using canvas
+	 * @internal
+	 */
+	function createGradientTexture(width, height, colorTop, colorBottom, borderRadius = 0) {
+	    const canvas = document.createElement('canvas');
+	    canvas.width = width;
+	    canvas.height = height;
+	    const ctx = canvas.getContext('2d');
+	    // Convert hex numbers to CSS color strings
+	    const topHex = '#' + colorTop.toString(16).padStart(6, '0');
+	    const bottomHex = '#' + colorBottom.toString(16).padStart(6, '0');
+	    // Create vertical gradient
+	    const gradient = ctx.createLinearGradient(0, 0, 0, height);
+	    gradient.addColorStop(0, topHex);
+	    gradient.addColorStop(1, bottomHex);
+	    // Draw rounded rect with gradient
+	    if (borderRadius > 0) {
+	        ctx.beginPath();
+	        ctx.roundRect(0, 0, width, height, borderRadius);
+	        ctx.fillStyle = gradient;
+	        ctx.fill();
+	    }
+	    else {
+	        ctx.fillStyle = gradient;
+	        ctx.fillRect(0, 0, width, height);
+	    }
+	    return canvas;
+	}
+	/**
 	 * GameStyleButton - Mobile game style button with multi-layer effects
 	 *
 	 * Features:
@@ -41288,7 +41453,7 @@
 	        super();
 	        this.isPressed = false;
 	        this.isHovered = false;
-	        // Default configuration
+	        // Default configuration - Mobile game style defaults
 	        this.config = {
 	            text: config.text || 'Button',
 	            width: config.width || 200,
@@ -41296,9 +41461,10 @@
 	            fontSize: config.fontSize || 28,
 	            fontFamily: config.fontFamily || '"Fredoka One", "Arial Black", sans-serif',
 	            colorScheme: config.colorScheme || GameStyleColors.YELLOW_BUTTON,
+	            buttonStyle: config.buttonStyle || 'raised', // 'raised' or 'flat'
 	            borderRadius: config.borderRadius || 16,
-	            borderWidth: config.borderWidth || 4,
-	            shadowOffset: config.shadowOffset || 6,
+	            borderWidth: config.borderWidth || 3,
+	            shadowOffset: config.shadowOffset || 4,
 	            disabled: config.disabled || false,
 	            icon: config.icon || ''
 	        };
@@ -41311,11 +41477,13 @@
 	        this.borderGraphics = graphics().createGraphics();
 	        this.backgroundGraphics = graphics().createGraphics();
 	        this.highlightGraphics = graphics().createGraphics();
+	        this.shineGraphics = graphics().createGraphics();
 	        // Build button layers (order matters for z-index)
 	        this.container.addChild(this.shadowGraphics);
 	        this.container.addChild(this.borderGraphics);
 	        this.container.addChild(this.backgroundGraphics);
 	        this.container.addChild(this.highlightGraphics);
+	        this.container.addChild(this.shineGraphics);
 	        // Create text
 	        if (this.config.text) {
 	            this.createText();
@@ -41330,15 +41498,22 @@
 	     */
 	    createText() {
 	        const { colorScheme, fontSize, fontFamily, width, height } = this.config;
+	        // Determine if we need dark text (for light backgrounds like cream)
+	        const isLightBackground = this.isLightColor(colorScheme.gradientTop);
+	        const textColor = colorScheme.text;
+	        const strokeColor = colorScheme.textStroke;
+	        const strokeThickness = isLightBackground
+	            ? Math.max(2, fontSize / 12)
+	            : Math.max(3, fontSize / 8);
 	        this.textField = graphics().createText(this.config.text, {
 	            fontFamily: fontFamily,
 	            fontSize: fontSize,
 	            fontWeight: 'bold',
-	            fill: colorScheme.text,
-	            stroke: colorScheme.textStroke,
-	            strokeThickness: Math.max(3, fontSize / 8),
+	            fill: textColor,
+	            stroke: strokeColor,
+	            strokeThickness: strokeThickness,
 	            align: 'center',
-	            dropShadow: true,
+	            dropShadow: !isLightBackground,
 	            dropShadowAlpha: 0.5,
 	            dropShadowAngle: Math.PI / 2,
 	            dropShadowBlur: 2,
@@ -41364,76 +41539,142 @@
 	        this.container.on('pointerout', this.onPointerOut.bind(this));
 	    }
 	    /**
-	     * Render all button graphics
+	     * Render all button graphics - Mobile game style with 3D effect
+	     * Supports two styles:
+	     * - 'raised': Drop shadow style (Candy Crush)
+	     * - 'flat': Bottom edge style (modern mobile games)
 	     */
 	    render() {
-	        const { width, height, borderRadius, borderWidth, shadowOffset, colorScheme, disabled } = this.config;
+	        const { width, height, borderRadius, borderWidth, shadowOffset, colorScheme, buttonStyle, disabled } = this.config;
 	        // Clear all graphics
 	        this.shadowGraphics.clear();
 	        this.borderGraphics.clear();
 	        this.backgroundGraphics.clear();
 	        this.highlightGraphics.clear();
-	        // Adjust for pressed state
-	        const pressedOffset = this.isPressed ? shadowOffset - 2 : 0;
-	        const currentShadowOffset = this.isPressed ? 2 : shadowOffset;
+	        this.shineGraphics.clear();
+	        // Remove old gradient sprite if exists
+	        if (this.gradientSprite) {
+	            this.container.removeChild(this.gradientSprite);
+	            this.gradientSprite = undefined;
+	        }
 	        // Get colors (grayed out if disabled)
 	        const colors = disabled ? this.getDisabledColors() : colorScheme;
-	        // 1. Drop Shadow (bottom layer)
-	        this.shadowGraphics.roundRect(0, currentShadowOffset, width, height, borderRadius);
-	        this.shadowGraphics.fill({ color: colors.shadow, alpha: 0.8 });
-	        // 2. Outer Border (dark)
+	        // Render based on style
+	        if (buttonStyle === 'flat') {
+	            this.renderFlatStyle(width, height, borderRadius, borderWidth, colors);
+	        }
+	        else {
+	            this.renderRaisedStyle(width, height, borderRadius, borderWidth, shadowOffset, colors);
+	        }
+	    }
+	    /**
+	     * Render 'raised' style - Classic 3D with drop shadow behind the button
+	     * Like Candy Crush, Brawl Stars (reference screenshot 1)
+	     */
+	    renderRaisedStyle(width, height, borderRadius, borderWidth, shadowOffset, colors) {
+	        // Pressed state adjustments
+	        const pressedOffset = this.isPressed ? shadowOffset - 2 : 0;
+	        const currentShadowOffset = this.isPressed ? 2 : shadowOffset;
+	        // Layer 1: Drop Shadow - positioned BEHIND and BELOW the button
+	        // This shadow is what makes it look "raised" or "floating"
+	        this.shadowGraphics.roundRect(2, // Slight X offset
+	        currentShadowOffset + 2, // Y offset (shadow below button)
+	        width - 2, height, borderRadius);
+	        this.shadowGraphics.fill({ color: colors.shadow, alpha: 0.85 });
+	        // Layer 2: Main button border
 	        this.borderGraphics.roundRect(0, pressedOffset, width, height, borderRadius);
 	        this.borderGraphics.fill({ color: colors.border });
-	        // 3. Main Background with gradient
-	        this.renderGradientBackground(borderWidth, borderWidth + pressedOffset, width - borderWidth * 2, height - borderWidth * 2, borderRadius - borderWidth / 2, colors.gradientTop, colors.gradientBottom);
-	        // 4. Top Highlight/Shine
+	        // Layer 3: Inner fill area with gradient
+	        const fillX = borderWidth;
+	        const fillY = borderWidth + pressedOffset;
+	        const fillWidth = width - borderWidth * 2;
+	        const fillHeight = height - borderWidth * 2;
+	        const fillRadius = Math.max(4, borderRadius - borderWidth);
+	        // Create gradient texture and sprite
+	        const gradientCanvas = createGradientTexture(fillWidth, fillHeight, colors.gradientTop, colors.gradientBottom, fillRadius);
+	        const gradientTexture = graphics().createTexture(gradientCanvas);
+	        this.gradientSprite = graphics().createSprite(gradientTexture);
+	        this.gradientSprite.x = fillX;
+	        this.gradientSprite.y = fillY;
+	        // Insert gradient sprite after border graphics
+	        const borderIndex = this.container.getChildIndex(this.borderGraphics);
+	        this.container.addChild(this.gradientSprite);
+	        this.container.setChildIndex(this.gradientSprite, borderIndex + 1);
+	        // Layer 4: Subtle highlight overlay for glass effect (upper half)
+	        const highlightHeight = fillHeight * 0.35;
 	        if (!this.isPressed) {
-	            this.renderHighlight(borderWidth + 4, borderWidth + pressedOffset + 4, width - borderWidth * 2 - 8, (height - borderWidth * 2) * 0.35, borderRadius - borderWidth, colors.highlight);
+	            this.highlightGraphics.roundRect(fillX + 3, fillY + 2, fillWidth - 6, highlightHeight, Math.min(fillRadius - 2, 10));
+	            this.highlightGraphics.fill({ color: 0xFFFFFF, alpha: 0.12 });
+	        }
+	        // Layer 5: Specular highlights
+	        // Rim light - very thin bright arc at top edge (like light reflection)
+	        this.shineGraphics.roundRect(fillX + 8, fillY + 2, fillWidth - 16, 2, 1);
+	        this.shineGraphics.fill({ color: 0xFFFFFF, alpha: this.isPressed ? 0.15 : 0.4 });
+	        // Corner specular - small ellipse at top-left (glass reflection)
+	        if (!this.isPressed) {
+	            this.shineGraphics.ellipse(fillX + 14, fillY + 8, 5, 3);
+	            this.shineGraphics.fill({ color: 0xFFFFFF, alpha: 0.5 });
+	        }
+	        // Update text position for press animation
+	        if (this.textField) {
+	            this.textField.y = this.config.height / 2 + pressedOffset;
+	        }
+	    }
+	    /**
+	     * Render 'flat' style - 3D depth effect via extended bottom border
+	     * The button looks like a thick 3D box - border extends downward at bottom
+	     * NO separate shadow - the depth IS part of the border
+	     * Modern mobile game style (like reference screenshot 2)
+	     */
+	    renderFlatStyle(width, height, borderRadius, borderWidth, colors) {
+	        // Bottom depth - how much the border extends below (creates 3D thickness)
+	        const bottomDepth = 6;
+	        const pressedOffset = this.isPressed ? bottomDepth - 1 : 0;
+	        const currentDepth = this.isPressed ? 1 : bottomDepth;
+	        // Calculate derived colors
+	        const depthColor = darkenColor(colors.border, 0.2); // Slightly darker for depth
+	        // Layer 1: Full border shape including bottom depth
+	        // This is ONE piece - the border wraps around AND extends at bottom
+	        this.shadowGraphics.roundRect(0, 0, width, height + currentDepth, borderRadius);
+	        this.shadowGraphics.fill({ color: depthColor });
+	        // Layer 2: Main border (covers most of layer 1, leaving depth visible at bottom)
+	        this.borderGraphics.roundRect(0, pressedOffset, width, height, borderRadius);
+	        this.borderGraphics.fill({ color: colors.border });
+	        // Layer 3: Inner fill area with gradient
+	        const fillX = borderWidth;
+	        const fillY = borderWidth + pressedOffset;
+	        const fillWidth = width - borderWidth * 2;
+	        const fillHeight = height - borderWidth * 2;
+	        const fillRadius = Math.max(4, borderRadius - borderWidth);
+	        // Create gradient texture and sprite
+	        const gradientCanvas = createGradientTexture(fillWidth, fillHeight, colors.gradientTop, colors.gradientBottom, fillRadius);
+	        const gradientTexture = graphics().createTexture(gradientCanvas);
+	        this.gradientSprite = graphics().createSprite(gradientTexture);
+	        this.gradientSprite.x = fillX;
+	        this.gradientSprite.y = fillY;
+	        // Insert gradient sprite after border graphics
+	        const borderIndex = this.container.getChildIndex(this.borderGraphics);
+	        this.container.addChild(this.gradientSprite);
+	        this.container.setChildIndex(this.gradientSprite, borderIndex + 1);
+	        // Layer 4: Subtle highlight overlay for glass effect (upper half)
+	        const highlightHeight = fillHeight * 0.35;
+	        if (!this.isPressed) {
+	            this.highlightGraphics.roundRect(fillX + 3, fillY + 2, fillWidth - 6, highlightHeight, Math.min(fillRadius - 2, 10));
+	            this.highlightGraphics.fill({ color: 0xFFFFFF, alpha: 0.12 });
+	        }
+	        // Layer 5: Specular highlights
+	        // Rim light - very thin bright arc at top edge (like light reflection)
+	        this.shineGraphics.roundRect(fillX + 8, fillY + 2, fillWidth - 16, 2, 1);
+	        this.shineGraphics.fill({ color: 0xFFFFFF, alpha: this.isPressed ? 0.15 : 0.4 });
+	        // Corner specular - small ellipse at top-left (glass reflection)
+	        if (!this.isPressed) {
+	            this.shineGraphics.ellipse(fillX + 14, fillY + 8, 5, 3);
+	            this.shineGraphics.fill({ color: 0xFFFFFF, alpha: 0.5 });
 	        }
 	        // Update text position for press effect
 	        if (this.textField) {
-	            this.textField.y = height / 2 + pressedOffset;
+	            this.textField.y = this.config.height / 2 + pressedOffset;
 	        }
-	    }
-	    /**
-	     * Render gradient background using canvas texture
-	     */
-	    renderGradientBackground(x, y, width, height, radius, colorTop, colorBottom) {
-	        // Create gradient texture
-	        const texture = graphics().createCanvasTexture(Math.ceil(width), Math.ceil(height), (ctx) => {
-	            // Create vertical gradient
-	            const gradient = ctx.createLinearGradient(0, 0, 0, height);
-	            gradient.addColorStop(0, numberToHex(colorTop));
-	            gradient.addColorStop(0.4, numberToHex(colorTop));
-	            gradient.addColorStop(0.6, numberToHex(colorBottom));
-	            gradient.addColorStop(1, numberToHex(colorBottom));
-	            ctx.fillStyle = gradient;
-	            // Draw rounded rectangle
-	            this.drawRoundedRect(ctx, 0, 0, width, height, radius);
-	            ctx.fill();
-	        });
-	        // Apply texture to background
-	        this.backgroundGraphics.texture(texture);
-	        this.backgroundGraphics.roundRect(x, y, width, height, radius);
-	        this.backgroundGraphics.fill();
-	    }
-	    /**
-	     * Render top highlight/shine effect
-	     */
-	    renderHighlight(x, y, width, height, radius, color) {
-	        // Create highlight texture with gradient fade
-	        const texture = graphics().createCanvasTexture(Math.ceil(width), Math.ceil(height), (ctx) => {
-	            const gradient = ctx.createLinearGradient(0, 0, 0, height);
-	            gradient.addColorStop(0, `rgba(255, 255, 255, 0.6)`);
-	            gradient.addColorStop(0.5, `rgba(255, 255, 255, 0.3)`);
-	            gradient.addColorStop(1, `rgba(255, 255, 255, 0)`);
-	            ctx.fillStyle = gradient;
-	            this.drawRoundedRect(ctx, 0, 0, width, height, Math.min(radius, height / 2));
-	            ctx.fill();
-	        });
-	        this.highlightGraphics.texture(texture);
-	        this.highlightGraphics.roundRect(x, y, width, height, Math.min(radius, height / 2));
-	        this.highlightGraphics.fill();
 	    }
 	    /**
 	     * Get grayed out colors for disabled state
@@ -41450,21 +41691,15 @@
 	        };
 	    }
 	    /**
-	     * Draw rounded rectangle path on canvas context
+	     * Check if a color is light (for determining text contrast)
 	     */
-	    drawRoundedRect(ctx, x, y, width, height, radius) {
-	        const r = Math.min(radius, width / 2, height / 2);
-	        ctx.beginPath();
-	        ctx.moveTo(x + r, y);
-	        ctx.lineTo(x + width - r, y);
-	        ctx.quadraticCurveTo(x + width, y, x + width, y + r);
-	        ctx.lineTo(x + width, y + height - r);
-	        ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
-	        ctx.lineTo(x + r, y + height);
-	        ctx.quadraticCurveTo(x, y + height, x, y + height - r);
-	        ctx.lineTo(x, y + r);
-	        ctx.quadraticCurveTo(x, y, x + r, y);
-	        ctx.closePath();
+	    isLightColor(color) {
+	        const r = (color >> 16) & 0xFF;
+	        const g = (color >> 8) & 0xFF;
+	        const b = color & 0xFF;
+	        // Using relative luminance formula
+	        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+	        return luminance > 0.6;
 	    }
 	    /**
 	     * Pointer event handlers
@@ -41474,29 +41709,45 @@
 	            return;
 	        this.isPressed = true;
 	        this.render();
-	        // Scale feedback
-	        this.container.scale.x = 0.97;
-	        this.container.scale.y = 0.97;
+	        // Scale from center - apply scale and offset to compensate
+	        const scale = 0.96;
+	        const offsetX = this.config.width * (1 - scale) / 2;
+	        const offsetY = this.config.height * (1 - scale) / 2;
+	        this.container.scale.x = scale;
+	        this.container.scale.y = scale;
+	        this.container.x += offsetX;
+	        this.container.y += offsetY;
 	        this.emit('press', event);
 	    }
 	    onPointerUp(event) {
 	        if (this.config.disabled)
 	            return;
-	        this.isPressed = false;
-	        this.render();
-	        // Scale back
+	        // Restore position before scale reset
+	        const scale = 0.96;
+	        const offsetX = this.config.width * (1 - scale) / 2;
+	        const offsetY = this.config.height * (1 - scale) / 2;
+	        this.container.x -= offsetX;
+	        this.container.y -= offsetY;
 	        this.container.scale.x = 1;
 	        this.container.scale.y = 1;
+	        this.isPressed = false;
+	        this.render();
 	        this.emit('click', event);
 	        this.emit('release', event);
 	    }
 	    onPointerUpOutside() {
 	        if (this.config.disabled)
 	            return;
-	        this.isPressed = false;
-	        this.render();
+	        // Restore position before scale reset
+	        const scale = 0.96;
+	        const offsetX = this.config.width * (1 - scale) / 2;
+	        const offsetY = this.config.height * (1 - scale) / 2;
+	        this.container.x -= offsetX;
+	        this.container.y -= offsetY;
 	        this.container.scale.x = 1;
 	        this.container.scale.y = 1;
+	        this.isPressed = false;
+	        this.render();
 	        this.emit('cancel');
 	    }
 	    onPointerOver() {
@@ -41614,6 +41865,19 @@
 	            height,
 	            colorScheme: GameStyleColors.PURPLE_BUTTON
 	        });
+	    },
+	    /**
+	     * Create a cream/beige "Play" style button (Candy Crush style)
+	     */
+	    cream(text = 'Play', width = 220, height = 60) {
+	        return new GameStyleButton({
+	            text,
+	            width,
+	            height,
+	            colorScheme: GameStyleColors.CREAM_BUTTON,
+	            borderRadius: 18,
+	            shadowOffset: 5
+	        });
 	    }
 	};
 
@@ -41678,6 +41942,10 @@
 	        // Create stars if enabled and completed
 	        if (this.config.showStars && this.config.state === 'completed') {
 	            this.createStars();
+	        }
+	        // Create glow for current level
+	        if (this.config.state === 'current' && this.config.colorScheme.glow) {
+	            this.createGlow();
 	        }
 	        // Initial render
 	        this.render();
@@ -41770,6 +42038,35 @@
 	        this.container.addChild(this.starsContainer);
 	    }
 	    /**
+	     * Create glow effect for current level
+	     */
+	    createGlow() {
+	        const { size, colorScheme } = this.config;
+	        const glowColor = colorScheme.glow || 0x00FFFF;
+	        this.glowGraphics = graphics().createGraphics();
+	        // Multiple glow layers for soft effect
+	        for (let i = 4; i >= 0; i--) {
+	            const alpha = 0.15 - (i * 0.025);
+	            const glowSize = size + (i * 25);
+	            this.glowGraphics.circle(0, 0, glowSize / 2);
+	            this.glowGraphics.fill({ color: glowColor, alpha: alpha });
+	        }
+	        // Add glow behind everything
+	        this.container.addChild(this.glowGraphics);
+	        this.container.setChildIndex(this.glowGraphics, 0);
+	    }
+	    /**
+	     * Animate glow pulsing (call from game update loop)
+	     */
+	    updateGlow(time) {
+	        if (this.glowGraphics) {
+	            this.glowGraphics.alpha = 0.6 + Math.sin(time * 0.003) * 0.25;
+	            const glowScale = 0.95 + Math.sin(time * 0.0024) * 0.05;
+	            this.glowGraphics.scale.x = glowScale;
+	            this.glowGraphics.scale.y = glowScale;
+	        }
+	    }
+	    /**
 	     * Draw a 5-pointed star
 	     */
 	    drawStar(g, x, y, radius, filled) {
@@ -41811,18 +42108,35 @@
 	        this.highlightGraphics.clear();
 	        const pressOffset = this.isPressed ? 2 : 0;
 	        const shadowOffset = this.isPressed ? 2 : 6;
-	        const borderWidth = 4;
+	        const borderWidth = colorScheme.outerBorder ? 6 : 4; // Thicker border for candy style
 	        // Get colors
 	        const colors = colorScheme;
 	        // 1. Shadow
 	        this.drawHexagon(this.shadowGraphics, 0, shadowOffset, size - 4);
 	        this.shadowGraphics.fill({ color: 0x000000, alpha: 0.4 });
-	        // 2. Outer border (dark)
-	        this.drawHexagon(this.borderGraphics, 0, pressOffset, size);
-	        this.borderGraphics.fill({ color: colors.border });
-	        // 3. Main fill
+	        // 2. Outer border (golden for candy style, dark otherwise)
+	        if (colors.outerBorder) {
+	            // Draw darker outer ring first (3D effect)
+	            this.drawHexagon(this.borderGraphics, 0, pressOffset + 2, size + 4);
+	            this.borderGraphics.fill({ color: colors.outerBorder });
+	            // Then golden border
+	            this.drawHexagon(this.borderGraphics, 0, pressOffset, size);
+	            this.borderGraphics.fill({ color: colors.border });
+	        }
+	        else {
+	            this.drawHexagon(this.borderGraphics, 0, pressOffset, size);
+	            this.borderGraphics.fill({ color: colors.border });
+	        }
+	        // 3. Main fill (blue hexagon)
 	        this.drawHexagon(this.fillGraphics, 0, pressOffset, size - borderWidth * 2);
 	        this.fillGraphics.fill({ color: colors.fill });
+	        // 3.5 Inner bevel effect for 3D look
+	        if (colors.outerBorder) {
+	            // Top inner highlight
+	            this.drawHexagonBevel(this.fillGraphics, 0, pressOffset - 3, size - borderWidth * 2 - 6, 0xFFFFFF, 0.2);
+	            // Bottom inner shadow
+	            this.drawHexagonBevel(this.fillGraphics, 0, pressOffset + 3, size - borderWidth * 2 - 6, 0x000000, 0.15);
+	        }
 	        // 4. Inner highlight (top half)
 	        if (!this.isPressed) {
 	            this.drawHexagonHighlight(this.highlightGraphics, 0, pressOffset - 2, size - borderWidth * 2 - 4, colors.highlight);
@@ -41832,6 +42146,22 @@
 	        if (this.lockIcon) {
 	            this.lockIcon.y = pressOffset + 2;
 	        }
+	    }
+	    /**
+	     * Draw hexagon bevel effect for 3D depth
+	     */
+	    drawHexagonBevel(g, cx, cy, size, color, alpha) {
+	        const vertices = [];
+	        const sides = 6;
+	        const angleOffset = Math.PI / 6;
+	        // Only draw top portion for highlight, bottom for shadow
+	        for (let i = 0; i <= 3; i++) {
+	            const angle = (i * 2 * Math.PI) / sides + angleOffset;
+	            vertices.push(cx + Math.cos(angle) * (size / 2));
+	            vertices.push(cy + Math.sin(angle) * (size / 2));
+	        }
+	        g.poly(vertices);
+	        g.fill({ color: color, alpha: alpha });
 	    }
 	    /**
 	     * Draw hexagon path
@@ -41924,6 +42254,17 @@
 	        }
 	        // Update interactivity
 	        this.container.cursor = state === 'locked' ? 'default' : 'pointer';
+	        // Handle glow for current state
+	        if (state === 'current' && this.config.colorScheme.glow) {
+	            if (!this.glowGraphics) {
+	                this.createGlow();
+	            }
+	        }
+	        else if (this.glowGraphics) {
+	            this.container.removeChild(this.glowGraphics);
+	            this.glowGraphics.destroy();
+	            this.glowGraphics = undefined;
+	        }
 	        this.render();
 	        return this;
 	    }
@@ -42111,15 +42452,25 @@
 	     */
 	    createResourceDisplay(res, width) {
 	        const container = graphics().createContainer();
+	        // Use custom pillWidth if provided
+	        const actualWidth = res.pillWidth || width;
 	        const height = this.config.height - 16;
-	        const halfWidth = width / 2;
+	        const halfWidth = actualWidth / 2;
 	        const halfHeight = height / 2;
-	        // Background pill shape
+	        // Background pill shape with configurable colors
 	        const bg = graphics().createGraphics();
 	        const bgColor = res.backgroundColor || this.getDefaultBgColor(res.type);
-	        bg.roundRect(-halfWidth, -halfHeight, width, height, height / 2);
+	        const borderColor = res.borderColor || this.darkenColor(bgColor, 0.3);
+	        // Outer shadow for depth
+	        bg.roundRect(-halfWidth - 1, -halfHeight + 2, actualWidth + 2, height, height / 2);
+	        bg.fill({ color: 0x000000, alpha: 0.3 });
+	        // Main pill
+	        bg.roundRect(-halfWidth, -halfHeight, actualWidth, height, height / 2);
 	        bg.fill({ color: bgColor, alpha: 0.95 });
-	        bg.stroke({ color: this.darkenColor(bgColor, 0.3), width: 2 });
+	        bg.stroke({ color: borderColor, width: 2 });
+	        // Inner highlight at top
+	        bg.roundRect(-halfWidth + 4, -halfHeight + 3, actualWidth - 8, height * 0.4, (height * 0.4) / 2);
+	        bg.fill({ color: 0xFFFFFF, alpha: 0.15 });
 	        container.addChild(bg);
 	        // Icon
 	        const iconX = -halfWidth + 20;
@@ -42142,9 +42493,10 @@
 	        this.resourceTexts.set(res.type, valueText);
 	        // Max label (e.g., "MAX")
 	        if (res.label) {
+	            const labelBgColor = res.labelBackgroundColor || this.darkenColor(bgColor, 0.2);
 	            const labelBg = graphics().createGraphics();
 	            labelBg.roundRect(valueText.x + valueText.width + 5, -10, 36, 20, 5);
-	            labelBg.fill({ color: this.darkenColor(bgColor, 0.2) });
+	            labelBg.fill({ color: labelBgColor });
 	            container.addChild(labelBg);
 	            const labelText = graphics().createText(res.label, {
 	                fontFamily: '"Fredoka One", "Arial Black", sans-serif',
@@ -42279,11 +42631,12 @@
 	    createAddButton(res) {
 	        const container = graphics().createContainer();
 	        const size = 28;
+	        const addBtnColor = res.addButtonColor || 0x4CAF50;
 	        // Background
 	        const bg = graphics().createGraphics();
 	        bg.roundRect(-size / 2, -size / 2, size, size, 6);
-	        bg.fill({ color: 0x4CAF50 });
-	        bg.stroke({ color: 0x2E7D32, width: 2 });
+	        bg.fill({ color: addBtnColor });
+	        bg.stroke({ color: this.darkenColor(addBtnColor, 0.3), width: 2 });
 	        container.addChild(bg);
 	        // Plus sign
 	        const plus = graphics().createText('+', {
@@ -42322,15 +42675,15 @@
 	    getDefaultBgColor(type) {
 	        switch (type) {
 	            case 'lives':
-	                return 0x2C3E50;
+	                return 0x1A1A2A; // Dark/black
 	            case 'coins':
-	                return 0xE67E22;
+	                return 0x4CAF50; // Green
 	            case 'gems':
-	                return 0x8E44AD;
+	                return 0x7B1FA2; // Purple
 	            case 'energy':
-	                return 0x16A085;
+	                return 0x0288D1; // Blue
 	            default:
-	                return 0x34495E;
+	                return 0x2C3E50;
 	        }
 	    }
 	    /**
@@ -42923,52 +43276,66 @@
 	        return iconContainer;
 	    }
 	    /**
-	     * Draw shop/store icon
+	     * Draw shop/store icon (gift box style)
 	     */
 	    drawShopIcon(g, size) {
 	        const s = size * 0.7;
-	        // Store front
-	        g.roundRect(-s / 2, -s / 4, s, s * 0.6, 4);
+	        // Box body
+	        g.roundRect(-s / 2, -s * 0.1, s, s * 0.55, 4);
 	        g.fill({ color: 0xE91E63 });
 	        g.stroke({ color: 0xAD1457, width: 2 });
-	        // Awning
-	        g.poly([
-	            -s / 2 - 3, -s / 4,
-	            0, -s / 2,
-	            s / 2 + 3, -s / 4
-	        ]);
+	        // Box lid
+	        g.roundRect(-s / 2 - 2, -s * 0.25, s + 4, s * 0.2, 3);
 	        g.fill({ color: 0xF48FB1 });
-	        g.stroke({ color: 0xAD1457, width: 1 });
-	        // Door
-	        g.rect(-s / 6, 0, s / 3, s * 0.35);
-	        g.fill({ color: 0x7B1FA2 });
+	        g.stroke({ color: 0xAD1457, width: 1.5 });
+	        // Ribbon vertical
+	        g.rect(-s * 0.08, -s * 0.25, s * 0.16, s * 0.7);
+	        g.fill({ color: 0xFFD54F });
+	        // Ribbon horizontal
+	        g.rect(-s / 2, -s * 0.15, s, s * 0.12);
+	        g.fill({ color: 0xFFD54F });
+	        // Bow
+	        g.ellipse(-s * 0.15, -s * 0.35, s * 0.12, s * 0.08);
+	        g.fill({ color: 0xFFD54F });
+	        g.ellipse(s * 0.15, -s * 0.35, s * 0.12, s * 0.08);
+	        g.fill({ color: 0xFFD54F });
+	        g.circle(0, -s * 0.35, s * 0.06);
+	        g.fill({ color: 0xFFC107 });
 	    }
 	    /**
-	     * Draw play/character icon (like Brawl Stars mascot style)
+	     * Draw play/character icon (cute mascot style like Brawl Stars)
 	     */
 	    drawPlayIcon(g, size) {
-	        const s = size * 0.8;
-	        // Character body (simple blob shape)
-	        g.ellipse(0, s * 0.1, s * 0.45, s * 0.4);
+	        const s = size * 0.85;
+	        // Character body (round blob)
+	        g.ellipse(0, s * 0.05, s * 0.42, s * 0.38);
 	        g.fill({ color: 0x4FC3F7 });
-	        g.stroke({ color: 0x0288D1, width: 2 });
-	        // Eyes
-	        g.circle(-s * 0.15, -s * 0.05, s * 0.1);
+	        g.stroke({ color: 0x0288D1, width: 2.5 });
+	        // Body highlight
+	        g.ellipse(-s * 0.1, -s * 0.05, s * 0.2, s * 0.15);
+	        g.fill({ color: 0x81D4FA, alpha: 0.6 });
+	        // Eyes - white backgrounds
+	        g.ellipse(-s * 0.14, -s * 0.02, s * 0.12, s * 0.13);
 	        g.fill({ color: 0xFFFFFF });
-	        g.circle(s * 0.15, -s * 0.05, s * 0.1);
+	        g.ellipse(s * 0.14, -s * 0.02, s * 0.12, s * 0.13);
 	        g.fill({ color: 0xFFFFFF });
-	        // Pupils
-	        g.circle(-s * 0.12, -s * 0.03, s * 0.05);
-	        g.fill({ color: 0x000000 });
-	        g.circle(s * 0.18, -s * 0.03, s * 0.05);
-	        g.fill({ color: 0x000000 });
-	        // Ears/horns
-	        g.ellipse(-s * 0.35, -s * 0.25, s * 0.12, s * 0.15);
+	        // Pupils - looking slightly up and to the side
+	        g.circle(-s * 0.12, -s * 0.04, s * 0.055);
+	        g.fill({ color: 0x1A1A2A });
+	        g.circle(s * 0.16, -s * 0.04, s * 0.055);
+	        g.fill({ color: 0x1A1A2A });
+	        // Pupil highlights
+	        g.circle(-s * 0.14, -s * 0.06, s * 0.02);
+	        g.fill({ color: 0xFFFFFF });
+	        g.circle(s * 0.14, -s * 0.06, s * 0.02);
+	        g.fill({ color: 0xFFFFFF });
+	        // Ears/horns (rounder)
+	        g.ellipse(-s * 0.32, -s * 0.22, s * 0.1, s * 0.12);
 	        g.fill({ color: 0x4FC3F7 });
-	        g.stroke({ color: 0x0288D1, width: 1 });
-	        g.ellipse(s * 0.35, -s * 0.25, s * 0.12, s * 0.15);
+	        g.stroke({ color: 0x0288D1, width: 1.5 });
+	        g.ellipse(s * 0.32, -s * 0.22, s * 0.1, s * 0.12);
 	        g.fill({ color: 0x4FC3F7 });
-	        g.stroke({ color: 0x0288D1, width: 1 });
+	        g.stroke({ color: 0x0288D1, width: 1.5 });
 	    }
 	    /**
 	     * Draw profile/user icon
@@ -43118,6 +43485,550 @@
 	        this.removeAllListeners();
 	    }
 	}
+
+	/**
+	 * Game-style panel component with skinnable borders and title bar
+	 * Inspired by Candy Crush, Brawl Stars, and Clash Royale
+	 *
+	 * Features:
+	 * - Multi-layer border effect
+	 * - Gradient background
+	 * - Title bar with close button
+	 * - Customizable color schemes
+	 * - Drop shadow
+	 *
+	 * @example
+	 * ```typescript
+	 * const panel = new GameStylePanel({
+	 *   width: 350,
+	 *   height: 400,
+	 *   title: 'SETTINGS',
+	 *   showCloseButton: true,
+	 *   colorScheme: GameStyleColors.PANEL_BLUE,
+	 *   onClose: () => panel.hide()
+	 * });
+	 *
+	 * stage.addChild(panel.getContainer());
+	 * ```
+	 */
+	class GameStylePanel extends EventEmitter {
+	    constructor(config = {}) {
+	        super();
+	        this.config = {
+	            width: config.width || 350,
+	            height: config.height || 400,
+	            title: config.title || '',
+	            showCloseButton: config.showCloseButton !== false,
+	            colorScheme: config.colorScheme || GameStylePanel.DEFAULT_SCHEME,
+	            borderRadius: config.borderRadius || 24,
+	            borderWidth: config.borderWidth || 8,
+	            titleFontSize: config.titleFontSize || 28,
+	            padding: config.padding || 20,
+	            onClose: config.onClose || (() => { }),
+	        };
+	        const factory = graphics();
+	        // Create container hierarchy
+	        this.container = factory.createContainer();
+	        // Create shadow
+	        this.shadowGraphics = factory.createGraphics();
+	        this.container.addChild(this.shadowGraphics);
+	        // Create border
+	        this.borderGraphics = factory.createGraphics();
+	        this.container.addChild(this.borderGraphics);
+	        // Create background
+	        this.backgroundGraphics = factory.createGraphics();
+	        this.container.addChild(this.backgroundGraphics);
+	        // Create content container
+	        this.contentContainer = factory.createContainer();
+	        this.container.addChild(this.contentContainer);
+	        // Render panel
+	        this.render();
+	        // Create title if provided
+	        if (this.config.title) {
+	            this.createTitle();
+	        }
+	        // Create close button if needed
+	        if (this.config.showCloseButton) {
+	            this.createCloseButton();
+	        }
+	    }
+	    /**
+	     * Render the panel graphics
+	     */
+	    render() {
+	        const { width, height, borderRadius, borderWidth, colorScheme } = this.config;
+	        // Clear previous graphics
+	        this.shadowGraphics.clear();
+	        this.borderGraphics.clear();
+	        this.backgroundGraphics.clear();
+	        // Draw shadow
+	        this.shadowGraphics.roundRect(6, 6, width, height, borderRadius);
+	        this.shadowGraphics.fill({ color: 0x000000, alpha: 0.3 });
+	        // Draw outer border
+	        this.borderGraphics.roundRect(0, 0, width, height, borderRadius);
+	        this.borderGraphics.fill(colorScheme.borderOuter);
+	        // Draw inner border
+	        const innerOffset = borderWidth / 2;
+	        this.borderGraphics.roundRect(innerOffset, innerOffset, width - borderWidth, height - borderWidth, borderRadius - innerOffset);
+	        this.borderGraphics.fill(colorScheme.borderInner);
+	        // Draw gradient background using canvas
+	        const bgOffset = borderWidth;
+	        const bgWidth = width - borderWidth * 2;
+	        const bgHeight = height - borderWidth * 2;
+	        const bgRadius = borderRadius - borderWidth;
+	        const gradCanvas = document.createElement('canvas');
+	        gradCanvas.width = bgWidth;
+	        gradCanvas.height = bgHeight;
+	        const ctx = gradCanvas.getContext('2d');
+	        // Create vertical gradient
+	        const gradient = ctx.createLinearGradient(0, 0, 0, bgHeight);
+	        gradient.addColorStop(0, this.hexToRgb(colorScheme.fillTop));
+	        gradient.addColorStop(1, this.hexToRgb(colorScheme.fillBottom));
+	        // Draw rounded rect with gradient
+	        ctx.fillStyle = gradient;
+	        ctx.beginPath();
+	        ctx.roundRect(0, 0, bgWidth, bgHeight, bgRadius);
+	        ctx.fill();
+	        // Remove old gradient sprite if exists
+	        if (this.gradientSprite) {
+	            this.container.removeChild(this.gradientSprite);
+	        }
+	        // Create new gradient sprite
+	        const texture = graphics().createTexture(gradCanvas);
+	        this.gradientSprite = graphics().createSprite(texture);
+	        this.gradientSprite.x = bgOffset;
+	        this.gradientSprite.y = bgOffset;
+	        // Insert gradient sprite BEFORE content container (at index 3, after backgroundGraphics)
+	        // Order: shadow(0), border(1), background(2), gradientSprite(3), contentContainer(4)
+	        const contentIndex = this.container.getChildIndex(this.contentContainer);
+	        this.container.addChild(this.gradientSprite);
+	        this.container.setChildIndex(this.gradientSprite, contentIndex);
+	        // Position content container
+	        const titleHeight = this.config.title ? 50 : 0;
+	        this.contentContainer.x = bgOffset + this.config.padding;
+	        this.contentContainer.y = bgOffset + titleHeight + this.config.padding;
+	    }
+	    /**
+	     * Create the title text
+	     */
+	    createTitle() {
+	        const { width, colorScheme, titleFontSize, borderWidth } = this.config;
+	        this.titleText = graphics().createText(this.config.title, {
+	            fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+	            fontSize: titleFontSize,
+	            fontWeight: 'bold',
+	            fill: colorScheme.titleColor,
+	            stroke: colorScheme.titleStroke,
+	            strokeThickness: 4,
+	            align: 'center',
+	        });
+	        // Center title
+	        const titleWidth = this.titleText.width || 100;
+	        this.titleText.x = (width - titleWidth) / 2;
+	        this.titleText.y = borderWidth + 12;
+	        this.container.addChild(this.titleText);
+	    }
+	    /**
+	     * Create the close button
+	     */
+	    createCloseButton() {
+	        const { width, colorScheme, borderWidth } = this.config;
+	        const factory = graphics();
+	        this.closeButton = factory.createContainer();
+	        // Button size
+	        const buttonSize = 44;
+	        const buttonRadius = buttonSize / 2;
+	        // Position at top right, slightly overlapping
+	        const buttonX = width - buttonSize / 2 - borderWidth;
+	        const buttonY = borderWidth - buttonSize / 4;
+	        // Draw button shadow
+	        const shadow = factory.createGraphics();
+	        shadow.circle(buttonSize / 2 + 2, buttonSize / 2 + 2, buttonRadius);
+	        shadow.fill({ color: 0x000000, alpha: 0.3 });
+	        this.closeButton.addChild(shadow);
+	        // Draw button border
+	        const border = factory.createGraphics();
+	        border.circle(buttonSize / 2, buttonSize / 2, buttonRadius);
+	        border.fill(colorScheme.closeButtonBorder);
+	        this.closeButton.addChild(border);
+	        // Draw button background
+	        const bg = factory.createGraphics();
+	        bg.circle(buttonSize / 2, buttonSize / 2, buttonRadius - 3);
+	        bg.fill(colorScheme.closeButtonBg);
+	        this.closeButton.addChild(bg);
+	        // Draw X
+	        const xGraphics = factory.createGraphics();
+	        const xSize = 10;
+	        const xCenter = buttonSize / 2;
+	        const xThickness = 4;
+	        // Draw X as two thick lines
+	        xGraphics.moveTo(xCenter - xSize, xCenter - xSize);
+	        xGraphics.lineTo(xCenter + xSize, xCenter + xSize);
+	        xGraphics.moveTo(xCenter + xSize, xCenter - xSize);
+	        xGraphics.lineTo(xCenter - xSize, xCenter + xSize);
+	        xGraphics.stroke({ width: xThickness, color: colorScheme.closeButtonX, cap: 'round' });
+	        this.closeButton.addChild(xGraphics);
+	        this.closeButton.x = buttonX - buttonSize / 2;
+	        this.closeButton.y = buttonY;
+	        // Make interactive
+	        this.closeButton.interactive = true;
+	        this.closeButton.cursor = 'pointer';
+	        this.closeButton.on('pointerdown', () => {
+	            this.emit('close');
+	            this.config.onClose();
+	        });
+	        this.container.addChild(this.closeButton);
+	    }
+	    /**
+	     * Convert hex to rgb string
+	     */
+	    hexToRgb(hex) {
+	        const r = (hex >> 16) & 0xFF;
+	        const g = (hex >> 8) & 0xFF;
+	        const b = hex & 0xFF;
+	        return `rgb(${r}, ${g}, ${b})`;
+	    }
+	    /**
+	     * Add child to content area
+	     */
+	    addContent(child) {
+	        this.contentContainer.addChild(child);
+	    }
+	    /**
+	     * Remove child from content area
+	     */
+	    removeContent(child) {
+	        this.contentContainer.removeChild(child);
+	    }
+	    /**
+	     * Clear all content
+	     */
+	    clearContent() {
+	        this.contentContainer.removeChildren();
+	    }
+	    /**
+	     * Get the content container for direct manipulation
+	     */
+	    getContentContainer() {
+	        return this.contentContainer;
+	    }
+	    /**
+	     * Set panel position
+	     */
+	    setPosition(x, y) {
+	        this.container.x = x;
+	        this.container.y = y;
+	    }
+	    /**
+	     * Get panel position
+	     */
+	    getPosition() {
+	        return { x: this.container.x, y: this.container.y };
+	    }
+	    /**
+	     * Show the panel
+	     */
+	    show() {
+	        this.container.visible = true;
+	        this.emit('show');
+	    }
+	    /**
+	     * Hide the panel
+	     */
+	    hide() {
+	        this.container.visible = false;
+	        this.emit('hide');
+	    }
+	    /**
+	     * Set panel visibility
+	     */
+	    setVisible(visible) {
+	        this.container.visible = visible;
+	    }
+	    /**
+	     * Get the main container
+	     */
+	    getContainer() {
+	        return this.container;
+	    }
+	    /**
+	     * Set title text
+	     */
+	    setTitle(title) {
+	        if (this.titleText) {
+	            this.titleText.text = title;
+	            // Re-center
+	            const titleWidth = this.titleText.width || 100;
+	            this.titleText.x = (this.config.width - titleWidth) / 2;
+	        }
+	    }
+	    /**
+	     * Update color scheme
+	     */
+	    setColorScheme(scheme) {
+	        this.config.colorScheme = scheme;
+	        this.render();
+	        if (this.config.title) {
+	            this.createTitle();
+	        }
+	        if (this.config.showCloseButton) {
+	            this.createCloseButton();
+	        }
+	    }
+	    /**
+	     * Get panel dimensions
+	     */
+	    getSize() {
+	        return {
+	            width: this.config.width,
+	            height: this.config.height,
+	        };
+	    }
+	    /**
+	     * Get content area dimensions (usable space)
+	     */
+	    getContentSize() {
+	        const titleHeight = this.config.title ? 50 : 0;
+	        return {
+	            width: this.config.width - this.config.borderWidth * 2 - this.config.padding * 2,
+	            height: this.config.height - this.config.borderWidth * 2 - titleHeight - this.config.padding * 2,
+	        };
+	    }
+	    /**
+	     * Destroy the panel
+	     */
+	    destroy() {
+	        this.container.destroy();
+	        this.removeAllListeners();
+	    }
+	}
+	// Default blue panel color scheme
+	GameStylePanel.DEFAULT_SCHEME = {
+	    fillTop: 0x5BA3E0,
+	    fillBottom: 0x3B7BBF,
+	    borderOuter: 0x1A4B7A,
+	    borderInner: 0x2A6B9A,
+	    borderWidth: 8,
+	    titleColor: 0xFFFFFF,
+	    titleStroke: 0x1A4B7A,
+	    closeButtonBg: 0xE84C4C,
+	    closeButtonBorder: 0x8B2020,
+	    closeButtonX: 0xFFFFFF,
+	};
+
+	/**
+	 * Game-style toggle switch component
+	 * Inspired by mobile game settings screens
+	 *
+	 * Features:
+	 * - Smooth thumb animation
+	 * - Customizable colors
+	 * - Disabled state
+	 * - Touch-friendly size
+	 *
+	 * @example
+	 * ```typescript
+	 * const musicToggle = new GameToggle({
+	 *   value: true,
+	 *   onChange: (value) => setMusicEnabled(value)
+	 * });
+	 *
+	 * stage.addChild(musicToggle.getContainer());
+	 * ```
+	 */
+	class GameToggle extends EventEmitter {
+	    constructor(config = {}) {
+	        super();
+	        this.config = {
+	            width: config.width || 70,
+	            height: config.height || 36,
+	            value: config.value !== undefined ? config.value : false,
+	            colorScheme: config.colorScheme || GameToggle.DEFAULT_SCHEME,
+	            disabled: config.disabled || false,
+	            onChange: config.onChange || (() => { }),
+	        };
+	        this._value = this.config.value;
+	        const factory = graphics();
+	        // Create container
+	        this.container = factory.createContainer();
+	        // Create track
+	        this.trackGraphics = factory.createGraphics();
+	        this.container.addChild(this.trackGraphics);
+	        // Create thumb
+	        this.thumbGraphics = factory.createGraphics();
+	        this.container.addChild(this.thumbGraphics);
+	        // Render
+	        this.render();
+	        // Setup interaction
+	        this.setupInteraction();
+	    }
+	    /**
+	     * Render the toggle
+	     */
+	    render() {
+	        const { width, height, colorScheme, disabled } = this.config;
+	        const radius = height / 2;
+	        // Clear
+	        this.trackGraphics.clear();
+	        this.thumbGraphics.clear();
+	        // Determine colors based on state
+	        const trackColor = this._value ? colorScheme.trackOn : colorScheme.trackOff;
+	        const thumbColor = this._value ? colorScheme.thumbOn : colorScheme.thumbOff;
+	        const alpha = disabled ? 0.5 : 1;
+	        // Draw track border
+	        this.trackGraphics.roundRect(0, 0, width, height, radius);
+	        this.trackGraphics.fill({ color: colorScheme.border, alpha });
+	        // Draw track fill
+	        this.trackGraphics.roundRect(2, 2, width - 4, height - 4, radius - 2);
+	        this.trackGraphics.fill({ color: trackColor, alpha });
+	        // Calculate thumb position
+	        const thumbRadius = (height - 8) / 2;
+	        const thumbX = this._value ? width - thumbRadius - 6 : thumbRadius + 6;
+	        const thumbY = height / 2;
+	        // Draw thumb shadow
+	        this.thumbGraphics.circle(thumbX + 1, thumbY + 1, thumbRadius);
+	        this.thumbGraphics.fill({ color: 0x000000, alpha: 0.2 * alpha });
+	        // Draw thumb
+	        this.thumbGraphics.circle(thumbX, thumbY, thumbRadius);
+	        this.thumbGraphics.fill({ color: thumbColor, alpha });
+	        // Draw thumb highlight
+	        this.thumbGraphics.circle(thumbX - 2, thumbY - 2, thumbRadius * 0.4);
+	        this.thumbGraphics.fill({ color: 0xFFFFFF, alpha: 0.3 * alpha });
+	    }
+	    /**
+	     * Setup interaction handlers
+	     */
+	    setupInteraction() {
+	        // PIXI v8 uses eventMode instead of interactive
+	        this.container.eventMode = 'static';
+	        this.container.cursor = 'pointer';
+	        // Set hit area for proper touch/click detection
+	        const { width, height } = this.config;
+	        this.container.hitArea = {
+	            contains: (x, y) => {
+	                return x >= 0 && x <= width && y >= 0 && y <= height;
+	            }
+	        };
+	        this.container.on('pointerdown', () => {
+	            if (!this.config.disabled) {
+	                this.toggle();
+	            }
+	        });
+	    }
+	    /**
+	     * Toggle the value
+	     */
+	    toggle() {
+	        this._value = !this._value;
+	        this.render();
+	        this.emit('change', this._value);
+	        this.config.onChange(this._value);
+	    }
+	    /**
+	     * Get current value
+	     */
+	    getValue() {
+	        return this._value;
+	    }
+	    /**
+	     * Set value
+	     */
+	    setValue(value) {
+	        if (this._value !== value) {
+	            this._value = value;
+	            this.render();
+	            this.emit('change', this._value);
+	        }
+	    }
+	    /**
+	     * Set disabled state
+	     */
+	    setDisabled(disabled) {
+	        this.config.disabled = disabled;
+	        this.container.cursor = disabled ? 'default' : 'pointer';
+	        this.render();
+	    }
+	    /**
+	     * Check if disabled
+	     */
+	    isDisabled() {
+	        return this.config.disabled;
+	    }
+	    /**
+	     * Set position
+	     */
+	    setPosition(x, y) {
+	        this.container.x = x;
+	        this.container.y = y;
+	    }
+	    /**
+	     * Get position
+	     */
+	    getPosition() {
+	        return { x: this.container.x, y: this.container.y };
+	    }
+	    /**
+	     * Get the container
+	     */
+	    getContainer() {
+	        return this.container;
+	    }
+	    /**
+	     * Set color scheme
+	     */
+	    setColorScheme(scheme) {
+	        this.config.colorScheme = scheme;
+	        this.render();
+	    }
+	    /**
+	     * Destroy the toggle
+	     */
+	    destroy() {
+	        this.container.destroy();
+	        this.removeAllListeners();
+	    }
+	}
+	// Default color scheme
+	GameToggle.DEFAULT_SCHEME = {
+	    trackOn: 0x4CAF50,
+	    trackOff: 0x37474F,
+	    thumbOn: 0xFFFFFF,
+	    thumbOff: 0x90A4AE,
+	    border: 0x263238,
+	};
+	/**
+	 * Pre-defined toggle color schemes
+	 */
+	const GameToggleColors = {
+	    DEFAULT: {
+	        trackOn: 0x4CAF50,
+	        trackOff: 0x37474F,
+	        thumbOn: 0xFFFFFF,
+	        thumbOff: 0x90A4AE,
+	        border: 0x263238,
+	    },
+	    BLUE: {
+	        trackOn: 0x2196F3,
+	        trackOff: 0x37474F,
+	        thumbOn: 0xFFFFFF,
+	        thumbOff: 0x90A4AE,
+	        border: 0x0D47A1,
+	    },
+	    ORANGE: {
+	        trackOn: 0xFF9800,
+	        trackOff: 0x37474F,
+	        thumbOn: 0xFFFFFF,
+	        thumbOff: 0x90A4AE,
+	        border: 0xE65100,
+	    },
+	    PURPLE: {
+	        trackOn: 0x9C27B0,
+	        trackOff: 0x37474F,
+	        thumbOn: 0xFFFFFF,
+	        thumbOff: 0x90A4AE,
+	        border: 0x4A148C,
+	    },
+	};
 
 	/**
 	 * Mobile-optimized input system with gesture recognition
@@ -43953,6 +44864,378 @@
 	}
 
 	/**
+	 * Safe Area Layout System
+	 *
+	 * Provides a "Safe Area + Letterbox" approach for responsive game layouts.
+	 * Similar to Candy Crush and other mobile games, this system:
+	 * - Defines a "design resolution" (e.g., 390x844)
+	 * - Scales content to fit the screen while maintaining aspect ratio
+	 * - Centers the game content
+	 * - Fills letterbox areas with background color/pattern
+	 */
+	/**
+	 * SafeAreaLayout
+	 *
+	 * Manages responsive game layout using the Safe Area + Letterbox approach.
+	 * Creates a PIXI container structure that automatically handles:
+	 * - Scaling to fit the screen
+	 * - Centering the game content
+	 * - Drawing letterbox areas
+	 */
+	class SafeAreaLayout {
+	    constructor(config) {
+	        this.resizeCallbacks = [];
+	        // PIXI objects (typed as any to avoid PIXI dependency)
+	        this.PIXI = null;
+	        this.mainContainer = null;
+	        this.letterboxGraphics = null;
+	        this.gameContainer = null;
+	        this.resizeHandler = null;
+	        this.config = {
+	            designWidth: config.designWidth,
+	            designHeight: config.designHeight,
+	            minAspectRatio: config.minAspectRatio ?? 0.4,
+	            maxAspectRatio: config.maxAspectRatio ?? 1.0,
+	            backgroundColor: config.backgroundColor ?? 0x1a1a2e,
+	            showPattern: config.showPattern ?? false,
+	            patternOpacity: config.patternOpacity ?? 0.05
+	        };
+	        // Initialize with a placeholder bounds
+	        this.currentBounds = {
+	            x: 0,
+	            y: 0,
+	            width: this.config.designWidth,
+	            height: this.config.designHeight,
+	            scale: 1,
+	            screenWidth: this.config.designWidth,
+	            screenHeight: this.config.designHeight,
+	            isVerticalLetterbox: true
+	        };
+	    }
+	    /**
+	     * Initialize the layout system with PIXI
+	     * @param PIXI - The PIXI namespace object
+	     */
+	    initialize(PIXI) {
+	        this.PIXI = PIXI;
+	        // Create main container that holds everything
+	        this.mainContainer = new PIXI.Container();
+	        // Create graphics for letterbox background
+	        this.letterboxGraphics = new PIXI.Graphics();
+	        this.mainContainer.addChild(this.letterboxGraphics);
+	        // Create game container that will be positioned in the safe area
+	        this.gameContainer = new PIXI.Container();
+	        this.mainContainer.addChild(this.gameContainer);
+	        // Set up resize handler
+	        this.resizeHandler = () => {
+	            this.updateLayout(window.innerWidth, window.innerHeight);
+	        };
+	        window.addEventListener('resize', this.resizeHandler);
+	        // Initial layout
+	        this.updateLayout(window.innerWidth, window.innerHeight);
+	    }
+	    /**
+	     * Calculate the safe area bounds for given screen dimensions
+	     */
+	    calculateBounds(screenWidth, screenHeight) {
+	        const designAspect = this.config.designWidth / this.config.designHeight;
+	        const screenAspect = screenWidth / screenHeight;
+	        let scale;
+	        let safeWidth;
+	        let safeHeight;
+	        let isVerticalLetterbox;
+	        // Determine scaling based on aspect ratio comparison
+	        if (screenAspect > designAspect) {
+	            // Screen is wider than design - fit to height, pillarbox (left/right bars)
+	            scale = screenHeight / this.config.designHeight;
+	            safeHeight = screenHeight;
+	            safeWidth = this.config.designWidth * scale;
+	            isVerticalLetterbox = false;
+	        }
+	        else {
+	            // Screen is taller than design - fit to width, letterbox (top/bottom bars)
+	            scale = screenWidth / this.config.designWidth;
+	            safeWidth = screenWidth;
+	            safeHeight = this.config.designHeight * scale;
+	            isVerticalLetterbox = true;
+	        }
+	        // Calculate centered position
+	        const x = (screenWidth - safeWidth) / 2;
+	        const y = (screenHeight - safeHeight) / 2;
+	        return {
+	            x,
+	            y,
+	            width: safeWidth,
+	            height: safeHeight,
+	            scale,
+	            screenWidth,
+	            screenHeight,
+	            isVerticalLetterbox
+	        };
+	    }
+	    /**
+	     * Update the layout for new screen dimensions
+	     */
+	    updateLayout(screenWidth, screenHeight) {
+	        this.currentBounds = this.calculateBounds(screenWidth, screenHeight);
+	        // Update game container position and scale
+	        if (this.gameContainer) {
+	            this.gameContainer.x = this.currentBounds.x;
+	            this.gameContainer.y = this.currentBounds.y;
+	            this.gameContainer.scale.set(this.currentBounds.scale);
+	        }
+	        // Redraw letterbox
+	        this.drawLetterbox();
+	        // Notify listeners
+	        this.resizeCallbacks.forEach(callback => callback(this.currentBounds));
+	    }
+	    /**
+	     * Draw the letterbox background with optional pattern
+	     */
+	    drawLetterbox() {
+	        if (!this.letterboxGraphics || !this.PIXI)
+	            return;
+	        const g = this.letterboxGraphics;
+	        const bounds = this.currentBounds;
+	        g.clear();
+	        // Fill entire screen with background color
+	        g.rect(0, 0, bounds.screenWidth, bounds.screenHeight);
+	        g.fill({ color: this.config.backgroundColor });
+	        // Draw pattern if enabled
+	        if (this.config.showPattern) {
+	            this.drawPattern();
+	        }
+	        // Draw a slightly darker overlay on the letterbox areas only
+	        // This makes the safe area appear slightly brighter/distinct
+	        const overlayAlpha = 0.1;
+	        if (bounds.isVerticalLetterbox) {
+	            // Top and bottom bars
+	            if (bounds.y > 0) {
+	                // Top bar
+	                g.rect(0, 0, bounds.screenWidth, bounds.y);
+	                g.fill({ color: 0x000000, alpha: overlayAlpha });
+	                // Bottom bar
+	                g.rect(0, bounds.y + bounds.height, bounds.screenWidth, bounds.screenHeight - bounds.y - bounds.height);
+	                g.fill({ color: 0x000000, alpha: overlayAlpha });
+	            }
+	        }
+	        else {
+	            // Left and right bars
+	            if (bounds.x > 0) {
+	                // Left bar
+	                g.rect(0, 0, bounds.x, bounds.screenHeight);
+	                g.fill({ color: 0x000000, alpha: overlayAlpha });
+	                // Right bar
+	                g.rect(bounds.x + bounds.width, 0, bounds.screenWidth - bounds.x - bounds.width, bounds.screenHeight);
+	                g.fill({ color: 0x000000, alpha: overlayAlpha });
+	            }
+	        }
+	    }
+	    /**
+	     * Draw a subtle square pattern in the letterbox areas
+	     */
+	    drawPattern() {
+	        if (!this.letterboxGraphics)
+	            return;
+	        const g = this.letterboxGraphics;
+	        const bounds = this.currentBounds;
+	        const patternSize = 20;
+	        const squareSize = 4;
+	        const opacity = this.config.patternOpacity;
+	        // Helper to draw pattern in a region
+	        const drawPatternInRegion = (rx, ry, rw, rh) => {
+	            if (rw <= 0 || rh <= 0)
+	                return;
+	            for (let px = rx; px < rx + rw; px += patternSize) {
+	                for (let py = ry; py < ry + rh; py += patternSize) {
+	                    g.rect(px, py, squareSize, squareSize);
+	                    g.fill({ color: 0xffffff, alpha: opacity });
+	                }
+	            }
+	        };
+	        if (bounds.isVerticalLetterbox) {
+	            // Draw pattern in top and bottom bars
+	            if (bounds.y > 0) {
+	                drawPatternInRegion(0, 0, bounds.screenWidth, bounds.y);
+	                drawPatternInRegion(0, bounds.y + bounds.height, bounds.screenWidth, bounds.screenHeight - bounds.y - bounds.height);
+	            }
+	        }
+	        else {
+	            // Draw pattern in left and right bars
+	            if (bounds.x > 0) {
+	                drawPatternInRegion(0, 0, bounds.x, bounds.screenHeight);
+	                drawPatternInRegion(bounds.x + bounds.width, 0, bounds.screenWidth - bounds.x - bounds.width, bounds.screenHeight);
+	            }
+	        }
+	    }
+	    /**
+	     * Register a callback for resize events
+	     */
+	    onResize(callback) {
+	        this.resizeCallbacks.push(callback);
+	    }
+	    /**
+	     * Remove a resize callback
+	     */
+	    offResize(callback) {
+	        const index = this.resizeCallbacks.indexOf(callback);
+	        if (index !== -1) {
+	            this.resizeCallbacks.splice(index, 1);
+	        }
+	    }
+	    /**
+	     * Get the main container (includes letterbox and game container)
+	     * Add this to your PIXI stage
+	     */
+	    getContainer() {
+	        return this.mainContainer;
+	    }
+	    /**
+	     * Get the game container (safe area)
+	     * Add game content as children of this container
+	     */
+	    getGameContainer() {
+	        return this.gameContainer;
+	    }
+	    /**
+	     * Add a child to the game container
+	     */
+	    addChild(child) {
+	        if (this.gameContainer) {
+	            return this.gameContainer.addChild(child);
+	        }
+	        return child;
+	    }
+	    /**
+	     * Remove a child from the game container
+	     */
+	    removeChild(child) {
+	        if (this.gameContainer) {
+	            return this.gameContainer.removeChild(child);
+	        }
+	        return child;
+	    }
+	    /**
+	     * Get current safe area bounds
+	     */
+	    getBounds() {
+	        return { ...this.currentBounds };
+	    }
+	    /**
+	     * Get design width
+	     */
+	    getDesignWidth() {
+	        return this.config.designWidth;
+	    }
+	    /**
+	     * Get design height
+	     */
+	    getDesignHeight() {
+	        return this.config.designHeight;
+	    }
+	    /**
+	     * Convert screen coordinates to design coordinates
+	     * Useful for handling input events
+	     */
+	    screenToDesign(screenX, screenY) {
+	        const bounds = this.currentBounds;
+	        return {
+	            x: (screenX - bounds.x) / bounds.scale,
+	            y: (screenY - bounds.y) / bounds.scale
+	        };
+	    }
+	    /**
+	     * Convert design coordinates to screen coordinates
+	     * Useful for positioning UI elements outside the game container
+	     */
+	    designToScreen(designX, designY) {
+	        const bounds = this.currentBounds;
+	        return {
+	            x: designX * bounds.scale + bounds.x,
+	            y: designY * bounds.scale + bounds.y
+	        };
+	    }
+	    /**
+	     * Check if a screen point is within the safe area
+	     */
+	    isPointInSafeArea(screenX, screenY) {
+	        const bounds = this.currentBounds;
+	        return (screenX >= bounds.x &&
+	            screenX <= bounds.x + bounds.width &&
+	            screenY >= bounds.y &&
+	            screenY <= bounds.y + bounds.height);
+	    }
+	    /**
+	     * Get the current scale factor
+	     */
+	    getScale() {
+	        return this.currentBounds.scale;
+	    }
+	    /**
+	     * Update background color
+	     */
+	    setBackgroundColor(color) {
+	        this.config.backgroundColor = color;
+	        this.drawLetterbox();
+	    }
+	    /**
+	     * Toggle pattern visibility
+	     */
+	    setShowPattern(show) {
+	        this.config.showPattern = show;
+	        this.drawLetterbox();
+	    }
+	    /**
+	     * Set pattern opacity
+	     */
+	    setPatternOpacity(opacity) {
+	        this.config.patternOpacity = Math.max(0, Math.min(1, opacity));
+	        this.drawLetterbox();
+	    }
+	    /**
+	     * Destroy and clean up all resources
+	     */
+	    destroy() {
+	        // Remove resize listener
+	        if (this.resizeHandler) {
+	            window.removeEventListener('resize', this.resizeHandler);
+	            this.resizeHandler = null;
+	        }
+	        // Clear callbacks
+	        this.resizeCallbacks = [];
+	        // Destroy PIXI objects
+	        if (this.letterboxGraphics) {
+	            this.letterboxGraphics.destroy();
+	            this.letterboxGraphics = null;
+	        }
+	        if (this.gameContainer) {
+	            this.gameContainer.destroy({ children: true });
+	            this.gameContainer = null;
+	        }
+	        if (this.mainContainer) {
+	            this.mainContainer.destroy({ children: true });
+	            this.mainContainer = null;
+	        }
+	        this.PIXI = null;
+	    }
+	}
+	/**
+	 * Create a SafeAreaLayout with default configuration
+	 * Defaults to iPhone-style dimensions (390x844)
+	 */
+	function createSafeAreaLayout(config) {
+	    return new SafeAreaLayout({
+	        designWidth: config?.designWidth ?? 390,
+	        designHeight: config?.designHeight ?? 844,
+	        minAspectRatio: config?.minAspectRatio ?? 0.4,
+	        maxAspectRatio: config?.maxAspectRatio ?? 1.0,
+	        backgroundColor: config?.backgroundColor ?? 0x1a1a2e,
+	        showPattern: config?.showPattern ?? false,
+	        patternOpacity: config?.patternOpacity ?? 0.05
+	    });
+	}
+
+	/**
 	 * Three.js Graphics Factory Implementation
 	 *
 	 * Provides Three.js-based implementations of framework graphics primitives.
@@ -44563,7 +45846,10 @@
 	exports.GameLoopOptimizer = GameLoopOptimizer;
 	exports.GameStyleButton = GameStyleButton;
 	exports.GameStyleColors = GameStyleColors;
+	exports.GameStylePanel = GameStylePanel;
 	exports.GameStyleUITheme = GameStyleUITheme;
+	exports.GameToggle = GameToggle;
+	exports.GameToggleColors = GameToggleColors;
 	exports.GameTopBar = GameTopBar;
 	exports.GraphicsEngine = GraphicsEngine;
 	exports.HexagonLevelButton = HexagonLevelButton;
@@ -44612,6 +45898,7 @@
 	exports.ResponsiveLayoutManager = ResponsiveLayoutManager;
 	exports.ResponsiveScaleCalculator = ResponsiveScaleCalculator;
 	exports.SFX = SFXSystemFacade;
+	exports.SafeAreaLayout = SafeAreaLayout;
 	exports.SceneServiceProvider = SceneServiceProvider;
 	exports.Scenes = Scenes;
 	exports.ServiceContainer = ServiceContainer;
@@ -44637,6 +45924,7 @@
 	exports.createMergeGame = createMergeGame;
 	exports.createMobileGame = createMobileGame;
 	exports.createResponsiveCalculator = createResponsiveCalculator;
+	exports.createSafeAreaLayout = createSafeAreaLayout;
 	exports.createSkyGradient = createSkyGradient;
 	exports.darkenColor = darkenColor;
 	exports.default = GameByteFramework;
