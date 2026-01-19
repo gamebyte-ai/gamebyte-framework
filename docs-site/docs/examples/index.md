@@ -6,22 +6,23 @@ description: Interactive examples and demos showcasing GameByte Framework featur
 
 # Examples & Demos
 
-Explore interactive demos and code examples to learn GameByte Framework.
+Explore interactive demos and code examples to learn GameByte Framework. All examples demonstrate the complete game flow: Splash Screen -> Loading -> Menu -> Game -> Game Over.
 
-## Game Examples
+## Complete Game Examples
 
 ### Platformer Game
-A complete 2D platformer with physics-based movement, jumping, and collision detection.
+A 2D physics platformer with coin collection, enemies, and multiple platforms.
 
 <a href="/demos/platformer-physics.html" target="_blank" class="button button--primary button--lg">
   Play Platformer Demo
 </a>
 
 **Features:**
-- Physics-based player movement
-- Variable jump height (hold to jump higher)
-- Ground detection via collision events
-- Multiple platforms
+- Physics-based movement with Matter.js
+- Variable jump height (hold Space for higher jump)
+- Coin collection with score system
+- Enemy AI with patrol behavior
+- Complete game flow with menu and game over screens
 
 **Source:** [`examples/platformer/`](https://github.com/gamebyte-ai/gamebyte-framework/tree/main/examples/platformer)
 
@@ -35,12 +36,49 @@ A mobile-style merge puzzle with drag-and-drop mechanics and tier progression.
 </a>
 
 **Features:**
-- Grid-based merge mechanics
-- Drag and drop interactions
-- Tier-based progression
-- Smooth animations
+- Grid-based merge mechanics (5x5 grid)
+- Drag and drop item merging
+- 10 tier progression system
+- High score persistence with localStorage
+- Canvas-based UI (no HTML elements)
 
 **Source:** [`examples/merge-game/`](https://github.com/gamebyte-ai/gamebyte-framework/tree/main/examples/merge-game)
+
+---
+
+### Space Shooter
+A classic top-down space shooter with waves of enemies and power-ups.
+
+<a href="/demos/space-shooter.html" target="_blank" class="button button--primary button--lg">
+  Play Space Shooter Demo
+</a>
+
+**Features:**
+- Smooth ship movement (arrow keys/WASD)
+- Continuous shooting (hold Space)
+- Multiple enemy types (basic, fast, tank)
+- Wave progression system
+- Starfield background animation
+
+**Source:** [`examples/space-shooter/`](https://github.com/gamebyte-ai/gamebyte-framework/tree/main/examples/space-shooter)
+
+---
+
+### 3D Runner
+An endless runner demonstrating the Hybrid renderer (Three.js 3D + Pixi.js UI overlay).
+
+<a href="/demos/3d-runner.html" target="_blank" class="button button--primary button--lg">
+  Play 3D Runner Demo
+</a>
+
+**Features:**
+- Three.js 3D graphics with Pixi.js UI overlay
+- Lane-switching mechanics (A/D keys)
+- Jump to avoid obstacles (Space)
+- Coin collection in 3D space
+- Distance-based scoring
+
+**Source:** [`examples/3d-runner/`](https://github.com/gamebyte-ai/gamebyte-framework/tree/main/examples/3d-runner)
 
 ---
 

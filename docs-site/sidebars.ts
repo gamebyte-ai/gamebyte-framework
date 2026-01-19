@@ -105,6 +105,16 @@ const sidebars: SidebarsConfig = {
         },
         {
           type: 'link',
+          label: '🚀 Space Shooter Demo',
+          href: '/demos/space-shooter.html',
+        },
+        {
+          type: 'link',
+          label: '🏃 3D Runner Demo',
+          href: '/demos/3d-runner.html',
+        },
+        {
+          type: 'link',
           label: '⚡ Physics 2D Demo',
           href: '/demos/physics-2d.html',
         },

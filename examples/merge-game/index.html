@@ -1,587 +1,833 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>GameByte - Merge Puzzle Game Example</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    html, body {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-
-    #game-container {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-
-    #game-canvas {
-      touch-action: none;
-      border-radius: 16px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-    }
-
-    .game-ui {
-      position: absolute;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 20px;
-      z-index: 100;
-    }
-
-    .ui-panel {
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(10px);
-      padding: 12px 24px;
-      border-radius: 12px;
-      color: white;
-      font-size: 18px;
-      font-weight: bold;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .score-value {
-      color: #FFD700;
-    }
-
-    .level-value {
-      color: #4CAF50;
-    }
-
-    .spawn-btn {
-      position: absolute;
-      bottom: 30px;
-      left: 50%;
-      transform: translateX(-50%);
-      padding: 16px 48px;
-      font-size: 20px;
-      font-weight: bold;
-      background: linear-gradient(180deg, #4CAF50 0%, #388E3C 100%);
-      color: white;
-      border: none;
-      border-radius: 30px;
-      cursor: pointer;
-      box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
-      transition: transform 0.1s, box-shadow 0.1s;
-      z-index: 100;
-    }
-
-    .spawn-btn:active {
-      transform: translateX(-50%) scale(0.95);
-      box-shadow: 0 3px 10px rgba(76, 175, 80, 0.4);
-    }
-
-    .spawn-btn:disabled {
-      background: #666;
-      cursor: not-allowed;
-      box-shadow: none;
-    }
-
-    .instructions {
-      position: absolute;
-      bottom: 100px;
-      left: 50%;
-      transform: translateX(-50%);
-      color: rgba(255, 255, 255, 0.7);
-      font-size: 14px;
-      text-align: center;
-      z-index: 100;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Merge Puzzle - GameByte Framework</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            overflow: hidden;
+            background: #1a1a2e;
+            touch-action: none;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
 </head>
 <body>
-  <div id="game-container">
-    <canvas id="game-canvas"></canvas>
-
-    <div class="game-ui">
-      <div class="ui-panel">
-        Score: <span class="score-value" id="score">0</span>
-      </div>
-      <div class="ui-panel">
-        Level: <span class="level-value" id="level">1</span>
-      </div>
-    </div>
-
-    <p class="instructions">Drag items to merge! Same tier items combine into higher tier.</p>
-
-    <button class="spawn-btn" id="spawn-btn">+ Spawn Item</button>
-  </div>
-
-  <script type="module">
-    import * as PIXI from 'https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.mjs';
-
-    // Game state
-    let score = 0;
-    let level = 1;
-    let mergeCount = 0;
-
-    // Initialize Pixi.js Application
-    const app = new PIXI.Application();
-    await app.init({
-      canvas: document.getElementById('game-canvas'),
-      width: 450,
-      height: 600,
-      backgroundColor: 0x1a1a2e,
-      antialias: true,
-      resolution: window.devicePixelRatio || 1,
-      autoDensity: true
-    });
-
-    // Grid configuration
-    const GRID_ROWS = 5;
-    const GRID_COLS = 5;
-    const CELL_SIZE = 70;
-    const CELL_GAP = 10;
-    const GRID_PADDING = 20;
-
-    // Tier colors (vibrant mobile game palette)
-    const TIER_COLORS = [
-      0x9E9E9E,  // Tier 0: Gray
-      0x4CAF50,  // Tier 1: Green
-      0x2196F3,  // Tier 2: Blue
-      0x9C27B0,  // Tier 3: Purple
-      0xFF9800,  // Tier 4: Orange
-      0xF44336,  // Tier 5: Red
-      0xFFEB3B,  // Tier 6: Yellow/Gold
-      0x00BCD4,  // Tier 7: Cyan
-      0xE91E63,  // Tier 8: Pink
-      0x673AB7,  // Tier 9: Deep Purple
-      0xFFD700,  // Tier 10+: Gold (max tier)
-    ];
-
-    // Grid state
-    const grid = [];
-    const items = [];
-    let draggedItem = null;
-    let draggedFromCell = null;
-    let highlightedCell = null;
-
-    // Create grid container
-    const gridContainer = new PIXI.Container();
-    const gridWidth = GRID_COLS * CELL_SIZE + (GRID_COLS - 1) * CELL_GAP + GRID_PADDING * 2;
-    const gridHeight = GRID_ROWS * CELL_SIZE + (GRID_ROWS - 1) * CELL_GAP + GRID_PADDING * 2;
-
-    gridContainer.x = (app.screen.width - gridWidth) / 2;
-    gridContainer.y = (app.screen.height - gridHeight) / 2 - 20;
-
-    // Draw grid background
-    const gridBg = new PIXI.Graphics();
-    gridBg.roundRect(0, 0, gridWidth, gridHeight, 16);
-    gridBg.fill({ color: 0x16213e, alpha: 0.8 });
-    gridContainer.addChild(gridBg);
-
-    // Create cells
-    for (let row = 0; row < GRID_ROWS; row++) {
-      grid[row] = [];
-      for (let col = 0; col < GRID_COLS; col++) {
-        const cell = createCell(row, col);
-        grid[row][col] = cell;
-        gridContainer.addChild(cell.graphics);
-      }
-    }
-
-    // Items container (for z-ordering during drag)
-    const itemsContainer = new PIXI.Container();
-    gridContainer.addChild(itemsContainer);
-
-    app.stage.addChild(gridContainer);
-
-    // Create a cell
-    function createCell(row, col) {
-      const x = GRID_PADDING + col * (CELL_SIZE + CELL_GAP);
-      const y = GRID_PADDING + row * (CELL_SIZE + CELL_GAP);
-
-      const graphics = new PIXI.Graphics();
-      drawCell(graphics, x, y, false);
-
-      return {
-        row,
-        col,
-        x,
-        y,
-        graphics,
-        item: null,
-        highlighted: false
-      };
-    }
-
-    function drawCell(graphics, x, y, highlighted, canDrop = true) {
-      graphics.clear();
-
-      // Cell background
-      graphics.roundRect(x, y, CELL_SIZE, CELL_SIZE, 8);
-      graphics.fill({ color: highlighted ? (canDrop ? 0x4CAF50 : 0xF44336) : 0x2a2a4a, alpha: highlighted ? 0.5 : 1 });
-      graphics.stroke({ color: 0x444464, width: 2 });
-
-      if (!highlighted) {
-        // Empty indicator
-        graphics.moveTo(x + CELL_SIZE/2 - 10, y + CELL_SIZE/2);
-        graphics.lineTo(x + CELL_SIZE/2 + 10, y + CELL_SIZE/2);
-        graphics.moveTo(x + CELL_SIZE/2, y + CELL_SIZE/2 - 10);
-        graphics.lineTo(x + CELL_SIZE/2, y + CELL_SIZE/2 + 10);
-        graphics.stroke({ color: 0x555575, width: 2 });
-      }
-    }
-
-    // Create a merge item
-    function createItem(tier, cell) {
-      const size = CELL_SIZE * 0.75;
-      const container = new PIXI.Container();
-      container.x = cell.x + CELL_SIZE / 2;
-      container.y = cell.y + CELL_SIZE / 2;
-
-      const graphics = new PIXI.Graphics();
-      drawItem(graphics, tier, size);
-      container.addChild(graphics);
-
-      // Tier label
-      const label = new PIXI.Text({
-        text: tier.toString(),
-        style: {
-          fontFamily: 'Arial Black',
-          fontSize: size * 0.4,
-          fill: 0xFFFFFF,
-          fontWeight: 'bold',
-          dropShadow: true,
-          dropShadowColor: 0x000000,
-          dropShadowDistance: 2
-        }
-      });
-      label.anchor.set(0.5);
-      container.addChild(label);
-
-      // Make interactive
-      container.eventMode = 'static';
-      container.cursor = 'pointer';
-
-      const item = {
-        tier,
-        container,
-        graphics,
-        label,
-        cell,
-        size
-      };
-
-      // Drag events
-      container.on('pointerdown', (e) => onDragStart(e, item));
-      container.on('pointermove', (e) => onDragMove(e, item));
-      container.on('pointerup', (e) => onDragEnd(e, item));
-      container.on('pointerupoutside', (e) => onDragEnd(e, item));
-
-      items.push(item);
-      itemsContainer.addChild(container);
-      cell.item = item;
-
-      // Spawn animation
-      container.scale.set(0);
-      animateScale(container, 1, 0.3, 'backOut');
-
-      return item;
-    }
-
-    function drawItem(graphics, tier, size) {
-      const colorIndex = Math.min(tier, TIER_COLORS.length - 1);
-      const color = TIER_COLORS[colorIndex];
-
-      graphics.clear();
-
-      // Shadow
-      graphics.roundRect(-size/2 + 3, -size/2 + 3, size, size, size * 0.2);
-      graphics.fill({ color: 0x000000, alpha: 0.3 });
-
-      // Main shape
-      graphics.roundRect(-size/2, -size/2, size, size, size * 0.2);
-      graphics.fill({ color: color });
-
-      // Highlight
-      graphics.roundRect(-size/2 + 4, -size/2 + 4, size - 8, size * 0.3, size * 0.15);
-      graphics.fill({ color: 0xFFFFFF, alpha: 0.3 });
-    }
-
-    // Drag handlers
-    function onDragStart(e, item) {
-      draggedItem = item;
-      draggedFromCell = item.cell;
-
-      // Store original position
-      item.originalPos = { x: item.container.x, y: item.container.y };
-
-      // Remove from cell
-      item.cell.item = null;
-      item.cell = null;
-
-      // Bring to front
-      itemsContainer.setChildIndex(item.container, itemsContainer.children.length - 1);
-
-      // Scale up slightly
-      animateScale(item.container, 1.1, 0.1);
-    }
-
-    function onDragMove(e, item) {
-      if (draggedItem !== item) return;
-
-      const pos = e.getLocalPosition(gridContainer);
-      item.container.x = pos.x;
-      item.container.y = pos.y;
-
-      // Find cell under cursor
-      const cellUnder = getCellAt(pos.x, pos.y);
-
-      // Update highlights
-      if (highlightedCell && highlightedCell !== cellUnder) {
-        drawCell(highlightedCell.graphics, highlightedCell.x, highlightedCell.y, false);
-        highlightedCell.highlighted = false;
-      }
-
-      if (cellUnder && cellUnder !== highlightedCell) {
-        const canDrop = !cellUnder.item || (cellUnder.item && cellUnder.item.tier === item.tier);
-        drawCell(cellUnder.graphics, cellUnder.x, cellUnder.y, true, canDrop);
-        cellUnder.highlighted = true;
-        highlightedCell = cellUnder;
-      }
-    }
-
-    function onDragEnd(e, item) {
-      if (draggedItem !== item) return;
-
-      // Clear highlight
-      if (highlightedCell) {
-        drawCell(highlightedCell.graphics, highlightedCell.x, highlightedCell.y, false);
-        highlightedCell.highlighted = false;
-        highlightedCell = null;
-      }
-
-      // Scale back
-      animateScale(item.container, 1, 0.1);
-
-      const pos = e.getLocalPosition(gridContainer);
-      const targetCell = getCellAt(pos.x, pos.y);
-
-      if (targetCell) {
-        if (!targetCell.item) {
-          // Place in empty cell
-          placeItemInCell(item, targetCell);
-        } else if (targetCell.item.tier === item.tier) {
-          // Merge!
-          performMerge(item, targetCell.item, targetCell);
-        } else {
-          // Return to original
-          returnToCell(item, draggedFromCell);
-        }
-      } else {
-        // Dropped outside grid
-        returnToCell(item, draggedFromCell);
-      }
-
-      draggedItem = null;
-      draggedFromCell = null;
-    }
-
-    function getCellAt(x, y) {
-      for (let row = 0; row < GRID_ROWS; row++) {
-        for (let col = 0; col < GRID_COLS; col++) {
-          const cell = grid[row][col];
-          if (x >= cell.x && x <= cell.x + CELL_SIZE &&
-              y >= cell.y && y <= cell.y + CELL_SIZE) {
-            return cell;
-          }
-        }
-      }
-      return null;
-    }
-
-    function placeItemInCell(item, cell) {
-      item.cell = cell;
-      cell.item = item;
-
-      // Animate to cell center
-      animatePosition(item.container, cell.x + CELL_SIZE/2, cell.y + CELL_SIZE/2, 0.15);
-    }
-
-    function returnToCell(item, cell) {
-      if (cell) {
-        placeItemInCell(item, cell);
-      }
-    }
-
-    function performMerge(droppedItem, existingItem, cell) {
-      const newTier = existingItem.tier + 1;
-
-      // Animate both items shrinking
-      animateScale(droppedItem.container, 0, 0.2);
-      animateScale(existingItem.container, 0, 0.2);
-
-      // After animation, create new item
-      setTimeout(() => {
-        // Remove old items
-        removeItem(droppedItem);
-        removeItem(existingItem);
-
-        // Create merged item
-        const newItem = createItem(newTier, cell);
-
-        // Update score
-        score += newTier * 100;
-        mergeCount++;
-        updateUI();
-
-        // Check for level up
-        if (mergeCount >= level * 5) {
-          level++;
-          updateUI();
-        }
-
-        // Check for max tier
-        if (newTier >= 10) {
-          showMaxTierCelebration();
-        }
-      }, 200);
-    }
-
-    function removeItem(item) {
-      const index = items.indexOf(item);
-      if (index > -1) {
-        items.splice(index, 1);
-      }
-      if (item.cell) {
-        item.cell.item = null;
-      }
-      item.container.destroy();
-    }
-
-    // Animation helpers
-    function animateScale(target, toScale, duration, easing = 'linear') {
-      const startScale = target.scale.x;
-      const startTime = performance.now();
-      const durationMs = duration * 1000;
-
-      function update() {
-        const elapsed = performance.now() - startTime;
-        const progress = Math.min(elapsed / durationMs, 1);
-
-        let easedProgress = progress;
-        if (easing === 'backOut') {
-          const c1 = 1.70158;
-          const c3 = c1 + 1;
-          easedProgress = 1 + c3 * Math.pow(progress - 1, 3) + c1 * Math.pow(progress - 1, 2);
-        }
-
-        target.scale.set(startScale + (toScale - startScale) * easedProgress);
-
-        if (progress < 1) {
-          requestAnimationFrame(update);
-        }
-      }
-
-      requestAnimationFrame(update);
-    }
-
-    function animatePosition(target, toX, toY, duration) {
-      const startX = target.x;
-      const startY = target.y;
-      const startTime = performance.now();
-      const durationMs = duration * 1000;
-
-      function update() {
-        const elapsed = performance.now() - startTime;
-        const progress = Math.min(elapsed / durationMs, 1);
-
-        // Ease out
-        const easedProgress = 1 - Math.pow(1 - progress, 3);
-
-        target.x = startX + (toX - startX) * easedProgress;
-        target.y = startY + (toY - startY) * easedProgress;
-
-        if (progress < 1) {
-          requestAnimationFrame(update);
-        }
-      }
-
-      requestAnimationFrame(update);
-    }
-
-    // UI Updates
-    function updateUI() {
-      document.getElementById('score').textContent = score.toLocaleString();
-      document.getElementById('level').textContent = level;
-    }
-
-    function showMaxTierCelebration() {
-      // Simple celebration effect
-      console.log('MAX TIER REACHED!');
-    }
-
-    // Spawn button
-    document.getElementById('spawn-btn').addEventListener('click', () => {
-      spawnRandomItem();
-    });
-
-    function spawnRandomItem() {
-      const emptyCells = [];
-      for (let row = 0; row < GRID_ROWS; row++) {
-        for (let col = 0; col < GRID_COLS; col++) {
-          if (!grid[row][col].item) {
-            emptyCells.push(grid[row][col]);
-          }
-        }
-      }
-
-      if (emptyCells.length === 0) {
-        document.getElementById('spawn-btn').disabled = true;
-        return;
-      }
-
-      const cell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-
-      // Random tier (weighted towards lower tiers)
-      const tierRoll = Math.random();
-      let tier = 1;
-      if (tierRoll > 0.9) tier = 3;
-      else if (tierRoll > 0.7) tier = 2;
-
-      createItem(tier, cell);
-
-      // Update button state
-      if (emptyCells.length <= 1) {
-        document.getElementById('spawn-btn').disabled = true;
-      }
-    }
-
-    // Initial spawn
-    spawnRandomItem();
-    spawnRandomItem();
-    spawnRandomItem();
-
-    // Enable spawn button when cells become available after merge
-    app.ticker.add(() => {
-      const emptyCells = [];
-      for (let row = 0; row < GRID_ROWS; row++) {
-        for (let col = 0; col < GRID_COLS; col++) {
-          if (!grid[row][col].item) {
-            emptyCells.push(grid[row][col]);
-          }
-        }
-      }
-      document.getElementById('spawn-btn').disabled = emptyCells.length === 0;
-    });
-  </script>
+    <!-- Load dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="../../dist/gamebyte.umd.js"></script>
+
+    <script>
+        // GameByte Merge Puzzle Example
+        // Demonstrates: Splash -> Loading -> Menu -> Game -> GameOver flow
+
+        const { createGame } = GameByteFramework;
+
+        // Game configuration
+        const CONFIG = {
+            width: 450,
+            height: 700,
+            gridRows: 5,
+            gridCols: 5,
+            cellSize: 70,
+            cellGap: 10,
+            gridPadding: 20,
+            maxTier: 10,
+            mergesPerLevel: 5
+        };
+
+        // Tier colors
+        const TIER_COLORS = [
+            0x9E9E9E, 0x4CAF50, 0x2196F3, 0x9C27B0, 0xFF9800,
+            0xF44336, 0xFFEB3B, 0x00BCD4, 0xE91E63, 0x673AB7, 0xFFD700
+        ];
+
+        // Game state
+        const gameState = {
+            score: 0,
+            level: 1,
+            mergeCount: 0,
+            grid: [],
+            items: [],
+            gameOver: false
+        };
+
+        // Create game instance
+        const game = createGame();
+
+        // Create canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.body.appendChild(canvas);
+
+        // Main initialization
+        (async () => {
+            await game.initialize(canvas, '2d');
+
+            const renderer = game.make('renderer');
+            const inputManager = game.make('input');
+            const stage = renderer.getStage();
+
+            // Scene containers
+            const scenes = {
+                splash: new PIXI.Container(),
+                loading: new PIXI.Container(),
+                menu: new PIXI.Container(),
+                game: new PIXI.Container(),
+                gameOver: new PIXI.Container()
+            };
+
+            let currentScene = null;
+            let gridContainer = null;
+            let itemsContainer = null;
+            let topBar = null;
+            let spawnButton = null;
+
+            // Drag state
+            let draggedItem = null;
+            let draggedFromCell = null;
+            let highlightedCell = null;
+
+            // ============================================
+            // SCENE: SPLASH
+            // ============================================
+            function createSplashScene() {
+                const container = scenes.splash;
+                container.removeChildren();
+
+                // Gradient background
+                const bg = new PIXI.Graphics();
+                bg.rect(0, 0, CONFIG.width, CONFIG.height);
+                bg.fill(0x1a1a2e);
+                container.addChild(bg);
+
+                // Logo
+                const logoContainer = new PIXI.Container();
+                logoContainer.x = CONFIG.width / 2;
+                logoContainer.y = CONFIG.height / 2 - 30;
+
+                const logo = new PIXI.Graphics();
+                logo.rect(-50, -20, 25, 35);
+                logo.fill(0xffffff);
+                logo.rect(-15, -35, 25, 35);
+                logo.fill(0xffffff);
+                logo.rect(-15, 10, 25, 35);
+                logo.fill(0xffffff);
+                logo.rect(20, -20, 65, 40);
+                logo.fill(0xffffff);
+
+                logoContainer.addChild(logo);
+                container.addChild(logoContainer);
+
+                // Brand text
+                const brandText = new PIXI.Text({
+                    text: 'GameByte',
+                    style: {
+                        fontFamily: 'Arial Black, Arial',
+                        fontSize: 32,
+                        fill: 0xffffff,
+                        fontWeight: 'bold'
+                    }
+                });
+                brandText.anchor.set(0.5);
+                brandText.x = CONFIG.width / 2;
+                brandText.y = CONFIG.height / 2 + 50;
+                container.addChild(brandText);
+
+                setTimeout(() => switchScene('loading'), 2000);
+            }
+
+            // ============================================
+            // SCENE: LOADING
+            // ============================================
+            function createLoadingScene() {
+                const container = scenes.loading;
+                container.removeChildren();
+
+                const bg = new PIXI.Graphics();
+                bg.rect(0, 0, CONFIG.width, CONFIG.height);
+                bg.fill(0x1a1a2e);
+                container.addChild(bg);
+
+                const loadingText = new PIXI.Text({
+                    text: 'Loading',
+                    style: {
+                        fontFamily: 'Arial',
+                        fontSize: 24,
+                        fill: 0xffffff
+                    }
+                });
+                loadingText.anchor.set(0.5);
+                loadingText.x = CONFIG.width / 2;
+                loadingText.y = CONFIG.height - 60;
+                container.addChild(loadingText);
+
+                setTimeout(() => switchScene('menu'), 1500);
+            }
+
+            // ============================================
+            // SCENE: MENU
+            // ============================================
+            function createMenuScene() {
+                const container = scenes.menu;
+                container.removeChildren();
+
+                const bg = new PIXI.Graphics();
+                bg.rect(0, 0, CONFIG.width, CONFIG.height);
+                bg.fill(0x1a1a2e);
+                container.addChild(bg);
+
+                // Title
+                const title = new PIXI.Text({
+                    text: 'MERGE PUZZLE',
+                    style: {
+                        fontFamily: 'Arial Black, Arial',
+                        fontSize: 42,
+                        fill: 0xffffff,
+                        fontWeight: 'bold'
+                    }
+                });
+                title.anchor.set(0.5);
+                title.x = CONFIG.width / 2;
+                title.y = 150;
+                container.addChild(title);
+
+                // Sample tier items preview
+                const previewContainer = new PIXI.Container();
+                previewContainer.x = CONFIG.width / 2;
+                previewContainer.y = 280;
+
+                for (let i = 1; i <= 5; i++) {
+                    const item = new PIXI.Graphics();
+                    const x = (i - 3) * 50;
+                    item.roundRect(x - 20, -20, 40, 40, 8);
+                    item.fill(TIER_COLORS[i]);
+
+                    const label = new PIXI.Text({
+                        text: i.toString(),
+                        style: { fontFamily: 'Arial Black', fontSize: 20, fill: 0xffffff }
+                    });
+                    label.anchor.set(0.5);
+                    label.x = x;
+                    previewContainer.addChild(item);
+                    previewContainer.addChild(label);
+                }
+                container.addChild(previewContainer);
+
+                // Subtitle
+                const subtitle = new PIXI.Text({
+                    text: 'Match same tier items to merge!',
+                    style: {
+                        fontFamily: 'Arial',
+                        fontSize: 16,
+                        fill: 0x888888
+                    }
+                });
+                subtitle.anchor.set(0.5);
+                subtitle.x = CONFIG.width / 2;
+                subtitle.y = 350;
+                container.addChild(subtitle);
+
+                // Play button
+                const playButton = createButton('PLAY', CONFIG.width / 2, 450, 0x4CAF50, () => {
+                    resetGame();
+                    switchScene('game');
+                });
+                container.addChild(playButton);
+
+                // High score
+                const highScore = localStorage.getItem('mergePuzzleHighScore') || 0;
+                const highScoreText = new PIXI.Text({
+                    text: `High Score: ${highScore}`,
+                    style: {
+                        fontFamily: 'Arial',
+                        fontSize: 18,
+                        fill: 0xFFD700
+                    }
+                });
+                highScoreText.anchor.set(0.5);
+                highScoreText.x = CONFIG.width / 2;
+                highScoreText.y = CONFIG.height - 50;
+                container.addChild(highScoreText);
+            }
+
+            // ============================================
+            // SCENE: GAME
+            // ============================================
+            function createGameScene() {
+                const container = scenes.game;
+                container.removeChildren();
+
+                // Background
+                const bg = new PIXI.Graphics();
+                bg.rect(0, 0, CONFIG.width, CONFIG.height);
+                bg.fill(0x16213e);
+                container.addChild(bg);
+
+                // TopBar
+                topBar = createTopBar();
+                container.addChild(topBar);
+
+                // Grid
+                createGrid(container);
+
+                // Spawn button
+                spawnButton = createButton('+ SPAWN', CONFIG.width / 2, CONFIG.height - 50, 0x4CAF50, () => {
+                    spawnRandomItem();
+                });
+                container.addChild(spawnButton);
+
+                // Initial spawn
+                for (let i = 0; i < 3; i++) {
+                    spawnRandomItem();
+                }
+            }
+
+            function createTopBar() {
+                const bar = new PIXI.Container();
+
+                const bg = new PIXI.Graphics();
+                bg.rect(0, 0, CONFIG.width, 70);
+                bg.fill({ color: 0x000000, alpha: 0.7 });
+                bar.addChild(bg);
+
+                // Score
+                const scoreLabel = new PIXI.Text({
+                    text: 'Score',
+                    style: { fontFamily: 'Arial', fontSize: 14, fill: 0x888888 }
+                });
+                scoreLabel.x = 20;
+                scoreLabel.y = 10;
+                bar.addChild(scoreLabel);
+
+                const scoreText = new PIXI.Text({
+                    text: '0',
+                    style: { fontFamily: 'Arial Black', fontSize: 28, fill: 0xFFD700, fontWeight: 'bold' }
+                });
+                scoreText.x = 20;
+                scoreText.y = 28;
+                scoreText.name = 'scoreText';
+                bar.addChild(scoreText);
+
+                // Level
+                const levelLabel = new PIXI.Text({
+                    text: 'Level',
+                    style: { fontFamily: 'Arial', fontSize: 14, fill: 0x888888 }
+                });
+                levelLabel.anchor.set(1, 0);
+                levelLabel.x = CONFIG.width - 20;
+                levelLabel.y = 10;
+                bar.addChild(levelLabel);
+
+                const levelText = new PIXI.Text({
+                    text: '1',
+                    style: { fontFamily: 'Arial Black', fontSize: 28, fill: 0x4CAF50, fontWeight: 'bold' }
+                });
+                levelText.anchor.set(1, 0);
+                levelText.x = CONFIG.width - 20;
+                levelText.y = 28;
+                levelText.name = 'levelText';
+                bar.addChild(levelText);
+
+                return bar;
+            }
+
+            function createGrid(container) {
+                gridContainer = new PIXI.Container();
+                const gridWidth = CONFIG.gridCols * CONFIG.cellSize + (CONFIG.gridCols - 1) * CONFIG.cellGap + CONFIG.gridPadding * 2;
+                const gridHeight = CONFIG.gridRows * CONFIG.cellSize + (CONFIG.gridRows - 1) * CONFIG.cellGap + CONFIG.gridPadding * 2;
+
+                gridContainer.x = (CONFIG.width - gridWidth) / 2;
+                gridContainer.y = 90;
+
+                // Grid background
+                const gridBg = new PIXI.Graphics();
+                gridBg.roundRect(0, 0, gridWidth, gridHeight, 16);
+                gridBg.fill({ color: 0x1a1a2e, alpha: 0.8 });
+                gridContainer.addChild(gridBg);
+
+                // Create cells
+                gameState.grid = [];
+                for (let row = 0; row < CONFIG.gridRows; row++) {
+                    gameState.grid[row] = [];
+                    for (let col = 0; col < CONFIG.gridCols; col++) {
+                        const cell = createCell(row, col);
+                        gameState.grid[row][col] = cell;
+                        gridContainer.addChild(cell.graphics);
+                    }
+                }
+
+                // Items container
+                itemsContainer = new PIXI.Container();
+                gridContainer.addChild(itemsContainer);
+
+                container.addChild(gridContainer);
+            }
+
+            function createCell(row, col) {
+                const x = CONFIG.gridPadding + col * (CONFIG.cellSize + CONFIG.cellGap);
+                const y = CONFIG.gridPadding + row * (CONFIG.cellSize + CONFIG.cellGap);
+
+                const graphics = new PIXI.Graphics();
+                drawCell(graphics, x, y, false);
+
+                return { row, col, x, y, graphics, item: null };
+            }
+
+            function drawCell(graphics, x, y, highlighted, canDrop = true) {
+                graphics.clear();
+                graphics.roundRect(x, y, CONFIG.cellSize, CONFIG.cellSize, 8);
+                graphics.fill({ color: highlighted ? (canDrop ? 0x4CAF50 : 0xF44336) : 0x2a2a4a, alpha: highlighted ? 0.5 : 1 });
+                graphics.stroke({ color: 0x444464, width: 2 });
+
+                if (!highlighted) {
+                    graphics.moveTo(x + CONFIG.cellSize/2 - 10, y + CONFIG.cellSize/2);
+                    graphics.lineTo(x + CONFIG.cellSize/2 + 10, y + CONFIG.cellSize/2);
+                    graphics.moveTo(x + CONFIG.cellSize/2, y + CONFIG.cellSize/2 - 10);
+                    graphics.lineTo(x + CONFIG.cellSize/2, y + CONFIG.cellSize/2 + 10);
+                    graphics.stroke({ color: 0x555575, width: 2 });
+                }
+            }
+
+            function createItem(tier, cell) {
+                const size = CONFIG.cellSize * 0.75;
+                const container = new PIXI.Container();
+                container.x = cell.x + CONFIG.cellSize / 2;
+                container.y = cell.y + CONFIG.cellSize / 2;
+
+                const graphics = new PIXI.Graphics();
+                const color = TIER_COLORS[Math.min(tier, TIER_COLORS.length - 1)];
+
+                // Shadow
+                graphics.roundRect(-size/2 + 3, -size/2 + 3, size, size, size * 0.2);
+                graphics.fill({ color: 0x000000, alpha: 0.3 });
+
+                // Main
+                graphics.roundRect(-size/2, -size/2, size, size, size * 0.2);
+                graphics.fill(color);
+
+                // Highlight
+                graphics.roundRect(-size/2 + 4, -size/2 + 4, size - 8, size * 0.3, size * 0.15);
+                graphics.fill({ color: 0xffffff, alpha: 0.3 });
+
+                container.addChild(graphics);
+
+                // Label
+                const label = new PIXI.Text({
+                    text: tier.toString(),
+                    style: {
+                        fontFamily: 'Arial Black',
+                        fontSize: size * 0.4,
+                        fill: 0xffffff,
+                        fontWeight: 'bold'
+                    }
+                });
+                label.anchor.set(0.5);
+                container.addChild(label);
+
+                // Make interactive
+                container.eventMode = 'static';
+                container.cursor = 'pointer';
+
+                const item = { tier, container, graphics, label, cell, size };
+
+                container.on('pointerdown', (e) => onDragStart(e, item));
+                container.on('globalpointermove', (e) => onDragMove(e, item));
+                container.on('pointerup', (e) => onDragEnd(e, item));
+                container.on('pointerupoutside', (e) => onDragEnd(e, item));
+
+                gameState.items.push(item);
+                itemsContainer.addChild(container);
+                cell.item = item;
+
+                // Spawn animation
+                container.scale.set(0);
+                animateScale(container, 1, 200);
+
+                return item;
+            }
+
+            function onDragStart(e, item) {
+                if (gameState.gameOver) return;
+                draggedItem = item;
+                draggedFromCell = item.cell;
+                item.originalPos = { x: item.container.x, y: item.container.y };
+                item.cell.item = null;
+                item.cell = null;
+                itemsContainer.setChildIndex(item.container, itemsContainer.children.length - 1);
+                item.container.scale.set(1.1);
+            }
+
+            function onDragMove(e, item) {
+                if (draggedItem !== item) return;
+
+                const pos = e.getLocalPosition(gridContainer);
+                item.container.x = pos.x;
+                item.container.y = pos.y;
+
+                const cellUnder = getCellAt(pos.x, pos.y);
+
+                if (highlightedCell && highlightedCell !== cellUnder) {
+                    drawCell(highlightedCell.graphics, highlightedCell.x, highlightedCell.y, false);
+                }
+
+                if (cellUnder && cellUnder !== highlightedCell) {
+                    const canDrop = !cellUnder.item || (cellUnder.item && cellUnder.item.tier === item.tier);
+                    drawCell(cellUnder.graphics, cellUnder.x, cellUnder.y, true, canDrop);
+                    highlightedCell = cellUnder;
+                }
+            }
+
+            function onDragEnd(e, item) {
+                if (draggedItem !== item) return;
+
+                if (highlightedCell) {
+                    drawCell(highlightedCell.graphics, highlightedCell.x, highlightedCell.y, false);
+                    highlightedCell = null;
+                }
+
+                item.container.scale.set(1);
+
+                const pos = e.getLocalPosition(gridContainer);
+                const targetCell = getCellAt(pos.x, pos.y);
+
+                if (targetCell) {
+                    if (!targetCell.item) {
+                        placeItemInCell(item, targetCell);
+                    } else if (targetCell.item.tier === item.tier) {
+                        performMerge(item, targetCell.item, targetCell);
+                    } else {
+                        returnToCell(item, draggedFromCell);
+                    }
+                } else {
+                    returnToCell(item, draggedFromCell);
+                }
+
+                draggedItem = null;
+                draggedFromCell = null;
+
+                checkGameOver();
+            }
+
+            function getCellAt(x, y) {
+                for (let row = 0; row < CONFIG.gridRows; row++) {
+                    for (let col = 0; col < CONFIG.gridCols; col++) {
+                        const cell = gameState.grid[row][col];
+                        if (x >= cell.x && x <= cell.x + CONFIG.cellSize &&
+                            y >= cell.y && y <= cell.y + CONFIG.cellSize) {
+                            return cell;
+                        }
+                    }
+                }
+                return null;
+            }
+
+            function placeItemInCell(item, cell) {
+                item.cell = cell;
+                cell.item = item;
+                animatePosition(item.container, cell.x + CONFIG.cellSize/2, cell.y + CONFIG.cellSize/2, 150);
+            }
+
+            function returnToCell(item, cell) {
+                if (cell) placeItemInCell(item, cell);
+            }
+
+            function performMerge(droppedItem, existingItem, cell) {
+                const newTier = existingItem.tier + 1;
+
+                animateScale(droppedItem.container, 0, 200);
+                animateScale(existingItem.container, 0, 200);
+
+                setTimeout(() => {
+                    removeItem(droppedItem);
+                    removeItem(existingItem);
+
+                    createItem(newTier, cell);
+
+                    gameState.score += newTier * 100;
+                    gameState.mergeCount++;
+                    updateTopBar();
+
+                    if (gameState.mergeCount >= gameState.level * CONFIG.mergesPerLevel) {
+                        gameState.level++;
+                        updateTopBar();
+                    }
+
+                    if (newTier >= CONFIG.maxTier) {
+                        gameState.score += 1000;
+                        updateTopBar();
+                    }
+
+                    updateSpawnButton();
+                }, 200);
+            }
+
+            function removeItem(item) {
+                const index = gameState.items.indexOf(item);
+                if (index > -1) gameState.items.splice(index, 1);
+                if (item.cell) item.cell.item = null;
+                item.container.destroy();
+            }
+
+            function spawnRandomItem() {
+                const emptyCells = getEmptyCells();
+                if (emptyCells.length === 0) return;
+
+                const cell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+                const tierRoll = Math.random();
+                let tier = 1;
+                if (tierRoll > 0.9) tier = 3;
+                else if (tierRoll > 0.7) tier = 2;
+
+                createItem(tier, cell);
+                updateSpawnButton();
+            }
+
+            function getEmptyCells() {
+                const empty = [];
+                for (let row = 0; row < CONFIG.gridRows; row++) {
+                    for (let col = 0; col < CONFIG.gridCols; col++) {
+                        if (!gameState.grid[row][col].item) {
+                            empty.push(gameState.grid[row][col]);
+                        }
+                    }
+                }
+                return empty;
+            }
+
+            function updateSpawnButton() {
+                if (!spawnButton) return;
+                const empty = getEmptyCells();
+                spawnButton.alpha = empty.length === 0 ? 0.5 : 1;
+                spawnButton.eventMode = empty.length === 0 ? 'none' : 'static';
+            }
+
+            function checkGameOver() {
+                const empty = getEmptyCells();
+                if (empty.length > 0) return;
+
+                // Check for possible merges
+                for (let row = 0; row < CONFIG.gridRows; row++) {
+                    for (let col = 0; col < CONFIG.gridCols; col++) {
+                        const cell = gameState.grid[row][col];
+                        if (!cell.item) continue;
+
+                        // Check neighbors
+                        const neighbors = [
+                            row > 0 ? gameState.grid[row-1][col] : null,
+                            row < CONFIG.gridRows-1 ? gameState.grid[row+1][col] : null,
+                            col > 0 ? gameState.grid[row][col-1] : null,
+                            col < CONFIG.gridCols-1 ? gameState.grid[row][col+1] : null
+                        ];
+
+                        for (const neighbor of neighbors) {
+                            if (neighbor && neighbor.item && neighbor.item.tier === cell.item.tier) {
+                                return; // Merge possible
+                            }
+                        }
+                    }
+                }
+
+                // No moves left
+                triggerGameOver();
+            }
+
+            function updateTopBar() {
+                if (!topBar) return;
+                const scoreText = topBar.getChildByName('scoreText');
+                const levelText = topBar.getChildByName('levelText');
+                if (scoreText) scoreText.text = gameState.score.toLocaleString();
+                if (levelText) levelText.text = gameState.level.toString();
+            }
+
+            // ============================================
+            // SCENE: GAME OVER
+            // ============================================
+            function createGameOverScene() {
+                const container = scenes.gameOver;
+                container.removeChildren();
+
+                const bg = new PIXI.Graphics();
+                bg.rect(0, 0, CONFIG.width, CONFIG.height);
+                bg.fill({ color: 0x000000, alpha: 0.85 });
+                container.addChild(bg);
+
+                const gameOverText = new PIXI.Text({
+                    text: 'GAME OVER',
+                    style: {
+                        fontFamily: 'Arial Black, Arial',
+                        fontSize: 48,
+                        fill: 0xe74c3c,
+                        fontWeight: 'bold'
+                    }
+                });
+                gameOverText.anchor.set(0.5);
+                gameOverText.x = CONFIG.width / 2;
+                gameOverText.y = 180;
+                container.addChild(gameOverText);
+
+                // Score
+                const scoreText = new PIXI.Text({
+                    text: `Score: ${gameState.score.toLocaleString()}`,
+                    style: { fontFamily: 'Arial', fontSize: 32, fill: 0xFFD700 }
+                });
+                scoreText.anchor.set(0.5);
+                scoreText.x = CONFIG.width / 2;
+                scoreText.y = 280;
+                container.addChild(scoreText);
+
+                // Level
+                const levelText = new PIXI.Text({
+                    text: `Level Reached: ${gameState.level}`,
+                    style: { fontFamily: 'Arial', fontSize: 24, fill: 0x4CAF50 }
+                });
+                levelText.anchor.set(0.5);
+                levelText.x = CONFIG.width / 2;
+                levelText.y = 330;
+                container.addChild(levelText);
+
+                // High score
+                const highScore = parseInt(localStorage.getItem('mergePuzzleHighScore') || '0');
+                if (gameState.score > highScore) {
+                    localStorage.setItem('mergePuzzleHighScore', gameState.score.toString());
+
+                    const newHighText = new PIXI.Text({
+                        text: 'NEW HIGH SCORE!',
+                        style: { fontFamily: 'Arial Black', fontSize: 24, fill: 0xFFD700 }
+                    });
+                    newHighText.anchor.set(0.5);
+                    newHighText.x = CONFIG.width / 2;
+                    newHighText.y = 380;
+                    container.addChild(newHighText);
+                }
+
+                // Retry button
+                const retryButton = createButton('RETRY', CONFIG.width / 2, 470, 0x4CAF50, () => {
+                    resetGame();
+                    switchScene('game');
+                });
+                container.addChild(retryButton);
+
+                // Menu button
+                const menuButton = createButton('MENU', CONFIG.width / 2, 550, 0x3498db, () => {
+                    switchScene('menu');
+                });
+                container.addChild(menuButton);
+            }
+
+            // ============================================
+            // HELPER FUNCTIONS
+            // ============================================
+            function createButton(text, x, y, color, onClick) {
+                const button = new PIXI.Container();
+                button.x = x;
+                button.y = y;
+
+                const bg = new PIXI.Graphics();
+                bg.roundRect(-90, -22, 180, 44, 22);
+                bg.fill(color);
+                button.addChild(bg);
+
+                const label = new PIXI.Text({
+                    text: text,
+                    style: {
+                        fontFamily: 'Arial Black, Arial',
+                        fontSize: 20,
+                        fill: 0xffffff,
+                        fontWeight: 'bold'
+                    }
+                });
+                label.anchor.set(0.5);
+                button.addChild(label);
+
+                button.eventMode = 'static';
+                button.cursor = 'pointer';
+
+                button.on('pointerdown', () => button.scale.set(0.95));
+                button.on('pointerup', () => { button.scale.set(1); onClick(); });
+                button.on('pointerupoutside', () => button.scale.set(1));
+
+                return button;
+            }
+
+            function switchScene(sceneName) {
+                if (currentScene) stage.removeChild(currentScene);
+
+                switch (sceneName) {
+                    case 'splash': createSplashScene(); break;
+                    case 'loading': createLoadingScene(); break;
+                    case 'menu': createMenuScene(); break;
+                    case 'game': createGameScene(); break;
+                    case 'gameOver': createGameOverScene(); break;
+                }
+
+                currentScene = scenes[sceneName];
+                stage.addChild(currentScene);
+            }
+
+            function resetGame() {
+                gameState.score = 0;
+                gameState.level = 1;
+                gameState.mergeCount = 0;
+                gameState.grid = [];
+                gameState.items = [];
+                gameState.gameOver = false;
+            }
+
+            function triggerGameOver() {
+                if (gameState.gameOver) return;
+                gameState.gameOver = true;
+                switchScene('gameOver');
+            }
+
+            function animateScale(target, toScale, duration) {
+                const startScale = target.scale.x;
+                const startTime = performance.now();
+
+                function update() {
+                    const elapsed = performance.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    const c1 = 1.70158;
+                    const c3 = c1 + 1;
+                    const easedProgress = 1 + c3 * Math.pow(progress - 1, 3) + c1 * Math.pow(progress - 1, 2);
+                    target.scale.set(startScale + (toScale - startScale) * easedProgress);
+                    if (progress < 1) requestAnimationFrame(update);
+                }
+                requestAnimationFrame(update);
+            }
+
+            function animatePosition(target, toX, toY, duration) {
+                const startX = target.x;
+                const startY = target.y;
+                const startTime = performance.now();
+
+                function update() {
+                    const elapsed = performance.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    const easedProgress = 1 - Math.pow(1 - progress, 3);
+                    target.x = startX + (toX - startX) * easedProgress;
+                    target.y = startY + (toY - startY) * easedProgress;
+                    if (progress < 1) requestAnimationFrame(update);
+                }
+                requestAnimationFrame(update);
+            }
+
+            // ============================================
+            // START GAME
+            // ============================================
+            switchScene('splash');
+            game.start();
+
+        })();
+    </script>
 </body>
 </html>
