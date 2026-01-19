@@ -257,61 +257,79 @@ export class GameBottomNav extends EventEmitter {
   }
 
   /**
-   * Draw shop/store icon
+   * Draw shop/store icon (gift box style)
    */
   private drawShopIcon(g: IGraphics, size: number): void {
     const s = size * 0.7;
 
-    // Store front
-    g.roundRect(-s / 2, -s / 4, s, s * 0.6, 4);
+    // Box body
+    g.roundRect(-s / 2, -s * 0.1, s, s * 0.55, 4);
     g.fill({ color: 0xE91E63 });
     g.stroke({ color: 0xAD1457, width: 2 });
 
-    // Awning
-    g.poly([
-      -s / 2 - 3, -s / 4,
-      0, -s / 2,
-      s / 2 + 3, -s / 4
-    ]);
+    // Box lid
+    g.roundRect(-s / 2 - 2, -s * 0.25, s + 4, s * 0.2, 3);
     g.fill({ color: 0xF48FB1 });
-    g.stroke({ color: 0xAD1457, width: 1 });
+    g.stroke({ color: 0xAD1457, width: 1.5 });
 
-    // Door
-    g.rect(-s / 6, 0, s / 3, s * 0.35);
-    g.fill({ color: 0x7B1FA2 });
+    // Ribbon vertical
+    g.rect(-s * 0.08, -s * 0.25, s * 0.16, s * 0.7);
+    g.fill({ color: 0xFFD54F });
+
+    // Ribbon horizontal
+    g.rect(-s / 2, -s * 0.15, s, s * 0.12);
+    g.fill({ color: 0xFFD54F });
+
+    // Bow
+    g.ellipse(-s * 0.15, -s * 0.35, s * 0.12, s * 0.08);
+    g.fill({ color: 0xFFD54F });
+    g.ellipse(s * 0.15, -s * 0.35, s * 0.12, s * 0.08);
+    g.fill({ color: 0xFFD54F });
+    g.circle(0, -s * 0.35, s * 0.06);
+    g.fill({ color: 0xFFC107 });
   }
 
   /**
-   * Draw play/character icon (like Brawl Stars mascot style)
+   * Draw play/character icon (cute mascot style like Brawl Stars)
    */
   private drawPlayIcon(g: IGraphics, size: number): void {
-    const s = size * 0.8;
+    const s = size * 0.85;
 
-    // Character body (simple blob shape)
-    g.ellipse(0, s * 0.1, s * 0.45, s * 0.4);
+    // Character body (round blob)
+    g.ellipse(0, s * 0.05, s * 0.42, s * 0.38);
     g.fill({ color: 0x4FC3F7 });
-    g.stroke({ color: 0x0288D1, width: 2 });
+    g.stroke({ color: 0x0288D1, width: 2.5 });
 
-    // Eyes
-    g.circle(-s * 0.15, -s * 0.05, s * 0.1);
+    // Body highlight
+    g.ellipse(-s * 0.1, -s * 0.05, s * 0.2, s * 0.15);
+    g.fill({ color: 0x81D4FA, alpha: 0.6 });
+
+    // Eyes - white backgrounds
+    g.ellipse(-s * 0.14, -s * 0.02, s * 0.12, s * 0.13);
     g.fill({ color: 0xFFFFFF });
-    g.circle(s * 0.15, -s * 0.05, s * 0.1);
+    g.ellipse(s * 0.14, -s * 0.02, s * 0.12, s * 0.13);
     g.fill({ color: 0xFFFFFF });
 
-    // Pupils
-    g.circle(-s * 0.12, -s * 0.03, s * 0.05);
-    g.fill({ color: 0x000000 });
-    g.circle(s * 0.18, -s * 0.03, s * 0.05);
-    g.fill({ color: 0x000000 });
+    // Pupils - looking slightly up and to the side
+    g.circle(-s * 0.12, -s * 0.04, s * 0.055);
+    g.fill({ color: 0x1A1A2A });
+    g.circle(s * 0.16, -s * 0.04, s * 0.055);
+    g.fill({ color: 0x1A1A2A });
 
-    // Ears/horns
-    g.ellipse(-s * 0.35, -s * 0.25, s * 0.12, s * 0.15);
-    g.fill({ color: 0x4FC3F7 });
-    g.stroke({ color: 0x0288D1, width: 1 });
+    // Pupil highlights
+    g.circle(-s * 0.14, -s * 0.06, s * 0.02);
+    g.fill({ color: 0xFFFFFF });
+    g.circle(s * 0.14, -s * 0.06, s * 0.02);
+    g.fill({ color: 0xFFFFFF });
 
-    g.ellipse(s * 0.35, -s * 0.25, s * 0.12, s * 0.15);
+    // Ears/horns (rounder)
+    g.ellipse(-s * 0.32, -s * 0.22, s * 0.1, s * 0.12);
     g.fill({ color: 0x4FC3F7 });
-    g.stroke({ color: 0x0288D1, width: 1 });
+    g.stroke({ color: 0x0288D1, width: 1.5 });
+
+    g.ellipse(s * 0.32, -s * 0.22, s * 0.1, s * 0.12);
+    g.fill({ color: 0x4FC3F7 });
+    g.stroke({ color: 0x0288D1, width: 1.5 });
   }
 
   /**
