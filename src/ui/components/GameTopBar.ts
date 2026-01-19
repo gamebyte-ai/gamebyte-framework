@@ -18,6 +18,10 @@ export interface ResourceItemConfig {
   icon?: 'heart' | 'coin' | 'gem' | 'energy' | 'custom';
   iconColor?: number;
   backgroundColor?: number;
+  borderColor?: number; // Custom border color
+  addButtonColor?: number; // Custom add button background
+  labelBackgroundColor?: number; // Custom label background
+  pillWidth?: number; // Allow custom width
   showAddButton?: boolean;
   label?: string; // e.g., "MAX" label
   onClick?: () => void;
@@ -216,16 +220,29 @@ export class GameTopBar extends EventEmitter {
    */
   private createResourceDisplay(res: ResourceItemConfig, width: number): IContainer {
     const container = graphics().createContainer();
+    // Use custom pillWidth if provided
+    const actualWidth = res.pillWidth || width;
     const height = this.config.height - 16;
-    const halfWidth = width / 2;
+    const halfWidth = actualWidth / 2;
     const halfHeight = height / 2;
 
-    // Background pill shape
+    // Background pill shape with configurable colors
     const bg = graphics().createGraphics();
     const bgColor = res.backgroundColor || this.getDefaultBgColor(res.type);
-    bg.roundRect(-halfWidth, -halfHeight, width, height, height / 2);
+    const borderColor = res.borderColor || this.darkenColor(bgColor, 0.3);
+
+    // Outer shadow for depth
+    bg.roundRect(-halfWidth - 1, -halfHeight + 2, actualWidth + 2, height, height / 2);
+    bg.fill({ color: 0x000000, alpha: 0.3 });
+
+    // Main pill
+    bg.roundRect(-halfWidth, -halfHeight, actualWidth, height, height / 2);
     bg.fill({ color: bgColor, alpha: 0.95 });
-    bg.stroke({ color: this.darkenColor(bgColor, 0.3), width: 2 });
+    bg.stroke({ color: borderColor, width: 2 });
+
+    // Inner highlight at top
+    bg.roundRect(-halfWidth + 4, -halfHeight + 3, actualWidth - 8, height * 0.4, (height * 0.4) / 2);
+    bg.fill({ color: 0xFFFFFF, alpha: 0.15 });
     container.addChild(bg);
 
     // Icon
@@ -251,9 +268,10 @@ export class GameTopBar extends EventEmitter {
 
     // Max label (e.g., "MAX")
     if (res.label) {
+      const labelBgColor = res.labelBackgroundColor || this.darkenColor(bgColor, 0.2);
       const labelBg = graphics().createGraphics();
       labelBg.roundRect(valueText.x + valueText.width + 5, -10, 36, 20, 5);
-      labelBg.fill({ color: this.darkenColor(bgColor, 0.2) });
+      labelBg.fill({ color: labelBgColor });
       container.addChild(labelBg);
 
       const labelText = graphics().createText(res.label, {
@@ -409,12 +427,13 @@ export class GameTopBar extends EventEmitter {
   private createAddButton(res: ResourceItemConfig): IContainer {
     const container = graphics().createContainer();
     const size = 28;
+    const addBtnColor = res.addButtonColor || 0x4CAF50;
 
     // Background
     const bg = graphics().createGraphics();
     bg.roundRect(-size / 2, -size / 2, size, size, 6);
-    bg.fill({ color: 0x4CAF50 });
-    bg.stroke({ color: 0x2E7D32, width: 2 });
+    bg.fill({ color: addBtnColor });
+    bg.stroke({ color: this.darkenColor(addBtnColor, 0.3), width: 2 });
     container.addChild(bg);
 
     // Plus sign
@@ -459,15 +478,15 @@ export class GameTopBar extends EventEmitter {
   private getDefaultBgColor(type: ResourceType): number {
     switch (type) {
       case 'lives':
-        return 0x2C3E50;
+        return 0x1A1A2A; // Dark/black
       case 'coins':
-        return 0xE67E22;
+        return 0x4CAF50; // Green
       case 'gems':
-        return 0x8E44AD;
+        return 0x7B1FA2; // Purple
       case 'energy':
-        return 0x16A085;
+        return 0x0288D1; // Blue
       default:
-        return 0x34495E;
+        return 0x2C3E50;
     }
   }
 
