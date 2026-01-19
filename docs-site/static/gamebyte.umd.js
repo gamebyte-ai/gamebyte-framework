@@ -41878,6 +41878,60 @@
 	            borderRadius: 18,
 	            shadowOffset: 5
 	        });
+	    },
+	    /**
+	     * Create a small square icon button (e.g., close, settings)
+	     * @param icon - Icon character (emoji or text like '✕', '⚙', '⏸')
+	     * @param colorScheme - Color scheme (default: RED for close buttons)
+	     * @param size - Button size (default: 40)
+	     */
+	    icon(icon, colorScheme = GameStyleColors.RED_BUTTON, size = 40) {
+	        return new GameStyleButton({
+	            text: icon,
+	            width: size,
+	            height: size,
+	            fontSize: Math.floor(size * 0.5),
+	            colorScheme,
+	            borderRadius: Math.floor(size * 0.25),
+	            borderWidth: 2,
+	            shadowOffset: 3
+	        });
+	    },
+	    /**
+	     * Create a close (X) icon button - red square
+	     */
+	    close(size = 40) {
+	        return GameButtons.icon('✕', GameStyleColors.RED_BUTTON, size);
+	    },
+	    /**
+	     * Create a settings (gear) icon button
+	     */
+	    settings(size = 40) {
+	        return GameButtons.icon('⚙', GameStyleColors.BLUE_BUTTON, size);
+	    },
+	    /**
+	     * Create a pause icon button
+	     */
+	    pause(size = 40) {
+	        return GameButtons.icon('⏸', GameStyleColors.YELLOW_BUTTON, size);
+	    },
+	    /**
+	     * Create a play icon button (triangle)
+	     */
+	    playIcon(size = 40) {
+	        return GameButtons.icon('▶', GameStyleColors.GREEN_BUTTON, size);
+	    },
+	    /**
+	     * Create an info icon button
+	     */
+	    info(size = 40) {
+	        return GameButtons.icon('ℹ', GameStyleColors.BLUE_BUTTON, size);
+	    },
+	    /**
+	     * Create a home icon button
+	     */
+	    home(size = 40) {
+	        return GameButtons.icon('🏠', GameStyleColors.YELLOW_BUTTON, size);
 	    }
 	};
 
@@ -43629,39 +43683,65 @@
 	        this.container.addChild(this.titleText);
 	    }
 	    /**
-	     * Create the close button
+	     * Create the close button - polished game style
 	     */
 	    createCloseButton() {
 	        const { width, colorScheme, borderWidth } = this.config;
 	        const factory = graphics();
+	        // Remove existing close button if any
+	        if (this.closeButton) {
+	            this.container.removeChild(this.closeButton);
+	        }
 	        this.closeButton = factory.createContainer();
 	        // Button size
 	        const buttonSize = 44;
 	        const buttonRadius = buttonSize / 2;
+	        const depthOffset = 3;
+	        const borderSize = 3;
 	        // Position at top right, slightly overlapping
 	        const buttonX = width - buttonSize / 2 - borderWidth;
 	        const buttonY = borderWidth - buttonSize / 4;
-	        // Draw button shadow
-	        const shadow = factory.createGraphics();
-	        shadow.circle(buttonSize / 2 + 2, buttonSize / 2 + 2, buttonRadius);
-	        shadow.fill({ color: 0x000000, alpha: 0.3 });
-	        this.closeButton.addChild(shadow);
-	        // Draw button border
+	        // Layer 1: Depth (darker, extends below)
+	        const depth = factory.createGraphics();
+	        depth.circle(buttonSize / 2, buttonSize / 2 + depthOffset, buttonRadius);
+	        depth.fill({ color: this.darkenColor(colorScheme.closeButtonBorder, 0.3) });
+	        this.closeButton.addChild(depth);
+	        // Layer 2: Border
 	        const border = factory.createGraphics();
 	        border.circle(buttonSize / 2, buttonSize / 2, buttonRadius);
 	        border.fill(colorScheme.closeButtonBorder);
 	        this.closeButton.addChild(border);
-	        // Draw button background
+	        // Layer 3: Background with gradient effect (using multiple fills)
 	        const bg = factory.createGraphics();
-	        bg.circle(buttonSize / 2, buttonSize / 2, buttonRadius - 3);
+	        const innerRadius = buttonRadius - borderSize;
+	        // Bottom half (darker)
+	        bg.circle(buttonSize / 2, buttonSize / 2, innerRadius);
+	        bg.fill(this.darkenColor(colorScheme.closeButtonBg, 0.15));
+	        // Top half overlay (lighter)
+	        bg.ellipse(buttonSize / 2, buttonSize / 2 - innerRadius * 0.15, innerRadius * 0.95, innerRadius * 0.75);
 	        bg.fill(colorScheme.closeButtonBg);
 	        this.closeButton.addChild(bg);
-	        // Draw X
+	        // Layer 4: Specular highlights
+	        const shine = factory.createGraphics();
+	        // Rim light at top
+	        shine.ellipse(buttonSize / 2, buttonSize / 2 - innerRadius + 4, innerRadius * 0.6, 2);
+	        shine.fill({ color: 0xFFFFFF, alpha: 0.4 });
+	        // Corner specular
+	        shine.ellipse(buttonSize / 2 - innerRadius * 0.3, buttonSize / 2 - innerRadius * 0.4, 4, 2);
+	        shine.fill({ color: 0xFFFFFF, alpha: 0.5 });
+	        this.closeButton.addChild(shine);
+	        // Layer 5: X icon
 	        const xGraphics = factory.createGraphics();
-	        const xSize = 10;
+	        const xSize = 9;
 	        const xCenter = buttonSize / 2;
 	        const xThickness = 4;
-	        // Draw X as two thick lines
+	        // Draw X shadow
+	        xGraphics.moveTo(xCenter - xSize + 1, xCenter - xSize + 2);
+	        xGraphics.lineTo(xCenter + xSize + 1, xCenter + xSize + 2);
+	        xGraphics.moveTo(xCenter + xSize + 1, xCenter - xSize + 2);
+	        xGraphics.lineTo(xCenter - xSize + 1, xCenter + xSize + 2);
+	        xGraphics.stroke({ width: xThickness, color: 0x000000, alpha: 0.3, cap: 'round' });
+	        // Draw X
 	        xGraphics.moveTo(xCenter - xSize, xCenter - xSize);
 	        xGraphics.lineTo(xCenter + xSize, xCenter + xSize);
 	        xGraphics.moveTo(xCenter + xSize, xCenter - xSize);
@@ -43670,14 +43750,64 @@
 	        this.closeButton.addChild(xGraphics);
 	        this.closeButton.x = buttonX - buttonSize / 2;
 	        this.closeButton.y = buttonY;
-	        // Make interactive
-	        this.closeButton.interactive = true;
+	        // Make interactive with press animation
+	        this.closeButton.eventMode = 'static';
 	        this.closeButton.cursor = 'pointer';
+	        // Hit area
+	        this.closeButton.hitArea = {
+	            contains: (x, y) => {
+	                const dx = x - buttonSize / 2;
+	                const dy = y - buttonSize / 2;
+	                return dx * dx + dy * dy <= buttonRadius * buttonRadius;
+	            }
+	        };
+	        let isPressed = false;
 	        this.closeButton.on('pointerdown', () => {
-	            this.emit('close');
-	            this.config.onClose();
+	            isPressed = true;
+	            // Press animation - scale from center
+	            const scale = 0.92;
+	            const offset = buttonSize * (1 - scale) / 2;
+	            this.closeButton.scale.x = scale;
+	            this.closeButton.scale.y = scale;
+	            this.closeButton.x += offset;
+	            this.closeButton.y += offset;
+	        });
+	        this.closeButton.on('pointerup', () => {
+	            if (isPressed) {
+	                // Restore scale
+	                const scale = 0.92;
+	                const offset = buttonSize * (1 - scale) / 2;
+	                this.closeButton.x -= offset;
+	                this.closeButton.y -= offset;
+	                this.closeButton.scale.x = 1;
+	                this.closeButton.scale.y = 1;
+	                isPressed = false;
+	                this.emit('close');
+	                this.config.onClose();
+	            }
+	        });
+	        this.closeButton.on('pointerupoutside', () => {
+	            if (isPressed) {
+	                // Restore scale without triggering close
+	                const scale = 0.92;
+	                const offset = buttonSize * (1 - scale) / 2;
+	                this.closeButton.x -= offset;
+	                this.closeButton.y -= offset;
+	                this.closeButton.scale.x = 1;
+	                this.closeButton.scale.y = 1;
+	                isPressed = false;
+	            }
 	        });
 	        this.container.addChild(this.closeButton);
+	    }
+	    /**
+	     * Darken a color by a factor
+	     */
+	    darkenColor(color, factor) {
+	        const r = Math.max(0, Math.floor(((color >> 16) & 0xFF) * (1 - factor)));
+	        const g = Math.max(0, Math.floor(((color >> 8) & 0xFF) * (1 - factor)));
+	        const b = Math.max(0, Math.floor((color & 0xFF) * (1 - factor)));
+	        return (r << 16) | (g << 8) | b;
 	    }
 	    /**
 	     * Convert hex to rgb string
@@ -43817,13 +43947,34 @@
 	};
 
 	/**
+	 * Creates a horizontal gradient texture for toggle track
+	 * @internal
+	 */
+	function createTrackGradient(width, height, colorLeft, colorRight, borderRadius) {
+	    const canvas = document.createElement('canvas');
+	    canvas.width = width;
+	    canvas.height = height;
+	    const ctx = canvas.getContext('2d');
+	    const leftHex = '#' + colorLeft.toString(16).padStart(6, '0');
+	    const rightHex = '#' + colorRight.toString(16).padStart(6, '0');
+	    // Vertical gradient (top lighter, bottom darker)
+	    const gradient = ctx.createLinearGradient(0, 0, 0, height);
+	    gradient.addColorStop(0, leftHex);
+	    gradient.addColorStop(1, rightHex);
+	    ctx.beginPath();
+	    ctx.roundRect(0, 0, width, height, borderRadius);
+	    ctx.fillStyle = gradient;
+	    ctx.fill();
+	    return canvas;
+	}
+	/**
 	 * Game-style toggle switch component
-	 * Inspired by mobile game settings screens
+	 * Polished mobile game style with gradients and depth
 	 *
 	 * Features:
-	 * - Smooth thumb animation
-	 * - Customizable colors
-	 * - Disabled state
+	 * - Gradient track with depth effect
+	 * - Glossy thumb with specular highlight
+	 * - Smooth press animation
 	 * - Touch-friendly size
 	 *
 	 * @example
@@ -43839,6 +43990,7 @@
 	class GameToggle extends EventEmitter {
 	    constructor(config = {}) {
 	        super();
+	        this.isPressed = false;
 	        this.config = {
 	            width: config.width || 70,
 	            height: config.height || 36,
@@ -43851,11 +44003,14 @@
 	        const factory = graphics();
 	        // Create container
 	        this.container = factory.createContainer();
-	        // Create track
+	        // Create layers (order matters)
+	        this.depthGraphics = factory.createGraphics();
+	        this.borderGraphics = factory.createGraphics();
 	        this.trackGraphics = factory.createGraphics();
-	        this.container.addChild(this.trackGraphics);
-	        // Create thumb
 	        this.thumbGraphics = factory.createGraphics();
+	        this.container.addChild(this.depthGraphics);
+	        this.container.addChild(this.borderGraphics);
+	        this.container.addChild(this.trackGraphics);
 	        this.container.addChild(this.thumbGraphics);
 	        // Render
 	        this.render();
@@ -43863,57 +44018,108 @@
 	        this.setupInteraction();
 	    }
 	    /**
-	     * Render the toggle
+	     * Render the toggle with game-style polish
 	     */
 	    render() {
 	        const { width, height, colorScheme, disabled } = this.config;
 	        const radius = height / 2;
+	        const borderWidth = 3;
+	        const depthOffset = 3;
 	        // Clear
+	        this.depthGraphics.clear();
+	        this.borderGraphics.clear();
 	        this.trackGraphics.clear();
 	        this.thumbGraphics.clear();
-	        // Determine colors based on state
-	        const trackColor = this._value ? colorScheme.trackOn : colorScheme.trackOff;
-	        const thumbColor = this._value ? colorScheme.thumbOn : colorScheme.thumbOff;
+	        // Remove old gradient sprite
+	        if (this.trackGradientSprite) {
+	            this.container.removeChild(this.trackGradientSprite);
+	            this.trackGradientSprite = undefined;
+	        }
 	        const alpha = disabled ? 0.5 : 1;
-	        // Draw track border
-	        this.trackGraphics.roundRect(0, 0, width, height, radius);
-	        this.trackGraphics.fill({ color: colorScheme.border, alpha });
-	        // Draw track fill
-	        this.trackGraphics.roundRect(2, 2, width - 4, height - 4, radius - 2);
-	        this.trackGraphics.fill({ color: trackColor, alpha });
-	        // Calculate thumb position
-	        const thumbRadius = (height - 8) / 2;
-	        const thumbX = this._value ? width - thumbRadius - 6 : thumbRadius + 6;
-	        const thumbY = height / 2;
-	        // Draw thumb shadow
-	        this.thumbGraphics.circle(thumbX + 1, thumbY + 1, thumbRadius);
-	        this.thumbGraphics.fill({ color: 0x000000, alpha: 0.2 * alpha });
-	        // Draw thumb
+	        const pressOffset = this.isPressed ? 2 : 0;
+	        // Determine track colors based on state
+	        const trackTopColor = this._value ? colorScheme.trackOnTop : colorScheme.trackOffTop;
+	        const trackBottomColor = this._value ? colorScheme.trackOnBottom : colorScheme.trackOffBottom;
+	        // Layer 1: Depth (extends below)
+	        this.depthGraphics.roundRect(0, 0, width, height + depthOffset, radius);
+	        this.depthGraphics.fill({ color: colorScheme.borderDepth, alpha });
+	        // Layer 2: Border
+	        this.borderGraphics.roundRect(0, pressOffset, width, height, radius);
+	        this.borderGraphics.fill({ color: colorScheme.border, alpha });
+	        // Layer 3: Track fill with gradient
+	        const trackX = borderWidth;
+	        const trackY = borderWidth + pressOffset;
+	        const trackWidth = width - borderWidth * 2;
+	        const trackHeight = height - borderWidth * 2;
+	        const trackRadius = radius - borderWidth;
+	        // Create gradient sprite for track
+	        const gradientCanvas = createTrackGradient(trackWidth, trackHeight, trackTopColor, trackBottomColor, trackRadius);
+	        const gradientTexture = graphics().createTexture(gradientCanvas);
+	        this.trackGradientSprite = graphics().createSprite(gradientTexture);
+	        this.trackGradientSprite.x = trackX;
+	        this.trackGradientSprite.y = trackY;
+	        if (disabled)
+	            this.trackGradientSprite.alpha = alpha;
+	        // Insert gradient sprite after trackGraphics
+	        const trackIndex = this.container.getChildIndex(this.trackGraphics);
+	        this.container.addChild(this.trackGradientSprite);
+	        this.container.setChildIndex(this.trackGradientSprite, trackIndex + 1);
+	        // Inner shadow on track (subtle)
+	        this.trackGraphics.roundRect(trackX + 2, trackY + 1, trackWidth - 4, 4, 2);
+	        this.trackGraphics.fill({ color: 0x000000, alpha: 0.15 * alpha });
+	        // Layer 4: Thumb
+	        const thumbRadius = (height - 10) / 2;
+	        const thumbX = this._value ? width - thumbRadius - 7 : thumbRadius + 7;
+	        const thumbY = height / 2 + pressOffset;
+	        // Thumb shadow
+	        this.thumbGraphics.circle(thumbX + 1, thumbY + 2, thumbRadius);
+	        this.thumbGraphics.fill({ color: 0x000000, alpha: 0.25 * alpha });
+	        // Thumb base (darker bottom color)
 	        this.thumbGraphics.circle(thumbX, thumbY, thumbRadius);
-	        this.thumbGraphics.fill({ color: thumbColor, alpha });
-	        // Draw thumb highlight
-	        this.thumbGraphics.circle(thumbX - 2, thumbY - 2, thumbRadius * 0.4);
+	        this.thumbGraphics.fill({ color: colorScheme.thumbBottom, alpha });
+	        // Thumb gradient effect (lighter top half)
+	        this.thumbGraphics.ellipse(thumbX, thumbY - thumbRadius * 0.15, thumbRadius * 0.9, thumbRadius * 0.7);
+	        this.thumbGraphics.fill({ color: colorScheme.thumbTop, alpha });
+	        // Thumb specular highlight (small bright spot)
+	        this.thumbGraphics.ellipse(thumbX - thumbRadius * 0.25, thumbY - thumbRadius * 0.35, thumbRadius * 0.35, thumbRadius * 0.2);
+	        this.thumbGraphics.fill({ color: 0xFFFFFF, alpha: 0.6 * alpha });
+	        // Rim light on thumb
+	        this.thumbGraphics.roundRect(thumbX - thumbRadius * 0.6, thumbY - thumbRadius + 2, thumbRadius * 1.2, 2, 1);
 	        this.thumbGraphics.fill({ color: 0xFFFFFF, alpha: 0.3 * alpha });
 	    }
 	    /**
 	     * Setup interaction handlers
 	     */
 	    setupInteraction() {
-	        // PIXI v8 uses eventMode instead of interactive
 	        this.container.eventMode = 'static';
-	        this.container.cursor = 'pointer';
-	        // Set hit area for proper touch/click detection
+	        this.container.cursor = this.config.disabled ? 'default' : 'pointer';
 	        const { width, height } = this.config;
 	        this.container.hitArea = {
 	            contains: (x, y) => {
-	                return x >= 0 && x <= width && y >= 0 && y <= height;
+	                return x >= 0 && x <= width && y >= 0 && y <= height + 3;
 	            }
 	        };
-	        this.container.on('pointerdown', () => {
-	            if (!this.config.disabled) {
-	                this.toggle();
-	            }
-	        });
+	        this.container.on('pointerdown', this.onPointerDown.bind(this));
+	        this.container.on('pointerup', this.onPointerUp.bind(this));
+	        this.container.on('pointerupoutside', this.onPointerUpOutside.bind(this));
+	    }
+	    onPointerDown() {
+	        if (this.config.disabled)
+	            return;
+	        this.isPressed = true;
+	        this.render();
+	    }
+	    onPointerUp() {
+	        if (this.config.disabled)
+	            return;
+	        this.isPressed = false;
+	        this.toggle();
+	    }
+	    onPointerUpOutside() {
+	        if (this.config.disabled)
+	            return;
+	        this.isPressed = false;
+	        this.render();
 	    }
 	    /**
 	     * Toggle the value
@@ -43988,45 +44194,64 @@
 	        this.removeAllListeners();
 	    }
 	}
-	// Default color scheme
+	// Default color scheme - green/gray game style
 	GameToggle.DEFAULT_SCHEME = {
-	    trackOn: 0x4CAF50,
-	    trackOff: 0x37474F,
-	    thumbOn: 0xFFFFFF,
-	    thumbOff: 0x90A4AE,
-	    border: 0x263238,
+	    trackOnTop: 0x7ED321,
+	    trackOnBottom: 0x5BA017,
+	    trackOffTop: 0x6B7C8A,
+	    trackOffBottom: 0x4A5660,
+	    thumbTop: 0xFFFFFF,
+	    thumbBottom: 0xE8E8E8,
+	    border: 0x3D4F5F,
+	    borderDepth: 0x2A3640,
 	};
 	/**
-	 * Pre-defined toggle color schemes
+	 * Pre-defined toggle color schemes - game style
 	 */
 	const GameToggleColors = {
+	    // Default green toggle
 	    DEFAULT: {
-	        trackOn: 0x4CAF50,
-	        trackOff: 0x37474F,
-	        thumbOn: 0xFFFFFF,
-	        thumbOff: 0x90A4AE,
-	        border: 0x263238,
+	        trackOnTop: 0x7ED321,
+	        trackOnBottom: 0x5BA017,
+	        trackOffTop: 0x6B7C8A,
+	        trackOffBottom: 0x4A5660,
+	        thumbTop: 0xFFFFFF,
+	        thumbBottom: 0xE8E8E8,
+	        border: 0x3D4F5F,
+	        borderDepth: 0x2A3640,
 	    },
+	    // Blue toggle
 	    BLUE: {
-	        trackOn: 0x2196F3,
-	        trackOff: 0x37474F,
-	        thumbOn: 0xFFFFFF,
-	        thumbOff: 0x90A4AE,
-	        border: 0x0D47A1,
+	        trackOnTop: 0x5DADE2,
+	        trackOnBottom: 0x2E86C1,
+	        trackOffTop: 0x6B7C8A,
+	        trackOffBottom: 0x4A5660,
+	        thumbTop: 0xFFFFFF,
+	        thumbBottom: 0xE8E8E8,
+	        border: 0x1A5276,
+	        borderDepth: 0x0E3249,
 	    },
+	    // Orange toggle
 	    ORANGE: {
-	        trackOn: 0xFF9800,
-	        trackOff: 0x37474F,
-	        thumbOn: 0xFFFFFF,
-	        thumbOff: 0x90A4AE,
-	        border: 0xE65100,
+	        trackOnTop: 0xF5B041,
+	        trackOnBottom: 0xD68910,
+	        trackOffTop: 0x6B7C8A,
+	        trackOffBottom: 0x4A5660,
+	        thumbTop: 0xFFFFFF,
+	        thumbBottom: 0xE8E8E8,
+	        border: 0xB7950B,
+	        borderDepth: 0x7D6608,
 	    },
+	    // Purple toggle
 	    PURPLE: {
-	        trackOn: 0x9C27B0,
-	        trackOff: 0x37474F,
-	        thumbOn: 0xFFFFFF,
-	        thumbOff: 0x90A4AE,
-	        border: 0x4A148C,
+	        trackOnTop: 0xBB8FCE,
+	        trackOnBottom: 0x8E44AD,
+	        trackOffTop: 0x6B7C8A,
+	        trackOffBottom: 0x4A5660,
+	        thumbTop: 0xFFFFFF,
+	        thumbBottom: 0xE8E8E8,
+	        border: 0x6C3483,
+	        borderDepth: 0x4A235A,
 	    },
 	};
 
