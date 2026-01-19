@@ -148,14 +148,14 @@ export class HexagonLevelButton extends EventEmitter {
       fontSize: fontSize,
       fontWeight: 'bold',
       fill: colorScheme.text,
-      stroke: { color: colorScheme.textStroke, width: Math.max(2, fontSize / 10) },
-      dropShadow: {
-        alpha: 0.4,
-        angle: Math.PI / 2,
-        blur: 2,
-        color: 0x000000,
-        distance: 2
-      }
+      stroke: colorScheme.textStroke,
+      strokeThickness: Math.max(2, fontSize / 10),
+      dropShadow: true,
+      dropShadowAlpha: 0.4,
+      dropShadowAngle: Math.PI / 2,
+      dropShadowBlur: 2,
+      dropShadowColor: 0x000000,
+      dropShadowDistance: 2
     });
 
     if (text.anchor) text.anchor.set(0.5, 0.5);
@@ -179,8 +179,15 @@ export class HexagonLevelButton extends EventEmitter {
     this.lockIcon.fill({ color: 0xE0E0E0 });
     this.lockIcon.stroke({ color: 0x9E9E9E, width: 2 });
 
-    // Lock shackle (arc)
-    this.lockIcon.arc(0, -iconSize / 4, iconSize * 0.35, Math.PI, 0, false);
+    // Lock shackle (using poly to simulate arc - U shape)
+    const shackleR = iconSize * 0.35;
+    const shackleY = -iconSize / 4;
+    const shacklePoints: number[] = [];
+    for (let i = 0; i <= 12; i++) {
+      const angle = Math.PI + (Math.PI * i) / 12;
+      shacklePoints.push(Math.cos(angle) * shackleR, shackleY + Math.sin(angle) * shackleR);
+    }
+    this.lockIcon.poly(shacklePoints);
     this.lockIcon.stroke({ color: 0x9E9E9E, width: 4 });
 
     // Keyhole
@@ -349,7 +356,8 @@ export class HexagonLevelButton extends EventEmitter {
 
     this.isPressed = true;
     this.render();
-    this.container.scale.set(0.95);
+    this.container.scale.x = 0.95;
+    this.container.scale.y = 0.95;
 
     this.emit('press', { level: this.config.level, event });
   }
@@ -359,7 +367,8 @@ export class HexagonLevelButton extends EventEmitter {
 
     this.isPressed = false;
     this.render();
-    this.container.scale.set(1);
+    this.container.scale.x = 1;
+    this.container.scale.y = 1;
 
     this.emit('click', { level: this.config.level, event });
   }
@@ -369,7 +378,8 @@ export class HexagonLevelButton extends EventEmitter {
 
     this.isPressed = false;
     this.render();
-    this.container.scale.set(1);
+    this.container.scale.x = 1;
+    this.container.scale.y = 1;
 
     this.emit('cancel');
   }

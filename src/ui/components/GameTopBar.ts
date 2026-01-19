@@ -120,17 +120,20 @@ export class GameTopBar extends EventEmitter {
     this.settingsButton.cursor = 'pointer';
 
     this.settingsButton.on('pointerdown', () => {
-      this.settingsButton!.scale.set(0.9);
+      this.settingsButton!.scale.x = 0.9;
+      this.settingsButton!.scale.y = 0.9;
     });
 
     this.settingsButton.on('pointerup', () => {
-      this.settingsButton!.scale.set(1);
+      this.settingsButton!.scale.x = 1;
+      this.settingsButton!.scale.y = 1;
       this.config.onSettingsClick();
       this.emit('settings-click');
     });
 
     this.settingsButton.on('pointerupoutside', () => {
-      this.settingsButton!.scale.set(1);
+      this.settingsButton!.scale.x = 1;
+      this.settingsButton!.scale.y = 1;
     });
 
     this.container.addChild(this.settingsButton);
@@ -237,7 +240,8 @@ export class GameTopBar extends EventEmitter {
       fontSize: 18,
       fontWeight: 'bold',
       fill: 0xFFFFFF,
-      stroke: { color: 0x000000, width: 2 }
+      stroke: 0x000000,
+      strokeThickness: 2
     });
     if (valueText.anchor) valueText.anchor.set(0, 0.5);
     valueText.x = iconX + 25;
@@ -320,12 +324,24 @@ export class GameTopBar extends EventEmitter {
    * Draw heart icon
    */
   private drawHeartIcon(g: IGraphics, size: number, color: number): void {
-    // Simple heart shape using bezier curves approximation
+    // Simple heart shape using polygon approximation
     const s = size;
+    const vertices: number[] = [];
 
-    g.moveTo(0, s * 0.3);
-    g.bezierCurveTo(-s * 0.5, -s * 0.3, -s, s * 0.2, 0, s);
-    g.bezierCurveTo(s, s * 0.2, s * 0.5, -s * 0.3, 0, s * 0.3);
+    // Generate heart shape points
+    for (let i = 0; i <= 32; i++) {
+      const t = (i / 32) * 2 * Math.PI;
+      const x = s * 0.8 * Math.sin(t) ** 3;
+      const y = -s * 0.65 * (
+        Math.cos(t) -
+        0.35 * Math.cos(2 * t) -
+        0.14 * Math.cos(3 * t) -
+        0.07 * Math.cos(4 * t)
+      );
+      vertices.push(x, y);
+    }
+
+    g.poly(vertices);
     g.fill({ color: color });
     g.stroke({ color: this.darkenColor(color, 0.3), width: 1.5 });
   }
@@ -416,11 +432,13 @@ export class GameTopBar extends EventEmitter {
     container.cursor = 'pointer';
 
     container.on('pointerdown', () => {
-      container.scale.set(0.9);
+      container.scale.x = 0.9;
+      container.scale.y = 0.9;
     });
 
     container.on('pointerup', () => {
-      container.scale.set(1);
+      container.scale.x = 1;
+      container.scale.y = 1;
       if (res.onAddClick) {
         res.onAddClick();
       }
@@ -428,7 +446,8 @@ export class GameTopBar extends EventEmitter {
     });
 
     container.on('pointerupoutside', () => {
-      container.scale.set(1);
+      container.scale.x = 1;
+      container.scale.y = 1;
     });
 
     return container;
@@ -489,9 +508,11 @@ export class GameTopBar extends EventEmitter {
         // Pop animation
         const container = this.resourceContainers.get(type);
         if (container) {
-          container.scale.set(1.15);
+          container.scale.x = 1.15;
+          container.scale.y = 1.15;
           setTimeout(() => {
-            container.scale.set(1);
+            container.scale.x = 1;
+            container.scale.y = 1;
           }, 150);
         }
       }

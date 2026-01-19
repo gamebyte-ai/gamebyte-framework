@@ -41036,6 +41036,2090 @@
 	}
 
 	/**
+	 * Game-style UI theme inspired by mobile games like Brawl Stars, Candy Crush, etc.
+	 * Features vibrant colors, multi-layer effects, and bold visual design.
+	 */
+	class GameStyleUITheme {
+	    constructor() {
+	        this.name = 'game-style';
+	        // Vibrant game-style color palette
+	        this.colors = {
+	            // Primary action color (bright orange/yellow for Play buttons)
+	            primary: { r: 255, g: 180, b: 0, a: 1 }, // Golden yellow
+	            secondary: { r: 0, g: 180, b: 255, a: 1 }, // Bright cyan
+	            // Background colors (sky blue gradient base)
+	            background: { r: 0, g: 140, b: 220, a: 1 }, // Sky blue
+	            surface: { r: 30, g: 100, b: 180, a: 1 }, // Darker blue surface
+	            // Text colors
+	            text: { r: 255, g: 255, b: 255, a: 1 }, // White with stroke
+	            textSecondary: { r: 200, g: 220, b: 255, a: 1 }, // Light blue-white
+	            // Status colors (game-style vibrant)
+	            success: { r: 50, g: 205, b: 50, a: 1 }, // Lime green
+	            warning: { r: 255, g: 165, b: 0, a: 1 }, // Orange
+	            error: { r: 255, g: 60, b: 60, a: 1 }, // Bright red
+	            // Utility
+	            overlay: { r: 0, g: 0, b: 0, a: 0.6 }
+	        };
+	        // Game-style specific colors
+	        this.gameColors = {
+	            // Button colors
+	            buttonYellow: { top: 0xFFD700, bottom: 0xFFA500, border: 0xCC8800 },
+	            buttonGreen: { top: 0x50C878, bottom: 0x228B22, border: 0x1A6B1A },
+	            buttonBlue: { top: 0x4DA6FF, bottom: 0x0066CC, border: 0x004C99 },
+	            buttonRed: { top: 0xFF6B6B, bottom: 0xCC3333, border: 0x992626 },
+	            buttonPurple: { top: 0xB388FF, bottom: 0x7C4DFF, border: 0x5C3DB8 },
+	            // UI element colors
+	            panelDark: 0x1A237E,
+	            panelLight: 0x3949AB,
+	            borderDark: 0x0D1B2A,
+	            borderMedium: 0x1B3A5C,
+	            // Resource colors
+	            coinGold: 0xFFD700,
+	            gemPurple: 0x9C27B0,
+	            heartRed: 0xFF4081,
+	            energyBlue: 0x00BCD4,
+	            // Level path
+	            pathActive: 0xFFD54F,
+	            pathInactive: 0x5C6BC0,
+	            pathCompleted: 0x4CAF50,
+	            // Hexagon level button
+	            hexBlue: { fill: 0x3D85C6, border: 0x1A3A5C, highlight: 0x6DB3F2 },
+	            hexLocked: { fill: 0x5C5C5C, border: 0x3A3A3A, highlight: 0x7A7A7A }
+	        };
+	        // Bold typography for games
+	        this.typography = {
+	            fontFamily: '"Fredoka One", "Bubblegum Sans", "Comic Sans MS", "Arial Black", sans-serif',
+	            sizes: {
+	                small: 16,
+	                medium: 22,
+	                large: 32,
+	                xlarge: 48
+	            },
+	            weights: {
+	                normal: 600,
+	                bold: 800
+	            }
+	        };
+	        // Generous spacing for touch targets
+	        this.spacing = {
+	            xs: 6,
+	            sm: 12,
+	            md: 20,
+	            lg: 32,
+	            xl: 48
+	        };
+	        // Rounded corners for game feel
+	        this.radius = {
+	            sm: 8,
+	            md: 16,
+	            lg: 24,
+	            full: 9999
+	        };
+	        // Bold shadows for depth
+	        this.shadows = {
+	            sm: '0 3px 0 rgba(0, 0, 0, 0.3), 0 4px 8px rgba(0, 0, 0, 0.2)',
+	            md: '0 5px 0 rgba(0, 0, 0, 0.3), 0 8px 16px rgba(0, 0, 0, 0.25)',
+	            lg: '0 8px 0 rgba(0, 0, 0, 0.3), 0 12px 24px rgba(0, 0, 0, 0.3)'
+	        };
+	        // Bouncy animations
+	        this.animations = {
+	            fast: 150,
+	            normal: 300,
+	            slow: 500
+	        };
+	    }
+	}
+	/**
+	 * Game style color utilities
+	 */
+	const GameStyleColors = {
+	    // Pre-defined button color schemes
+	    YELLOW_BUTTON: {
+	        gradientTop: 0xFFE066,
+	        gradientBottom: 0xFFB300,
+	        border: 0xCC8800,
+	        shadow: 0x996600,
+	        highlight: 0xFFFFCC,
+	        text: 0xFFFFFF,
+	        textStroke: 0x8B6914
+	    },
+	    GREEN_BUTTON: {
+	        gradientTop: 0x7DD87D,
+	        gradientBottom: 0x4CAF50,
+	        border: 0x2E7D32,
+	        shadow: 0x1B5E20,
+	        highlight: 0xC8E6C9,
+	        text: 0xFFFFFF,
+	        textStroke: 0x1B5E20
+	    },
+	    BLUE_BUTTON: {
+	        gradientTop: 0x64B5F6,
+	        gradientBottom: 0x2196F3,
+	        border: 0x1565C0,
+	        shadow: 0x0D47A1,
+	        highlight: 0xBBDEFB,
+	        text: 0xFFFFFF,
+	        textStroke: 0x0D47A1
+	    },
+	    RED_BUTTON: {
+	        gradientTop: 0xEF5350,
+	        gradientBottom: 0xD32F2F,
+	        border: 0xB71C1C,
+	        shadow: 0x7F0000,
+	        highlight: 0xFFCDD2,
+	        text: 0xFFFFFF,
+	        textStroke: 0x7F0000
+	    },
+	    PURPLE_BUTTON: {
+	        gradientTop: 0xBA68C8,
+	        gradientBottom: 0x9C27B0,
+	        border: 0x6A1B9A,
+	        shadow: 0x4A148C,
+	        highlight: 0xE1BEE7,
+	        text: 0xFFFFFF,
+	        textStroke: 0x4A148C
+	    },
+	    // Hexagon level colors
+	    HEXAGON_BLUE: {
+	        fill: 0x3D85C6,
+	        border: 0x1A3A5C,
+	        highlight: 0x6DB3F2,
+	        text: 0xFFFFFF,
+	        textStroke: 0x1A3A5C
+	    },
+	    HEXAGON_LOCKED: {
+	        fill: 0x5C6370,
+	        border: 0x3A3F47,
+	        highlight: 0x7A8089,
+	        text: 0xCCCCCC,
+	        textStroke: 0x2A2E35
+	    },
+	    HEXAGON_COMPLETED: {
+	        fill: 0x43A047,
+	        border: 0x1B5E20,
+	        highlight: 0x76D275,
+	        text: 0xFFFFFF,
+	        textStroke: 0x1B5E20
+	    },
+	    HEXAGON_CURRENT: {
+	        fill: 0x5C6BC0,
+	        border: 0x283593,
+	        highlight: 0x8E99F3,
+	        text: 0xFFFFFF,
+	        textStroke: 0x283593
+	    }
+	};
+	/**
+	 * Create a canvas gradient for game buttons
+	 */
+	function createGameButtonGradient(ctx, x, y, width, height, colorTop, colorBottom) {
+	    const gradient = ctx.createLinearGradient(x, y, x, y + height);
+	    gradient.addColorStop(0, numberToHex(colorTop));
+	    gradient.addColorStop(0.5, numberToHex(colorTop));
+	    gradient.addColorStop(0.5, numberToHex(colorBottom));
+	    gradient.addColorStop(1, numberToHex(colorBottom));
+	    return gradient;
+	}
+	/**
+	 * Create a vertical gradient for backgrounds
+	 */
+	function createSkyGradient(ctx, width, height) {
+	    const gradient = ctx.createLinearGradient(0, 0, 0, height);
+	    gradient.addColorStop(0, '#0066CC');
+	    gradient.addColorStop(0.3, '#0088EE');
+	    gradient.addColorStop(0.6, '#00AAFF');
+	    gradient.addColorStop(1, '#66CCFF');
+	    return gradient;
+	}
+	/**
+	 * Convert hex number to CSS color string
+	 */
+	function numberToHex(num) {
+	    return `#${num.toString(16).padStart(6, '0')}`;
+	}
+	/**
+	 * Lighten a color by a percentage
+	 */
+	function lightenColor(color, percent) {
+	    const r = Math.min(255, ((color >> 16) & 0xFF) + Math.floor(255 * percent));
+	    const g = Math.min(255, ((color >> 8) & 0xFF) + Math.floor(255 * percent));
+	    const b = Math.min(255, (color & 0xFF) + Math.floor(255 * percent));
+	    return (r << 16) | (g << 8) | b;
+	}
+	/**
+	 * Darken a color by a percentage
+	 */
+	function darkenColor(color, percent) {
+	    const r = Math.max(0, ((color >> 16) & 0xFF) - Math.floor(255 * percent));
+	    const g = Math.max(0, ((color >> 8) & 0xFF) - Math.floor(255 * percent));
+	    const b = Math.max(0, (color & 0xFF) - Math.floor(255 * percent));
+	    return (r << 16) | (g << 8) | b;
+	}
+
+	/**
+	 * GameStyleButton - Mobile game style button with multi-layer effects
+	 *
+	 * Features:
+	 * - Multi-layer border (dark outer, light inner)
+	 * - Vertical gradient (light top, dark bottom)
+	 * - Top shine/highlight effect
+	 * - 3D bevel/raised effect
+	 * - Drop shadow that moves on press
+	 * - Scale animation on press
+	 * - Bold text with stroke outline
+	 *
+	 * Inspired by: Brawl Stars, Candy Crush, Clash Royale style buttons
+	 *
+	 * @example
+	 * ```typescript
+	 * const playButton = new GameStyleButton({
+	 *   text: 'Play',
+	 *   width: 200,
+	 *   height: 70,
+	 *   colorScheme: GameStyleColors.YELLOW_BUTTON
+	 * });
+	 *
+	 * playButton.on('click', () => startGame());
+	 * stage.addChild(playButton.getContainer());
+	 * ```
+	 */
+	class GameStyleButton extends EventEmitter {
+	    constructor(config = {}) {
+	        super();
+	        this.isPressed = false;
+	        this.isHovered = false;
+	        // Default configuration
+	        this.config = {
+	            text: config.text || 'Button',
+	            width: config.width || 200,
+	            height: config.height || 70,
+	            fontSize: config.fontSize || 28,
+	            fontFamily: config.fontFamily || '"Fredoka One", "Arial Black", sans-serif',
+	            colorScheme: config.colorScheme || GameStyleColors.YELLOW_BUTTON,
+	            borderRadius: config.borderRadius || 16,
+	            borderWidth: config.borderWidth || 4,
+	            shadowOffset: config.shadowOffset || 6,
+	            disabled: config.disabled || false,
+	            icon: config.icon || ''
+	        };
+	        // Ensure minimum touch target
+	        this.config.width = Math.max(this.config.width, 88);
+	        this.config.height = Math.max(this.config.height, 44);
+	        // Create containers and graphics
+	        this.container = graphics().createContainer();
+	        this.shadowGraphics = graphics().createGraphics();
+	        this.borderGraphics = graphics().createGraphics();
+	        this.backgroundGraphics = graphics().createGraphics();
+	        this.highlightGraphics = graphics().createGraphics();
+	        // Build button layers (order matters for z-index)
+	        this.container.addChild(this.shadowGraphics);
+	        this.container.addChild(this.borderGraphics);
+	        this.container.addChild(this.backgroundGraphics);
+	        this.container.addChild(this.highlightGraphics);
+	        // Create text
+	        if (this.config.text) {
+	            this.createText();
+	        }
+	        // Initial render
+	        this.render();
+	        // Setup interactivity
+	        this.setupInteractivity();
+	    }
+	    /**
+	     * Create styled text with stroke
+	     */
+	    createText() {
+	        const { colorScheme, fontSize, fontFamily, width, height } = this.config;
+	        this.textField = graphics().createText(this.config.text, {
+	            fontFamily: fontFamily,
+	            fontSize: fontSize,
+	            fontWeight: 'bold',
+	            fill: colorScheme.text,
+	            stroke: colorScheme.textStroke,
+	            strokeThickness: Math.max(3, fontSize / 8),
+	            align: 'center',
+	            dropShadow: true,
+	            dropShadowAlpha: 0.5,
+	            dropShadowAngle: Math.PI / 2,
+	            dropShadowBlur: 2,
+	            dropShadowColor: 0x000000,
+	            dropShadowDistance: 2
+	        });
+	        if (this.textField.anchor)
+	            this.textField.anchor.set(0.5, 0.5);
+	        this.textField.x = width / 2;
+	        this.textField.y = height / 2;
+	        this.container.addChild(this.textField);
+	    }
+	    /**
+	     * Setup touch/mouse events
+	     */
+	    setupInteractivity() {
+	        this.container.eventMode = 'static';
+	        this.container.cursor = this.config.disabled ? 'default' : 'pointer';
+	        this.container.on('pointerdown', this.onPointerDown.bind(this));
+	        this.container.on('pointerup', this.onPointerUp.bind(this));
+	        this.container.on('pointerupoutside', this.onPointerUpOutside.bind(this));
+	        this.container.on('pointerover', this.onPointerOver.bind(this));
+	        this.container.on('pointerout', this.onPointerOut.bind(this));
+	    }
+	    /**
+	     * Render all button graphics
+	     */
+	    render() {
+	        const { width, height, borderRadius, borderWidth, shadowOffset, colorScheme, disabled } = this.config;
+	        // Clear all graphics
+	        this.shadowGraphics.clear();
+	        this.borderGraphics.clear();
+	        this.backgroundGraphics.clear();
+	        this.highlightGraphics.clear();
+	        // Adjust for pressed state
+	        const pressedOffset = this.isPressed ? shadowOffset - 2 : 0;
+	        const currentShadowOffset = this.isPressed ? 2 : shadowOffset;
+	        // Get colors (grayed out if disabled)
+	        const colors = disabled ? this.getDisabledColors() : colorScheme;
+	        // 1. Drop Shadow (bottom layer)
+	        this.shadowGraphics.roundRect(0, currentShadowOffset, width, height, borderRadius);
+	        this.shadowGraphics.fill({ color: colors.shadow, alpha: 0.8 });
+	        // 2. Outer Border (dark)
+	        this.borderGraphics.roundRect(0, pressedOffset, width, height, borderRadius);
+	        this.borderGraphics.fill({ color: colors.border });
+	        // 3. Main Background with gradient
+	        this.renderGradientBackground(borderWidth, borderWidth + pressedOffset, width - borderWidth * 2, height - borderWidth * 2, borderRadius - borderWidth / 2, colors.gradientTop, colors.gradientBottom);
+	        // 4. Top Highlight/Shine
+	        if (!this.isPressed) {
+	            this.renderHighlight(borderWidth + 4, borderWidth + pressedOffset + 4, width - borderWidth * 2 - 8, (height - borderWidth * 2) * 0.35, borderRadius - borderWidth, colors.highlight);
+	        }
+	        // Update text position for press effect
+	        if (this.textField) {
+	            this.textField.y = height / 2 + pressedOffset;
+	        }
+	    }
+	    /**
+	     * Render gradient background using canvas texture
+	     */
+	    renderGradientBackground(x, y, width, height, radius, colorTop, colorBottom) {
+	        // Create gradient texture
+	        const texture = graphics().createCanvasTexture(Math.ceil(width), Math.ceil(height), (ctx) => {
+	            // Create vertical gradient
+	            const gradient = ctx.createLinearGradient(0, 0, 0, height);
+	            gradient.addColorStop(0, numberToHex(colorTop));
+	            gradient.addColorStop(0.4, numberToHex(colorTop));
+	            gradient.addColorStop(0.6, numberToHex(colorBottom));
+	            gradient.addColorStop(1, numberToHex(colorBottom));
+	            ctx.fillStyle = gradient;
+	            // Draw rounded rectangle
+	            this.drawRoundedRect(ctx, 0, 0, width, height, radius);
+	            ctx.fill();
+	        });
+	        // Apply texture to background
+	        this.backgroundGraphics.texture(texture);
+	        this.backgroundGraphics.roundRect(x, y, width, height, radius);
+	        this.backgroundGraphics.fill();
+	    }
+	    /**
+	     * Render top highlight/shine effect
+	     */
+	    renderHighlight(x, y, width, height, radius, color) {
+	        // Create highlight texture with gradient fade
+	        const texture = graphics().createCanvasTexture(Math.ceil(width), Math.ceil(height), (ctx) => {
+	            const gradient = ctx.createLinearGradient(0, 0, 0, height);
+	            gradient.addColorStop(0, `rgba(255, 255, 255, 0.6)`);
+	            gradient.addColorStop(0.5, `rgba(255, 255, 255, 0.3)`);
+	            gradient.addColorStop(1, `rgba(255, 255, 255, 0)`);
+	            ctx.fillStyle = gradient;
+	            this.drawRoundedRect(ctx, 0, 0, width, height, Math.min(radius, height / 2));
+	            ctx.fill();
+	        });
+	        this.highlightGraphics.texture(texture);
+	        this.highlightGraphics.roundRect(x, y, width, height, Math.min(radius, height / 2));
+	        this.highlightGraphics.fill();
+	    }
+	    /**
+	     * Get grayed out colors for disabled state
+	     */
+	    getDisabledColors() {
+	        return {
+	            gradientTop: 0x9E9E9E,
+	            gradientBottom: 0x757575,
+	            border: 0x616161,
+	            shadow: 0x424242,
+	            highlight: 0xBDBDBD,
+	            text: 0xE0E0E0,
+	            textStroke: 0x616161
+	        };
+	    }
+	    /**
+	     * Draw rounded rectangle path on canvas context
+	     */
+	    drawRoundedRect(ctx, x, y, width, height, radius) {
+	        const r = Math.min(radius, width / 2, height / 2);
+	        ctx.beginPath();
+	        ctx.moveTo(x + r, y);
+	        ctx.lineTo(x + width - r, y);
+	        ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+	        ctx.lineTo(x + width, y + height - r);
+	        ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+	        ctx.lineTo(x + r, y + height);
+	        ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+	        ctx.lineTo(x, y + r);
+	        ctx.quadraticCurveTo(x, y, x + r, y);
+	        ctx.closePath();
+	    }
+	    /**
+	     * Pointer event handlers
+	     */
+	    onPointerDown(event) {
+	        if (this.config.disabled)
+	            return;
+	        this.isPressed = true;
+	        this.render();
+	        // Scale feedback
+	        this.container.scale.x = 0.97;
+	        this.container.scale.y = 0.97;
+	        this.emit('press', event);
+	    }
+	    onPointerUp(event) {
+	        if (this.config.disabled)
+	            return;
+	        this.isPressed = false;
+	        this.render();
+	        // Scale back
+	        this.container.scale.x = 1;
+	        this.container.scale.y = 1;
+	        this.emit('click', event);
+	        this.emit('release', event);
+	    }
+	    onPointerUpOutside() {
+	        if (this.config.disabled)
+	            return;
+	        this.isPressed = false;
+	        this.render();
+	        this.container.scale.x = 1;
+	        this.container.scale.y = 1;
+	        this.emit('cancel');
+	    }
+	    onPointerOver() {
+	        if (this.config.disabled)
+	            return;
+	        this.isHovered = true;
+	        this.emit('hover');
+	    }
+	    onPointerOut() {
+	        if (this.config.disabled)
+	            return;
+	        this.isHovered = false;
+	        this.emit('hoverEnd');
+	    }
+	    /**
+	     * Public API
+	     */
+	    setText(text) {
+	        this.config.text = text;
+	        if (this.textField) {
+	            this.textField.text = text;
+	        }
+	        return this;
+	    }
+	    setDisabled(disabled) {
+	        this.config.disabled = disabled;
+	        this.container.cursor = disabled ? 'default' : 'pointer';
+	        this.render();
+	        return this;
+	    }
+	    setColorScheme(colorScheme) {
+	        this.config.colorScheme = colorScheme;
+	        this.render();
+	        if (this.textField) {
+	            this.textField.style.fill = colorScheme.text;
+	            this.textField.style.stroke = colorScheme.textStroke;
+	            this.textField.style.strokeThickness = this.config.fontSize / 8;
+	        }
+	        return this;
+	    }
+	    setPosition(x, y) {
+	        this.container.x = x;
+	        this.container.y = y;
+	        return this;
+	    }
+	    getContainer() {
+	        return this.container;
+	    }
+	    getWidth() {
+	        return this.config.width;
+	    }
+	    getHeight() {
+	        return this.config.height;
+	    }
+	    destroy() {
+	        this.container.destroy({ children: true });
+	        this.removeAllListeners();
+	    }
+	}
+	/**
+	 * Pre-built button factory functions
+	 */
+	const GameButtons = {
+	    /**
+	     * Create a yellow "Play" style button
+	     */
+	    play(text = 'Play', width = 220, height = 70) {
+	        return new GameStyleButton({
+	            text,
+	            width,
+	            height,
+	            colorScheme: GameStyleColors.YELLOW_BUTTON
+	        });
+	    },
+	    /**
+	     * Create a green action button
+	     */
+	    success(text, width = 160, height = 56) {
+	        return new GameStyleButton({
+	            text,
+	            width,
+	            height,
+	            colorScheme: GameStyleColors.GREEN_BUTTON
+	        });
+	    },
+	    /**
+	     * Create a blue secondary button
+	     */
+	    secondary(text, width = 160, height = 56) {
+	        return new GameStyleButton({
+	            text,
+	            width,
+	            height,
+	            colorScheme: GameStyleColors.BLUE_BUTTON
+	        });
+	    },
+	    /**
+	     * Create a red warning/cancel button
+	     */
+	    danger(text, width = 160, height = 56) {
+	        return new GameStyleButton({
+	            text,
+	            width,
+	            height,
+	            colorScheme: GameStyleColors.RED_BUTTON
+	        });
+	    },
+	    /**
+	     * Create a purple special button
+	     */
+	    special(text, width = 160, height = 56) {
+	        return new GameStyleButton({
+	            text,
+	            width,
+	            height,
+	            colorScheme: GameStyleColors.PURPLE_BUTTON
+	        });
+	    }
+	};
+
+	/**
+	 * HexagonLevelButton - Game-style hexagonal level selector
+	 *
+	 * Features:
+	 * - Hexagon shape with multi-layer border
+	 * - Level number centered
+	 * - States: locked, available, current, completed
+	 * - Optional star rating display
+	 * - 3D depth effect
+	 * - Press animation
+	 *
+	 * Inspired by: Candy Crush, Homescapes level maps
+	 *
+	 * @example
+	 * ```typescript
+	 * const levelButton = new HexagonLevelButton({
+	 *   level: 19,
+	 *   size: 80,
+	 *   state: 'current'
+	 * });
+	 *
+	 * levelButton.on('click', () => startLevel(19));
+	 * stage.addChild(levelButton.getContainer());
+	 * ```
+	 */
+	class HexagonLevelButton extends EventEmitter {
+	    constructor(config) {
+	        super();
+	        this.isPressed = false;
+	        // Default configuration
+	        this.config = {
+	            level: config.level,
+	            size: config.size || 80,
+	            state: config.state || 'available',
+	            colorScheme: config.colorScheme || this.getDefaultColorScheme(config.state || 'available'),
+	            showStars: config.showStars ?? true,
+	            stars: config.stars || 0,
+	            fontSize: config.fontSize || Math.round((config.size || 80) * 0.35),
+	            fontFamily: config.fontFamily || '"Fredoka One", "Arial Black", sans-serif'
+	        };
+	        // Create container and graphics layers
+	        this.container = graphics().createContainer();
+	        this.shadowGraphics = graphics().createGraphics();
+	        this.borderGraphics = graphics().createGraphics();
+	        this.fillGraphics = graphics().createGraphics();
+	        this.highlightGraphics = graphics().createGraphics();
+	        // Build layers (z-order)
+	        this.container.addChild(this.shadowGraphics);
+	        this.container.addChild(this.borderGraphics);
+	        this.container.addChild(this.fillGraphics);
+	        this.container.addChild(this.highlightGraphics);
+	        // Create level text
+	        this.levelText = this.createLevelText();
+	        this.container.addChild(this.levelText);
+	        // Create lock icon if locked
+	        if (this.config.state === 'locked') {
+	            this.createLockIcon();
+	        }
+	        // Create stars if enabled and completed
+	        if (this.config.showStars && this.config.state === 'completed') {
+	            this.createStars();
+	        }
+	        // Initial render
+	        this.render();
+	        // Setup interactivity
+	        this.setupInteractivity();
+	    }
+	    /**
+	     * Get default color scheme based on state
+	     */
+	    getDefaultColorScheme(state) {
+	        switch (state) {
+	            case 'locked':
+	                return GameStyleColors.HEXAGON_LOCKED;
+	            case 'completed':
+	                return GameStyleColors.HEXAGON_COMPLETED;
+	            case 'current':
+	                return GameStyleColors.HEXAGON_CURRENT;
+	            case 'available':
+	            default:
+	                return GameStyleColors.HEXAGON_BLUE;
+	        }
+	    }
+	    /**
+	     * Create level number text
+	     */
+	    createLevelText() {
+	        const { level, fontSize, fontFamily, state, colorScheme } = this.config;
+	        const text = graphics().createText(state === 'locked' ? '' : level.toString(), {
+	            fontFamily: fontFamily,
+	            fontSize: fontSize,
+	            fontWeight: 'bold',
+	            fill: colorScheme.text,
+	            stroke: colorScheme.textStroke,
+	            strokeThickness: Math.max(2, fontSize / 10),
+	            dropShadow: true,
+	            dropShadowAlpha: 0.4,
+	            dropShadowAngle: Math.PI / 2,
+	            dropShadowBlur: 2,
+	            dropShadowColor: 0x000000,
+	            dropShadowDistance: 2
+	        });
+	        if (text.anchor)
+	            text.anchor.set(0.5, 0.5);
+	        text.x = 0;
+	        text.y = 0;
+	        return text;
+	    }
+	    /**
+	     * Create lock icon for locked levels
+	     */
+	    createLockIcon() {
+	        const { size } = this.config;
+	        const iconSize = size * 0.35;
+	        this.lockIcon = graphics().createGraphics();
+	        // Lock body
+	        this.lockIcon.roundRect(-iconSize / 2, -iconSize / 4, iconSize, iconSize * 0.7, 4);
+	        this.lockIcon.fill({ color: 0xE0E0E0 });
+	        this.lockIcon.stroke({ color: 0x9E9E9E, width: 2 });
+	        // Lock shackle (using poly to simulate arc - U shape)
+	        const shackleR = iconSize * 0.35;
+	        const shackleY = -iconSize / 4;
+	        const shacklePoints = [];
+	        for (let i = 0; i <= 12; i++) {
+	            const angle = Math.PI + (Math.PI * i) / 12;
+	            shacklePoints.push(Math.cos(angle) * shackleR, shackleY + Math.sin(angle) * shackleR);
+	        }
+	        this.lockIcon.poly(shacklePoints);
+	        this.lockIcon.stroke({ color: 0x9E9E9E, width: 4 });
+	        // Keyhole
+	        this.lockIcon.circle(0, iconSize * 0.1, iconSize * 0.08);
+	        this.lockIcon.fill({ color: 0x616161 });
+	        this.lockIcon.y = 2;
+	        this.container.addChild(this.lockIcon);
+	    }
+	    /**
+	     * Create star rating display
+	     */
+	    createStars() {
+	        const { size, stars } = this.config;
+	        this.starsContainer = graphics().createContainer();
+	        this.starsContainer.y = size / 2 + 8;
+	        const starSize = size * 0.2;
+	        const starSpacing = starSize * 1.1;
+	        for (let i = 0; i < 3; i++) {
+	            const star = graphics().createGraphics();
+	            const filled = i < stars;
+	            this.drawStar(star, (i - 1) * starSpacing, 0, starSize / 2, filled);
+	            this.starsContainer.addChild(star);
+	        }
+	        this.container.addChild(this.starsContainer);
+	    }
+	    /**
+	     * Draw a 5-pointed star
+	     */
+	    drawStar(g, x, y, radius, filled) {
+	        const points = 5;
+	        const innerRadius = radius * 0.4;
+	        const vertices = [];
+	        for (let i = 0; i < points * 2; i++) {
+	            const angle = (i * Math.PI) / points - Math.PI / 2;
+	            const r = i % 2 === 0 ? radius : innerRadius;
+	            vertices.push(x + Math.cos(angle) * r);
+	            vertices.push(y + Math.sin(angle) * r);
+	        }
+	        g.poly(vertices);
+	        g.fill({ color: filled ? 0xFFD700 : 0x5A5A5A });
+	        g.stroke({ color: filled ? 0xCC9900 : 0x404040, width: 1 });
+	    }
+	    /**
+	     * Setup touch/mouse events
+	     */
+	    setupInteractivity() {
+	        const { state } = this.config;
+	        this.container.eventMode = 'static';
+	        this.container.cursor = state === 'locked' ? 'default' : 'pointer';
+	        if (state !== 'locked') {
+	            this.container.on('pointerdown', this.onPointerDown.bind(this));
+	            this.container.on('pointerup', this.onPointerUp.bind(this));
+	            this.container.on('pointerupoutside', this.onPointerUpOutside.bind(this));
+	        }
+	    }
+	    /**
+	     * Render hexagon graphics
+	     */
+	    render() {
+	        const { size, colorScheme, state } = this.config;
+	        // Clear graphics
+	        this.shadowGraphics.clear();
+	        this.borderGraphics.clear();
+	        this.fillGraphics.clear();
+	        this.highlightGraphics.clear();
+	        const pressOffset = this.isPressed ? 2 : 0;
+	        const shadowOffset = this.isPressed ? 2 : 6;
+	        const borderWidth = 4;
+	        // Get colors
+	        const colors = colorScheme;
+	        // 1. Shadow
+	        this.drawHexagon(this.shadowGraphics, 0, shadowOffset, size - 4);
+	        this.shadowGraphics.fill({ color: 0x000000, alpha: 0.4 });
+	        // 2. Outer border (dark)
+	        this.drawHexagon(this.borderGraphics, 0, pressOffset, size);
+	        this.borderGraphics.fill({ color: colors.border });
+	        // 3. Main fill
+	        this.drawHexagon(this.fillGraphics, 0, pressOffset, size - borderWidth * 2);
+	        this.fillGraphics.fill({ color: colors.fill });
+	        // 4. Inner highlight (top half)
+	        if (!this.isPressed) {
+	            this.drawHexagonHighlight(this.highlightGraphics, 0, pressOffset - 2, size - borderWidth * 2 - 4, colors.highlight);
+	        }
+	        // Update text position
+	        this.levelText.y = pressOffset;
+	        if (this.lockIcon) {
+	            this.lockIcon.y = pressOffset + 2;
+	        }
+	    }
+	    /**
+	     * Draw hexagon path
+	     */
+	    drawHexagon(g, cx, cy, size) {
+	        const vertices = [];
+	        const sides = 6;
+	        const angleOffset = Math.PI / 6; // Flat top orientation
+	        for (let i = 0; i < sides; i++) {
+	            const angle = (i * 2 * Math.PI) / sides + angleOffset;
+	            vertices.push(cx + Math.cos(angle) * (size / 2));
+	            vertices.push(cy + Math.sin(angle) * (size / 2));
+	        }
+	        g.poly(vertices);
+	    }
+	    /**
+	     * Draw hexagon highlight (top portion only)
+	     */
+	    drawHexagonHighlight(g, cx, cy, size, color) {
+	        // Create a highlight that covers top half of hexagon
+	        const halfSize = size / 2;
+	        const angleOffset = Math.PI / 6;
+	        // Get top 4 vertices of hexagon
+	        const topVertices = [];
+	        for (let i = 0; i <= 3; i++) {
+	            const angle = (i * 2 * Math.PI) / 6 + angleOffset;
+	            topVertices.push(cx + Math.cos(angle) * halfSize * 0.85);
+	            topVertices.push(cy + Math.sin(angle) * halfSize * 0.85 - halfSize * 0.1);
+	        }
+	        g.poly(topVertices);
+	        g.fill({ color: 0xFFFFFF, alpha: 0.25 });
+	    }
+	    /**
+	     * Pointer event handlers
+	     */
+	    onPointerDown(event) {
+	        if (this.config.state === 'locked')
+	            return;
+	        this.isPressed = true;
+	        this.render();
+	        this.container.scale.x = 0.95;
+	        this.container.scale.y = 0.95;
+	        this.emit('press', { level: this.config.level, event });
+	    }
+	    onPointerUp(event) {
+	        if (this.config.state === 'locked')
+	            return;
+	        this.isPressed = false;
+	        this.render();
+	        this.container.scale.x = 1;
+	        this.container.scale.y = 1;
+	        this.emit('click', { level: this.config.level, event });
+	    }
+	    onPointerUpOutside() {
+	        if (this.config.state === 'locked')
+	            return;
+	        this.isPressed = false;
+	        this.render();
+	        this.container.scale.x = 1;
+	        this.container.scale.y = 1;
+	        this.emit('cancel');
+	    }
+	    /**
+	     * Public API
+	     */
+	    setLevel(level) {
+	        this.config.level = level;
+	        if (this.config.state !== 'locked') {
+	            this.levelText.text = level.toString();
+	        }
+	        return this;
+	    }
+	    setState(state) {
+	        this.config.state = state;
+	        this.config.colorScheme = this.getDefaultColorScheme(state);
+	        // Update text visibility and lock icon
+	        if (state === 'locked') {
+	            this.levelText.text = '';
+	            if (!this.lockIcon) {
+	                this.createLockIcon();
+	            }
+	        }
+	        else {
+	            this.levelText.text = this.config.level.toString();
+	            if (this.lockIcon) {
+	                this.container.removeChild(this.lockIcon);
+	                this.lockIcon.destroy();
+	                this.lockIcon = undefined;
+	            }
+	        }
+	        // Update interactivity
+	        this.container.cursor = state === 'locked' ? 'default' : 'pointer';
+	        this.render();
+	        return this;
+	    }
+	    setStars(stars) {
+	        this.config.stars = Math.min(3, Math.max(0, stars));
+	        // Recreate stars if needed
+	        if (this.starsContainer) {
+	            this.container.removeChild(this.starsContainer);
+	            this.starsContainer.destroy({ children: true });
+	        }
+	        if (this.config.showStars && this.config.state === 'completed') {
+	            this.createStars();
+	        }
+	        return this;
+	    }
+	    setPosition(x, y) {
+	        this.container.x = x;
+	        this.container.y = y;
+	        return this;
+	    }
+	    getLevel() {
+	        return this.config.level;
+	    }
+	    getState() {
+	        return this.config.state;
+	    }
+	    getContainer() {
+	        return this.container;
+	    }
+	    getSize() {
+	        return this.config.size;
+	    }
+	    destroy() {
+	        this.container.destroy({ children: true });
+	        this.removeAllListeners();
+	    }
+	}
+
+	/**
+	 * GameTopBar - Game-style top bar with resource displays
+	 *
+	 * Features:
+	 * - Settings gear button (circular, dark background)
+	 * - Lives display with heart icon and MAX label
+	 * - Coins display with coin icon and add button
+	 * - Gems display with gem icon
+	 * - Pill-shaped containers with game styling
+	 * - Animated value changes
+	 *
+	 * Inspired by: Brawl Stars, Candy Crush, mobile game top bars
+	 *
+	 * @example
+	 * ```typescript
+	 * const topBar = new GameTopBar({
+	 *   width: 400,
+	 *   resources: [
+	 *     { type: 'lives', value: 5, max: 5, label: 'MAX' },
+	 *     { type: 'coins', value: 1340, showAddButton: true }
+	 *   ],
+	 *   showSettings: true,
+	 *   onSettingsClick: () => openSettings()
+	 * });
+	 *
+	 * stage.addChild(topBar.getContainer());
+	 * ```
+	 */
+	class GameTopBar extends EventEmitter {
+	    constructor(config) {
+	        super();
+	        this.resourceContainers = new Map();
+	        this.resourceTexts = new Map();
+	        this.config = {
+	            width: config.width,
+	            height: config.height || 60,
+	            padding: config.padding || 15,
+	            resources: config.resources || [],
+	            showSettings: config.showSettings ?? true,
+	            onSettingsClick: config.onSettingsClick || (() => { }),
+	        };
+	        this.container = graphics().createContainer();
+	        // Create UI elements
+	        if (this.config.showSettings) {
+	            this.createSettingsButton();
+	        }
+	        this.createResourceDisplays();
+	    }
+	    /**
+	     * Create circular settings button
+	     */
+	    createSettingsButton() {
+	        const buttonSize = this.config.height - 10;
+	        this.settingsButton = graphics().createContainer();
+	        this.settingsButton.x = this.config.padding;
+	        this.settingsButton.y = this.config.height / 2;
+	        // Background circle
+	        const bg = graphics().createGraphics();
+	        bg.circle(0, 0, buttonSize / 2);
+	        bg.fill({ color: 0x2A2A3A, alpha: 0.95 });
+	        bg.stroke({ color: 0x1A1A2A, width: 3 });
+	        this.settingsButton.addChild(bg);
+	        // Gear icon
+	        const gear = graphics().createGraphics();
+	        this.drawGearIcon(gear, buttonSize * 0.35);
+	        this.settingsButton.addChild(gear);
+	        // Interactivity
+	        this.settingsButton.eventMode = 'static';
+	        this.settingsButton.cursor = 'pointer';
+	        this.settingsButton.on('pointerdown', () => {
+	            this.settingsButton.scale.x = 0.9;
+	            this.settingsButton.scale.y = 0.9;
+	        });
+	        this.settingsButton.on('pointerup', () => {
+	            this.settingsButton.scale.x = 1;
+	            this.settingsButton.scale.y = 1;
+	            this.config.onSettingsClick();
+	            this.emit('settings-click');
+	        });
+	        this.settingsButton.on('pointerupoutside', () => {
+	            this.settingsButton.scale.x = 1;
+	            this.settingsButton.scale.y = 1;
+	        });
+	        this.container.addChild(this.settingsButton);
+	    }
+	    /**
+	     * Draw gear/cog icon
+	     */
+	    drawGearIcon(g, size) {
+	        const teeth = 8;
+	        const outerRadius = size;
+	        const innerRadius = size * 0.7;
+	        const centerRadius = size * 0.35;
+	        // Draw gear teeth
+	        const vertices = [];
+	        for (let i = 0; i < teeth * 2; i++) {
+	            const angle = (i * Math.PI) / teeth;
+	            const r = i % 2 === 0 ? outerRadius : innerRadius;
+	            vertices.push(Math.cos(angle) * r);
+	            vertices.push(Math.sin(angle) * r);
+	        }
+	        g.poly(vertices);
+	        g.fill({ color: 0xE0E0E0 });
+	        // Center hole
+	        g.circle(0, 0, centerRadius);
+	        g.fill({ color: 0x2A2A3A });
+	    }
+	    /**
+	     * Create resource displays (lives, coins, gems, etc.)
+	     */
+	    createResourceDisplays() {
+	        const { resources, width, height, padding, showSettings } = this.config;
+	        const spacing = 10;
+	        // Calculate total width needed for resources
+	        const resourceWidths = [];
+	        resources.forEach((res) => {
+	            const w = this.calculateResourceWidth(res);
+	            resourceWidths.push(w);
+	        });
+	        // Position from center-right area
+	        const totalResourceWidth = resourceWidths.reduce((a, b) => a + b, 0) + spacing * (resources.length - 1);
+	        let currentX = width - padding - totalResourceWidth;
+	        resources.forEach((res, index) => {
+	            const container = this.createResourceDisplay(res, resourceWidths[index]);
+	            container.x = currentX + resourceWidths[index] / 2;
+	            container.y = height / 2;
+	            this.resourceContainers.set(res.type, container);
+	            this.container.addChild(container);
+	            currentX += resourceWidths[index] + spacing;
+	        });
+	    }
+	    /**
+	     * Calculate width needed for a resource display
+	     */
+	    calculateResourceWidth(res) {
+	        let width = 80; // Base width for icon + value
+	        if (res.label)
+	            width += 40;
+	        if (res.showAddButton)
+	            width += 35;
+	        if (res.max !== undefined)
+	            width += 10;
+	        return width;
+	    }
+	    /**
+	     * Create a single resource display
+	     */
+	    createResourceDisplay(res, width) {
+	        const container = graphics().createContainer();
+	        const height = this.config.height - 16;
+	        const halfWidth = width / 2;
+	        const halfHeight = height / 2;
+	        // Background pill shape
+	        const bg = graphics().createGraphics();
+	        const bgColor = res.backgroundColor || this.getDefaultBgColor(res.type);
+	        bg.roundRect(-halfWidth, -halfHeight, width, height, height / 2);
+	        bg.fill({ color: bgColor, alpha: 0.95 });
+	        bg.stroke({ color: this.darkenColor(bgColor, 0.3), width: 2 });
+	        container.addChild(bg);
+	        // Icon
+	        const iconX = -halfWidth + 20;
+	        const icon = this.createResourceIcon(res);
+	        icon.x = iconX;
+	        container.addChild(icon);
+	        // Value text
+	        const valueText = graphics().createText(this.formatValue(res.value), {
+	            fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+	            fontSize: 18,
+	            fontWeight: 'bold',
+	            fill: 0xFFFFFF,
+	            stroke: 0x000000,
+	            strokeThickness: 2
+	        });
+	        if (valueText.anchor)
+	            valueText.anchor.set(0, 0.5);
+	        valueText.x = iconX + 25;
+	        container.addChild(valueText);
+	        this.resourceTexts.set(res.type, valueText);
+	        // Max label (e.g., "MAX")
+	        if (res.label) {
+	            const labelBg = graphics().createGraphics();
+	            labelBg.roundRect(valueText.x + valueText.width + 5, -10, 36, 20, 5);
+	            labelBg.fill({ color: this.darkenColor(bgColor, 0.2) });
+	            container.addChild(labelBg);
+	            const labelText = graphics().createText(res.label, {
+	                fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+	                fontSize: 12,
+	                fontWeight: 'bold',
+	                fill: 0xFFFFFF
+	            });
+	            if (labelText.anchor)
+	                labelText.anchor.set(0.5, 0.5);
+	            labelText.x = valueText.x + valueText.width + 23;
+	            container.addChild(labelText);
+	        }
+	        // Add button (+)
+	        if (res.showAddButton) {
+	            const addBtn = this.createAddButton(res);
+	            addBtn.x = halfWidth - 18;
+	            container.addChild(addBtn);
+	        }
+	        // Click handler
+	        if (res.onClick) {
+	            container.eventMode = 'static';
+	            container.cursor = 'pointer';
+	            container.on('pointerup', res.onClick);
+	        }
+	        return container;
+	    }
+	    /**
+	     * Create resource icon based on type
+	     */
+	    createResourceIcon(res) {
+	        const iconContainer = graphics().createContainer();
+	        const g = graphics().createGraphics();
+	        const size = 16;
+	        switch (res.icon || res.type) {
+	            case 'heart':
+	            case 'lives':
+	                this.drawHeartIcon(g, size, res.iconColor || 0xFF4081);
+	                break;
+	            case 'coin':
+	            case 'coins':
+	                this.drawCoinIcon(g, size, res.iconColor || 0xFFD700);
+	                break;
+	            case 'gem':
+	            case 'gems':
+	                this.drawGemIcon(g, size, res.iconColor || 0x9C27B0);
+	                break;
+	            case 'energy':
+	                this.drawEnergyIcon(g, size, res.iconColor || 0x00BCD4);
+	                break;
+	            default:
+	                this.drawCoinIcon(g, size, res.iconColor || 0xFFD700);
+	        }
+	        iconContainer.addChild(g);
+	        return iconContainer;
+	    }
+	    /**
+	     * Draw heart icon
+	     */
+	    drawHeartIcon(g, size, color) {
+	        // Simple heart shape using polygon approximation
+	        const s = size;
+	        const vertices = [];
+	        // Generate heart shape points
+	        for (let i = 0; i <= 32; i++) {
+	            const t = (i / 32) * 2 * Math.PI;
+	            const x = s * 0.8 * Math.sin(t) ** 3;
+	            const y = -s * 0.65 * (Math.cos(t) -
+	                0.35 * Math.cos(2 * t) -
+	                0.14 * Math.cos(3 * t) -
+	                0.07 * Math.cos(4 * t));
+	            vertices.push(x, y);
+	        }
+	        g.poly(vertices);
+	        g.fill({ color: color });
+	        g.stroke({ color: this.darkenColor(color, 0.3), width: 1.5 });
+	    }
+	    /**
+	     * Draw coin icon
+	     */
+	    drawCoinIcon(g, size, color) {
+	        // Outer circle
+	        g.circle(0, 0, size);
+	        g.fill({ color: color });
+	        g.stroke({ color: this.darkenColor(color, 0.3), width: 2 });
+	        // Inner highlight
+	        g.circle(-size * 0.2, -size * 0.2, size * 0.3);
+	        g.fill({ color: 0xFFFFFF, alpha: 0.4 });
+	    }
+	    /**
+	     * Draw gem icon
+	     */
+	    drawGemIcon(g, size, color) {
+	        // Diamond shape
+	        const vertices = [
+	            0, -size,
+	            size * 0.7, 0,
+	            0, size,
+	            -size * 0.7, 0
+	        ];
+	        g.poly(vertices);
+	        g.fill({ color: color });
+	        g.stroke({ color: this.darkenColor(color, 0.3), width: 1.5 });
+	        // Highlight
+	        const highlightVertices = [
+	            0, -size * 0.7,
+	            size * 0.35, -size * 0.1,
+	            0, size * 0.2,
+	            -size * 0.35, -size * 0.1
+	        ];
+	        g.poly(highlightVertices);
+	        g.fill({ color: 0xFFFFFF, alpha: 0.3 });
+	    }
+	    /**
+	     * Draw energy/lightning icon
+	     */
+	    drawEnergyIcon(g, size, color) {
+	        const vertices = [
+	            size * 0.2, -size,
+	            -size * 0.4, size * 0.1,
+	            size * 0.1, size * 0.1,
+	            -size * 0.2, size,
+	            size * 0.4, -size * 0.1,
+	            -size * 0.1, -size * 0.1
+	        ];
+	        g.poly(vertices);
+	        g.fill({ color: color });
+	        g.stroke({ color: this.darkenColor(color, 0.3), width: 1 });
+	    }
+	    /**
+	     * Create add/plus button
+	     */
+	    createAddButton(res) {
+	        const container = graphics().createContainer();
+	        const size = 28;
+	        // Background
+	        const bg = graphics().createGraphics();
+	        bg.roundRect(-size / 2, -size / 2, size, size, 6);
+	        bg.fill({ color: 0x4CAF50 });
+	        bg.stroke({ color: 0x2E7D32, width: 2 });
+	        container.addChild(bg);
+	        // Plus sign
+	        const plus = graphics().createText('+', {
+	            fontFamily: '"Arial Black", sans-serif',
+	            fontSize: 20,
+	            fontWeight: 'bold',
+	            fill: 0xFFFFFF
+	        });
+	        if (plus.anchor)
+	            plus.anchor.set(0.5, 0.5);
+	        container.addChild(plus);
+	        // Interactivity
+	        container.eventMode = 'static';
+	        container.cursor = 'pointer';
+	        container.on('pointerdown', () => {
+	            container.scale.x = 0.9;
+	            container.scale.y = 0.9;
+	        });
+	        container.on('pointerup', () => {
+	            container.scale.x = 1;
+	            container.scale.y = 1;
+	            if (res.onAddClick) {
+	                res.onAddClick();
+	            }
+	            this.emit('add-click', res.type);
+	        });
+	        container.on('pointerupoutside', () => {
+	            container.scale.x = 1;
+	            container.scale.y = 1;
+	        });
+	        return container;
+	    }
+	    /**
+	     * Get default background color for resource type
+	     */
+	    getDefaultBgColor(type) {
+	        switch (type) {
+	            case 'lives':
+	                return 0x2C3E50;
+	            case 'coins':
+	                return 0xE67E22;
+	            case 'gems':
+	                return 0x8E44AD;
+	            case 'energy':
+	                return 0x16A085;
+	            default:
+	                return 0x34495E;
+	        }
+	    }
+	    /**
+	     * Darken a color
+	     */
+	    darkenColor(color, amount) {
+	        const r = Math.max(0, ((color >> 16) & 0xFF) - Math.floor(255 * amount));
+	        const g = Math.max(0, ((color >> 8) & 0xFF) - Math.floor(255 * amount));
+	        const b = Math.max(0, (color & 0xFF) - Math.floor(255 * amount));
+	        return (r << 16) | (g << 8) | b;
+	    }
+	    /**
+	     * Format value with abbreviation for large numbers
+	     */
+	    formatValue(value) {
+	        if (value >= 1000000) {
+	            return (value / 1000000).toFixed(1) + 'M';
+	        }
+	        if (value >= 1000) {
+	            return (value / 1000).toFixed(1) + 'K';
+	        }
+	        return value.toString();
+	    }
+	    /**
+	     * Public API
+	     */
+	    updateResource(type, value, animate = true) {
+	        const text = this.resourceTexts.get(type);
+	        if (text) {
+	            const oldValue = parseInt(text.text.replace(/[KM]/g, '')) || 0;
+	            text.text = this.formatValue(value);
+	            if (animate && value !== oldValue) {
+	                // Pop animation
+	                const container = this.resourceContainers.get(type);
+	                if (container) {
+	                    container.scale.x = 1.15;
+	                    container.scale.y = 1.15;
+	                    setTimeout(() => {
+	                        container.scale.x = 1;
+	                        container.scale.y = 1;
+	                    }, 150);
+	                }
+	            }
+	        }
+	        this.emit('resource-updated', type, value);
+	        return this;
+	    }
+	    setPosition(x, y) {
+	        this.container.x = x;
+	        this.container.y = y;
+	        return this;
+	    }
+	    getContainer() {
+	        return this.container;
+	    }
+	    destroy() {
+	        this.container.destroy({ children: true });
+	        this.resourceContainers.clear();
+	        this.resourceTexts.clear();
+	        this.removeAllListeners();
+	    }
+	}
+
+	/**
+	 * LevelPath - Vertical level selection path like Candy Crush
+	 *
+	 * Features:
+	 * - Vertical scrolling level path
+	 * - Rainbow/gradient path trail
+	 * - Hexagon level buttons along the path
+	 * - Different states: locked, available, current, completed
+	 * - Smooth scrolling with touch/drag
+	 * - Auto-scroll to current level
+	 *
+	 * Inspired by: Candy Crush Saga, Homescapes level maps
+	 *
+	 * @example
+	 * ```typescript
+	 * const levelPath = new LevelPath({
+	 *   width: 300,
+	 *   height: 600,
+	 *   levels: [
+	 *     { level: 1, state: 'completed', stars: 3 },
+	 *     { level: 2, state: 'completed', stars: 2 },
+	 *     { level: 3, state: 'current' },
+	 *     { level: 4, state: 'available' },
+	 *     { level: 5, state: 'locked' }
+	 *   ],
+	 *   currentLevel: 3
+	 * });
+	 *
+	 * levelPath.on('level-click', (level) => startLevel(level));
+	 * stage.addChild(levelPath.getContainer());
+	 * ```
+	 */
+	class LevelPath extends EventEmitter {
+	    constructor(config) {
+	        super();
+	        this.hexagonButtons = new Map();
+	        this.contentHeight = 0;
+	        this.scrollY = 0;
+	        this.isDragging = false;
+	        this.lastDragY = 0;
+	        this.velocity = 0;
+	        this.config = {
+	            width: config.width,
+	            height: config.height,
+	            levels: config.levels,
+	            currentLevel: config.currentLevel || this.findCurrentLevel(config.levels),
+	            hexagonSize: config.hexagonSize || 80,
+	            spacing: config.spacing || 120,
+	            pathWidth: config.pathWidth || 16,
+	            pathColors: config.pathColors || {
+	                completed: 0x4CAF50,
+	                active: 0xFFD54F,
+	                inactive: 0x5C6BC0
+	            },
+	            scrollable: config.scrollable ?? true
+	        };
+	        this.container = graphics().createContainer();
+	        this.scrollContainer = graphics().createContainer();
+	        this.pathGraphics = graphics().createGraphics();
+	        // Set up masking for scroll area
+	        const mask = graphics().createGraphics();
+	        mask.rect(0, 0, config.width, config.height);
+	        mask.fill({ color: 0xFFFFFF });
+	        this.container.addChild(mask);
+	        // Cast to any since PIXI containers do support mask but IContainer doesn't declare it
+	        this.scrollContainer.mask = mask;
+	        // Build level path
+	        this.container.addChild(this.scrollContainer);
+	        this.scrollContainer.addChild(this.pathGraphics);
+	        this.createLevelPath();
+	        this.createHexagonButtons();
+	        // Setup scroll interactivity
+	        if (this.config.scrollable) {
+	            this.setupScrolling();
+	        }
+	        // Scroll to current level
+	        this.scrollToLevel(this.config.currentLevel, false);
+	    }
+	    /**
+	     * Find the current (most recent playable) level
+	     */
+	    findCurrentLevel(levels) {
+	        for (let i = levels.length - 1; i >= 0; i--) {
+	            if (levels[i].state === 'current' || levels[i].state === 'available') {
+	                return levels[i].level;
+	            }
+	        }
+	        return levels[0]?.level || 1;
+	    }
+	    /**
+	     * Create the path trail
+	     */
+	    createLevelPath() {
+	        const { levels, width, spacing, pathWidth, pathColors, hexagonSize } = this.config;
+	        this.pathGraphics.clear();
+	        const centerX = width / 2;
+	        const startY = hexagonSize;
+	        // Calculate content height
+	        this.contentHeight = startY + (levels.length * spacing) + hexagonSize;
+	        // Create path segments with gradient colors
+	        for (let i = 0; i < levels.length - 1; i++) {
+	            const currentLevel = levels[i];
+	            const y1 = startY + (i * spacing);
+	            const y2 = startY + ((i + 1) * spacing);
+	            // Calculate x offset for zigzag pattern
+	            const x1 = this.getXOffset(i, centerX);
+	            const x2 = this.getXOffset(i + 1, centerX);
+	            // Determine path color based on level state
+	            let pathColor;
+	            if (currentLevel.state === 'completed') {
+	                pathColor = pathColors.completed;
+	            }
+	            else if (currentLevel.state === 'current') {
+	                pathColor = pathColors.active;
+	            }
+	            else {
+	                pathColor = pathColors.inactive;
+	            }
+	            // Draw thick path segment
+	            this.drawPathSegment(x1, y1, x2, y2, pathWidth, pathColor);
+	        }
+	    }
+	    /**
+	     * Get X offset for zigzag pattern
+	     */
+	    getXOffset(index, centerX) {
+	        // Create subtle zigzag pattern
+	        const amplitude = this.config.width * 0.15;
+	        const pattern = index % 4;
+	        switch (pattern) {
+	            case 0: return centerX;
+	            case 1: return centerX + amplitude;
+	            case 2: return centerX;
+	            case 3: return centerX - amplitude;
+	            default: return centerX;
+	        }
+	    }
+	    /**
+	     * Draw a path segment with rounded ends
+	     */
+	    drawPathSegment(x1, y1, x2, y2, width, color) {
+	        // Shadow/outline
+	        this.pathGraphics.moveTo(x1, y1);
+	        this.pathGraphics.lineTo(x2, y2);
+	        this.pathGraphics.stroke({ color: 0x1A1A2A, width: width + 6, cap: 'round' });
+	        // Main path
+	        this.pathGraphics.moveTo(x1, y1);
+	        this.pathGraphics.lineTo(x2, y2);
+	        this.pathGraphics.stroke({ color: color, width: width, cap: 'round' });
+	        // Highlight
+	        this.pathGraphics.moveTo(x1, y1 - 2);
+	        this.pathGraphics.lineTo(x2, y2 - 2);
+	        this.pathGraphics.stroke({ color: this.lightenColor(color, 0.3), width: width * 0.4, cap: 'round' });
+	    }
+	    /**
+	     * Create hexagon buttons for each level
+	     */
+	    createHexagonButtons() {
+	        const { levels, width, spacing, hexagonSize } = this.config;
+	        const centerX = width / 2;
+	        const startY = hexagonSize;
+	        levels.forEach((levelData, index) => {
+	            const x = this.getXOffset(index, centerX);
+	            const y = startY + (index * spacing);
+	            const hexButton = new HexagonLevelButton({
+	                level: levelData.level,
+	                size: hexagonSize,
+	                state: levelData.state,
+	                stars: levelData.stars,
+	                showStars: levelData.state === 'completed'
+	            });
+	            hexButton.setPosition(x, y);
+	            // Handle click events
+	            hexButton.on('click', ({ level }) => {
+	                this.emit('level-click', level, levelData);
+	            });
+	            this.hexagonButtons.set(levelData.level, hexButton);
+	            this.scrollContainer.addChild(hexButton.getContainer());
+	        });
+	    }
+	    /**
+	     * Setup touch/mouse scrolling
+	     */
+	    setupScrolling() {
+	        this.container.eventMode = 'static';
+	        this.container.on('pointerdown', (e) => {
+	            this.isDragging = true;
+	            this.lastDragY = e.global.y;
+	            this.velocity = 0;
+	        });
+	        this.container.on('pointermove', (e) => {
+	            if (!this.isDragging)
+	                return;
+	            const deltaY = e.global.y - this.lastDragY;
+	            this.velocity = deltaY;
+	            this.scroll(deltaY);
+	            this.lastDragY = e.global.y;
+	        });
+	        this.container.on('pointerup', () => {
+	            this.isDragging = false;
+	            // Apply momentum
+	            this.applyMomentum();
+	        });
+	        this.container.on('pointerupoutside', () => {
+	            this.isDragging = false;
+	            this.applyMomentum();
+	        });
+	        // Mouse wheel support
+	        this.container.on('wheel', (e) => {
+	            this.scroll(-e.deltaY * 0.5);
+	        });
+	    }
+	    /**
+	     * Apply momentum scrolling
+	     */
+	    applyMomentum() {
+	        const friction = 0.95;
+	        const minVelocity = 0.5;
+	        const animate = () => {
+	            if (Math.abs(this.velocity) < minVelocity)
+	                return;
+	            this.scroll(this.velocity);
+	            this.velocity *= friction;
+	            requestAnimationFrame(animate);
+	        };
+	        requestAnimationFrame(animate);
+	    }
+	    /**
+	     * Scroll by delta amount
+	     */
+	    scroll(deltaY) {
+	        const maxScroll = 0;
+	        const minScroll = -(this.contentHeight - this.config.height);
+	        this.scrollY = Math.max(minScroll, Math.min(maxScroll, this.scrollY + deltaY));
+	        this.scrollContainer.y = this.scrollY;
+	    }
+	    /**
+	     * Scroll to a specific level
+	     */
+	    scrollToLevel(level, animate = true) {
+	        const { levels, spacing, hexagonSize, height } = this.config;
+	        const levelIndex = levels.findIndex(l => l.level === level);
+	        if (levelIndex === -1)
+	            return;
+	        const targetY = hexagonSize + (levelIndex * spacing);
+	        const targetScroll = -(targetY - height / 2);
+	        // Clamp to valid scroll range
+	        const maxScroll = 0;
+	        const minScroll = -(this.contentHeight - height);
+	        const clampedTarget = Math.max(minScroll, Math.min(maxScroll, targetScroll));
+	        if (animate) {
+	            this.animateScrollTo(clampedTarget);
+	        }
+	        else {
+	            this.scrollY = clampedTarget;
+	            this.scrollContainer.y = this.scrollY;
+	        }
+	    }
+	    /**
+	     * Animate scroll to position
+	     */
+	    animateScrollTo(targetY) {
+	        const startY = this.scrollY;
+	        const duration = 500;
+	        const startTime = Date.now();
+	        const animate = () => {
+	            const elapsed = Date.now() - startTime;
+	            const progress = Math.min(elapsed / duration, 1);
+	            // Ease out cubic
+	            const eased = 1 - Math.pow(1 - progress, 3);
+	            this.scrollY = startY + (targetY - startY) * eased;
+	            this.scrollContainer.y = this.scrollY;
+	            if (progress < 1) {
+	                requestAnimationFrame(animate);
+	            }
+	        };
+	        requestAnimationFrame(animate);
+	    }
+	    /**
+	     * Lighten a color
+	     */
+	    lightenColor(color, amount) {
+	        const r = Math.min(255, ((color >> 16) & 0xFF) + Math.floor(255 * amount));
+	        const g = Math.min(255, ((color >> 8) & 0xFF) + Math.floor(255 * amount));
+	        const b = Math.min(255, (color & 0xFF) + Math.floor(255 * amount));
+	        return (r << 16) | (g << 8) | b;
+	    }
+	    /**
+	     * Public API
+	     */
+	    setLevelState(level, state, stars) {
+	        const hexButton = this.hexagonButtons.get(level);
+	        if (hexButton) {
+	            hexButton.setState(state);
+	            if (stars !== undefined) {
+	                hexButton.setStars(stars);
+	            }
+	        }
+	        // Update path
+	        const levelData = this.config.levels.find(l => l.level === level);
+	        if (levelData) {
+	            levelData.state = state;
+	            if (stars !== undefined)
+	                levelData.stars = stars;
+	            this.createLevelPath();
+	        }
+	        this.emit('level-state-changed', level, state);
+	        return this;
+	    }
+	    unlockLevel(level) {
+	        return this.setLevelState(level, 'available');
+	    }
+	    completeLevel(level, stars = 0) {
+	        this.setLevelState(level, 'completed', stars);
+	        // Unlock next level if it exists and is locked
+	        const nextLevel = level + 1;
+	        const nextButton = this.hexagonButtons.get(nextLevel);
+	        if (nextButton && nextButton.getState() === 'locked') {
+	            this.setLevelState(nextLevel, 'available');
+	        }
+	        return this;
+	    }
+	    setCurrentLevel(level) {
+	        this.config.currentLevel = level;
+	        this.scrollToLevel(level);
+	        return this;
+	    }
+	    getContainer() {
+	        return this.container;
+	    }
+	    setPosition(x, y) {
+	        this.container.x = x;
+	        this.container.y = y;
+	        return this;
+	    }
+	    destroy() {
+	        this.hexagonButtons.forEach(btn => btn.destroy());
+	        this.hexagonButtons.clear();
+	        this.container.destroy({ children: true });
+	        this.removeAllListeners();
+	    }
+	}
+
+	/**
+	 * GameBottomNav - Game-style bottom navigation bar
+	 *
+	 * Features:
+	 * - Three main sections: left icon, center main button, right icon
+	 * - Center button is larger and highlighted
+	 * - Game-style icons and badges
+	 * - Lock states for unavailable items
+	 * - Smooth press animations
+	 *
+	 * Inspired by: Brawl Stars, mobile game navigation
+	 *
+	 * @example
+	 * ```typescript
+	 * const bottomNav = new GameBottomNav({
+	 *   width: 400,
+	 *   items: [
+	 *     { id: 'shop', type: 'shop', label: 'Shop' },
+	 *     { id: 'play', type: 'play', label: 'Start', highlighted: true },
+	 *     { id: 'profile', type: 'profile', locked: true }
+	 *   ]
+	 * });
+	 *
+	 * bottomNav.on('item-click', (id) => handleNavClick(id));
+	 * stage.addChild(bottomNav.getContainer());
+	 * ```
+	 */
+	class GameBottomNav extends EventEmitter {
+	    constructor(config) {
+	        super();
+	        this.itemContainers = new Map();
+	        this.config = {
+	            width: config.width,
+	            height: config.height || 90,
+	            items: config.items,
+	            backgroundColor: config.backgroundColor || 0x1A237E,
+	            activeIndex: config.activeIndex || 0
+	        };
+	        this.container = graphics().createContainer();
+	        this.backgroundGraphics = graphics().createGraphics();
+	        this.container.addChild(this.backgroundGraphics);
+	        this.createBackground();
+	        this.createNavItems();
+	    }
+	    /**
+	     * Create background with gradient
+	     */
+	    createBackground() {
+	        const { width, height, backgroundColor } = this.config;
+	        this.backgroundGraphics.clear();
+	        // Main background
+	        this.backgroundGraphics.rect(0, 0, width, height);
+	        this.backgroundGraphics.fill({ color: backgroundColor });
+	        // Top border/highlight
+	        this.backgroundGraphics.rect(0, 0, width, 3);
+	        this.backgroundGraphics.fill({ color: lightenColor(backgroundColor, 0.2) });
+	        // Top shadow line
+	        this.backgroundGraphics.rect(0, 3, width, 2);
+	        this.backgroundGraphics.fill({ color: darkenColor(backgroundColor, 0.3), alpha: 0.5 });
+	    }
+	    /**
+	     * Create navigation items
+	     */
+	    createNavItems() {
+	        const { items, width, height } = this.config;
+	        // Calculate positions based on number of items
+	        const itemCount = items.length;
+	        const sectionWidth = width / itemCount;
+	        items.forEach((item, index) => {
+	            const x = sectionWidth * index + sectionWidth / 2;
+	            const y = height / 2;
+	            const itemContainer = this.createNavItem(item, index);
+	            itemContainer.x = x;
+	            itemContainer.y = y;
+	            this.itemContainers.set(item.id, itemContainer);
+	            this.container.addChild(itemContainer);
+	        });
+	    }
+	    /**
+	     * Create a single nav item
+	     */
+	    createNavItem(item, index) {
+	        const container = graphics().createContainer();
+	        const isCenter = item.highlighted || item.type === 'play';
+	        const size = isCenter ? 70 : 50;
+	        // Background
+	        const bg = graphics().createGraphics();
+	        if (isCenter) {
+	            // Center button has special styling - larger and raised
+	            bg.roundRect(-size / 2, -size / 2 - 10, size, size, 16);
+	            bg.fill({ color: 0x3949AB });
+	            bg.stroke({ color: 0x1A237E, width: 3 });
+	            // Add highlight at top
+	            bg.roundRect(-size / 2 + 4, -size / 2 - 6, size - 8, size * 0.3, 12);
+	            bg.fill({ color: 0x5C6BC0, alpha: 0.5 });
+	        }
+	        else {
+	            // Side buttons
+	            bg.roundRect(-size / 2, -size / 2, size, size, 12);
+	            bg.fill({ color: 0x283593, alpha: 0.8 });
+	        }
+	        container.addChild(bg);
+	        // Icon
+	        const icon = this.createNavIcon(item, size * 0.5);
+	        icon.y = isCenter ? -10 : 0;
+	        container.addChild(icon);
+	        // Lock overlay if locked
+	        if (item.locked) {
+	            const lockOverlay = this.createLockOverlay(size);
+	            lockOverlay.y = isCenter ? -10 : 0;
+	            container.addChild(lockOverlay);
+	        }
+	        // Badge if present
+	        if (item.badge && item.badge > 0) {
+	            const badge = this.createBadge(item.badge);
+	            badge.x = size / 2 - 5;
+	            badge.y = -size / 2 + (isCenter ? 0 : 5);
+	            container.addChild(badge);
+	        }
+	        // Label
+	        if (item.label) {
+	            const label = graphics().createText(item.label, {
+	                fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+	                fontSize: 12,
+	                fontWeight: 'bold',
+	                fill: 0xFFFFFF,
+	                stroke: 0x1A237E,
+	                strokeThickness: 2
+	            });
+	            if (label.anchor)
+	                label.anchor.set(0.5, 0);
+	            label.y = isCenter ? size / 2 - 5 : size / 2 + 5;
+	            container.addChild(label);
+	        }
+	        // Interactivity
+	        if (!item.locked) {
+	            container.eventMode = 'static';
+	            container.cursor = 'pointer';
+	            container.on('pointerdown', () => {
+	                container.scale.x = 0.9;
+	                container.scale.y = 0.9;
+	            });
+	            container.on('pointerup', () => {
+	                container.scale.x = 1;
+	                container.scale.y = 1;
+	                if (item.onClick) {
+	                    item.onClick();
+	                }
+	                this.emit('item-click', item.id, item);
+	            });
+	            container.on('pointerupoutside', () => {
+	                container.scale.x = 1;
+	                container.scale.y = 1;
+	            });
+	        }
+	        return container;
+	    }
+	    /**
+	     * Create icon based on type
+	     */
+	    createNavIcon(item, size) {
+	        const iconContainer = graphics().createContainer();
+	        const g = graphics().createGraphics();
+	        switch (item.type) {
+	            case 'shop':
+	                this.drawShopIcon(g, size);
+	                break;
+	            case 'play':
+	                this.drawPlayIcon(g, size);
+	                break;
+	            case 'profile':
+	                this.drawProfileIcon(g, size);
+	                break;
+	            case 'leaderboard':
+	                this.drawLeaderboardIcon(g, size);
+	                break;
+	            case 'settings':
+	                this.drawSettingsIcon(g, size);
+	                break;
+	            default:
+	                this.drawCustomIcon(g, size);
+	        }
+	        iconContainer.addChild(g);
+	        return iconContainer;
+	    }
+	    /**
+	     * Draw shop/store icon
+	     */
+	    drawShopIcon(g, size) {
+	        const s = size * 0.7;
+	        // Store front
+	        g.roundRect(-s / 2, -s / 4, s, s * 0.6, 4);
+	        g.fill({ color: 0xE91E63 });
+	        g.stroke({ color: 0xAD1457, width: 2 });
+	        // Awning
+	        g.poly([
+	            -s / 2 - 3, -s / 4,
+	            0, -s / 2,
+	            s / 2 + 3, -s / 4
+	        ]);
+	        g.fill({ color: 0xF48FB1 });
+	        g.stroke({ color: 0xAD1457, width: 1 });
+	        // Door
+	        g.rect(-s / 6, 0, s / 3, s * 0.35);
+	        g.fill({ color: 0x7B1FA2 });
+	    }
+	    /**
+	     * Draw play/character icon (like Brawl Stars mascot style)
+	     */
+	    drawPlayIcon(g, size) {
+	        const s = size * 0.8;
+	        // Character body (simple blob shape)
+	        g.ellipse(0, s * 0.1, s * 0.45, s * 0.4);
+	        g.fill({ color: 0x4FC3F7 });
+	        g.stroke({ color: 0x0288D1, width: 2 });
+	        // Eyes
+	        g.circle(-s * 0.15, -s * 0.05, s * 0.1);
+	        g.fill({ color: 0xFFFFFF });
+	        g.circle(s * 0.15, -s * 0.05, s * 0.1);
+	        g.fill({ color: 0xFFFFFF });
+	        // Pupils
+	        g.circle(-s * 0.12, -s * 0.03, s * 0.05);
+	        g.fill({ color: 0x000000 });
+	        g.circle(s * 0.18, -s * 0.03, s * 0.05);
+	        g.fill({ color: 0x000000 });
+	        // Ears/horns
+	        g.ellipse(-s * 0.35, -s * 0.25, s * 0.12, s * 0.15);
+	        g.fill({ color: 0x4FC3F7 });
+	        g.stroke({ color: 0x0288D1, width: 1 });
+	        g.ellipse(s * 0.35, -s * 0.25, s * 0.12, s * 0.15);
+	        g.fill({ color: 0x4FC3F7 });
+	        g.stroke({ color: 0x0288D1, width: 1 });
+	    }
+	    /**
+	     * Draw profile/user icon
+	     */
+	    drawProfileIcon(g, size) {
+	        const s = size * 0.6;
+	        // Lock body (since this shows as locked usually)
+	        g.roundRect(-s / 2, 0, s, s * 0.7, 6);
+	        g.fill({ color: 0x9E9E9E });
+	        g.stroke({ color: 0x616161, width: 2 });
+	        // Lock shackle (U-shape using poly)
+	        const shackleR = s * 0.3;
+	        const shacklePoints = [];
+	        for (let i = 0; i <= 12; i++) {
+	            const angle = Math.PI + (Math.PI * i) / 12;
+	            shacklePoints.push(Math.cos(angle) * shackleR, Math.sin(angle) * shackleR);
+	        }
+	        g.poly(shacklePoints);
+	        g.stroke({ color: 0x757575, width: 5 });
+	        // Keyhole
+	        g.circle(0, s * 0.25, s * 0.1);
+	        g.fill({ color: 0x424242 });
+	    }
+	    /**
+	     * Draw leaderboard icon
+	     */
+	    drawLeaderboardIcon(g, size) {
+	        const s = size * 0.7;
+	        const barWidth = s / 4;
+	        // Three bars representing podium
+	        g.rect(-s / 2, s * 0.1, barWidth, s * 0.4);
+	        g.fill({ color: 0xFFD54F });
+	        g.rect(-barWidth / 2, -s * 0.2, barWidth, s * 0.7);
+	        g.fill({ color: 0xFFD54F });
+	        g.rect(s / 2 - barWidth, s * 0.2, barWidth, s * 0.3);
+	        g.fill({ color: 0xFFD54F });
+	    }
+	    /**
+	     * Draw settings gear icon
+	     */
+	    drawSettingsIcon(g, size) {
+	        const s = size * 0.5;
+	        const teeth = 8;
+	        const outerRadius = s;
+	        const innerRadius = s * 0.7;
+	        const vertices = [];
+	        for (let i = 0; i < teeth * 2; i++) {
+	            const angle = (i * Math.PI) / teeth;
+	            const r = i % 2 === 0 ? outerRadius : innerRadius;
+	            vertices.push(Math.cos(angle) * r);
+	            vertices.push(Math.sin(angle) * r);
+	        }
+	        g.poly(vertices);
+	        g.fill({ color: 0xE0E0E0 });
+	        g.stroke({ color: 0x9E9E9E, width: 1 });
+	        g.circle(0, 0, s * 0.35);
+	        g.fill({ color: 0x283593 });
+	    }
+	    /**
+	     * Draw custom placeholder icon
+	     */
+	    drawCustomIcon(g, size) {
+	        g.circle(0, 0, size * 0.4);
+	        g.fill({ color: 0x9E9E9E });
+	    }
+	    /**
+	     * Create lock overlay
+	     */
+	    createLockOverlay(size) {
+	        const container = graphics().createContainer();
+	        const g = graphics().createGraphics();
+	        // Semi-transparent overlay
+	        g.circle(0, 0, size * 0.3);
+	        g.fill({ color: 0x000000, alpha: 0.5 });
+	        // Lock icon
+	        const lockSize = size * 0.25;
+	        g.roundRect(-lockSize / 2, lockSize * 0.1, lockSize, lockSize * 0.6, 3);
+	        g.fill({ color: 0xFFFFFF });
+	        // Lock shackle (U-shape using poly)
+	        const shackleR = lockSize * 0.3;
+	        const shackleY = lockSize * 0.1;
+	        const shacklePoints = [];
+	        for (let i = 0; i <= 12; i++) {
+	            const angle = Math.PI + (Math.PI * i) / 12;
+	            shacklePoints.push(Math.cos(angle) * shackleR, shackleY + Math.sin(angle) * shackleR);
+	        }
+	        g.poly(shacklePoints);
+	        g.stroke({ color: 0xFFFFFF, width: 3 });
+	        container.addChild(g);
+	        return container;
+	    }
+	    /**
+	     * Create badge (notification count)
+	     */
+	    createBadge(count) {
+	        const container = graphics().createContainer();
+	        const g = graphics().createGraphics();
+	        const badgeSize = 20;
+	        g.circle(0, 0, badgeSize / 2);
+	        g.fill({ color: 0xFF5252 });
+	        g.stroke({ color: 0xB71C1C, width: 2 });
+	        container.addChild(g);
+	        const text = graphics().createText(count > 99 ? '99+' : count.toString(), {
+	            fontFamily: 'Arial',
+	            fontSize: 10,
+	            fontWeight: 'bold',
+	            fill: 0xFFFFFF
+	        });
+	        if (text.anchor)
+	            text.anchor.set(0.5, 0.5);
+	        container.addChild(text);
+	        return container;
+	    }
+	    /**
+	     * Public API
+	     */
+	    setItemBadge(id, count) {
+	        // Re-create the item with the new badge
+	        const item = this.config.items.find(i => i.id === id);
+	        if (item) {
+	            item.badge = count;
+	            // Would need to rebuild the item - for now just emit event
+	            this.emit('badge-updated', id, count);
+	        }
+	        return this;
+	    }
+	    setItemLocked(id, locked) {
+	        const item = this.config.items.find(i => i.id === id);
+	        if (item) {
+	            item.locked = locked;
+	            this.emit('lock-updated', id, locked);
+	        }
+	        return this;
+	    }
+	    getContainer() {
+	        return this.container;
+	    }
+	    setPosition(x, y) {
+	        this.container.x = x;
+	        this.container.y = y;
+	        return this;
+	    }
+	    destroy() {
+	        this.itemContainers.forEach(c => c.destroy({ children: true }));
+	        this.itemContainers.clear();
+	        this.container.destroy({ children: true });
+	        this.removeAllListeners();
+	    }
+	}
+
+	/**
 	 * Mobile-optimized input system with gesture recognition
 	 */
 	class GameByteUIInputSystem extends EventEmitter {
@@ -42448,6 +44532,8 @@
 	exports.Facade = Facade;
 	exports.FrameRateManagerClass = FrameRateManager;
 	exports.FrameworkCompatibility = FrameworkCompatibility;
+	exports.GameBottomNav = GameBottomNav;
+	exports.GameButtons = GameButtons;
 	exports.GameByte = GameByte;
 	exports.GameByteAssetManager = GameByteAssetManager;
 	exports.GameByteAudioAnalytics = GameByteAudioAnalytics;
@@ -42475,10 +44561,16 @@
 	exports.GameByteUITimeline = GameByteUITimeline;
 	exports.GameByteVirtualControlsManager = GameByteVirtualControlsManager;
 	exports.GameLoopOptimizer = GameLoopOptimizer;
+	exports.GameStyleButton = GameStyleButton;
+	exports.GameStyleColors = GameStyleColors;
+	exports.GameStyleUITheme = GameStyleUITheme;
+	exports.GameTopBar = GameTopBar;
 	exports.GraphicsEngine = GraphicsEngine;
+	exports.HexagonLevelButton = HexagonLevelButton;
 	exports.HybridRenderer = HybridRenderer;
 	exports.Input = Input;
 	exports.InputServiceProvider = InputServiceProvider;
+	exports.LevelPath = LevelPath;
 	exports.Matter2DBody = Matter2DBody;
 	exports.Matter2DConstraint = Matter2DConstraint;
 	exports.Matter2DEngine = Matter2DEngine;
@@ -42541,13 +44633,18 @@
 	exports.UIThemeManager = UIThemeManager;
 	exports.VibrantUITheme = VibrantUITheme;
 	exports.createGame = createGame;
+	exports.createGameButtonGradient = createGameButtonGradient;
 	exports.createMergeGame = createMergeGame;
 	exports.createMobileGame = createMobileGame;
 	exports.createResponsiveCalculator = createResponsiveCalculator;
+	exports.createSkyGradient = createSkyGradient;
+	exports.darkenColor = darkenColor;
 	exports.default = GameByteFramework;
 	exports.drawToTexture = drawToTexture;
 	exports.graphics = graphics;
 	exports.initializeFacades = initializeFacades;
+	exports.lightenColor = lightenColor;
+	exports.numberToHex = numberToHex;
 
 	Object.defineProperty(exports, '__esModule', { value: true });
 

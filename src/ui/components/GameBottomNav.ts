@@ -184,7 +184,8 @@ export class GameBottomNav extends EventEmitter {
         fontSize: 12,
         fontWeight: 'bold',
         fill: 0xFFFFFF,
-        stroke: { color: 0x1A237E, width: 2 }
+        stroke: 0x1A237E,
+        strokeThickness: 2
       });
       if (label.anchor) label.anchor.set(0.5, 0);
       label.y = isCenter ? size / 2 - 5 : size / 2 + 5;
@@ -197,11 +198,13 @@ export class GameBottomNav extends EventEmitter {
       container.cursor = 'pointer';
 
       container.on('pointerdown', () => {
-        container.scale.set(0.9);
+        container.scale.x = 0.9;
+        container.scale.y = 0.9;
       });
 
       container.on('pointerup', () => {
-        container.scale.set(1);
+        container.scale.x = 1;
+        container.scale.y = 1;
         if (item.onClick) {
           item.onClick();
         }
@@ -209,7 +212,8 @@ export class GameBottomNav extends EventEmitter {
       });
 
       container.on('pointerupoutside', () => {
-        container.scale.set(1);
+        container.scale.x = 1;
+        container.scale.y = 1;
       });
     }
 
@@ -264,10 +268,11 @@ export class GameBottomNav extends EventEmitter {
     g.stroke({ color: 0xAD1457, width: 2 });
 
     // Awning
-    g.moveTo(-s / 2 - 3, -s / 4);
-    g.lineTo(0, -s / 2);
-    g.lineTo(s / 2 + 3, -s / 4);
-    g.closePath();
+    g.poly([
+      -s / 2 - 3, -s / 4,
+      0, -s / 2,
+      s / 2 + 3, -s / 4
+    ]);
     g.fill({ color: 0xF48FB1 });
     g.stroke({ color: 0xAD1457, width: 1 });
 
@@ -320,8 +325,14 @@ export class GameBottomNav extends EventEmitter {
     g.fill({ color: 0x9E9E9E });
     g.stroke({ color: 0x616161, width: 2 });
 
-    // Lock shackle
-    g.arc(0, 0, s * 0.3, Math.PI, 0, false);
+    // Lock shackle (U-shape using poly)
+    const shackleR = s * 0.3;
+    const shacklePoints: number[] = [];
+    for (let i = 0; i <= 12; i++) {
+      const angle = Math.PI + (Math.PI * i) / 12;
+      shacklePoints.push(Math.cos(angle) * shackleR, Math.sin(angle) * shackleR);
+    }
+    g.poly(shacklePoints);
     g.stroke({ color: 0x757575, width: 5 });
 
     // Keyhole
@@ -396,7 +407,15 @@ export class GameBottomNav extends EventEmitter {
     g.roundRect(-lockSize / 2, lockSize * 0.1, lockSize, lockSize * 0.6, 3);
     g.fill({ color: 0xFFFFFF });
 
-    g.arc(0, lockSize * 0.1, lockSize * 0.3, Math.PI, 0, false);
+    // Lock shackle (U-shape using poly)
+    const shackleR = lockSize * 0.3;
+    const shackleY = lockSize * 0.1;
+    const shacklePoints: number[] = [];
+    for (let i = 0; i <= 12; i++) {
+      const angle = Math.PI + (Math.PI * i) / 12;
+      shacklePoints.push(Math.cos(angle) * shackleR, shackleY + Math.sin(angle) * shackleR);
+    }
+    g.poly(shacklePoints);
     g.stroke({ color: 0xFFFFFF, width: 3 });
 
     container.addChild(g);

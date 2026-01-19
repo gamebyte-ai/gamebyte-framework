@@ -105,7 +105,8 @@ export class LevelPath extends EventEmitter {
     mask.rect(0, 0, config.width, config.height);
     mask.fill({ color: 0xFFFFFF });
     this.container.addChild(mask);
-    this.scrollContainer.mask = mask;
+    // Cast to any since PIXI containers do support mask but IContainer doesn't declare it
+    (this.scrollContainer as any).mask = mask;
 
     // Build level path
     this.container.addChild(this.scrollContainer);

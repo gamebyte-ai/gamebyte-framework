@@ -130,15 +130,15 @@ export class GameStyleButton extends EventEmitter {
       fontSize: fontSize,
       fontWeight: 'bold',
       fill: colorScheme.text,
-      stroke: { color: colorScheme.textStroke, width: Math.max(3, fontSize / 8) },
+      stroke: colorScheme.textStroke,
+      strokeThickness: Math.max(3, fontSize / 8),
       align: 'center',
-      dropShadow: {
-        alpha: 0.5,
-        angle: Math.PI / 2,
-        blur: 2,
-        color: 0x000000,
-        distance: 2
-      }
+      dropShadow: true,
+      dropShadowAlpha: 0.5,
+      dropShadowAngle: Math.PI / 2,
+      dropShadowBlur: 2,
+      dropShadowColor: 0x000000,
+      dropShadowDistance: 2
     });
 
     if (this.textField.anchor) this.textField.anchor.set(0.5, 0.5);
@@ -418,7 +418,8 @@ export class GameStyleButton extends EventEmitter {
     this.render();
     if (this.textField) {
       this.textField.style.fill = colorScheme.text;
-      this.textField.style.stroke = { color: colorScheme.textStroke, width: this.config.fontSize / 8 };
+      this.textField.style.stroke = colorScheme.textStroke;
+      this.textField.style.strokeThickness = this.config.fontSize / 8;
     }
     return this;
   }
