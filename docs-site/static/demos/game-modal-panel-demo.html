@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameModalPanel Demo - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #1a1a2e; }
+        canvas { display: block; margin: 0 auto; }
+    </style>
+</head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
+
+    <script>
+        const { createGame } = GameByteFramework;
+
+        const CONFIG = { width: 400, height: 500 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.body.appendChild(canvas);
+
+        const game = createGame();
+
+        (async () => {
+            await game.initialize(canvas, '2d');
+            const renderer = game.make('renderer');
+            const stage = renderer.getStage();
+
+            // Background
+            const bg = new PIXI.Graphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill(0x1a1a2e);
+            stage.addChild(bg);
+
+            // Background pattern (dots)
+            for (let x = 0; x < CONFIG.width; x += 30) {
+                for (let y = 0; y < CONFIG.height; y += 30) {
+                    const dot = new PIXI.Graphics();
+                    dot.circle(x, y, 2);
+                    dot.fill({ color: 0xffffff, alpha: 0.1 });
+                    stage.addChild(dot);
+                }
+            }
+
+            // Show Modal button
+            const showBtn = new PIXI.Graphics();
+            showBtn.roundRect(CONFIG.width / 2 - 80, CONFIG.height / 2 - 30, 160, 60, 12);
+            showBtn.fill(0x6366f1);
+            showBtn.eventMode = 'static';
+            showBtn.cursor = 'pointer';
+            stage.addChild(showBtn);
+
+            const showText = new PIXI.Text({
+                text: 'Show Modal',
+                style: { fontFamily: 'Arial', fontSize: 20, fontWeight: 'bold', fill: 0xffffff }
+            });
+            showText.anchor.set(0.5);
+            showText.x = CONFIG.width / 2;
+            showText.y = CONFIG.height / 2;
+            stage.addChild(showText);
+
+            // Modal overlay
+            const modalOverlay = new PIXI.Container();
+            modalOverlay.visible = false;
+            stage.addChild(modalOverlay);
+
+            // Dim background
+            const dim = new PIXI.Graphics();
+            dim.rect(0, 0, CONFIG.width, CONFIG.height);
+            dim.fill({ color: 0x000000, alpha: 0.6 });
+            dim.eventMode = 'static';
+            modalOverlay.addChild(dim);
+
+            // Modal panel
+            const modal = new PIXI.Container();
+            modal.x = CONFIG.width / 2;
+            modal.y = CONFIG.height / 2;
+            modalOverlay.addChild(modal);
+
+            // Panel background with border
+            const panelBorder = new PIXI.Graphics();
+            panelBorder.roundRect(-155, -175, 310, 350, 20);
+            panelBorder.fill(0x3D4F5F);
+            modal.addChild(panelBorder);
+
+            const panelBg = new PIXI.Graphics();
+            panelBg.roundRect(-150, -170, 300, 340, 16);
+            panelBg.fill(0x2A3142);
+            modal.addChild(panelBg);
+
+            // Title
+            const title = new PIXI.Text({
+                text: 'Settings',
+                style: {
+                    fontFamily: 'Arial',
+                    fontSize: 28,
+                    fontWeight: 'bold',
+                    fill: 0xffffff,
+                    dropShadow: true,
+                    dropShadowDistance: 2
+                }
+            });
+            title.anchor.set(0.5);
+            title.y = -130;
+            modal.addChild(title);
+
+            // Close button
+            const closeBtn = new PIXI.Graphics();
+            closeBtn.circle(125, -145, 18);
+            closeBtn.fill(0xE84C4C);
+            closeBtn.eventMode = 'static';
+            closeBtn.cursor = 'pointer';
+            modal.addChild(closeBtn);
+
+            const closeX = new PIXI.Text({
+                text: '✕',
+                style: { fontFamily: 'Arial', fontSize: 18, fontWeight: 'bold', fill: 0xffffff }
+            });
+            closeX.anchor.set(0.5);
+            closeX.x = 125;
+            closeX.y = -145;
+            modal.addChild(closeX);
+
+            // Content - toggles
+            const toggles = [
+                { label: 'Music', value: true, y: -60 },
+                { label: 'Sound Effects', value: true, y: 10 },
+                { label: 'Vibration', value: false, y: 80 }
+            ];
+
+            toggles.forEach((toggle) => {
+                // Label
+                const label = new PIXI.Text({
+                    text: toggle.label,
+                    style: { fontFamily: 'Arial', fontSize: 18, fill: 0xffffff }
+                });
+                label.x = -120;
+                label.y = toggle.y;
+                modal.addChild(label);
+
+                // Toggle background
+                const toggleBg = new PIXI.Graphics();
+                toggleBg.roundRect(70, toggle.y - 5, 60, 30, 15);
+                toggleBg.fill(toggle.value ? 0x4CAF50 : 0x4b5563);
+                toggleBg.eventMode = 'static';
+                toggleBg.cursor = 'pointer';
+                modal.addChild(toggleBg);
+
+                // Toggle knob
+                const knob = new PIXI.Graphics();
+                knob.circle(toggle.value ? 115 : 85, toggle.y + 10, 11);
+                knob.fill(0xffffff);
+                modal.addChild(knob);
+
+                toggleBg.on('pointerdown', () => {
+                    toggle.value = !toggle.value;
+                    toggleBg.clear();
+                    toggleBg.roundRect(70, toggle.y - 5, 60, 30, 15);
+                    toggleBg.fill(toggle.value ? 0x4CAF50 : 0x4b5563);
+                    knob.clear();
+                    knob.circle(toggle.value ? 115 : 85, toggle.y + 10, 11);
+                    knob.fill(0xffffff);
+                });
+            });
+
+            // Animation functions
+            function easeOutBack(x) {
+                const c1 = 1.70158;
+                const c3 = c1 + 1;
+                return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
+            }
+
+            function animate(target, props, duration, easing = (x) => x) {
+                return new Promise(resolve => {
+                    const start = {};
+                    for (const key in props) {
+                        start[key] = target[key];
+                    }
+                    const startTime = Date.now();
+
+                    const tick = () => {
+                        const elapsed = Date.now() - startTime;
+                        const progress = Math.min(elapsed / duration, 1);
+                        const eased = easing(progress);
+
+                        for (const key in props) {
+                            target[key] = start[key] + (props[key] - start[key]) * eased;
+                        }
+
+                        if (progress < 1) {
+                            requestAnimationFrame(tick);
+                        } else {
+                            resolve();
+                        }
+                    };
+                    tick();
+                });
+            }
+
+            async function showModal() {
+                modalOverlay.visible = true;
+                dim.alpha = 0;
+                modal.scale.x = 0;
+                modal.scale.y = 0;
+
+                await Promise.all([
+                    animate(dim, { alpha: 0.6 }, 200),
+                    animate(modal.scale, { x: 1, y: 1 }, 300, easeOutBack)
+                ]);
+            }
+
+            async function hideModal() {
+                await Promise.all([
+                    animate(dim, { alpha: 0 }, 150),
+                    animate(modal.scale, { x: 0, y: 0 }, 200)
+                ]);
+                modalOverlay.visible = false;
+            }
+
+            showBtn.on('pointerdown', showModal);
+            closeBtn.on('pointerdown', hideModal);
+            dim.on('pointerdown', hideModal);
+
+            // Instructions
+            const instr = new PIXI.Text({
+                text: 'Tap to show modal with scale animation',
+                style: { fontFamily: 'Arial', fontSize: 12, fill: 0x888888 }
+            });
+            instr.anchor.set(0.5);
+            instr.x = CONFIG.width / 2;
+            instr.y = CONFIG.height - 30;
+            stage.addChild(instr);
+
+            game.start();
+        })();
+    </script>
+</body>
+</html>

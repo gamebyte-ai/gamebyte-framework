@@ -1,5 +1,7 @@
 # Panel System
 
+import LiveDemo from '@site/src/components/LiveDemo';
+
 GameByte provides a complete panel system for overlays, modals, and bottom sheets.
 
 ## PanelManager
@@ -62,6 +64,12 @@ panelManager.on('resize', ({ width, height }) => { });
 
 ## GameModalPanel
 
+<LiveDemo
+  src="/demos/game-modal-panel-demo.html"
+  height={520}
+  title="GameModalPanel with Scale Animation"
+/>
+
 Centered modal panel with scale animation and dark overlay.
 
 ```typescript
@@ -111,6 +119,12 @@ panelManager.show(settingsPanel);
 ---
 
 ## GameBottomSheet
+
+<LiveDemo
+  src="/demos/game-bottom-sheet-demo.html"
+  height={660}
+  title="GameBottomSheet with Drag-to-Close"
+/>
 
 Slide-up panel from the bottom with drag-to-close gesture.
 

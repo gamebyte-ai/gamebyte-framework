@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameBottomSheet Demo - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #1a1a2e; }
+        canvas { display: block; margin: 0 auto; }
+    </style>
+</head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
+
+    <script>
+        const { createGame } = GameByteFramework;
+
+        const CONFIG = { width: 360, height: 640 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.body.appendChild(canvas);
+
+        const game = createGame();
+
+        (async () => {
+            await game.initialize(canvas, '2d');
+            const renderer = game.make('renderer');
+            const stage = renderer.getStage();
+
+            // Background
+            const bg = new PIXI.Graphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill(0x1a1a2e);
+            stage.addChild(bg);
+
+            // Title
+            const pageTitle = new PIXI.Text({
+                text: 'Select an Item',
+                style: { fontFamily: 'Arial', fontSize: 24, fontWeight: 'bold', fill: 0xffffff }
+            });
+            pageTitle.anchor.set(0.5);
+            pageTitle.x = CONFIG.width / 2;
+            pageTitle.y = 60;
+            stage.addChild(pageTitle);
+
+            // Show Bottom Sheet buttons
+            const sizes = [
+                { label: 'Half Sheet', height: 'half' },
+                { label: 'Full Sheet', height: 'full' },
+                { label: 'Auto Sheet', height: 'auto' }
+            ];
+
+            sizes.forEach((size, i) => {
+                const btn = new PIXI.Graphics();
+                btn.roundRect(40, 120 + i * 70, CONFIG.width - 80, 55, 12);
+                btn.fill(0x6366f1);
+                btn.eventMode = 'static';
+                btn.cursor = 'pointer';
+                stage.addChild(btn);
+
+                const text = new PIXI.Text({
+                    text: size.label,
+                    style: { fontFamily: 'Arial', fontSize: 18, fontWeight: 'bold', fill: 0xffffff }
+                });
+                text.anchor.set(0.5);
+                text.x = CONFIG.width / 2;
+                text.y = 147 + i * 70;
+                stage.addChild(text);
+
+                btn.on('pointerdown', () => showBottomSheet(size.height));
+            });
+
+            // Bottom Sheet overlay
+            const sheetOverlay = new PIXI.Container();
+            sheetOverlay.visible = false;
+            stage.addChild(sheetOverlay);
+
+            // Dim background
+            const dim = new PIXI.Graphics();
+            dim.rect(0, 0, CONFIG.width, CONFIG.height);
+            dim.fill({ color: 0x000000, alpha: 0.6 });
+            dim.eventMode = 'static';
+            sheetOverlay.addChild(dim);
+
+            // Sheet container
+            const sheet = new PIXI.Container();
+            sheetOverlay.addChild(sheet);
+
+            let sheetHeight = 320;
+            let isDragging = false;
+            let dragStartY = 0;
+            let sheetStartY = 0;
+
+            function getSheetHeight(heightOption) {
+                switch (heightOption) {
+                    case 'half': return CONFIG.height * 0.5;
+                    case 'full': return CONFIG.height * 0.9;
+                    case 'auto': return 400;
+                    default: return 400;
+                }
+            }
+
+            function createSheetContent(height) {
+                // Clear previous content
+                while (sheet.children.length > 0) {
+                    sheet.removeChildAt(0);
+                }
+
+                sheetHeight = height;
+                sheet.y = CONFIG.height;
+
+                // Sheet background
+                const sheetBg = new PIXI.Graphics();
+                sheetBg.roundRect(0, 0, CONFIG.width, sheetHeight + 50, 24);
+                sheetBg.fill(0x2d2d44);
+                sheet.addChild(sheetBg);
+
+                // Handle
+                const handle = new PIXI.Graphics();
+                handle.roundRect(CONFIG.width / 2 - 25, 12, 50, 5, 3);
+                handle.fill(0x666666);
+                sheet.addChild(handle);
+
+                // Drag area
+                const dragArea = new PIXI.Graphics();
+                dragArea.rect(0, 0, CONFIG.width, 50);
+                dragArea.fill({ color: 0xffffff, alpha: 0 });
+                dragArea.eventMode = 'static';
+                dragArea.cursor = 'grab';
+                sheet.addChild(dragArea);
+
+                // Title
+                const title = new PIXI.Text({
+                    text: 'Select Item',
+                    style: { fontFamily: 'Arial', fontSize: 22, fontWeight: 'bold', fill: 0xffffff }
+                });
+                title.anchor.set(0.5, 0);
+                title.x = CONFIG.width / 2;
+                title.y = 35;
+                sheet.addChild(title);
+
+                // Close button
+                const closeBtn = new PIXI.Graphics();
+                closeBtn.circle(CONFIG.width - 30, 45, 16);
+                closeBtn.fill(0x4b5563);
+                closeBtn.eventMode = 'static';
+                closeBtn.cursor = 'pointer';
+                sheet.addChild(closeBtn);
+
+                const closeX = new PIXI.Text({
+                    text: '✕',
+                    style: { fontFamily: 'Arial', fontSize: 14, fill: 0xffffff }
+                });
+                closeX.anchor.set(0.5);
+                closeX.x = CONFIG.width - 30;
+                closeX.y = 45;
+                sheet.addChild(closeX);
+
+                closeBtn.on('pointerdown', hideBottomSheet);
+
+                // Items
+                const items = [
+                    { icon: '⚔️', name: 'Sword', desc: 'Attack +10' },
+                    { icon: '🛡️', name: 'Shield', desc: 'Defense +15' },
+                    { icon: '🧪', name: 'Potion', desc: 'Health +50' },
+                    { icon: '🔮', name: 'Magic Orb', desc: 'Magic +20' },
+                    { icon: '👟', name: 'Boots', desc: 'Speed +5' }
+                ];
+
+                const visibleItems = height >= 400 ? items : items.slice(0, 3);
+
+                visibleItems.forEach((item, i) => {
+                    const itemBg = new PIXI.Graphics();
+                    itemBg.roundRect(20, 80 + i * 60, CONFIG.width - 40, 50, 10);
+                    itemBg.fill(0x3d3d5c);
+                    itemBg.eventMode = 'static';
+                    itemBg.cursor = 'pointer';
+                    sheet.addChild(itemBg);
+
+                    const icon = new PIXI.Text({
+                        text: item.icon,
+                        style: { fontSize: 24 }
+                    });
+                    icon.x = 40;
+                    icon.y = 90 + i * 60;
+                    sheet.addChild(icon);
+
+                    const name = new PIXI.Text({
+                        text: item.name,
+                        style: { fontFamily: 'Arial', fontSize: 16, fontWeight: 'bold', fill: 0xffffff }
+                    });
+                    name.x = 80;
+                    name.y = 88 + i * 60;
+                    sheet.addChild(name);
+
+                    const desc = new PIXI.Text({
+                        text: item.desc,
+                        style: { fontFamily: 'Arial', fontSize: 12, fill: 0x888888 }
+                    });
+                    desc.x = 80;
+                    desc.y = 108 + i * 60;
+                    sheet.addChild(desc);
+
+                    itemBg.on('pointerdown', () => {
+                        console.log('Selected:', item.name);
+                        hideBottomSheet();
+                    });
+                });
+
+                // Drag events
+                dragArea.on('pointerdown', (e) => {
+                    isDragging = true;
+                    dragStartY = e.global.y;
+                    sheetStartY = sheet.y;
+                    dragArea.cursor = 'grabbing';
+                });
+
+                stage.eventMode = 'static';
+                stage.on('pointermove', (e) => {
+                    if (!isDragging) return;
+                    const delta = e.global.y - dragStartY;
+                    const newY = Math.max(CONFIG.height - sheetHeight, sheetStartY + delta);
+                    sheet.y = newY;
+                });
+
+                stage.on('pointerup', () => {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    dragArea.cursor = 'grab';
+
+                    // Check if should close (dragged > 100px down)
+                    const dragDistance = sheet.y - (CONFIG.height - sheetHeight);
+                    if (dragDistance > 100) {
+                        hideBottomSheet();
+                    } else {
+                        // Snap back
+                        animate(sheet, { y: CONFIG.height - sheetHeight }, 200);
+                    }
+                });
+            }
+
+            function animate(target, props, duration) {
+                return new Promise(resolve => {
+                    const start = {};
+                    for (const key in props) {
+                        start[key] = target[key];
+                    }
+                    const startTime = Date.now();
+
+                    const tick = () => {
+                        const elapsed = Date.now() - startTime;
+                        const progress = Math.min(elapsed / duration, 1);
+                        const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+
+                        for (const key in props) {
+                            target[key] = start[key] + (props[key] - start[key]) * eased;
+                        }
+
+                        if (progress < 1) {
+                            requestAnimationFrame(tick);
+                        } else {
+                            resolve();
+                        }
+                    };
+                    tick();
+                });
+            }
+
+            async function showBottomSheet(heightOption) {
+                const height = getSheetHeight(heightOption);
+                createSheetContent(height);
+                sheetOverlay.visible = true;
+                dim.alpha = 0;
+
+                await Promise.all([
+                    animate(dim, { alpha: 0.6 }, 200),
+                    animate(sheet, { y: CONFIG.height - height }, 300)
+                ]);
+            }
+
+            async function hideBottomSheet() {
+                await Promise.all([
+                    animate(dim, { alpha: 0 }, 150),
+                    animate(sheet, { y: CONFIG.height }, 250)
+                ]);
+                sheetOverlay.visible = false;
+            }
+
+            dim.on('pointerdown', hideBottomSheet);
+
+            // Instructions
+            const instr = new PIXI.Text({
+                text: 'Drag handle down to close',
+                style: { fontFamily: 'Arial', fontSize: 12, fill: 0x888888 }
+            });
+            instr.anchor.set(0.5);
+            instr.x = CONFIG.width / 2;
+            instr.y = CONFIG.height - 30;
+            stage.addChild(instr);
+
+            game.start();
+        })();
+    </script>
+</body>
+</html>

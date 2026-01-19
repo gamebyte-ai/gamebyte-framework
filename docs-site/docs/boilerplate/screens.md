@@ -1,8 +1,16 @@
 # Pre-built Screens
 
+import LiveDemo from '@site/src/components/LiveDemo';
+
 GameByte provides ready-to-use screens for common mobile game patterns.
 
 ## HubScreen
+
+<LiveDemo
+  src="/demos/hub-screen-demo.html"
+  height={660}
+  title="HubScreen with Navigation"
+/>
 
 Main menu/hub screen with top bar, bottom navigation, and tab-based content.
 
@@ -69,6 +77,12 @@ hub.on('tab-changed', (tabId) => {
 ---
 
 ## GameHUDScreen
+
+<LiveDemo
+  src="/demos/game-hud-demo.html"
+  height={660}
+  title="GameHUDScreen with Score, Timer, Lives"
+/>
 
 In-game screen with HUD overlay showing score, timer, lives, and pause functionality.
 
@@ -145,6 +159,12 @@ gameScreen.on('progress-changed', (progress) => { });
 ---
 
 ## ResultScreen
+
+<LiveDemo
+  src="/demos/result-screen-demo.html"
+  height={660}
+  title="ResultScreen Victory/Defeat"
+/>
 
 Victory or defeat screen with star rating, score display, rewards, and action buttons.
 

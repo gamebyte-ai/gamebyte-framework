@@ -1,6 +1,16 @@
 # Game Boilerplate
 
+import LiveDemo from '@site/src/components/LiveDemo';
+
 The GameByte Framework provides a complete boilerplate system for building hyper-casual and mobile games quickly. This includes pre-built screens, panels, and navigation systems that follow proven mobile game patterns.
+
+## Live Demo
+
+<LiveDemo
+  src="/demos/hub-screen-demo.html"
+  height={660}
+  title="HubScreen with TopBar and Navigation"
+/>
 
 ## Architecture
 

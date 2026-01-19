@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScreenManager Demo - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #1a1a2e; }
+        canvas { display: block; margin: 0 auto; }
+    </style>
+</head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
+
+    <script>
+        const { createGame } = GameByteFramework;
+
+        const CONFIG = { width: 360, height: 640 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.body.appendChild(canvas);
+
+        const game = createGame();
+
+        // Simple screen stack for demo
+        class DemoScreenManager {
+            constructor(stage) {
+                this.stage = stage;
+                this.screens = [];
+                this.container = new PIXI.Container();
+                stage.addChild(this.container);
+            }
+
+            async push(screen, transition = 'slide') {
+                const current = this.screens[this.screens.length - 1];
+                this.screens.push(screen);
+                this.container.addChild(screen.container);
+
+                if (transition === 'slide') {
+                    screen.container.x = CONFIG.width;
+                    await this.animate(screen.container, { x: 0 }, 300);
+                    if (current) {
+                        current.container.visible = false;
+                    }
+                } else {
+                    screen.container.alpha = 0;
+                    await this.animate(screen.container, { alpha: 1 }, 200);
+                    if (current) {
+                        current.container.visible = false;
+                    }
+                }
+            }
+
+            async pop(transition = 'slide') {
+                if (this.screens.length <= 1) return;
+                const current = this.screens.pop();
+                const previous = this.screens[this.screens.length - 1];
+
+                if (previous) {
+                    previous.container.visible = true;
+                }
+
+                if (transition === 'slide') {
+                    await this.animate(current.container, { x: CONFIG.width }, 300);
+                } else {
+                    await this.animate(current.container, { alpha: 0 }, 200);
+                }
+                this.container.removeChild(current.container);
+            }
+
+            async animate(target, props, duration) {
+                return new Promise(resolve => {
+                    const start = {};
+                    for (const key in props) {
+                        start[key] = target[key];
+                    }
+                    const startTime = Date.now();
+
+                    const tick = () => {
+                        const elapsed = Date.now() - startTime;
+                        const progress = Math.min(elapsed / duration, 1);
+                        const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+
+                        for (const key in props) {
+                            target[key] = start[key] + (props[key] - start[key]) * eased;
+                        }
+
+                        if (progress < 1) {
+                            requestAnimationFrame(tick);
+                        } else {
+                            resolve();
+                        }
+                    };
+                    tick();
+                });
+            }
+        }
+
+        // Create screens
+        function createScreen(color, title, screenManager, isFirst = false) {
+            const screen = { container: new PIXI.Container() };
+
+            // Background
+            const bg = new PIXI.Graphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill(color);
+            screen.container.addChild(bg);
+
+            // Title
+            const titleText = new PIXI.Text({
+                text: title,
+                style: { fontFamily: 'Arial', fontSize: 32, fontWeight: 'bold', fill: 0xffffff }
+            });
+            titleText.anchor.set(0.5);
+            titleText.x = CONFIG.width / 2;
+            titleText.y = 80;
+            screen.container.addChild(titleText);
+
+            // Stack indicator
+            const stackText = new PIXI.Text({
+                text: `Screen ${screenManager.screens.length + 1}`,
+                style: { fontFamily: 'Arial', fontSize: 18, fill: 0xffffff, alpha: 0.7 }
+            });
+            stackText.anchor.set(0.5);
+            stackText.x = CONFIG.width / 2;
+            stackText.y = 130;
+            screen.container.addChild(stackText);
+
+            // Push button
+            const pushBtn = new PIXI.Graphics();
+            pushBtn.roundRect(80, 200, 200, 60, 12);
+            pushBtn.fill(0x4CAF50);
+            pushBtn.eventMode = 'static';
+            pushBtn.cursor = 'pointer';
+            screen.container.addChild(pushBtn);
+
+            const pushText = new PIXI.Text({
+                text: 'Push Screen',
+                style: { fontFamily: 'Arial', fontSize: 18, fontWeight: 'bold', fill: 0xffffff }
+            });
+            pushText.anchor.set(0.5);
+            pushText.x = 180;
+            pushText.y = 230;
+            screen.container.addChild(pushText);
+
+            pushBtn.on('pointerdown', () => {
+                const colors = [0x2196F3, 0x9C27B0, 0xFF9800, 0xE91E63, 0x00BCD4];
+                const nextColor = colors[screenManager.screens.length % colors.length];
+                const nextScreen = createScreen(nextColor, `Screen ${screenManager.screens.length + 1}`, screenManager);
+                screenManager.push(nextScreen, 'slide');
+            });
+
+            // Pop button (not on first screen)
+            if (!isFirst) {
+                const popBtn = new PIXI.Graphics();
+                popBtn.roundRect(80, 280, 200, 60, 12);
+                popBtn.fill(0xE84C4C);
+                popBtn.eventMode = 'static';
+                popBtn.cursor = 'pointer';
+                screen.container.addChild(popBtn);
+
+                const popText = new PIXI.Text({
+                    text: 'Pop (Go Back)',
+                    style: { fontFamily: 'Arial', fontSize: 18, fontWeight: 'bold', fill: 0xffffff }
+                });
+                popText.anchor.set(0.5);
+                popText.x = 180;
+                popText.y = 310;
+                screen.container.addChild(popText);
+
+                popBtn.on('pointerdown', () => {
+                    screenManager.pop('slide');
+                });
+            }
+
+            // Instructions
+            const instr = new PIXI.Text({
+                text: 'Tap buttons to navigate\nbetween screens',
+                style: { fontFamily: 'Arial', fontSize: 14, fill: 0xffffff, alpha: 0.6, align: 'center' }
+            });
+            instr.anchor.set(0.5);
+            instr.x = CONFIG.width / 2;
+            instr.y = CONFIG.height - 60;
+            screen.container.addChild(instr);
+
+            return screen;
+        }
+
+        (async () => {
+            await game.initialize(canvas, '2d');
+            const renderer = game.make('renderer');
+            const stage = renderer.getStage();
+
+            const screenManager = new DemoScreenManager(stage);
+
+            // Create first screen
+            const firstScreen = createScreen(0x1a1a2e, 'Home', screenManager, true);
+            await screenManager.push(firstScreen, 'fade');
+
+            game.start();
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HubScreen Demo - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #1a1a2e; }
+        canvas { display: block; margin: 0 auto; }
+    </style>
+</head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
+
+    <script>
+        const { createGame } = GameByteFramework;
+
+        const CONFIG = { width: 360, height: 640 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.body.appendChild(canvas);
+
+        const game = createGame();
+
+        // State
+        let coins = 1234;
+        let gems = 50;
+        let currentTab = 'play';
+
+        (async () => {
+            await game.initialize(canvas, '2d');
+            const renderer = game.make('renderer');
+            const stage = renderer.getStage();
+
+            // Background
+            const bg = new PIXI.Graphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill(0x1a1a2e);
+            stage.addChild(bg);
+
+            // TopBar background
+            const topBar = new PIXI.Graphics();
+            topBar.rect(0, 0, CONFIG.width, 70);
+            topBar.fill(0x2d2d44);
+            stage.addChild(topBar);
+
+            // Coins display
+            const coinBg = new PIXI.Graphics();
+            coinBg.roundRect(10, 15, 100, 40, 20);
+            coinBg.fill(0x3d3d5c);
+            stage.addChild(coinBg);
+
+            const coinIcon = new PIXI.Text({ text: '🪙', style: { fontSize: 22 } });
+            coinIcon.x = 20;
+            coinIcon.y = 22;
+            stage.addChild(coinIcon);
+
+            const coinText = new PIXI.Text({
+                text: coins.toLocaleString(),
+                style: { fontFamily: 'Arial', fontSize: 16, fontWeight: 'bold', fill: 0xFFD700 }
+            });
+            coinText.x = 50;
+            coinText.y = 28;
+            stage.addChild(coinText);
+
+            // Gems display
+            const gemBg = new PIXI.Graphics();
+            gemBg.roundRect(120, 15, 90, 40, 20);
+            gemBg.fill(0x3d3d5c);
+            stage.addChild(gemBg);
+
+            const gemIcon = new PIXI.Text({ text: '💎', style: { fontSize: 20 } });
+            gemIcon.x = 130;
+            gemIcon.y = 23;
+            stage.addChild(gemIcon);
+
+            const gemText = new PIXI.Text({
+                text: gems.toString(),
+                style: { fontFamily: 'Arial', fontSize: 16, fontWeight: 'bold', fill: 0x00BFFF }
+            });
+            gemText.x = 160;
+            gemText.y = 28;
+            stage.addChild(gemText);
+
+            // Settings button
+            const settingsBtn = new PIXI.Graphics();
+            settingsBtn.circle(CONFIG.width - 35, 35, 22);
+            settingsBtn.fill(0x3d3d5c);
+            settingsBtn.eventMode = 'static';
+            settingsBtn.cursor = 'pointer';
+            stage.addChild(settingsBtn);
+
+            const settingsIcon = new PIXI.Text({ text: '⚙️', style: { fontSize: 22 } });
+            settingsIcon.anchor.set(0.5);
+            settingsIcon.x = CONFIG.width - 35;
+            settingsIcon.y = 35;
+            stage.addChild(settingsIcon);
+
+            // Content area
+            const contentArea = new PIXI.Container();
+            contentArea.y = 70;
+            stage.addChild(contentArea);
+
+            // BottomNav background
+            const bottomNav = new PIXI.Graphics();
+            bottomNav.rect(0, CONFIG.height - 80, CONFIG.width, 80);
+            bottomNav.fill(0x2d2d44);
+            stage.addChild(bottomNav);
+
+            // Nav items
+            const navItems = [
+                { id: 'shop', icon: '🛒', label: 'Shop' },
+                { id: 'play', icon: '▶️', label: 'Play' },
+                { id: 'profile', icon: '👤', label: 'Profile' }
+            ];
+
+            const navWidth = CONFIG.width / navItems.length;
+            const navButtons = [];
+
+            navItems.forEach((item, i) => {
+                const btn = new PIXI.Container();
+                btn.x = navWidth * i;
+                btn.y = CONFIG.height - 80;
+
+                const hitArea = new PIXI.Graphics();
+                hitArea.rect(0, 0, navWidth, 80);
+                hitArea.fill({ color: 0xffffff, alpha: 0 });
+                btn.addChild(hitArea);
+
+                const highlight = new PIXI.Graphics();
+                highlight.roundRect(navWidth / 2 - 30, 8, 60, 4, 2);
+                highlight.fill(item.id === currentTab ? 0x6366f1 : 0x2d2d44);
+                btn.addChild(highlight);
+
+                const icon = new PIXI.Text({
+                    text: item.icon,
+                    style: { fontSize: item.id === 'play' ? 32 : 24 }
+                });
+                icon.anchor.set(0.5);
+                icon.x = navWidth / 2;
+                icon.y = 35;
+                btn.addChild(icon);
+
+                const label = new PIXI.Text({
+                    text: item.label,
+                    style: {
+                        fontFamily: 'Arial',
+                        fontSize: 12,
+                        fill: item.id === currentTab ? 0x6366f1 : 0x888888
+                    }
+                });
+                label.anchor.set(0.5);
+                label.x = navWidth / 2;
+                label.y = 62;
+                btn.addChild(label);
+
+                btn.eventMode = 'static';
+                btn.cursor = 'pointer';
+                btn.on('pointerdown', () => switchTab(item.id));
+
+                navButtons.push({ btn, highlight, label, id: item.id });
+                stage.addChild(btn);
+            });
+
+            // Tab content
+            function createTabContent(tabId) {
+                const content = new PIXI.Container();
+
+                if (tabId === 'shop') {
+                    const title = new PIXI.Text({
+                        text: '🛒 Shop',
+                        style: { fontFamily: 'Arial', fontSize: 28, fontWeight: 'bold', fill: 0xffffff }
+                    });
+                    title.x = 20;
+                    title.y = 20;
+                    content.addChild(title);
+
+                    // Shop items
+                    const items = [
+                        { name: '100 Coins', price: '💎 10', color: 0xFFD700 },
+                        { name: '500 Coins', price: '💎 45', color: 0xFFD700 },
+                        { name: 'No Ads', price: '$2.99', color: 0x4CAF50 }
+                    ];
+
+                    items.forEach((item, i) => {
+                        const card = new PIXI.Graphics();
+                        card.roundRect(20, 70 + i * 100, CONFIG.width - 40, 80, 12);
+                        card.fill(0x2d2d44);
+                        content.addChild(card);
+
+                        const name = new PIXI.Text({
+                            text: item.name,
+                            style: { fontFamily: 'Arial', fontSize: 18, fontWeight: 'bold', fill: item.color }
+                        });
+                        name.x = 40;
+                        name.y = 95 + i * 100;
+                        content.addChild(name);
+
+                        const price = new PIXI.Text({
+                            text: item.price,
+                            style: { fontFamily: 'Arial', fontSize: 16, fill: 0xffffff }
+                        });
+                        price.x = CONFIG.width - 80;
+                        price.y = 98 + i * 100;
+                        content.addChild(price);
+                    });
+
+                } else if (tabId === 'play') {
+                    const title = new PIXI.Text({
+                        text: '🎮 Ready to Play!',
+                        style: { fontFamily: 'Arial', fontSize: 24, fontWeight: 'bold', fill: 0xffffff }
+                    });
+                    title.anchor.set(0.5);
+                    title.x = CONFIG.width / 2;
+                    title.y = 120;
+                    content.addChild(title);
+
+                    // Play button
+                    const playBtn = new PIXI.Graphics();
+                    playBtn.roundRect(60, 180, CONFIG.width - 120, 80, 16);
+                    playBtn.fill(0x4CAF50);
+                    playBtn.eventMode = 'static';
+                    playBtn.cursor = 'pointer';
+                    content.addChild(playBtn);
+
+                    const playText = new PIXI.Text({
+                        text: '▶  PLAY',
+                        style: { fontFamily: 'Arial', fontSize: 28, fontWeight: 'bold', fill: 0xffffff }
+                    });
+                    playText.anchor.set(0.5);
+                    playText.x = CONFIG.width / 2;
+                    playText.y = 220;
+                    content.addChild(playText);
+
+                    // Level info
+                    const levelText = new PIXI.Text({
+                        text: 'Level 5',
+                        style: { fontFamily: 'Arial', fontSize: 18, fill: 0x888888 }
+                    });
+                    levelText.anchor.set(0.5);
+                    levelText.x = CONFIG.width / 2;
+                    levelText.y = 300;
+                    content.addChild(levelText);
+
+                } else if (tabId === 'profile') {
+                    const avatar = new PIXI.Graphics();
+                    avatar.circle(CONFIG.width / 2, 100, 50);
+                    avatar.fill(0x6366f1);
+                    content.addChild(avatar);
+
+                    const avatarIcon = new PIXI.Text({ text: '👤', style: { fontSize: 48 } });
+                    avatarIcon.anchor.set(0.5);
+                    avatarIcon.x = CONFIG.width / 2;
+                    avatarIcon.y = 100;
+                    content.addChild(avatarIcon);
+
+                    const name = new PIXI.Text({
+                        text: 'Player123',
+                        style: { fontFamily: 'Arial', fontSize: 24, fontWeight: 'bold', fill: 0xffffff }
+                    });
+                    name.anchor.set(0.5);
+                    name.x = CONFIG.width / 2;
+                    name.y = 180;
+                    content.addChild(name);
+
+                    const stats = new PIXI.Text({
+                        text: 'Games: 42  |  Best: 12,450',
+                        style: { fontFamily: 'Arial', fontSize: 14, fill: 0x888888 }
+                    });
+                    stats.anchor.set(0.5);
+                    stats.x = CONFIG.width / 2;
+                    stats.y = 220;
+                    content.addChild(stats);
+                }
+
+                return content;
+            }
+
+            let currentContent = null;
+
+            function switchTab(tabId) {
+                currentTab = tabId;
+
+                // Update nav highlights
+                navButtons.forEach(({ highlight, label, id }) => {
+                    highlight.clear();
+                    highlight.roundRect(CONFIG.width / navItems.length / 2 - 30, 8, 60, 4, 2);
+                    highlight.fill(id === tabId ? 0x6366f1 : 0x2d2d44);
+                    label.style.fill = id === tabId ? 0x6366f1 : 0x888888;
+                });
+
+                // Switch content
+                if (currentContent) {
+                    contentArea.removeChild(currentContent);
+                }
+                currentContent = createTabContent(tabId);
+                contentArea.addChild(currentContent);
+            }
+
+            // Initialize with play tab
+            switchTab('play');
+
+            game.start();
+        })();
+    </script>
+</body>
+</html>

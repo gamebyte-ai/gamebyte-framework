@@ -1,6 +1,16 @@
 # ScreenManager
 
+import LiveDemo from '@site/src/components/LiveDemo';
+
 Stack-based screen navigation with animated transitions, similar to mobile app navigation patterns.
+
+## Live Demo
+
+<LiveDemo
+  src="/demos/screen-manager-demo.html"
+  height={660}
+  title="ScreenManager Navigation"
+/>
 
 ## Features
 

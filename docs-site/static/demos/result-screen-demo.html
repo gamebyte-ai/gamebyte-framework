@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ResultScreen Demo - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #1a1a2e; }
+        canvas { display: block; margin: 0 auto; }
+    </style>
+</head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
+
+    <script>
+        const { createGame } = GameByteFramework;
+
+        const CONFIG = { width: 360, height: 640 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.body.appendChild(canvas);
+
+        const game = createGame();
+
+        let isVictory = true;
+
+        (async () => {
+            await game.initialize(canvas, '2d');
+            const renderer = game.make('renderer');
+            const stage = renderer.getStage();
+
+            function createResultScreen(victory) {
+                // Clear stage
+                while (stage.children.length > 0) {
+                    stage.removeChildAt(0);
+                }
+
+                // Background
+                const bg = new PIXI.Graphics();
+                bg.rect(0, 0, CONFIG.width, CONFIG.height);
+                bg.fill(0x1a1a2e);
+                stage.addChild(bg);
+
+                // Confetti effect (for victory)
+                if (victory) {
+                    for (let i = 0; i < 30; i++) {
+                        const confetti = new PIXI.Graphics();
+                        confetti.rect(0, 0, 8, 8);
+                        confetti.fill([0xFFD700, 0xFF6B6B, 0x6BCB77, 0x4D96FF][Math.floor(Math.random() * 4)]);
+                        confetti.x = Math.random() * CONFIG.width;
+                        confetti.y = Math.random() * 200;
+                        confetti.rotation = Math.random() * Math.PI;
+                        stage.addChild(confetti);
+                    }
+                }
+
+                // Title
+                const title = new PIXI.Text({
+                    text: victory ? 'VICTORY!' : 'DEFEAT',
+                    style: {
+                        fontFamily: 'Arial',
+                        fontSize: 48,
+                        fontWeight: 'bold',
+                        fill: victory ? 0x4CAF50 : 0xE84C4C,
+                        dropShadow: true,
+                        dropShadowColor: 0x000000,
+                        dropShadowDistance: 4
+                    }
+                });
+                title.anchor.set(0.5);
+                title.x = CONFIG.width / 2;
+                title.y = 80;
+                stage.addChild(title);
+
+                // Stars container
+                const starsContainer = new PIXI.Container();
+                starsContainer.x = CONFIG.width / 2;
+                starsContainer.y = 160;
+                stage.addChild(starsContainer);
+
+                const starCount = victory ? 3 : 1;
+                for (let i = 0; i < 3; i++) {
+                    const star = new PIXI.Text({
+                        text: i < starCount ? '⭐' : '☆',
+                        style: { fontSize: i === 1 ? 56 : 44 }
+                    });
+                    star.anchor.set(0.5);
+                    star.x = (i - 1) * 60;
+                    star.y = i === 1 ? -10 : 0;
+                    starsContainer.addChild(star);
+                }
+
+                // Score display
+                const scoreBg = new PIXI.Graphics();
+                scoreBg.roundRect(CONFIG.width / 2 - 100, 220, 200, 60, 12);
+                scoreBg.fill(0x2d2d44);
+                stage.addChild(scoreBg);
+
+                const scoreLabel = new PIXI.Text({
+                    text: 'SCORE',
+                    style: { fontFamily: 'Arial', fontSize: 14, fill: 0x888888 }
+                });
+                scoreLabel.anchor.set(0.5);
+                scoreLabel.x = CONFIG.width / 2;
+                scoreLabel.y = 235;
+                stage.addChild(scoreLabel);
+
+                const scoreValue = new PIXI.Text({
+                    text: victory ? '12,450' : '3,200',
+                    style: { fontFamily: 'Arial', fontSize: 28, fontWeight: 'bold', fill: 0xffffff }
+                });
+                scoreValue.anchor.set(0.5);
+                scoreValue.x = CONFIG.width / 2;
+                scoreValue.y = 262;
+                stage.addChild(scoreValue);
+
+                // Best score
+                const bestScore = new PIXI.Text({
+                    text: 'Best: 15,230',
+                    style: { fontFamily: 'Arial', fontSize: 14, fill: 0x888888 }
+                });
+                bestScore.anchor.set(0.5);
+                bestScore.x = CONFIG.width / 2;
+                bestScore.y = 295;
+                stage.addChild(bestScore);
+
+                // Rewards
+                const rewardsTitle = new PIXI.Text({
+                    text: 'REWARDS',
+                    style: { fontFamily: 'Arial', fontSize: 16, fontWeight: 'bold', fill: 0xffffff }
+                });
+                rewardsTitle.anchor.set(0.5);
+                rewardsTitle.x = CONFIG.width / 2;
+                rewardsTitle.y = 340;
+                stage.addChild(rewardsTitle);
+
+                const rewards = victory
+                    ? [{ icon: '🪙', amount: 500 }, { icon: '💎', amount: 10 }, { icon: '⭐', amount: 3 }]
+                    : [{ icon: '🪙', amount: 100 }];
+
+                const rewardWidth = 80;
+                const totalWidth = rewards.length * rewardWidth;
+                const startX = CONFIG.width / 2 - totalWidth / 2 + rewardWidth / 2;
+
+                rewards.forEach((reward, i) => {
+                    const rewardBg = new PIXI.Graphics();
+                    rewardBg.roundRect(startX + i * rewardWidth - 30, 365, 60, 70, 10);
+                    rewardBg.fill(0x3d3d5c);
+                    stage.addChild(rewardBg);
+
+                    const icon = new PIXI.Text({
+                        text: reward.icon,
+                        style: { fontSize: 28 }
+                    });
+                    icon.anchor.set(0.5);
+                    icon.x = startX + i * rewardWidth;
+                    icon.y = 390;
+                    stage.addChild(icon);
+
+                    const amount = new PIXI.Text({
+                        text: `+${reward.amount}`,
+                        style: { fontFamily: 'Arial', fontSize: 14, fontWeight: 'bold', fill: 0xffffff }
+                    });
+                    amount.anchor.set(0.5);
+                    amount.x = startX + i * rewardWidth;
+                    amount.y = 420;
+                    stage.addChild(amount);
+                });
+
+                // Buttons
+                // Retry button
+                const retryBtn = new PIXI.Graphics();
+                retryBtn.roundRect(40, 480, 130, 55, 12);
+                retryBtn.fill(0x4b5563);
+                retryBtn.eventMode = 'static';
+                retryBtn.cursor = 'pointer';
+                stage.addChild(retryBtn);
+
+                const retryText = new PIXI.Text({
+                    text: 'Retry',
+                    style: { fontFamily: 'Arial', fontSize: 18, fontWeight: 'bold', fill: 0xffffff }
+                });
+                retryText.anchor.set(0.5);
+                retryText.x = 105;
+                retryText.y = 507;
+                stage.addChild(retryText);
+
+                // Next/Home button
+                const nextBtn = new PIXI.Graphics();
+                nextBtn.roundRect(190, 480, 130, 55, 12);
+                nextBtn.fill(victory ? 0x4CAF50 : 0x6366f1);
+                nextBtn.eventMode = 'static';
+                nextBtn.cursor = 'pointer';
+                stage.addChild(nextBtn);
+
+                const nextText = new PIXI.Text({
+                    text: victory ? 'Next Level' : 'Home',
+                    style: { fontFamily: 'Arial', fontSize: 18, fontWeight: 'bold', fill: 0xffffff }
+                });
+                nextText.anchor.set(0.5);
+                nextText.x = 255;
+                nextText.y = 507;
+                stage.addChild(nextText);
+
+                // Toggle button (demo only)
+                const toggleBtn = new PIXI.Graphics();
+                toggleBtn.roundRect(CONFIG.width / 2 - 80, 570, 160, 40, 8);
+                toggleBtn.fill(0x2d2d44);
+                toggleBtn.eventMode = 'static';
+                toggleBtn.cursor = 'pointer';
+                stage.addChild(toggleBtn);
+
+                const toggleText = new PIXI.Text({
+                    text: victory ? 'Show Defeat' : 'Show Victory',
+                    style: { fontFamily: 'Arial', fontSize: 14, fill: 0x888888 }
+                });
+                toggleText.anchor.set(0.5);
+                toggleText.x = CONFIG.width / 2;
+                toggleText.y = 590;
+                stage.addChild(toggleText);
+
+                toggleBtn.on('pointerdown', () => {
+                    isVictory = !isVictory;
+                    createResultScreen(isVictory);
+                });
+            }
+
+            createResultScreen(true);
+            game.start();
+        })();
+    </script>
+</body>
+</html>

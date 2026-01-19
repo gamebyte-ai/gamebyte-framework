@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameHUDScreen Demo - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #87CEEB; }
+        canvas { display: block; margin: 0 auto; }
+    </style>
+</head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
+
+    <script>
+        const { createGame } = GameByteFramework;
+
+        const CONFIG = { width: 360, height: 640 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.body.appendChild(canvas);
+
+        const game = createGame();
+
+        // Game state
+        let score = 0;
+        let lives = 3;
+        let maxLives = 3;
+        let timeLeft = 60;
+        let isPaused = false;
+        let progress = 0;
+
+        (async () => {
+            await game.initialize(canvas, '2d');
+            const renderer = game.make('renderer');
+            const stage = renderer.getStage();
+
+            // Sky background
+            const bg = new PIXI.Graphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill(0x87CEEB);
+            stage.addChild(bg);
+
+            // Ground
+            const ground = new PIXI.Graphics();
+            ground.rect(0, CONFIG.height - 100, CONFIG.width, 100);
+            ground.fill(0x8B4513);
+            stage.addChild(ground);
+
+            // Grass
+            const grass = new PIXI.Graphics();
+            grass.rect(0, CONFIG.height - 100, CONFIG.width, 15);
+            grass.fill(0x228B22);
+            stage.addChild(grass);
+
+            // Simple game elements (collectibles)
+            const collectibles = [];
+            for (let i = 0; i < 5; i++) {
+                const coin = new PIXI.Graphics();
+                coin.circle(0, 0, 20);
+                coin.fill(0xFFD700);
+                coin.x = 50 + Math.random() * (CONFIG.width - 100);
+                coin.y = 150 + Math.random() * 300;
+                coin.eventMode = 'static';
+                coin.cursor = 'pointer';
+                coin.on('pointerdown', () => {
+                    if (isPaused) return;
+                    score += 100;
+                    updateScore();
+                    progress = Math.min(100, progress + 20);
+                    updateProgress();
+                    coin.visible = false;
+                    if (progress >= 100) {
+                        showVictory();
+                    }
+                });
+                stage.addChild(coin);
+                collectibles.push(coin);
+            }
+
+            // HUD Container
+            const hud = new PIXI.Container();
+            stage.addChild(hud);
+
+            // HUD Background
+            const hudBg = new PIXI.Graphics();
+            hudBg.rect(0, 0, CONFIG.width, 70);
+            hudBg.fill({ color: 0x000000, alpha: 0.5 });
+            hud.addChild(hudBg);
+
+            // Score display
+            const scoreText = new PIXI.Text({
+                text: `Score: ${score}`,
+                style: { fontFamily: 'Arial', fontSize: 18, fontWeight: 'bold', fill: 0xffffff }
+            });
+            scoreText.x = 15;
+            scoreText.y = 12;
+            hud.addChild(scoreText);
+
+            function updateScore() {
+                scoreText.text = `Score: ${score}`;
+            }
+
+            // Timer display
+            const timerBg = new PIXI.Graphics();
+            timerBg.roundRect(CONFIG.width / 2 - 35, 8, 70, 30, 8);
+            timerBg.fill(0x333333);
+            hud.addChild(timerBg);
+
+            const timerText = new PIXI.Text({
+                text: formatTime(timeLeft),
+                style: { fontFamily: 'Arial', fontSize: 18, fontWeight: 'bold', fill: 0xffffff }
+            });
+            timerText.anchor.set(0.5);
+            timerText.x = CONFIG.width / 2;
+            timerText.y = 23;
+            hud.addChild(timerText);
+
+            function formatTime(seconds) {
+                const m = Math.floor(seconds / 60);
+                const s = seconds % 60;
+                return `${m}:${s.toString().padStart(2, '0')}`;
+            }
+
+            // Lives display
+            const livesContainer = new PIXI.Container();
+            livesContainer.x = 15;
+            livesContainer.y = 42;
+            hud.addChild(livesContainer);
+
+            function updateLives() {
+                livesContainer.removeChildren();
+                for (let i = 0; i < maxLives; i++) {
+                    const heart = new PIXI.Text({
+                        text: i < lives ? '❤️' : '🖤',
+                        style: { fontSize: 18 }
+                    });
+                    heart.x = i * 25;
+                    livesContainer.addChild(heart);
+                }
+            }
+            updateLives();
+
+            // Pause button
+            const pauseBtn = new PIXI.Graphics();
+            pauseBtn.roundRect(CONFIG.width - 50, 10, 40, 40, 8);
+            pauseBtn.fill(0x333333);
+            pauseBtn.eventMode = 'static';
+            pauseBtn.cursor = 'pointer';
+            hud.addChild(pauseBtn);
+
+            const pauseIcon = new PIXI.Text({
+                text: '⏸',
+                style: { fontSize: 22 }
+            });
+            pauseIcon.anchor.set(0.5);
+            pauseIcon.x = CONFIG.width - 30;
+            pauseIcon.y = 30;
+            hud.addChild(pauseIcon);
+
+            // Progress bar
+            const progressBg = new PIXI.Graphics();
+            progressBg.roundRect(60, 45, 180, 16, 8);
+            progressBg.fill(0x333333);
+            hud.addChild(progressBg);
+
+            const progressBar = new PIXI.Graphics();
+            hud.addChild(progressBar);
+
+            function updateProgress() {
+                progressBar.clear();
+                const width = Math.max(0, (progress / 100) * 180);
+                if (width > 0) {
+                    progressBar.roundRect(60, 45, width, 16, 8);
+                    progressBar.fill(0x4CAF50);
+                }
+            }
+            updateProgress();
+
+            // Pause overlay
+            const pauseOverlay = new PIXI.Container();
+            pauseOverlay.visible = false;
+            stage.addChild(pauseOverlay);
+
+            const pauseDim = new PIXI.Graphics();
+            pauseDim.rect(0, 0, CONFIG.width, CONFIG.height);
+            pauseDim.fill({ color: 0x000000, alpha: 0.7 });
+            pauseOverlay.addChild(pauseDim);
+
+            const pausePanel = new PIXI.Graphics();
+            pausePanel.roundRect(CONFIG.width / 2 - 100, CONFIG.height / 2 - 100, 200, 200, 20);
+            pausePanel.fill(0x2d2d44);
+            pauseOverlay.addChild(pausePanel);
+
+            const pausedText = new PIXI.Text({
+                text: 'PAUSED',
+                style: { fontFamily: 'Arial', fontSize: 28, fontWeight: 'bold', fill: 0xffffff }
+            });
+            pausedText.anchor.set(0.5);
+            pausedText.x = CONFIG.width / 2;
+            pausedText.y = CONFIG.height / 2 - 50;
+            pauseOverlay.addChild(pausedText);
+
+            // Resume button
+            const resumeBtn = new PIXI.Graphics();
+            resumeBtn.roundRect(CONFIG.width / 2 - 70, CONFIG.height / 2, 140, 50, 12);
+            resumeBtn.fill(0x4CAF50);
+            resumeBtn.eventMode = 'static';
+            resumeBtn.cursor = 'pointer';
+            pauseOverlay.addChild(resumeBtn);
+
+            const resumeText = new PIXI.Text({
+                text: 'RESUME',
+                style: { fontFamily: 'Arial', fontSize: 20, fontWeight: 'bold', fill: 0xffffff }
+            });
+            resumeText.anchor.set(0.5);
+            resumeText.x = CONFIG.width / 2;
+            resumeText.y = CONFIG.height / 2 + 25;
+            pauseOverlay.addChild(resumeText);
+
+            resumeBtn.on('pointerdown', togglePause);
+            pauseBtn.on('pointerdown', togglePause);
+
+            function togglePause() {
+                isPaused = !isPaused;
+                pauseOverlay.visible = isPaused;
+                pauseIcon.text = isPaused ? '▶' : '⏸';
+            }
+
+            // Timer countdown
+            let lastTime = Date.now();
+            function updateTimer() {
+                if (isPaused || timeLeft <= 0) return;
+
+                const now = Date.now();
+                if (now - lastTime >= 1000) {
+                    lastTime = now;
+                    timeLeft--;
+                    timerText.text = formatTime(timeLeft);
+
+                    if (timeLeft <= 10) {
+                        timerText.style.fill = 0xFF4444;
+                    }
+
+                    if (timeLeft <= 0) {
+                        showDefeat();
+                    }
+                }
+            }
+
+            // Lose life button (demo)
+            const loseLifeBtn = new PIXI.Graphics();
+            loseLifeBtn.roundRect(CONFIG.width / 2 - 60, CONFIG.height - 60, 120, 40, 8);
+            loseLifeBtn.fill(0xE84C4C);
+            loseLifeBtn.eventMode = 'static';
+            loseLifeBtn.cursor = 'pointer';
+            stage.addChild(loseLifeBtn);
+
+            const loseLifeText = new PIXI.Text({
+                text: 'Lose Life',
+                style: { fontFamily: 'Arial', fontSize: 14, fontWeight: 'bold', fill: 0xffffff }
+            });
+            loseLifeText.anchor.set(0.5);
+            loseLifeText.x = CONFIG.width / 2;
+            loseLifeText.y = CONFIG.height - 40;
+            stage.addChild(loseLifeText);
+
+            loseLifeBtn.on('pointerdown', () => {
+                if (isPaused || lives <= 0) return;
+                lives--;
+                updateLives();
+                if (lives <= 0) {
+                    showDefeat();
+                }
+            });
+
+            function showVictory() {
+                isPaused = true;
+                pausedText.text = 'VICTORY!';
+                pausedText.style.fill = 0x4CAF50;
+                resumeText.text = 'Play Again';
+                pauseOverlay.visible = true;
+            }
+
+            function showDefeat() {
+                isPaused = true;
+                pausedText.text = 'GAME OVER';
+                pausedText.style.fill = 0xE84C4C;
+                resumeText.text = 'Try Again';
+                pauseOverlay.visible = true;
+            }
+
+            // Instructions
+            const instr = new PIXI.Text({
+                text: 'Tap coins to collect!',
+                style: { fontFamily: 'Arial', fontSize: 14, fill: 0x333333 }
+            });
+            instr.anchor.set(0.5);
+            instr.x = CONFIG.width / 2;
+            instr.y = 100;
+            stage.addChild(instr);
+
+            // Game loop
+            game.on('update', () => {
+                updateTimer();
+            });
+
+            game.start();
+        })();
+    </script>
+</body>
+</html>
