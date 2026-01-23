@@ -1,9 +1,8 @@
 import { EventEmitter } from 'eventemitter3';
-import { ServiceContainer } from './ServiceContainer';
-import { ServiceProvider } from '../contracts/ServiceProvider';
-import { Renderer, RenderingMode, RendererOptions } from '../contracts/Renderer';
-import { SceneManager } from '../contracts/Scene';
-import { GraphicsEngine } from '../graphics/GraphicsEngine';
+import { ServiceContainer } from './ServiceContainer.js';
+import { ServiceProvider } from '../contracts/ServiceProvider.js';
+import { Renderer, RenderingMode, RendererOptions } from '../contracts/Renderer.js';
+import { GraphicsEngine } from '../graphics/GraphicsEngine.js';
 
 /**
  * Quick game configuration options
@@ -212,21 +211,8 @@ export class GameByte extends EventEmitter {
       ...config.rendererOptions
     };
 
-    // Initialize game
+    // Initialize game (this sets up update/render event hooks automatically)
     await game.initialize(canvas, mode, rendererOptions);
-
-    // Setup update/render hooks
-    const renderer = game.make<Renderer>('renderer');
-    renderer.on('tick', (deltaTime: number) => {
-      // Call all registered update callbacks
-      for (const callback of game.updateCallbacks) {
-        callback(deltaTime);
-      }
-      // Call all registered render callbacks
-      for (const callback of game.renderCallbacks) {
-        callback();
-      }
-    });
 
     // Auto-start if requested
     if (config.autoStart !== false) {
@@ -328,6 +314,28 @@ export class GameByte extends EventEmitter {
     const renderer = this.make<Renderer>('renderer');
     await renderer.initialize(canvas, options);
 
+    // Store renderer reference in GraphicsEngine for effects that need it
+    GraphicsEngine.setRenderer(renderer);
+
+    // Setup update/render event hooks on the renderer's tick
+    renderer.on('tick', (deltaTime: number) => {
+      // Emit update event for game.on('update', ...) listeners
+      this.emit('update', deltaTime);
+
+      // Call all registered update callbacks (game.onUpdate())
+      for (const callback of this.updateCallbacks) {
+        callback(deltaTime);
+      }
+
+      // Emit render event for game.on('render', ...) listeners
+      this.emit('render');
+
+      // Call all registered render callbacks (game.onRender())
+      for (const callback of this.renderCallbacks) {
+        callback();
+      }
+    });
+
     this.emit('initialized', { canvas, mode, options });
     return this;
   }
@@ -341,8 +349,6 @@ export class GameByte extends EventEmitter {
     }
 
     const renderer = this.make<Renderer>('renderer');
-    const sceneManager = this.make<SceneManager>('scene.manager');
-
     renderer.start();
     this.running = true;
 

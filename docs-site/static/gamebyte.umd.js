@@ -46994,25 +46994,57 @@
 	            mask.rect(-targetWidth / 2, -targetHeight / 2, targetWidth, targetHeight);
 	            mask.fill(0xFFFFFF);
 	        }
-	        // Create shimmer graphic - extra bright diagonal streak
-	        // Draw multiple overlapping layers to compensate for mask alpha
+	        // Create shimmer graphic with gradient and dual-streak effect
 	        const shimmerGraphic = factory.createGraphics();
 	        const streakWidth = cfg.width;
-	        const angleRad = (cfg.angle * Math.PI) / 180;
-	        const sin = Math.sin(angleRad);
 	        const hh = targetHeight * 2;
-	        const hw = streakWidth / 2;
-	        // Draw 5 overlapping white layers for maximum brightness
-	        for (let i = 0; i < 5; i++) {
-	            shimmerGraphic.poly([
-	                -hw + sin * hh, -hh,
-	                hw + sin * hh, -hh,
-	                hw - sin * hh, hh,
-	                -hw - sin * hh, hh,
-	            ]);
-	            shimmerGraphic.fill(0xFFFFFF);
+	        // Primary streak angle
+	        const angleRad = (cfg.angle * Math.PI) / 180;
+	        const sin1 = Math.sin(angleRad);
+	        // Secondary streak angle (offset by 40 degrees for curved surface effect)
+	        const angle2Rad = ((cfg.angle + 40) * Math.PI) / 180;
+	        const sin2 = Math.sin(angle2Rad);
+	        // Draw gradient layers for primary streak (outer to inner, increasing brightness)
+	        const layers = [
+	            { width: streakWidth * 2.5, alpha: 0.15 },
+	            { width: streakWidth * 1.8, alpha: 0.25 },
+	            { width: streakWidth * 1.2, alpha: 0.4 },
+	            { width: streakWidth * 0.7, alpha: 0.6 },
+	            { width: streakWidth * 0.3, alpha: 1.0 },
+	        ];
+	        // Primary shimmer streak
+	        for (const layer of layers) {
+	            const hw = layer.width / 2;
+	            for (let i = 0; i < 3; i++) { // Triple draw for brightness
+	                shimmerGraphic.poly([
+	                    -hw + sin1 * hh, -hh,
+	                    hw + sin1 * hh, -hh,
+	                    hw - sin1 * hh, hh,
+	                    -hw - sin1 * hh, hh,
+	                ]);
+	                shimmerGraphic.fill({ color: 0xFFFFFF, alpha: layer.alpha });
+	            }
 	        }
-	        // Use 'add' blend mode for extra glow
+	        // Secondary shimmer streak (smaller, offset position)
+	        const secondaryOffset = streakWidth * 0.8;
+	        const secondaryLayers = [
+	            { width: streakWidth * 1.2, alpha: 0.1 },
+	            { width: streakWidth * 0.6, alpha: 0.2 },
+	            { width: streakWidth * 0.2, alpha: 0.4 },
+	        ];
+	        for (const layer of secondaryLayers) {
+	            const hw = layer.width / 2;
+	            for (let i = 0; i < 2; i++) {
+	                shimmerGraphic.poly([
+	                    -hw + sin2 * hh + secondaryOffset, -hh,
+	                    hw + sin2 * hh + secondaryOffset, -hh,
+	                    hw - sin2 * hh + secondaryOffset, hh,
+	                    -hw - sin2 * hh + secondaryOffset, hh,
+	                ]);
+	                shimmerGraphic.fill({ color: 0xFFFFFF, alpha: layer.alpha });
+	            }
+	        }
+	        // Use 'add' blend mode for glow effect
 	        shimmerGraphic.blendMode = 'add';
 	        // Add shimmer to container
 	        shimmerContainer.addChild(shimmerGraphic);

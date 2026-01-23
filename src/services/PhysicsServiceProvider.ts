@@ -37,12 +37,18 @@ export class PhysicsServiceProvider extends AbstractServiceProvider {
     }
 
     // Initialize physics when app is initialized (after renderer mode is known)
+    // Physics is optional - if Matter.js/Cannon.js is not available, skip gracefully
     app.on('initialized', async (data: { mode?: string }) => {
       if (!physicsManager.isInitialized) {
-        // Determine physics dimension based on renderer mode
-        const is3D = data?.mode === '3d' || data?.mode === 'hybrid';
-        const dimension = is3D ? '3d' : '2d';
-        await physicsManager.initialize(dimension);
+        try {
+          // Determine physics dimension based on renderer mode
+          const is3D = data?.mode === '3d' || data?.mode === 'hybrid';
+          const dimension = is3D ? '3d' : '2d';
+          await physicsManager.initialize(dimension);
+        } catch (error) {
+          // Physics engine not available - this is fine for games that don't use physics
+          console.warn('⚠️ Physics engine not available. If you need physics, include Matter.js (2D) or Cannon.js (3D).');
+        }
       }
     });
 
