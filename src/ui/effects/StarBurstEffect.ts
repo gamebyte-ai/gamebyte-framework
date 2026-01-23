@@ -1,17 +1,6 @@
 import { EventEmitter } from 'eventemitter3';
-import { IContainer, IGraphics, IGraphicsFactory, IDisplayObject } from '../../contracts/Graphics.js';
-import { GraphicsEngine } from '../../graphics/GraphicsEngine.js';
-
-/**
- * Get graphics factory - requires GraphicsEngine to be initialized
- */
-function getGraphicsFactory(): IGraphicsFactory {
-  if (!GraphicsEngine.isInitialized()) {
-    console.error('StarBurstEffect: GraphicsEngine not initialized!');
-    throw new Error('GraphicsEngine not initialized. Call game.initialize() first.');
-  }
-  return GraphicsEngine.getFactory();
-}
+import { IContainer, IGraphics, IDisplayObject } from '../../contracts/Graphics.js';
+import { getGraphicsFactory } from './graphics-utils.js';
 
 /**
  * StarBurst zone configuration
@@ -50,16 +39,11 @@ const DEFAULT_CONFIG: Required<StarBurstConfig> = {
 };
 
 /**
- * Sparkle particle types
- */
-type SparkleType = 'small' | 'large';
-
-/**
  * Individual sparkle particle
  */
 interface SparkleParticle {
   graphic: IGraphics;
-  type: SparkleType;
+  spikes: 4 | 6;
   x: number;
   y: number;
   targetScale: number;
@@ -217,11 +201,13 @@ export class StarBurstEffect extends EventEmitter {
     const graphic = factory.createGraphics();
 
     // 70% small (4-pointed), 30% large (6-pointed)
-    const type: SparkleType = Math.random() < 0.7 ? 'small' : 'large';
+    const isLarge = Math.random() >= 0.7;
+    const spikes: 4 | 6 = isLarge ? 6 : 4;
     const color = zone.config.colors[Math.floor(Math.random() * zone.config.colors.length)];
+    const size = isLarge ? 10 : 8;
 
     // Draw the sparkle shape
-    this.drawSparkle(graphic, type, color);
+    this.drawStar(graphic, spikes, size, color);
 
     // Random position within radius
     const angle = Math.random() * Math.PI * 2;
@@ -244,12 +230,12 @@ export class StarBurstEffect extends EventEmitter {
       Math.random() * (zone.config.scale.max - zone.config.scale.min);
 
     // Large stars are slower but only slightly bigger
-    const durationMultiplier = type === 'large' ? 1.3 : 1;
-    const scaleMultiplier = type === 'large' ? 1.15 : 1;  // Reduced: was 1.4
+    const durationMultiplier = isLarge ? 1.3 : 1;
+    const scaleMultiplier = isLarge ? 1.15 : 1;
 
     const particle: SparkleParticle = {
       graphic,
-      type,
+      spikes,
       x,
       y,
       targetScale: targetScale * scaleMultiplier,
@@ -262,54 +248,23 @@ export class StarBurstEffect extends EventEmitter {
     };
 
     zone.particles.push(particle);
-    this.emit('sparkle-spawned', { x, y, type });
+    this.emit('sparkle-spawned', { x, y, spikes });
   }
 
   /**
-   * Draw sparkle shape based on type
+   * Draw star shape with configurable spike count
+   * @param spikes Number of points (4 or 6)
+   * @param size Outer radius of the star
    */
-  private drawSparkle(graphic: IGraphics, type: SparkleType, color: number): void {
+  private drawStar(graphic: IGraphics, spikes: 4 | 6, size: number, color: number): void {
     graphic.clear();
 
-    if (type === 'small') {
-      // 4-pointed star (+ shape)
-      this.draw4PointedStar(graphic, color, 8);
-    } else {
-      // 6-pointed star
-      this.draw6PointedStar(graphic, color, 10);
-    }
-  }
-
-  /**
-   * Draw 4-pointed star (+ shape with pointed ends)
-   */
-  private draw4PointedStar(graphic: IGraphics, color: number, size: number): void {
+    const innerRatio = spikes === 4 ? 0.25 : 0.4;
+    const innerRadius = size * innerRatio;
     const points: number[] = [];
-    const outerRadius = size;
-    const innerRadius = size * 0.25;
-    const spikes = 4;
 
     for (let i = 0; i < spikes * 2; i++) {
-      const radius = i % 2 === 0 ? outerRadius : innerRadius;
-      const angle = (i * Math.PI) / spikes - Math.PI / 2;
-      points.push(Math.cos(angle) * radius);
-      points.push(Math.sin(angle) * radius);
-    }
-
-    graphic.poly(points).fill(color);
-  }
-
-  /**
-   * Draw 6-pointed star
-   */
-  private draw6PointedStar(graphic: IGraphics, color: number, size: number): void {
-    const points: number[] = [];
-    const outerRadius = size;
-    const innerRadius = size * 0.4;
-    const spikes = 6;
-
-    for (let i = 0; i < spikes * 2; i++) {
-      const radius = i % 2 === 0 ? outerRadius : innerRadius;
+      const radius = i % 2 === 0 ? size : innerRadius;
       const angle = (i * Math.PI) / spikes - Math.PI / 2;
       points.push(Math.cos(angle) * radius);
       points.push(Math.sin(angle) * radius);

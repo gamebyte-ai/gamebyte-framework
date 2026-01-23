@@ -375,29 +375,15 @@ export class CelebrationManager extends EventEmitter {
     target: IDisplayObject,
     type: 'gold' | 'gem' | 'star' | ShimmerConfig = 'gold'
   ): ShimmerInstance {
-    // Remove existing shimmer on this target
     this.removeShimmer(target);
 
-    let config: ShimmerConfig;
+    const shimmerPresets: Record<string, ShimmerConfig> = {
+      gold: CelebrationPresets.GOLD_SHIMMER,
+      gem: CelebrationPresets.GEM_SHIMMER,
+      star: CelebrationPresets.STAR_SHIMMER,
+    };
 
-    if (typeof type === 'string') {
-      switch (type) {
-        case 'gold':
-          config = CelebrationPresets.GOLD_SHIMMER;
-          break;
-        case 'gem':
-          config = CelebrationPresets.GEM_SHIMMER;
-          break;
-        case 'star':
-          config = CelebrationPresets.STAR_SHIMMER;
-          break;
-        default:
-          config = CelebrationPresets.GOLD_SHIMMER;
-      }
-    } else {
-      config = type;
-    }
-
+    const config = typeof type === 'string' ? shimmerPresets[type] : type;
     const instance = this.shine.shimmer(target, config);
     this.shimmerInstances.set(target, instance);
 
@@ -428,32 +414,16 @@ export class CelebrationManager extends EventEmitter {
     target: IDisplayObject,
     type: 'gold' | 'gem' | 'star' | 'victory' | StarBurstConfig = 'gold'
   ): StarBurstInstance {
-    // Remove existing starburst on this target
     this.removeStarburst(target);
 
-    let config: StarBurstConfig;
+    const starburstPresets: Record<string, StarBurstConfig> = {
+      gold: CelebrationPresets.GOLD_STARBURST,
+      gem: CelebrationPresets.GEM_STARBURST,
+      star: CelebrationPresets.STAR_STARBURST,
+      victory: CelebrationPresets.VICTORY_STARBURST,
+    };
 
-    if (typeof type === 'string') {
-      switch (type) {
-        case 'gold':
-          config = CelebrationPresets.GOLD_STARBURST;
-          break;
-        case 'gem':
-          config = CelebrationPresets.GEM_STARBURST;
-          break;
-        case 'star':
-          config = CelebrationPresets.STAR_STARBURST;
-          break;
-        case 'victory':
-          config = CelebrationPresets.VICTORY_STARBURST;
-          break;
-        default:
-          config = CelebrationPresets.GOLD_STARBURST;
-      }
-    } else {
-      config = type;
-    }
-
+    const config = typeof type === 'string' ? starburstPresets[type] : type;
     const instance = this.starburst.addZone(target, config);
     this.starburstInstances.set(target, instance);
 

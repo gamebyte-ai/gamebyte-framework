@@ -1,6 +1,7 @@
 import { EventEmitter } from 'eventemitter3';
 import { IContainer, IGraphics, IDisplayObject } from '../../contracts/Graphics.js';
-import { graphics } from '../../graphics/GraphicsEngine.js';
+import { GraphicsEngine } from '../../graphics/GraphicsEngine.js';
+import { getGraphicsFactory } from './graphics-utils.js';
 
 /**
  * Shimmer effect configuration
@@ -42,11 +43,11 @@ export interface SparkleConfig {
  * Default configurations
  */
 const DEFAULT_SHIMMER: Required<ShimmerConfig> = {
-  width: 20,
-  angle: -30,
-  speed: 2000,
+  width: 40,
+  angle: -25,
+  speed: 500,
   color: 0xFFFFFF,
-  alpha: 0.4,
+  alpha: 1.0,
   loop: true,
   loopDelay: 1000,
 };
@@ -75,12 +76,15 @@ export interface ShimmerInstance {
 interface ShimmerData {
   target: IDisplayObject;
   graphic: IGraphics;
+  mask: any; // Can be Graphics or Sprite depending on target type
   container: IContainer;
   config: Required<ShimmerConfig>;
   progress: number;
   isPaused: boolean;
   isActive: boolean;
   waitTime: number;
+  targetWidth: number;
+  targetHeight: number;
 }
 
 /**
@@ -130,43 +134,154 @@ export class ShineEffect extends EventEmitter {
 
   /**
    * Add shimmer effect to a target object
-   * Creates a diagonal light sweep animation
+   * Creates a simple light sweep animation across the target
+   * Generates texture from target to use as alpha mask (clips to exact shape)
    */
   public shimmer(target: IDisplayObject, config: ShimmerConfig = {}): ShimmerInstance {
     const cfg = { ...DEFAULT_SHIMMER, ...config };
-    const factory = graphics();
+    const factory = getGraphicsFactory();
 
-    // Create shimmer container
+    // Get target size for shimmer dimensions
+    const size = this.getTargetBounds(target);
+    const targetWidth = size.width || 40;
+    const targetHeight = size.height || 40;
+
+    // Create container to hold shimmer and mask
     const shimmerContainer = factory.createContainer();
 
-    // Create shimmer graphic (light streak)
-    const shimmerGraphic = factory.createGraphics();
-    this.drawShimmerStreak(shimmerGraphic, cfg);
+    // Create mask from target's shape
+    let mask: any;
+    const targetAny = target as any;
+    const renderer = GraphicsEngine.getRenderer();
 
-    shimmerContainer.addChild(shimmerGraphic);
+    if (GraphicsEngine.getType() === 'PIXI' && renderer) {
+      try {
+        const rendererObj = renderer as any;
+        const nativeRenderer = rendererObj.getNativeRenderer?.() || renderer;
 
-    // Position shimmer at target's parent
-    // Note: shimmer will be animated across the target
-    if ((target as any).parent) {
-      (target as any).parent.addChild(shimmerContainer);
+        if (targetAny.texture) {
+          // Target is a Sprite - use its texture
+          const maskSprite = factory.createSprite(targetAny.texture);
+          if (targetAny.anchor) {
+            (maskSprite as any).anchor?.set(targetAny.anchor.x, targetAny.anchor.y);
+          } else {
+            (maskSprite as any).anchor?.set(0.5, 0.5);
+          }
+          mask = maskSprite;
+        } else if (nativeRenderer.generateTexture) {
+          // Target is Text/Container - generate texture from it
+          const texture = nativeRenderer.generateTexture(target);
+          const maskSprite = factory.createSprite(texture);
+          (maskSprite as any).anchor?.set(0.5, 0.5);
+          mask = maskSprite;
+        } else {
+          // Fallback to rectangle
+          mask = factory.createGraphics();
+          mask.rect(-targetWidth / 2, -targetHeight / 2, targetWidth, targetHeight);
+          mask.fill(0xFFFFFF);
+        }
+      } catch (e) {
+        console.warn('ShineEffect: mask creation failed', e);
+        mask = factory.createGraphics();
+        mask.rect(-targetWidth / 2, -targetHeight / 2, targetWidth, targetHeight);
+        mask.fill(0xFFFFFF);
+      }
     } else {
-      this.container.addChild(shimmerContainer);
+      // Fallback: rectangular mask
+      mask = factory.createGraphics();
+      mask.rect(-targetWidth / 2, -targetHeight / 2, targetWidth, targetHeight);
+      mask.fill(0xFFFFFF);
     }
 
-    // Get target bounds for positioning
-    const bounds = this.getTargetBounds(target);
-    shimmerContainer.x = bounds.x;
-    shimmerContainer.y = bounds.y;
+    // Create shimmer graphic with gradient and dual-streak effect
+    const shimmerGraphic = factory.createGraphics();
+    const streakWidth = cfg.width;
+    const hh = targetHeight * 2;
+
+    // Primary streak angle
+    const angleRad = (cfg.angle * Math.PI) / 180;
+    const sin1 = Math.sin(angleRad);
+
+    // Secondary streak angle (offset by 40 degrees for curved surface effect)
+    const angle2Rad = ((cfg.angle + 40) * Math.PI) / 180;
+    const sin2 = Math.sin(angle2Rad);
+
+    // Draw gradient layers for primary streak (outer to inner, increasing brightness)
+    const layers = [
+      { width: streakWidth * 2.5, alpha: 0.15 },
+      { width: streakWidth * 1.8, alpha: 0.25 },
+      { width: streakWidth * 1.2, alpha: 0.4 },
+      { width: streakWidth * 0.7, alpha: 0.6 },
+      { width: streakWidth * 0.3, alpha: 1.0 },
+    ];
+
+    // Primary shimmer streak
+    for (const layer of layers) {
+      const hw = layer.width / 2;
+      for (let i = 0; i < 3; i++) { // Triple draw for brightness
+        shimmerGraphic.poly([
+          -hw + sin1 * hh, -hh,
+          hw + sin1 * hh, -hh,
+          hw - sin1 * hh, hh,
+          -hw - sin1 * hh, hh,
+        ]);
+        shimmerGraphic.fill({ color: 0xFFFFFF, alpha: layer.alpha });
+      }
+    }
+
+    // Secondary shimmer streak (smaller, offset position)
+    const secondaryOffset = streakWidth * 0.8;
+    const secondaryLayers = [
+      { width: streakWidth * 1.2, alpha: 0.1 },
+      { width: streakWidth * 0.6, alpha: 0.2 },
+      { width: streakWidth * 0.2, alpha: 0.4 },
+    ];
+
+    for (const layer of secondaryLayers) {
+      const hw = layer.width / 2;
+      for (let i = 0; i < 2; i++) {
+        shimmerGraphic.poly([
+          -hw + sin2 * hh + secondaryOffset, -hh,
+          hw + sin2 * hh + secondaryOffset, -hh,
+          hw - sin2 * hh + secondaryOffset, hh,
+          -hw - sin2 * hh + secondaryOffset, hh,
+        ]);
+        shimmerGraphic.fill({ color: 0xFFFFFF, alpha: layer.alpha });
+      }
+    }
+
+    // Use 'add' blend mode for glow effect
+    (shimmerGraphic as any).blendMode = 'add';
+
+    // Add shimmer to container
+    shimmerContainer.addChild(shimmerGraphic);
+
+    // Apply Graphics mask - mask must be in display list for Pixi.js
+    shimmerContainer.addChild(mask);
+    (shimmerGraphic as any).mask = mask;
+
+    // Add container as child of target
+    (target as any).addChild(shimmerContainer);
+
+    // Force full opacity
+    shimmerGraphic.alpha = 1;
+
+    // Initial position (local to target, centered)
+    shimmerGraphic.x = -targetWidth / 2 - streakWidth;
+    shimmerGraphic.y = 0;
 
     const shimmerData: ShimmerData = {
       target,
       graphic: shimmerGraphic,
+      mask,
       container: shimmerContainer,
       config: cfg,
       progress: 0,
       isPaused: false,
       isActive: true,
       waitTime: 0,
+      targetWidth,
+      targetHeight,
     };
 
     this.shimmers.push(shimmerData);
@@ -184,42 +299,14 @@ export class ShineEffect extends EventEmitter {
   }
 
   /**
-   * Draw the shimmer light streak
+   * Get target dimensions for shimmer animation
    */
-  private drawShimmerStreak(graphic: IGraphics, config: Required<ShimmerConfig>): void {
-    graphic.clear();
-
-    const height = 100; // Tall enough to cover most elements
-    const angleRad = (config.angle * Math.PI) / 180;
-
-    // Create angled rectangle for light streak
-    const points: number[] = [];
-    const hw = config.width / 2;
-
-    // Calculate rotated rectangle points
-    const cos = Math.cos(angleRad);
-    const sin = Math.sin(angleRad);
-
-    points.push(-hw * cos, -hw * sin); // Top left
-    points.push(hw * cos, hw * sin);   // Top right
-    points.push(hw * cos + sin * height, hw * sin + cos * height); // Bottom right
-    points.push(-hw * cos + sin * height, -hw * sin + cos * height); // Bottom left
-
-    graphic.poly(points);
-    graphic.fill({ color: config.color, alpha: config.alpha });
-  }
-
-  /**
-   * Get target bounds
-   */
-  private getTargetBounds(target: IDisplayObject): { x: number; y: number; width: number; height: number } {
+  private getTargetBounds(target: IDisplayObject): { width: number; height: number } {
     // Try to get bounds from target
-    const bounds = (target as any).getBounds?.() || (target as any).getLocalBounds?.();
+    const bounds = (target as any).getLocalBounds?.() || (target as any).getBounds?.();
 
     if (bounds) {
       return {
-        x: target.x + (bounds.x || 0),
-        y: target.y + (bounds.y || 0),
         width: bounds.width || 50,
         height: bounds.height || 50,
       };
@@ -227,8 +314,6 @@ export class ShineEffect extends EventEmitter {
 
     // Fallback
     return {
-      x: target.x,
-      y: target.y,
       width: (target as any).width || 50,
       height: (target as any).height || 50,
     };
@@ -243,14 +328,17 @@ export class ShineEffect extends EventEmitter {
     if (index !== -1) {
       this.shimmers.splice(index, 1);
       try {
-        if ((shimmerData.container as any).parent) {
-          (shimmerData.container as any).parent.removeChild(shimmerData.container);
-        }
+        // Remove mask from shimmer
+        (shimmerData.graphic as any).mask = null;
+        // Remove container from target
+        (shimmerData.target as any).removeChild?.(shimmerData.container);
+        // Destroy all
+        shimmerData.graphic.destroy();
+        shimmerData.mask.destroy();
+        shimmerData.container.destroy();
       } catch {
         // Ignore removal errors
       }
-      shimmerData.graphic.destroy();
-      shimmerData.container.destroy();
     }
     this.emit('shimmer-stopped');
   }
@@ -263,7 +351,7 @@ export class ShineEffect extends EventEmitter {
     const cfg = { ...DEFAULT_SPARKLE, ...config };
 
     return new Promise((resolve) => {
-      const factory = graphics();
+      const factory = getGraphicsFactory();
 
       for (let i = 0; i < cfg.particleCount; i++) {
         const graphic = factory.createGraphics();
@@ -312,6 +400,7 @@ export class ShineEffect extends EventEmitter {
 
   /**
    * Draw sparkle/star shape
+   * Uses Pixi.js v8 Graphics API
    */
   private drawSparkle(graphic: IGraphics, color: number): void {
     graphic.clear();
@@ -329,8 +418,8 @@ export class ShineEffect extends EventEmitter {
       points.push(Math.sin(angle) * r);
     }
 
-    graphic.poly(points);
-    graphic.fill({ color });
+    // Pixi v8: poly().fill(color)
+    graphic.poly(points).fill(color);
   }
 
   /**
@@ -368,20 +457,16 @@ export class ShineEffect extends EventEmitter {
         }
       }
 
-      // Get target bounds
-      const bounds = this.getTargetBounds(shimmer.target);
-
-      // Animate shimmer position across target
-      const startX = -shimmer.config.width - 20;
-      const endX = bounds.width + shimmer.config.width + 20;
+      // Animate shimmer position across target (from left to right)
+      // Shimmer is a child of target, positions are relative to target center (0,0)
+      const halfWidth = shimmer.targetWidth / 2;
+      const streakWidth = shimmer.config.width;
+      const startX = -halfWidth - streakWidth;
+      const endX = halfWidth + streakWidth;
       const currentX = startX + shimmer.progress * (endX - startX);
 
       shimmer.graphic.x = currentX;
-      shimmer.graphic.alpha = shimmer.config.alpha;
-
-      // Update container position to follow target
-      shimmer.container.x = shimmer.target.x;
-      shimmer.container.y = shimmer.target.y;
+      shimmer.graphic.alpha = 1; // Always full opacity
     }
   }
 

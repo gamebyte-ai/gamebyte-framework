@@ -1,6 +1,6 @@
 import { EventEmitter } from 'eventemitter3';
 import { IContainer, IGraphics } from '../../contracts/Graphics.js';
-import { graphics } from '../../graphics/GraphicsEngine.js';
+import { getGraphicsFactory } from './graphics-utils.js';
 
 /**
  * Confetti particle shape types
@@ -86,6 +86,7 @@ export class ConfettiSystem extends EventEmitter {
   private screenWidth: number;
   private screenHeight: number;
   private isActive: boolean = false;
+  private pendingParticles: number = 0; // Track particles being created via setTimeout
 
   constructor(container: IContainer, screenWidth: number = 360, screenHeight: number = 640) {
     super();
@@ -101,12 +102,15 @@ export class ConfettiSystem extends EventEmitter {
   public rain(config: ConfettiConfig = {}): void {
     const cfg = { ...DEFAULT_CONFIG, ...config };
     this.isActive = true;
+    this.pendingParticles = cfg.particleCount; // Track pending particles
 
     for (let i = 0; i < cfg.particleCount; i++) {
       // Stagger particle creation over time for natural rain effect
       const delay = (i / cfg.particleCount) * 500;
 
       setTimeout(() => {
+        this.pendingParticles--; // Decrement pending count
+
         if (!this.isActive) return;
 
         const particle = this.createParticle(
@@ -188,7 +192,7 @@ export class ConfettiSystem extends EventEmitter {
     vy: number,
     config: Required<ConfettiConfig>
   ): ConfettiParticle {
-    const factory = graphics();
+    const factory = getGraphicsFactory();
     const graphic = factory.createGraphics();
 
     const color = config.colors[Math.floor(Math.random() * config.colors.length)];
@@ -220,19 +224,16 @@ export class ConfettiSystem extends EventEmitter {
 
   /**
    * Draw particle shape
+   * Uses Pixi.js v8 Graphics API with chained methods
    */
   private drawParticleShape(graphic: IGraphics, shape: ConfettiShape, size: number, color: number): void {
-    graphic.clear();
-
     switch (shape) {
       case 'rect':
-        graphic.rect(-size / 2, -size / 4, size, size / 2);
-        graphic.fill({ color });
+        graphic.rect(-size / 2, -size / 4, size, size / 2).fill(color);
         break;
 
       case 'circle':
-        graphic.circle(0, 0, size / 2);
-        graphic.fill({ color });
+        graphic.circle(0, 0, size / 2).fill(color);
         break;
 
       case 'star':
@@ -256,8 +257,8 @@ export class ConfettiSystem extends EventEmitter {
       points.push(cy + Math.sin(angle) * r);
     }
 
-    graphic.poly(points);
-    graphic.fill({ color });
+    // Pixi v8: poly().fill(color) with direct color number
+    graphic.poly(points).fill(color);
   }
 
   /**
@@ -302,8 +303,8 @@ export class ConfettiSystem extends EventEmitter {
       }
     }
 
-    // Check if all particles are done
-    if (this.isActive && this.particles.length === 0) {
+    // Check if all particles are done (and no pending particles being created)
+    if (this.isActive && this.particles.length === 0 && this.pendingParticles <= 0) {
       this.isActive = false;
       this.emit('complete');
     }
