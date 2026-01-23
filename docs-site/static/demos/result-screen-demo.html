@@ -59,21 +59,20 @@
                     const centerY = 200;
                     const rayCount = 12;
 
+                    // Draw rays centered at (0, 0)
                     for (let i = 0; i < rayCount; i++) {
                         const angle = (i / rayCount) * Math.PI * 2;
                         const nextAngle = ((i + 0.5) / rayCount) * Math.PI * 2;
 
-                        rays.moveTo(centerX, centerY);
-                        rays.lineTo(
-                            centerX + Math.cos(angle) * 400,
-                            centerY + Math.sin(angle) * 400
-                        );
-                        rays.lineTo(
-                            centerX + Math.cos(nextAngle) * 400,
-                            centerY + Math.sin(nextAngle) * 400
-                        );
+                        rays.moveTo(0, 0);
+                        rays.lineTo(Math.cos(angle) * 400, Math.sin(angle) * 400);
+                        rays.lineTo(Math.cos(nextAngle) * 400, Math.sin(nextAngle) * 400);
                         rays.fill({ color: 0xFFD700, alpha: 0.08 });
                     }
+
+                    // Position rays at center
+                    rays.x = centerX;
+                    rays.y = centerY;
                     stage.addChild(rays);
 
                     // Animate rays rotation
@@ -255,14 +254,17 @@
                     icon.anchor.set(0.5);
                     iconContainer.addChild(icon);
 
-                    // Add shimmer to reward icons
+                    // Add shimmer and starburst to reward icons
                     setTimeout(() => {
                         if (reward.type === 'gold') {
                             celebration.addShimmer(iconContainer, 'gold');
+                            celebration.addStarburst(iconContainer, 'gold');
                         } else if (reward.type === 'gem') {
                             celebration.addShimmer(iconContainer, 'gem');
+                            celebration.addStarburst(iconContainer, 'gem');
                         } else if (reward.type === 'star') {
                             celebration.addShimmer(iconContainer, 'star');
+                            celebration.addStarburst(iconContainer, 'star');
                         }
                     }, 1500 + i * 200);
 

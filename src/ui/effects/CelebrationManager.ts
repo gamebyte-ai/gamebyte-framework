@@ -2,6 +2,7 @@ import { EventEmitter } from 'eventemitter3';
 import { IContainer, IDisplayObject } from '../../contracts/Graphics.js';
 import { ConfettiSystem, ConfettiConfig } from './ConfettiSystem.js';
 import { ShineEffect, ShimmerConfig, SparkleConfig, ShimmerInstance } from './ShineEffect.js';
+import { StarBurstEffect, StarBurstConfig, StarBurstInstance } from './StarBurstEffect.js';
 
 /**
  * Celebration configuration
@@ -122,6 +123,38 @@ export const CelebrationPresets = {
     alpha: 0.45,
     loopDelay: 1200,
   },
+
+  /** Gold starburst - for coins, gold items */
+  GOLD_STARBURST: {
+    radius: 35,
+    count: 4,
+    colors: [0xFFFFFF, 0xFFF8DC, 0xFFD700],
+    duration: 800,
+  },
+
+  /** Gem starburst - for gems, crystals */
+  GEM_STARBURST: {
+    radius: 30,
+    count: 3,
+    colors: [0xFFFFFF, 0x00FFFF, 0xFF69B4],
+    duration: 700,
+  },
+
+  /** Star starburst - for stars, achievements */
+  STAR_STARBURST: {
+    radius: 40,
+    count: 5,
+    colors: [0xFFFFFF, 0xFFF8DC],
+    duration: 900,
+  },
+
+  /** Victory starburst - intense celebration */
+  VICTORY_STARBURST: {
+    radius: 50,
+    count: 6,
+    colors: [0xFFFFFF, 0xFFD700, 0x4CAF50],
+    duration: 1000,
+  },
 };
 
 /**
@@ -158,8 +191,10 @@ export class CelebrationManager extends EventEmitter {
   private container: IContainer;
   private confetti: ConfettiSystem;
   private shine: ShineEffect;
+  private starburst: StarBurstEffect;
   private audioManager?: ICelebrationAudioManager;
   private shimmerInstances: Map<IDisplayObject, ShimmerInstance> = new Map();
+  private starburstInstances: Map<IDisplayObject, StarBurstInstance> = new Map();
 
   constructor(
     container: IContainer,
@@ -173,10 +208,13 @@ export class CelebrationManager extends EventEmitter {
 
     this.confetti = new ConfettiSystem(container, screenWidth, screenHeight);
     this.shine = new ShineEffect(container);
+    this.starburst = new StarBurstEffect(container);
 
     // Forward events
     this.confetti.on('complete', () => this.emit('confetti-complete'));
     this.shine.on('sparkle-complete', (data) => this.emit('sparkle-complete', data));
+    this.starburst.on('zone-added', (target) => this.emit('starburst-added', target));
+    this.starburst.on('zone-removed', () => this.emit('starburst-removed'));
   }
 
   /**
@@ -380,6 +418,60 @@ export class CelebrationManager extends EventEmitter {
   }
 
   /**
+   * Add starburst effect to a valuable item
+   * Creates continuous sparkle particles around the target
+   *
+   * @param target Display object to add starburst to
+   * @param type Type of starburst preset ('gold', 'gem', 'star', 'victory') or custom config
+   */
+  public addStarburst(
+    target: IDisplayObject,
+    type: 'gold' | 'gem' | 'star' | 'victory' | StarBurstConfig = 'gold'
+  ): StarBurstInstance {
+    // Remove existing starburst on this target
+    this.removeStarburst(target);
+
+    let config: StarBurstConfig;
+
+    if (typeof type === 'string') {
+      switch (type) {
+        case 'gold':
+          config = CelebrationPresets.GOLD_STARBURST;
+          break;
+        case 'gem':
+          config = CelebrationPresets.GEM_STARBURST;
+          break;
+        case 'star':
+          config = CelebrationPresets.STAR_STARBURST;
+          break;
+        case 'victory':
+          config = CelebrationPresets.VICTORY_STARBURST;
+          break;
+        default:
+          config = CelebrationPresets.GOLD_STARBURST;
+      }
+    } else {
+      config = type;
+    }
+
+    const instance = this.starburst.addZone(target, config);
+    this.starburstInstances.set(target, instance);
+
+    return instance;
+  }
+
+  /**
+   * Remove starburst from a target
+   */
+  public removeStarburst(target: IDisplayObject): void {
+    const instance = this.starburstInstances.get(target);
+    if (instance) {
+      instance.stop();
+      this.starburstInstances.delete(target);
+    }
+  }
+
+  /**
    * Trigger sparkle effect at a point
    */
   public async sparkle(x: number, y: number, config?: SparkleConfig): Promise<void> {
@@ -426,6 +518,7 @@ export class CelebrationManager extends EventEmitter {
   public update(deltaTime: number): void {
     this.confetti.update(deltaTime);
     this.shine.update(deltaTime);
+    this.starburst.update(deltaTime);
   }
 
   /**
@@ -441,10 +534,16 @@ export class CelebrationManager extends EventEmitter {
   public clear(): void {
     this.confetti.clear();
     this.shine.clear();
+    this.starburst.clear();
 
     // Clear shimmer instances
     for (const [target] of this.shimmerInstances) {
       this.removeShimmer(target);
+    }
+
+    // Clear starburst instances
+    for (const [target] of this.starburstInstances) {
+      this.removeStarburst(target);
     }
 
     this.emit('cleared');
@@ -457,6 +556,7 @@ export class CelebrationManager extends EventEmitter {
     this.clear();
     this.confetti.destroy();
     this.shine.destroy();
+    this.starburst.destroy();
     this.removeAllListeners();
   }
 }

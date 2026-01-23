@@ -90,6 +90,41 @@ inputManager.on('swipe', (direction) => { /* ... */ });
 
 ---
 
+## UI Effects
+
+### CelebrationManager (All-in-one)
+
+```typescript
+const celebration = new CelebrationManager(stage, width, height);
+game.on('update', (dt) => celebration.update(dt));
+
+celebration.victory();                          // Confetti rain
+celebration.starEarned(x, y, 1);               // Burst + sparkle
+celebration.addShimmer(icon, 'gold');          // Light sweep
+celebration.addStarburst(icon, 'gold');        // Sparkle particles
+```
+
+### Effect Presets
+
+| Type | Presets | Usage |
+|------|---------|-------|
+| Shimmer | `'gold'`, `'gem'`, `'star'` | `addShimmer(target, preset)` |
+| Starburst | `'gold'`, `'gem'`, `'star'`, `'victory'` | `addStarburst(target, preset)` |
+| Confetti | Built into `victory()`, `starEarned()`, etc. | Auto |
+
+### Individual Systems
+
+```typescript
+// Direct access (when needed)
+const confetti = new ConfettiSystem(container, w, h);
+const shine = new ShineEffect(container);
+const starburst = new StarBurstEffect(container);
+```
+
+See `docs/agent-guide/UI_EFFECTS.md` for full documentation.
+
+---
+
 ## Default Values
 
 | Setting | Default | Override |
@@ -109,6 +144,7 @@ inputManager.on('swipe', (direction) => { /* ... */ });
 |------|------|---------|
 | Core API | `docs/agent-guide/CORE_API.md` | Load first |
 | Quick Ref | `docs/agent-guide/QUICK_REFERENCE.md` | Command cheatsheet |
+| UI Effects | `docs/agent-guide/UI_EFFECTS.md` | Celebration/sparkle effects |
 | Examples | `docs/examples/*.md` | Component examples |
 | Architecture | `docs/architecture/*.md` | System design |
 | Components | `docs/components/*.md` | Component docs |
@@ -133,6 +169,9 @@ grep -r "UIButton\|UIPanel\|ArcheroMenu" docs/
 
 # Find mobile optimization docs
 grep -r "mobile.*optimi\|createMobileGame" docs/
+
+# Find effects/celebration docs
+grep -r "CelebrationManager\|Confetti\|Shimmer\|StarBurst" docs/
 ```
 
 ---

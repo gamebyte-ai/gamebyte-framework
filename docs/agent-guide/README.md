@@ -8,6 +8,9 @@ AI-optimized documentation for autonomous agents and code assistants.
 - `CORE_API.md` - Essential API (~2000 tokens)
 - `QUICK_REFERENCE.md` - Command cheatsheet (~500 tokens)
 
+**Tier 1.5 - Feature Modules (Load when relevant)**
+- `UI_EFFECTS.md` - Celebration effects, sparkles, confetti (~1500 tokens)
+
 **Tier 2 - Discoverable Guides**
 - Search with: `grep -r "keyword" docs/guides/`
 - Or: Semantic search in RAG system
