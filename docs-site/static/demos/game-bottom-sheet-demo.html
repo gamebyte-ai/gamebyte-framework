@@ -15,7 +15,7 @@
     <script src="/gamebyte.umd.js"></script>
 
     <script>
-        const { createGame } = GameByteFramework;
+        const { createGame, CelebrationManager } = GameByteFramework;
 
         const CONFIG = { width: 360, height: 640 };
 
@@ -25,11 +25,15 @@
         document.body.appendChild(canvas);
 
         const game = createGame();
+        let celebration = null;
 
         (async () => {
             await game.initialize(canvas, '2d');
             const renderer = game.make('renderer');
             const stage = renderer.getStage();
+
+            // Create celebration manager
+            celebration = new CelebrationManager(stage, CONFIG.width, CONFIG.height);
 
             // Background
             const bg = new PIXI.Graphics();
@@ -37,10 +41,27 @@
             bg.fill(0x1a1a2e);
             stage.addChild(bg);
 
-            // Title
+            // Title with decoration
+            const titleDecorLeft = new PIXI.Graphics();
+            titleDecorLeft.roundRect(30, 60, 50, 3, 2);
+            titleDecorLeft.fill(0x6366f1);
+            stage.addChild(titleDecorLeft);
+
+            const titleDecorRight = new PIXI.Graphics();
+            titleDecorRight.roundRect(CONFIG.width - 80, 60, 50, 3, 2);
+            titleDecorRight.fill(0x6366f1);
+            stage.addChild(titleDecorRight);
+
             const pageTitle = new PIXI.Text({
                 text: 'Select an Item',
-                style: { fontFamily: 'Arial', fontSize: 24, fontWeight: 'bold', fill: 0xffffff }
+                style: {
+                    fontFamily: 'Arial',
+                    fontSize: 24,
+                    fontWeight: 'bold',
+                    fill: 0xffffff,
+                    dropShadow: true,
+                    dropShadowDistance: 2
+                }
             });
             pageTitle.anchor.set(0.5);
             pageTitle.x = CONFIG.width / 2;
@@ -49,12 +70,24 @@
 
             // Show Bottom Sheet buttons
             const sizes = [
-                { label: 'Half Sheet', height: 'half' },
-                { label: 'Full Sheet', height: 'full' },
-                { label: 'Auto Sheet', height: 'auto' }
+                { label: 'Half Sheet', height: 'half', icon: '📋' },
+                { label: 'Full Sheet', height: 'full', icon: '📄' },
+                { label: 'Auto Sheet', height: 'auto', icon: '📑' }
             ];
 
             sizes.forEach((size, i) => {
+                // Button glow
+                const btnGlow = new PIXI.Graphics();
+                btnGlow.roundRect(35, 115 + i * 70, CONFIG.width - 70, 60, 14);
+                btnGlow.fill({ color: 0x6366f1, alpha: 0.2 });
+                stage.addChild(btnGlow);
+
+                // Button border
+                const btnBorder = new PIXI.Graphics();
+                btnBorder.roundRect(38, 118 + i * 70, CONFIG.width - 76, 57, 13);
+                btnBorder.fill(0x4F51C5);
+                stage.addChild(btnBorder);
+
                 const btn = new PIXI.Graphics();
                 btn.roundRect(40, 120 + i * 70, CONFIG.width - 80, 55, 12);
                 btn.fill(0x6366f1);
@@ -62,12 +95,20 @@
                 btn.cursor = 'pointer';
                 stage.addChild(btn);
 
+                const icon = new PIXI.Text({
+                    text: size.icon,
+                    style: { fontSize: 20 }
+                });
+                icon.x = 60;
+                icon.y = 135 + i * 70;
+                stage.addChild(icon);
+
                 const text = new PIXI.Text({
                     text: size.label,
                     style: { fontFamily: 'Arial', fontSize: 18, fontWeight: 'bold', fill: 0xffffff }
                 });
                 text.anchor.set(0.5);
-                text.x = CONFIG.width / 2;
+                text.x = CONFIG.width / 2 + 10;
                 text.y = 147 + i * 70;
                 stage.addChild(text);
 
@@ -94,6 +135,7 @@
             let isDragging = false;
             let dragStartY = 0;
             let sheetStartY = 0;
+            let itemContainers = [];
 
             function getSheetHeight(heightOption) {
                 switch (heightOption) {
@@ -109,9 +151,22 @@
                 while (sheet.children.length > 0) {
                     sheet.removeChildAt(0);
                 }
+                itemContainers = [];
 
                 sheetHeight = height;
                 sheet.y = CONFIG.height;
+
+                // Sheet outer glow
+                const sheetGlow = new PIXI.Graphics();
+                sheetGlow.roundRect(-5, -5, CONFIG.width + 10, sheetHeight + 60, 28);
+                sheetGlow.fill({ color: 0x6366f1, alpha: 0.15 });
+                sheet.addChild(sheetGlow);
+
+                // Sheet border
+                const sheetBorder = new PIXI.Graphics();
+                sheetBorder.roundRect(-2, -2, CONFIG.width + 4, sheetHeight + 54, 26);
+                sheetBorder.fill(0x4d4d6c);
+                sheet.addChild(sheetBorder);
 
                 // Sheet background
                 const sheetBg = new PIXI.Graphics();
@@ -119,10 +174,15 @@
                 sheetBg.fill(0x2d2d44);
                 sheet.addChild(sheetBg);
 
-                // Handle
+                // Handle with highlight
+                const handleBg = new PIXI.Graphics();
+                handleBg.roundRect(CONFIG.width / 2 - 30, 10, 60, 8, 4);
+                handleBg.fill(0x444455);
+                sheet.addChild(handleBg);
+
                 const handle = new PIXI.Graphics();
                 handle.roundRect(CONFIG.width / 2 - 25, 12, 50, 5, 3);
-                handle.fill(0x666666);
+                handle.fill(0x666677);
                 sheet.addChild(handle);
 
                 // Drag area
@@ -136,14 +196,26 @@
                 // Title
                 const title = new PIXI.Text({
                     text: 'Select Item',
-                    style: { fontFamily: 'Arial', fontSize: 22, fontWeight: 'bold', fill: 0xffffff }
+                    style: {
+                        fontFamily: 'Arial',
+                        fontSize: 22,
+                        fontWeight: 'bold',
+                        fill: 0xffffff,
+                        dropShadow: true,
+                        dropShadowDistance: 1
+                    }
                 });
                 title.anchor.set(0.5, 0);
                 title.x = CONFIG.width / 2;
                 title.y = 35;
                 sheet.addChild(title);
 
-                // Close button
+                // Close button with glow
+                const closeBtnGlow = new PIXI.Graphics();
+                closeBtnGlow.circle(CONFIG.width - 30, 45, 20);
+                closeBtnGlow.fill({ color: 0x4b5563, alpha: 0.3 });
+                sheet.addChild(closeBtnGlow);
+
                 const closeBtn = new PIXI.Graphics();
                 closeBtn.circle(CONFIG.width - 30, 45, 16);
                 closeBtn.fill(0x4b5563);
@@ -164,50 +236,100 @@
 
                 // Items
                 const items = [
-                    { icon: '⚔️', name: 'Sword', desc: 'Attack +10' },
-                    { icon: '🛡️', name: 'Shield', desc: 'Defense +15' },
-                    { icon: '🧪', name: 'Potion', desc: 'Health +50' },
-                    { icon: '🔮', name: 'Magic Orb', desc: 'Magic +20' },
-                    { icon: '👟', name: 'Boots', desc: 'Speed +5' }
+                    { icon: '⚔️', name: 'Sword', desc: 'Attack +10', type: 'weapon', rarity: 'common' },
+                    { icon: '🛡️', name: 'Shield', desc: 'Defense +15', type: 'armor', rarity: 'common' },
+                    { icon: '🧪', name: 'Potion', desc: 'Health +50', type: 'consumable', rarity: 'common' },
+                    { icon: '🔮', name: 'Magic Orb', desc: 'Magic +20', type: 'accessory', rarity: 'rare' },
+                    { icon: '👟', name: 'Boots', desc: 'Speed +5', type: 'armor', rarity: 'common' }
                 ];
 
                 const visibleItems = height >= 400 ? items : items.slice(0, 3);
 
                 visibleItems.forEach((item, i) => {
+                    // Item container for shimmer
+                    const itemContainer = new PIXI.Container();
+                    itemContainer.x = 0;
+                    itemContainer.y = 80 + i * 60;
+                    sheet.addChild(itemContainer);
+                    itemContainers.push(itemContainer);
+
+                    // Item border (highlight for rare items)
+                    const itemBorder = new PIXI.Graphics();
+                    itemBorder.roundRect(18, 0, CONFIG.width - 36, 52, 11);
+                    itemBorder.fill(item.rarity === 'rare' ? 0x8B5CF6 : 0x4d4d6c);
+                    itemContainer.addChild(itemBorder);
+
+                    // Item background
                     const itemBg = new PIXI.Graphics();
-                    itemBg.roundRect(20, 80 + i * 60, CONFIG.width - 40, 50, 10);
+                    itemBg.roundRect(20, 2, CONFIG.width - 40, 48, 10);
                     itemBg.fill(0x3d3d5c);
                     itemBg.eventMode = 'static';
                     itemBg.cursor = 'pointer';
-                    sheet.addChild(itemBg);
+                    itemContainer.addChild(itemBg);
+
+                    // Icon container
+                    const iconContainer = new PIXI.Container();
+                    iconContainer.x = 45;
+                    iconContainer.y = 26;
+                    itemContainer.addChild(iconContainer);
 
                     const icon = new PIXI.Text({
                         text: item.icon,
                         style: { fontSize: 24 }
                     });
-                    icon.x = 40;
-                    icon.y = 90 + i * 60;
-                    sheet.addChild(icon);
+                    icon.anchor.set(0.5);
+                    iconContainer.addChild(icon);
+
+                    // Add shimmer to rare items
+                    if (item.rarity === 'rare') {
+                        celebration.addShimmer(iconContainer, 'gem');
+                    }
 
                     const name = new PIXI.Text({
                         text: item.name,
-                        style: { fontFamily: 'Arial', fontSize: 16, fontWeight: 'bold', fill: 0xffffff }
+                        style: {
+                            fontFamily: 'Arial',
+                            fontSize: 16,
+                            fontWeight: 'bold',
+                            fill: item.rarity === 'rare' ? 0xC4B5FD : 0xffffff
+                        }
                     });
-                    name.x = 80;
-                    name.y = 88 + i * 60;
-                    sheet.addChild(name);
+                    name.x = 70;
+                    name.y = 10;
+                    itemContainer.addChild(name);
 
                     const desc = new PIXI.Text({
                         text: item.desc,
                         style: { fontFamily: 'Arial', fontSize: 12, fill: 0x888888 }
                     });
-                    desc.x = 80;
-                    desc.y = 108 + i * 60;
-                    sheet.addChild(desc);
+                    desc.x = 70;
+                    desc.y = 30;
+                    itemContainer.addChild(desc);
+
+                    // Rarity badge for rare items
+                    if (item.rarity === 'rare') {
+                        const badge = new PIXI.Graphics();
+                        badge.roundRect(CONFIG.width - 75, 15, 40, 20, 5);
+                        badge.fill(0x8B5CF6);
+                        itemContainer.addChild(badge);
+
+                        const badgeText = new PIXI.Text({
+                            text: 'Rare',
+                            style: { fontFamily: 'Arial', fontSize: 10, fontWeight: 'bold', fill: 0xffffff }
+                        });
+                        badgeText.anchor.set(0.5);
+                        badgeText.x = CONFIG.width - 55;
+                        badgeText.y = 25;
+                        itemContainer.addChild(badgeText);
+                    }
 
                     itemBg.on('pointerdown', () => {
+                        // Sparkle effect on item selection
+                        const worldY = sheet.y + itemContainer.y + 26;
+                        celebration.rewardReceived(CONFIG.width / 2, worldY);
+
                         console.log('Selected:', item.name);
-                        hideBottomSheet();
+                        setTimeout(() => hideBottomSheet(), 200);
                     });
                 });
 
@@ -301,6 +423,11 @@
             instr.x = CONFIG.width / 2;
             instr.y = CONFIG.height - 30;
             stage.addChild(instr);
+
+            // Game loop for celebration updates
+            game.on('update', (deltaTime) => {
+                celebration.update(deltaTime);
+            });
 
             game.start();
         })();

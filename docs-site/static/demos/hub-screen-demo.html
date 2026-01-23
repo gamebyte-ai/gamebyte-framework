@@ -15,7 +15,7 @@
     <script src="/gamebyte.umd.js"></script>
 
     <script>
-        const { createGame } = GameByteFramework;
+        const { createGame, CelebrationManager } = GameByteFramework;
 
         const CONFIG = { width: 360, height: 640 };
 
@@ -30,11 +30,15 @@
         let coins = 1234;
         let gems = 50;
         let currentTab = 'play';
+        let celebration = null;
 
         (async () => {
             await game.initialize(canvas, '2d');
             const renderer = game.make('renderer');
             const stage = renderer.getStage();
+
+            // Create celebration manager
+            celebration = new CelebrationManager(stage, CONFIG.width, CONFIG.height);
 
             // Background
             const bg = new PIXI.Graphics();
@@ -42,22 +46,35 @@
             bg.fill(0x1a1a2e);
             stage.addChild(bg);
 
-            // TopBar background
+            // TopBar background with gradient effect
+            const topBarShadow = new PIXI.Graphics();
+            topBarShadow.rect(0, 70, CONFIG.width, 4);
+            topBarShadow.fill({ color: 0x000000, alpha: 0.3 });
+            stage.addChild(topBarShadow);
+
             const topBar = new PIXI.Graphics();
             topBar.rect(0, 0, CONFIG.width, 70);
             topBar.fill(0x2d2d44);
             stage.addChild(topBar);
 
-            // Coins display
+            // Coins display with shimmer
             const coinBg = new PIXI.Graphics();
             coinBg.roundRect(10, 15, 100, 40, 20);
             coinBg.fill(0x3d3d5c);
             stage.addChild(coinBg);
 
+            // Coin icon container for shimmer
+            const coinIconContainer = new PIXI.Container();
+            coinIconContainer.x = 30;
+            coinIconContainer.y = 35;
+            stage.addChild(coinIconContainer);
+
             const coinIcon = new PIXI.Text({ text: '🪙', style: { fontSize: 22 } });
-            coinIcon.x = 20;
-            coinIcon.y = 22;
-            stage.addChild(coinIcon);
+            coinIcon.anchor.set(0.5);
+            coinIconContainer.addChild(coinIcon);
+
+            // Add shimmer to coin icon
+            celebration.addShimmer(coinIconContainer, 'gold');
 
             const coinText = new PIXI.Text({
                 text: coins.toLocaleString(),
@@ -67,16 +84,24 @@
             coinText.y = 28;
             stage.addChild(coinText);
 
-            // Gems display
+            // Gems display with shimmer
             const gemBg = new PIXI.Graphics();
             gemBg.roundRect(120, 15, 90, 40, 20);
             gemBg.fill(0x3d3d5c);
             stage.addChild(gemBg);
 
+            // Gem icon container for shimmer
+            const gemIconContainer = new PIXI.Container();
+            gemIconContainer.x = 140;
+            gemIconContainer.y = 35;
+            stage.addChild(gemIconContainer);
+
             const gemIcon = new PIXI.Text({ text: '💎', style: { fontSize: 20 } });
-            gemIcon.x = 130;
-            gemIcon.y = 23;
-            stage.addChild(gemIcon);
+            gemIcon.anchor.set(0.5);
+            gemIconContainer.addChild(gemIcon);
+
+            // Add shimmer to gem icon
+            celebration.addShimmer(gemIconContainer, 'gem');
 
             const gemText = new PIXI.Text({
                 text: gems.toString(),
@@ -105,7 +130,12 @@
             contentArea.y = 70;
             stage.addChild(contentArea);
 
-            // BottomNav background
+            // BottomNav background with top border
+            const bottomNavBorder = new PIXI.Graphics();
+            bottomNavBorder.rect(0, CONFIG.height - 84, CONFIG.width, 4);
+            bottomNavBorder.fill(0x3d3d5c);
+            stage.addChild(bottomNavBorder);
+
             const bottomNav = new PIXI.Graphics();
             bottomNav.rect(0, CONFIG.height - 80, CONFIG.width, 80);
             bottomNav.fill(0x2d2d44);
@@ -179,34 +209,68 @@
                     title.y = 20;
                     content.addChild(title);
 
-                    // Shop items
+                    // Shop items with coin shimmer
                     const items = [
-                        { name: '100 Coins', price: '💎 10', color: 0xFFD700 },
-                        { name: '500 Coins', price: '💎 45', color: 0xFFD700 },
-                        { name: 'No Ads', price: '$2.99', color: 0x4CAF50 }
+                        { name: '100 Coins', price: '💎 10', color: 0xFFD700, type: 'gold' },
+                        { name: '500 Coins', price: '💎 45', color: 0xFFD700, type: 'gold' },
+                        { name: 'No Ads', price: '$2.99', color: 0x4CAF50, type: 'none' }
                     ];
 
                     items.forEach((item, i) => {
+                        // Card shadow
+                        const cardShadow = new PIXI.Graphics();
+                        cardShadow.roundRect(20, 75 + i * 100, CONFIG.width - 40, 80, 12);
+                        cardShadow.fill(0x1a1a2e);
+                        content.addChild(cardShadow);
+
                         const card = new PIXI.Graphics();
                         card.roundRect(20, 70 + i * 100, CONFIG.width - 40, 80, 12);
                         card.fill(0x2d2d44);
+                        card.eventMode = 'static';
+                        card.cursor = 'pointer';
                         content.addChild(card);
+
+                        // Item icon with shimmer
+                        if (item.type === 'gold') {
+                            const iconContainer = new PIXI.Container();
+                            iconContainer.x = 55;
+                            iconContainer.y = 110 + i * 100;
+                            content.addChild(iconContainer);
+
+                            const itemIcon = new PIXI.Text({ text: '🪙', style: { fontSize: 28 } });
+                            itemIcon.anchor.set(0.5);
+                            iconContainer.addChild(itemIcon);
+
+                            celebration.addShimmer(iconContainer, 'gold');
+                        }
 
                         const name = new PIXI.Text({
                             text: item.name,
                             style: { fontFamily: 'Arial', fontSize: 18, fontWeight: 'bold', fill: item.color }
                         });
-                        name.x = 40;
+                        name.x = item.type === 'gold' ? 85 : 40;
                         name.y = 95 + i * 100;
                         content.addChild(name);
 
+                        // Buy button
+                        const buyBtn = new PIXI.Graphics();
+                        buyBtn.roundRect(CONFIG.width - 100, 85 + i * 100, 60, 30, 8);
+                        buyBtn.fill(0x4CAF50);
+                        content.addChild(buyBtn);
+
                         const price = new PIXI.Text({
                             text: item.price,
-                            style: { fontFamily: 'Arial', fontSize: 16, fill: 0xffffff }
+                            style: { fontFamily: 'Arial', fontSize: 12, fill: 0xffffff }
                         });
-                        price.x = CONFIG.width - 80;
-                        price.y = 98 + i * 100;
+                        price.anchor.set(0.5);
+                        price.x = CONFIG.width - 70;
+                        price.y = 100 + i * 100;
                         content.addChild(price);
+
+                        // Click effect
+                        card.on('pointerdown', () => {
+                            celebration.sparkle(CONFIG.width / 2, 110 + i * 100);
+                        });
                     });
 
                 } else if (tabId === 'play') {
@@ -219,7 +283,17 @@
                     title.y = 120;
                     content.addChild(title);
 
-                    // Play button
+                    // Play button with glow
+                    const playBtnGlow = new PIXI.Graphics();
+                    playBtnGlow.roundRect(55, 175, CONFIG.width - 110, 90, 20);
+                    playBtnGlow.fill({ color: 0x4CAF50, alpha: 0.3 });
+                    content.addChild(playBtnGlow);
+
+                    const playBtnShadow = new PIXI.Graphics();
+                    playBtnShadow.roundRect(60, 185, CONFIG.width - 120, 80, 16);
+                    playBtnShadow.fill(0x2E7D32);
+                    content.addChild(playBtnShadow);
+
                     const playBtn = new PIXI.Graphics();
                     playBtn.roundRect(60, 180, CONFIG.width - 120, 80, 16);
                     playBtn.fill(0x4CAF50);
@@ -236,6 +310,14 @@
                     playText.y = 220;
                     content.addChild(playText);
 
+                    // Click effect - confetti burst
+                    playBtn.on('pointerdown', () => {
+                        celebration.confettiBurst(CONFIG.width / 2, 220, {
+                            particleCount: 30,
+                            colors: [0x4CAF50, 0x6BCB77, 0xFFD700]
+                        });
+                    });
+
                     // Level info
                     const levelText = new PIXI.Text({
                         text: 'Level 5',
@@ -246,7 +328,36 @@
                     levelText.y = 300;
                     content.addChild(levelText);
 
+                    // Stars earned
+                    const starsContainer = new PIXI.Container();
+                    starsContainer.x = CONFIG.width / 2;
+                    starsContainer.y = 340;
+                    content.addChild(starsContainer);
+
+                    for (let i = 0; i < 3; i++) {
+                        const starContainer = new PIXI.Container();
+                        starContainer.x = (i - 1) * 40;
+                        starsContainer.addChild(starContainer);
+
+                        const star = new PIXI.Text({
+                            text: i < 2 ? '⭐' : '☆',
+                            style: { fontSize: 28 }
+                        });
+                        star.anchor.set(0.5);
+                        starContainer.addChild(star);
+
+                        if (i < 2) {
+                            celebration.addShimmer(starContainer, 'star');
+                        }
+                    }
+
                 } else if (tabId === 'profile') {
+                    // Avatar with glow
+                    const avatarGlow = new PIXI.Graphics();
+                    avatarGlow.circle(CONFIG.width / 2, 100, 55);
+                    avatarGlow.fill({ color: 0x6366f1, alpha: 0.3 });
+                    content.addChild(avatarGlow);
+
                     const avatar = new PIXI.Graphics();
                     avatar.circle(CONFIG.width / 2, 100, 50);
                     avatar.fill(0x6366f1);
@@ -275,6 +386,35 @@
                     stats.x = CONFIG.width / 2;
                     stats.y = 220;
                     content.addChild(stats);
+
+                    // Achievements section
+                    const achieveTitle = new PIXI.Text({
+                        text: 'Achievements',
+                        style: { fontFamily: 'Arial', fontSize: 18, fontWeight: 'bold', fill: 0xffffff }
+                    });
+                    achieveTitle.x = 20;
+                    achieveTitle.y = 270;
+                    content.addChild(achieveTitle);
+
+                    // Achievement badges with shimmer
+                    const badges = ['🏆', '🎯', '⚡'];
+                    badges.forEach((badge, i) => {
+                        const badgeContainer = new PIXI.Container();
+                        badgeContainer.x = 50 + i * 60;
+                        badgeContainer.y = 320;
+                        content.addChild(badgeContainer);
+
+                        const badgeBg = new PIXI.Graphics();
+                        badgeBg.circle(0, 0, 25);
+                        badgeBg.fill(0x3d3d5c);
+                        badgeContainer.addChild(badgeBg);
+
+                        const badgeIcon = new PIXI.Text({ text: badge, style: { fontSize: 24 } });
+                        badgeIcon.anchor.set(0.5);
+                        badgeContainer.addChild(badgeIcon);
+
+                        celebration.addShimmer(badgeContainer, 'gold');
+                    });
                 }
 
                 return content;
@@ -300,6 +440,11 @@
                 currentContent = createTabContent(tabId);
                 contentArea.addChild(currentContent);
             }
+
+            // Update celebration effects in game loop
+            game.on('update', (deltaTime) => {
+                celebration.update(deltaTime);
+            });
 
             // Initialize with play tab
             switchTab('play');

@@ -410,6 +410,14 @@ export type { GameModalPanelConfig } from './ui/panels/GameModalPanel';
 export { GameBottomSheet } from './ui/panels/GameBottomSheet';
 export type { GameBottomSheetConfig, BottomSheetHeight } from './ui/panels/GameBottomSheet';
 
+// UI Effects System
+export { ConfettiSystem } from './ui/effects/ConfettiSystem';
+export type { ConfettiConfig, ConfettiShape } from './ui/effects/ConfettiSystem';
+export { ShineEffect } from './ui/effects/ShineEffect';
+export type { ShimmerConfig, SparkleConfig, ShimmerInstance } from './ui/effects/ShineEffect';
+export { CelebrationManager, CelebrationPresets } from './ui/effects/CelebrationManager';
+export type { CelebrationConfig, ICelebrationAudioManager } from './ui/effects/CelebrationManager';
+
 // UI Input System
 export { GameByteUIInputSystem } from './ui/input/UIInputSystem';
 

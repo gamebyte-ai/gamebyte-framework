@@ -15,7 +15,7 @@
     <script src="/gamebyte.umd.js"></script>
 
     <script>
-        const { createGame } = GameByteFramework;
+        const { createGame, CelebrationManager } = GameByteFramework;
 
         const CONFIG = { width: 400, height: 500 };
 
@@ -25,11 +25,15 @@
         document.body.appendChild(canvas);
 
         const game = createGame();
+        let celebration = null;
 
         (async () => {
             await game.initialize(canvas, '2d');
             const renderer = game.make('renderer');
             const stage = renderer.getStage();
+
+            // Create celebration manager
+            celebration = new CelebrationManager(stage, CONFIG.width, CONFIG.height);
 
             // Background
             const bg = new PIXI.Graphics();
@@ -47,7 +51,17 @@
                 }
             }
 
-            // Show Modal button
+            // Show Modal button with glow effect
+            const btnGlow = new PIXI.Graphics();
+            btnGlow.roundRect(CONFIG.width / 2 - 85, CONFIG.height / 2 - 35, 170, 70, 16);
+            btnGlow.fill({ color: 0x6366f1, alpha: 0.3 });
+            stage.addChild(btnGlow);
+
+            const showBtnBorder = new PIXI.Graphics();
+            showBtnBorder.roundRect(CONFIG.width / 2 - 83, CONFIG.height / 2 - 33, 166, 66, 14);
+            showBtnBorder.fill(0x4F51C5);
+            stage.addChild(showBtnBorder);
+
             const showBtn = new PIXI.Graphics();
             showBtn.roundRect(CONFIG.width / 2 - 80, CONFIG.height / 2 - 30, 160, 60, 12);
             showBtn.fill(0x6366f1);
@@ -82,10 +96,16 @@
             modal.y = CONFIG.height / 2;
             modalOverlay.addChild(modal);
 
+            // Panel outer glow
+            const panelGlow = new PIXI.Graphics();
+            panelGlow.roundRect(-165, -185, 330, 370, 24);
+            panelGlow.fill({ color: 0x6366f1, alpha: 0.2 });
+            modal.addChild(panelGlow);
+
             // Panel background with border
             const panelBorder = new PIXI.Graphics();
-            panelBorder.roundRect(-155, -175, 310, 350, 20);
-            panelBorder.fill(0x3D4F5F);
+            panelBorder.roundRect(-158, -178, 316, 356, 20);
+            panelBorder.fill(0x4d4d6c);
             modal.addChild(panelBorder);
 
             const panelBg = new PIXI.Graphics();
@@ -93,7 +113,17 @@
             panelBg.fill(0x2A3142);
             modal.addChild(panelBg);
 
-            // Title
+            // Title with decoration
+            const titleDecorLeft = new PIXI.Graphics();
+            titleDecorLeft.roundRect(-130, -132, 40, 3, 2);
+            titleDecorLeft.fill(0x6366f1);
+            modal.addChild(titleDecorLeft);
+
+            const titleDecorRight = new PIXI.Graphics();
+            titleDecorRight.roundRect(90, -132, 40, 3, 2);
+            titleDecorRight.fill(0x6366f1);
+            modal.addChild(titleDecorRight);
+
             const title = new PIXI.Text({
                 text: 'Settings',
                 style: {
@@ -109,7 +139,22 @@
             title.y = -130;
             modal.addChild(title);
 
-            // Close button
+            // Settings icon
+            const settingsIcon = new PIXI.Text({
+                text: '⚙️',
+                style: { fontSize: 24 }
+            });
+            settingsIcon.anchor.set(0.5);
+            settingsIcon.x = -70;
+            settingsIcon.y = -130;
+            modal.addChild(settingsIcon);
+
+            // Close button with glow
+            const closeBtnGlow = new PIXI.Graphics();
+            closeBtnGlow.circle(125, -145, 22);
+            closeBtnGlow.fill({ color: 0xE84C4C, alpha: 0.3 });
+            modal.addChild(closeBtnGlow);
+
             const closeBtn = new PIXI.Graphics();
             closeBtn.circle(125, -145, 18);
             closeBtn.fill(0xE84C4C);
@@ -128,22 +173,42 @@
 
             // Content - toggles
             const toggles = [
-                { label: 'Music', value: true, y: -60 },
-                { label: 'Sound Effects', value: true, y: 10 },
-                { label: 'Vibration', value: false, y: 80 }
+                { label: 'Music', icon: '🎵', value: true, y: -60 },
+                { label: 'Sound Effects', icon: '🔊', value: true, y: 10 },
+                { label: 'Vibration', icon: '📳', value: false, y: 80 }
             ];
 
             toggles.forEach((toggle) => {
+                // Row background
+                const rowBg = new PIXI.Graphics();
+                rowBg.roundRect(-130, toggle.y - 18, 260, 50, 10);
+                rowBg.fill({ color: 0x3d3d5c, alpha: 0.5 });
+                modal.addChild(rowBg);
+
+                // Icon
+                const icon = new PIXI.Text({
+                    text: toggle.icon,
+                    style: { fontSize: 20 }
+                });
+                icon.x = -110;
+                icon.y = toggle.y - 2;
+                modal.addChild(icon);
+
                 // Label
                 const label = new PIXI.Text({
                     text: toggle.label,
                     style: { fontFamily: 'Arial', fontSize: 18, fill: 0xffffff }
                 });
-                label.x = -120;
+                label.x = -80;
                 label.y = toggle.y;
                 modal.addChild(label);
 
-                // Toggle background
+                // Toggle background with border
+                const toggleBorder = new PIXI.Graphics();
+                toggleBorder.roundRect(68, toggle.y - 7, 64, 34, 17);
+                toggleBorder.fill(toggle.value ? 0x2E7D32 : 0x3d3d5c);
+                modal.addChild(toggleBorder);
+
                 const toggleBg = new PIXI.Graphics();
                 toggleBg.roundRect(70, toggle.y - 5, 60, 30, 15);
                 toggleBg.fill(toggle.value ? 0x4CAF50 : 0x4b5563);
@@ -151,7 +216,12 @@
                 toggleBg.cursor = 'pointer';
                 modal.addChild(toggleBg);
 
-                // Toggle knob
+                // Toggle knob with shadow
+                const knobShadow = new PIXI.Graphics();
+                knobShadow.circle(toggle.value ? 116 : 86, toggle.y + 11, 11);
+                knobShadow.fill({ color: 0x000000, alpha: 0.2 });
+                modal.addChild(knobShadow);
+
                 const knob = new PIXI.Graphics();
                 knob.circle(toggle.value ? 115 : 85, toggle.y + 10, 11);
                 knob.fill(0xffffff);
@@ -159,12 +229,32 @@
 
                 toggleBg.on('pointerdown', () => {
                     toggle.value = !toggle.value;
+
+                    // Update border
+                    toggleBorder.clear();
+                    toggleBorder.roundRect(68, toggle.y - 7, 64, 34, 17);
+                    toggleBorder.fill(toggle.value ? 0x2E7D32 : 0x3d3d5c);
+
+                    // Update background
                     toggleBg.clear();
                     toggleBg.roundRect(70, toggle.y - 5, 60, 30, 15);
                     toggleBg.fill(toggle.value ? 0x4CAF50 : 0x4b5563);
+
+                    // Update knob
+                    knobShadow.clear();
+                    knobShadow.circle(toggle.value ? 116 : 86, toggle.y + 11, 11);
+                    knobShadow.fill({ color: 0x000000, alpha: 0.2 });
+
                     knob.clear();
                     knob.circle(toggle.value ? 115 : 85, toggle.y + 10, 11);
                     knob.fill(0xffffff);
+
+                    // Sparkle effect when enabled
+                    if (toggle.value) {
+                        const sparkleX = modal.x + 100;
+                        const sparkleY = modal.y + toggle.y + 10;
+                        celebration.rewardReceived(sparkleX, sparkleY);
+                    }
                 });
             });
 
@@ -212,6 +302,13 @@
                     animate(dim, { alpha: 0.6 }, 200),
                     animate(modal.scale, { x: 1, y: 1 }, 300, easeOutBack)
                 ]);
+
+                // Small burst celebration when modal opens
+                celebration.confetti.burst(CONFIG.width / 2, CONFIG.height / 2, {
+                    particleCount: 20,
+                    spread: 360,
+                    colors: [0x6366f1, 0x8B5CF6, 0xffffff]
+                });
             }
 
             async function hideModal() {
@@ -235,6 +332,11 @@
             instr.x = CONFIG.width / 2;
             instr.y = CONFIG.height - 30;
             stage.addChild(instr);
+
+            // Game loop for celebration updates
+            game.on('update', (deltaTime) => {
+                celebration.update(deltaTime);
+            });
 
             game.start();
         })();

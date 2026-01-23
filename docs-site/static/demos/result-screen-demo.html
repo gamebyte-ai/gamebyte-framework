@@ -15,7 +15,7 @@
     <script src="/gamebyte.umd.js"></script>
 
     <script>
-        const { createGame } = GameByteFramework;
+        const { createGame, CelebrationManager, CelebrationPresets } = GameByteFramework;
 
         const CONFIG = { width: 360, height: 640 };
 
@@ -27,11 +27,15 @@
         const game = createGame();
 
         let isVictory = true;
+        let celebration = null;
 
         (async () => {
             await game.initialize(canvas, '2d');
             const renderer = game.make('renderer');
             const stage = renderer.getStage();
+
+            // Create celebration manager
+            celebration = new CelebrationManager(stage, CONFIG.width, CONFIG.height);
 
             function createResultScreen(victory) {
                 // Clear stage
@@ -39,26 +43,51 @@
                     stage.removeChildAt(0);
                 }
 
-                // Background
+                // Clear any running effects
+                celebration.clear();
+
+                // Background with gradient effect
                 const bg = new PIXI.Graphics();
                 bg.rect(0, 0, CONFIG.width, CONFIG.height);
                 bg.fill(0x1a1a2e);
                 stage.addChild(bg);
 
-                // Confetti effect (for victory)
+                // Light rays background (for victory)
                 if (victory) {
-                    for (let i = 0; i < 30; i++) {
-                        const confetti = new PIXI.Graphics();
-                        confetti.rect(0, 0, 8, 8);
-                        confetti.fill([0xFFD700, 0xFF6B6B, 0x6BCB77, 0x4D96FF][Math.floor(Math.random() * 4)]);
-                        confetti.x = Math.random() * CONFIG.width;
-                        confetti.y = Math.random() * 200;
-                        confetti.rotation = Math.random() * Math.PI;
-                        stage.addChild(confetti);
+                    const rays = new PIXI.Graphics();
+                    const centerX = CONFIG.width / 2;
+                    const centerY = 200;
+                    const rayCount = 12;
+
+                    for (let i = 0; i < rayCount; i++) {
+                        const angle = (i / rayCount) * Math.PI * 2;
+                        const nextAngle = ((i + 0.5) / rayCount) * Math.PI * 2;
+
+                        rays.moveTo(centerX, centerY);
+                        rays.lineTo(
+                            centerX + Math.cos(angle) * 400,
+                            centerY + Math.sin(angle) * 400
+                        );
+                        rays.lineTo(
+                            centerX + Math.cos(nextAngle) * 400,
+                            centerY + Math.sin(nextAngle) * 400
+                        );
+                        rays.fill({ color: 0xFFD700, alpha: 0.08 });
                     }
+                    stage.addChild(rays);
+
+                    // Animate rays rotation
+                    game.on('update', () => {
+                        rays.rotation += 0.002;
+                    });
                 }
 
-                // Title
+                // Title with glow effect
+                const titleGlow = new PIXI.Graphics();
+                titleGlow.circle(CONFIG.width / 2, 80, 60);
+                titleGlow.fill({ color: victory ? 0x4CAF50 : 0xE84C4C, alpha: 0.3 });
+                stage.addChild(titleGlow);
+
                 const title = new PIXI.Text({
                     text: victory ? 'VICTORY!' : 'DEFEAT',
                     style: {
@@ -68,7 +97,8 @@
                         fill: victory ? 0x4CAF50 : 0xE84C4C,
                         dropShadow: true,
                         dropShadowColor: 0x000000,
-                        dropShadowDistance: 4
+                        dropShadowDistance: 4,
+                        dropShadowBlur: 4
                     }
                 });
                 title.anchor.set(0.5);
@@ -76,29 +106,82 @@
                 title.y = 80;
                 stage.addChild(title);
 
-                // Stars container
+                // Title scale animation
+                let titleScale = 1;
+                let titleScaleDir = 0.02;
+                game.on('update', () => {
+                    titleScale += titleScaleDir;
+                    if (titleScale > 1.05 || titleScale < 0.95) titleScaleDir *= -1;
+                    title.scale.set(titleScale);
+                });
+
+                // Stars container with animated reveal
                 const starsContainer = new PIXI.Container();
                 starsContainer.x = CONFIG.width / 2;
                 starsContainer.y = 160;
                 stage.addChild(starsContainer);
 
                 const starCount = victory ? 3 : 1;
+                const starGraphics = [];
+
                 for (let i = 0; i < 3; i++) {
+                    const starContainer = new PIXI.Container();
+                    starContainer.x = (i - 1) * 60;
+                    starContainer.y = i === 1 ? -10 : 0;
+                    starContainer.scale.set(0); // Start hidden
+
+                    // Star glow (for earned stars)
+                    if (i < starCount) {
+                        const glow = new PIXI.Graphics();
+                        glow.circle(0, 0, 30);
+                        glow.fill({ color: 0xFFD700, alpha: 0.3 });
+                        starContainer.addChild(glow);
+                    }
+
+                    // Star shape
                     const star = new PIXI.Text({
                         text: i < starCount ? '⭐' : '☆',
                         style: { fontSize: i === 1 ? 56 : 44 }
                     });
                     star.anchor.set(0.5);
-                    star.x = (i - 1) * 60;
-                    star.y = i === 1 ? -10 : 0;
-                    starsContainer.addChild(star);
+                    starContainer.addChild(star);
+
+                    starsContainer.addChild(starContainer);
+                    starGraphics.push({ container: starContainer, earned: i < starCount, index: i });
                 }
 
-                // Score display
-                const scoreBg = new PIXI.Graphics();
-                scoreBg.roundRect(CONFIG.width / 2 - 100, 220, 200, 60, 12);
-                scoreBg.fill(0x2d2d44);
-                stage.addChild(scoreBg);
+                // Animate stars appearing with celebration
+                if (victory) {
+                    starGraphics.forEach((starData, i) => {
+                        setTimeout(() => {
+                            // Scale up animation
+                            animateScale(starData.container, 0, 1.2, 200, () => {
+                                animateScale(starData.container, 1.2, 1, 100);
+                            });
+
+                            // Trigger celebration for earned stars
+                            if (starData.earned) {
+                                const worldX = starsContainer.x + starData.container.x;
+                                const worldY = starsContainer.y + starData.container.y;
+                                celebration.starEarned(worldX, worldY, (i + 1));
+                            }
+                        }, 300 + i * 400);
+                    });
+                } else {
+                    // Just show first star immediately for defeat
+                    starGraphics[0].container.scale.set(1);
+                }
+
+                // Score panel with border decoration
+                const scorePanelBorder = new PIXI.Graphics();
+                scorePanelBorder.roundRect(CONFIG.width / 2 - 105, 215, 210, 70, 14);
+                scorePanelBorder.fill(0x3d3d5c);
+                stage.addChild(scorePanelBorder);
+
+                const scorePanel = new PIXI.Graphics();
+                scorePanel.roundRect(CONFIG.width / 2 - 100, 220, 200, 60, 12);
+                scorePanel.fill(0x2d2d44);
+                stage.addChild(scorePanel);
 
                 const scoreLabel = new PIXI.Text({
                     text: 'SCORE',
@@ -128,7 +211,7 @@
                 bestScore.y = 295;
                 stage.addChild(bestScore);
 
-                // Rewards
+                // Rewards section
                 const rewardsTitle = new PIXI.Text({
                     text: 'REWARDS',
                     style: { fontFamily: 'Arial', fontSize: 16, fontWeight: 'bold', fill: 0xffffff }
@@ -139,27 +222,49 @@
                 stage.addChild(rewardsTitle);
 
                 const rewards = victory
-                    ? [{ icon: '🪙', amount: 500 }, { icon: '💎', amount: 10 }, { icon: '⭐', amount: 3 }]
-                    : [{ icon: '🪙', amount: 100 }];
+                    ? [{ icon: '🪙', amount: 500, type: 'gold' }, { icon: '💎', amount: 10, type: 'gem' }, { icon: '⭐', amount: 3, type: 'star' }]
+                    : [{ icon: '🪙', amount: 100, type: 'gold' }];
 
                 const rewardWidth = 80;
                 const totalWidth = rewards.length * rewardWidth;
                 const startX = CONFIG.width / 2 - totalWidth / 2 + rewardWidth / 2;
 
                 rewards.forEach((reward, i) => {
+                    // Reward card border
+                    const rewardBorder = new PIXI.Graphics();
+                    rewardBorder.roundRect(startX + i * rewardWidth - 33, 362, 66, 76, 12);
+                    rewardBorder.fill(0x4d4d6c);
+                    stage.addChild(rewardBorder);
+
+                    // Reward card
                     const rewardBg = new PIXI.Graphics();
                     rewardBg.roundRect(startX + i * rewardWidth - 30, 365, 60, 70, 10);
                     rewardBg.fill(0x3d3d5c);
                     stage.addChild(rewardBg);
+
+                    // Icon container for shimmer
+                    const iconContainer = new PIXI.Container();
+                    iconContainer.x = startX + i * rewardWidth;
+                    iconContainer.y = 390;
+                    stage.addChild(iconContainer);
 
                     const icon = new PIXI.Text({
                         text: reward.icon,
                         style: { fontSize: 28 }
                     });
                     icon.anchor.set(0.5);
-                    icon.x = startX + i * rewardWidth;
-                    icon.y = 390;
-                    stage.addChild(icon);
+                    iconContainer.addChild(icon);
+
+                    // Add shimmer to reward icons
+                    setTimeout(() => {
+                        if (reward.type === 'gold') {
+                            celebration.addShimmer(iconContainer, 'gold');
+                        } else if (reward.type === 'gem') {
+                            celebration.addShimmer(iconContainer, 'gem');
+                        } else if (reward.type === 'star') {
+                            celebration.addShimmer(iconContainer, 'star');
+                        }
+                    }, 1500 + i * 200);
 
                     const amount = new PIXI.Text({
                         text: `+${reward.amount}`,
@@ -171,8 +276,13 @@
                     stage.addChild(amount);
                 });
 
-                // Buttons
+                // Buttons with gradient effect
                 // Retry button
+                const retryBtnShadow = new PIXI.Graphics();
+                retryBtnShadow.roundRect(40, 485, 130, 55, 12);
+                retryBtnShadow.fill(0x2a2a3a);
+                stage.addChild(retryBtnShadow);
+
                 const retryBtn = new PIXI.Graphics();
                 retryBtn.roundRect(40, 480, 130, 55, 12);
                 retryBtn.fill(0x4b5563);
@@ -189,7 +299,12 @@
                 retryText.y = 507;
                 stage.addChild(retryText);
 
-                // Next/Home button
+                // Next/Home button with color
+                const nextBtnShadow = new PIXI.Graphics();
+                nextBtnShadow.roundRect(190, 485, 130, 55, 12);
+                nextBtnShadow.fill(victory ? 0x2E7D32 : 0x3949AB);
+                stage.addChild(nextBtnShadow);
+
                 const nextBtn = new PIXI.Graphics();
                 nextBtn.roundRect(190, 480, 130, 55, 12);
                 nextBtn.fill(victory ? 0x4CAF50 : 0x6366f1);
@@ -227,7 +342,38 @@
                     isVictory = !isVictory;
                     createResultScreen(isVictory);
                 });
+
+                // Trigger victory celebration
+                if (victory) {
+                    setTimeout(() => {
+                        celebration.victory();
+                    }, 100);
+                }
             }
+
+            // Helper function for scale animation
+            function animateScale(target, from, to, duration, onComplete) {
+                const startTime = Date.now();
+                const animate = () => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+                    const scale = from + (to - from) * eased;
+                    target.scale.set(scale);
+
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    } else if (onComplete) {
+                        onComplete();
+                    }
+                };
+                animate();
+            }
+
+            // Game loop for celebration updates
+            game.on('update', (deltaTime) => {
+                celebration.update(deltaTime);
+            });
 
             createResultScreen(true);
             game.start();
