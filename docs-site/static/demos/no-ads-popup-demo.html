@@ -381,11 +381,15 @@
                     stage.addChild(xMark);
                 }
 
-                // Feature text
+                // Feature text (shadow yok)
                 const featureText = new PIXI.Text({
                     text: feature.text,
                     style: {
-                        ...createTextStyle(15),
+                        fontFamily: 'Arial Black, Arial',
+                        fontSize: 15,
+                        fontWeight: '900',
+                        fill: 0xffffff,
+                        stroke: { color: 0x1a2a3a, width: 3 },
                         lineHeight: 18
                     }
                 });
