@@ -174,17 +174,18 @@
                 0 0 0 3px #b82030;
         }
 
-        /* Çapraz Çizgi */
+        /* Çapraz Çizgi - Sol üstten sağ alta (\) */
         .prohibition-line {
             position: absolute;
-            width: 115px;
-            height: 22px;
-            background: linear-gradient(180deg, #f05060 0%, #e63946 40%, #c82836 100%);
-            transform: rotate(45deg);
+            width: 120px;
+            height: 24px;
+            background: linear-gradient(180deg, #ff6070 0%, #e63946 40%, #c82836 100%);
+            transform: rotate(-45deg);
             border-radius: 4px;
             box-shadow:
-                0 3px 6px rgba(0,0,0,0.3),
-                inset 0 2px 2px rgba(255,255,255,0.3);
+                0 3px 6px rgba(0,0,0,0.4),
+                inset 0 3px 3px rgba(255,200,200,0.4),
+                inset 0 -2px 3px rgba(0,0,0,0.2);
             z-index: 1;
         }
 
@@ -206,32 +207,132 @@
             letter-spacing: 1px;
         }
 
-        /* Sparkle */
-        .sparkle {
+        /* StarBurst Effect - Framework benzeri yıldız parlamaları */
+        .starburst-container {
             position: absolute;
-            top: 15px;
-            left: 5px;
-            color: white;
-            font-size: 20px;
-            z-index: 11;
-            text-shadow: 0 0 8px white, 0 0 15px white;
-            animation: sparkle-pulse 1.5s ease-in-out infinite;
+            width: 200px;
+            height: 200px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 12;
         }
 
-        .sparkle-small {
+        .star {
             position: absolute;
-            top: 35px;
-            left: 20px;
-            color: white;
-            font-size: 12px;
-            z-index: 11;
-            text-shadow: 0 0 5px white;
-            animation: sparkle-pulse 2s ease-in-out infinite 0.5s;
+            width: 20px;
+            height: 20px;
+            opacity: 0;
         }
 
-        @keyframes sparkle-pulse {
-            0%, 100% { transform: scale(1); opacity: 0.9; }
-            50% { transform: scale(1.2); opacity: 1; }
+        /* 4-pointed star shape */
+        .star::before,
+        .star::after {
+            content: '';
+            position: absolute;
+            background: white;
+            border-radius: 2px;
+        }
+
+        .star::before {
+            width: 100%;
+            height: 30%;
+            top: 35%;
+            left: 0;
+        }
+
+        .star::after {
+            width: 30%;
+            height: 100%;
+            top: 0;
+            left: 35%;
+        }
+
+        /* Individual star positions and animations */
+        .star-1 {
+            top: 10%;
+            left: 5%;
+            animation: starburst-1 2.5s ease-in-out infinite;
+        }
+
+        .star-2 {
+            top: 25%;
+            right: 8%;
+            animation: starburst-2 3s ease-in-out infinite 0.5s;
+        }
+
+        .star-3 {
+            bottom: 20%;
+            left: 10%;
+            animation: starburst-3 2.8s ease-in-out infinite 1s;
+        }
+
+        .star-4 {
+            bottom: 30%;
+            right: 5%;
+            animation: starburst-4 2.2s ease-in-out infinite 1.5s;
+        }
+
+        .star-5 {
+            top: 5%;
+            left: 40%;
+            animation: starburst-5 3.2s ease-in-out infinite 0.8s;
+        }
+
+        .star-6 {
+            bottom: 10%;
+            right: 30%;
+            animation: starburst-6 2.6s ease-in-out infinite 1.2s;
+        }
+
+        /* Gold colored stars */
+        .star-gold::before,
+        .star-gold::after {
+            background: linear-gradient(135deg, #fff 0%, #ffd700 50%, #ffb800 100%);
+        }
+
+        /* StarBurst animations - scale + rotate + fade */
+        @keyframes starburst-1 {
+            0%, 100% { opacity: 0; transform: scale(0.2) rotate(0deg); }
+            15% { opacity: 1; transform: scale(0.5) rotate(20deg); }
+            50% { opacity: 0.9; transform: scale(0.4) rotate(45deg); }
+            85% { opacity: 0.3; transform: scale(0.3) rotate(70deg); }
+        }
+
+        @keyframes starburst-2 {
+            0%, 100% { opacity: 0; transform: scale(0.1) rotate(0deg); }
+            20% { opacity: 1; transform: scale(0.6) rotate(-15deg); }
+            60% { opacity: 0.8; transform: scale(0.5) rotate(-35deg); }
+            90% { opacity: 0; transform: scale(0.2) rotate(-50deg); }
+        }
+
+        @keyframes starburst-3 {
+            0%, 100% { opacity: 0; transform: scale(0.15) rotate(10deg); }
+            25% { opacity: 0.9; transform: scale(0.45) rotate(30deg); }
+            55% { opacity: 1; transform: scale(0.55) rotate(55deg); }
+            80% { opacity: 0.2; transform: scale(0.25) rotate(75deg); }
+        }
+
+        @keyframes starburst-4 {
+            0%, 100% { opacity: 0; transform: scale(0.2) rotate(-5deg); }
+            30% { opacity: 1; transform: scale(0.5) rotate(25deg); }
+            65% { opacity: 0.7; transform: scale(0.4) rotate(50deg); }
+            90% { opacity: 0; transform: scale(0.15) rotate(70deg); }
+        }
+
+        @keyframes starburst-5 {
+            0%, 100% { opacity: 0; transform: scale(0.1) rotate(0deg); }
+            20% { opacity: 0.8; transform: scale(0.35) rotate(20deg); }
+            50% { opacity: 1; transform: scale(0.4) rotate(40deg); }
+            80% { opacity: 0.3; transform: scale(0.2) rotate(60deg); }
+        }
+
+        @keyframes starburst-6 {
+            0%, 100% { opacity: 0; transform: scale(0.15) rotate(-10deg); }
+            25% { opacity: 1; transform: scale(0.5) rotate(15deg); }
+            60% { opacity: 0.6; transform: scale(0.35) rotate(40deg); }
+            85% { opacity: 0; transform: scale(0.1) rotate(55deg); }
         }
 
         /* --- FEATURE BOX --- */
@@ -355,8 +456,16 @@
             <div class="prohibition-ring"></div>
             <div class="prohibition-line"></div>
             <div class="ads-text">ADS</div>
-            <div class="sparkle">✦</div>
-            <div class="sparkle-small">✦</div>
+
+            <!-- StarBurst Effect - Framework benzeri -->
+            <div class="starburst-container">
+                <div class="star star-1"></div>
+                <div class="star star-2 star-gold"></div>
+                <div class="star star-3"></div>
+                <div class="star star-4 star-gold"></div>
+                <div class="star star-5"></div>
+                <div class="star star-6 star-gold"></div>
+            </div>
         </div>
 
         <div class="feature-box">
