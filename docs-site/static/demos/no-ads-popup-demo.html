@@ -593,9 +593,9 @@
             ctaHighlightTop.fill({ color: 0xFFFFFF, alpha: 0.35 }); // Main (#2DE45A) + beyaz = #6DED7C görünümü
             stage.addChild(ctaHighlightTop);
 
-            // 5. Jellybean efekti (sol üst köşe - #E6FCE9)
+            // 5. Jellybean efekti (sol üst köşe - #E6FCE9, küçük)
             const ctaJellybean = new PIXI.Graphics();
-            ctaJellybean.ellipse(ctaX + 30, ctaY + 16, 20, 10);
+            ctaJellybean.ellipse(ctaX + 18, ctaY + 10, 6, 3);
             ctaJellybean.fill(0xE6FCE9);
             stage.addChild(ctaJellybean);
 
