@@ -150,7 +150,7 @@
             // Radial gradient glow (BlurFilter ile smooth)
             const glowCircle = new PIXI.Graphics();
             glowCircle.circle(0, 0, 110); // Blur ile yayılacak
-            glowCircle.fill({ color: 0xFFFAE6, alpha: 0.5 }); // Sarımsı
+            glowCircle.fill({ color: 0xFFFAE6, alpha: 0.75 }); // Sarımsı, %50 daha kuvvetli
             glowCircle.x = raysCenterX;
             glowCircle.y = raysCenterY;
             glowCircle.filters = [new PIXI.BlurFilter({ strength: 60, quality: 4 })];
