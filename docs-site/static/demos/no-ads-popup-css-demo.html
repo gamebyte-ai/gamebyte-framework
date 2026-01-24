@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>No Ads Modal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-top: #6DD5FA;
+            --bg-bottom: #2980B9;
+            --modal-border: #0D2B45;
+            --text-stroke: #000;
+            --btn-green-top: #A8FF78;
+            --btn-green-bottom: #78FF44;
+            --btn-border: #2E8B18;
+            --card-bg: rgba(26, 88, 140, 0.4);
+        }
+
+        body {
+            background-color: #1a1a2e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Lilita One', cursive;
+        }
+
+        /* --- ANA MODAL GÖVDESİ --- */
+        .modal-container {
+            position: relative;
+            width: 340px;
+            background: linear-gradient(180deg, #87CEFA 0%, #4FA3F7 100%);
+            border-radius: 40px;
+            border: 4px solid var(--modal-border);
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            overflow: hidden;
+            text-align: center;
+        }
+
+        /* Sunburst (Işın) Efekti */
+        .sunburst {
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(
+                from 0deg,
+                rgba(255,255,255,0.1) 0deg 20deg,
+                transparent 20deg 40deg,
+                rgba(255,255,255,0.1) 40deg 60deg,
+                transparent 60deg 80deg,
+                rgba(255,255,255,0.1) 80deg 100deg,
+                transparent 100deg 120deg,
+                rgba(255,255,255,0.1) 120deg 140deg,
+                transparent 140deg 160deg,
+                rgba(255,255,255,0.1) 160deg 180deg,
+                transparent 180deg 200deg,
+                rgba(255,255,255,0.1) 200deg 220deg,
+                transparent 220deg 240deg,
+                rgba(255,255,255,0.1) 240deg 260deg,
+                transparent 260deg 280deg,
+                rgba(255,255,255,0.1) 280deg 300deg,
+                transparent 300deg 320deg,
+                rgba(255,255,255,0.1) 320deg 340deg,
+                transparent 340deg 360deg
+            );
+            z-index: 0;
+            animation: spin 20s linear infinite;
+        }
+
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        /* --- HEADER --- */
+        .header {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .title {
+            font-size: 36px;
+            color: white;
+            /* Stroke ve Gölge Hilesi */
+            text-shadow:
+                3px 3px 0 #000,
+                -1px -1px 0 #000,
+                1px -1px 0 #000,
+                -1px 1px 0 #000,
+                1px 1px 0 #000,
+                3px 5px 5px rgba(0,0,0,0.4);
+            letter-spacing: 1px;
+            margin: 0;
+            flex-grow: 1;
+            padding-left: 40px; /* X butonunu dengelemek için */
+        }
+
+        .close-btn {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(180deg, #FF6B6B 0%, #C0392B 100%);
+            border: 3px solid white;
+            border-radius: 12px;
+            color: white;
+            font-size: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            text-shadow: 0 2px 0 rgba(0,0,0,0.2);
+        }
+
+        /* --- ORTA BADGE (ADS) --- */
+        .badge-container {
+            position: relative;
+            z-index: 2;
+            width: 140px;
+            height: 140px;
+            margin: 0 auto 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Kırmızı Yasak İşareti */
+        .prohibition-sign {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 8px solid #D90429;
+            box-shadow:
+                inset 5px 5px 10px rgba(255,255,255,0.4), /* İç Parlama */
+                inset -5px -5px 10px rgba(0,0,0,0.3), /* İç Gölge */
+                0 0 0 3px #000; /* Dış Siyah Çizgi */
+            background: transparent;
+        }
+
+        /* Çapraz Çizgi */
+        .prohibition-line {
+            position: absolute;
+            width: 100px;
+            height: 18px;
+            background-color: #D90429;
+            transform: rotate(-45deg);
+            border: 2px solid #8a0319; /* Hafif koyu kenar */
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+            z-index: 1; /* Yazının ARKASINDA */
+        }
+
+        /* "ADS" Yazısı */
+        .ads-text {
+            position: relative;
+            z-index: 10; /* En üstte */
+            font-size: 56px;
+            color: white;
+            transform: rotate(-10deg);
+            line-height: 1;
+            /* Kalın Stroke ve Gölge */
+            text-shadow:
+                4px 4px 0 #000,
+                -2px -2px 0 #000,
+                2px -2px 0 #000,
+                -2px 2px 0 #000,
+                2px 2px 0 #000,
+                6px 6px 10px rgba(0,0,0,0.6); /* Badge üzerine düşen gölge */
+        }
+
+        .ads-text::before {
+            /* Yazı üzerine hafif gradyan etkisi vermek için */
+            content: 'ADS';
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: -1;
+            background: linear-gradient(to bottom, #fff 40%, #ddd 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .sparkle {
+            position: absolute;
+            top: 20px;
+            left: 10px;
+            color: white;
+            font-size: 24px;
+            z-index: 11;
+            text-shadow: 0 0 5px white;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* --- ÖZELLİK LİSTESİ --- */
+        .feature-box {
+            position: relative;
+            z-index: 2;
+            background-color: var(--card-bg);
+            border-radius: 20px;
+            padding: 15px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            text-align: left;
+        }
+
+        .feature-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .icon-wrapper {
+            width: 45px;
+            height: 45px;
+            margin-right: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 30px;
+            /* Basit ikon simülasyonu */
+            filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.5));
+        }
+
+        .feature-text {
+            color: white;
+            font-size: 16px;
+            line-height: 1.2;
+            text-shadow:
+                1px 1px 0 #000,
+                -1px -1px 0 #000,
+                0px 2px 2px rgba(0,0,0,0.5);
+        }
+
+        /* --- CTA BUTONU --- */
+        .cta-btn {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(180deg, var(--btn-green-top) 0%, var(--btn-green-bottom) 100%);
+            border: none;
+            border-radius: 50px; /* Pill shape */
+            color: white;
+            font-family: 'Lilita One', cursive;
+            font-size: 28px;
+            cursor: pointer;
+
+            /* Buton 3D Efekti */
+            box-shadow:
+                inset 0 4px 5px rgba(255,255,255,0.6), /* Üst parlama */
+                inset 0 -4px 5px rgba(0,0,0,0.1), /* Alt koyuluk */
+                0 6px 0 var(--btn-border), /* Alt kalın kenar */
+                0 10px 10px rgba(0,0,0,0.3); /* Gölge */
+
+            /* Metin Stroke */
+            text-shadow:
+                2px 2px 0 #000,
+                -1px -1px 0 #000,
+                0 2px 4px rgba(0,0,0,0.4);
+
+            border: 2px solid #1a5c0d; /* Dış ince kontur */
+            transition: transform 0.1s;
+        }
+
+        .cta-btn:active {
+            transform: translateY(4px);
+            box-shadow:
+                inset 0 4px 5px rgba(255,255,255,0.6),
+                0 2px 0 var(--btn-border),
+                0 4px 5px rgba(0,0,0,0.3);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="modal-container">
+        <div class="sunburst"></div>
+
+        <div class="header">
+            <h1 class="title">NO ADS</h1>
+            <div class="close-btn">×</div>
+        </div>
+
+        <div class="badge-container">
+            <div class="prohibition-sign"></div>
+            <div class="prohibition-line"></div>
+            <div class="ads-text">ADS</div>
+            <div class="sparkle">✦</div>
+        </div>
+
+        <div class="feature-box">
+            <div class="feature-item">
+                <div class="icon-wrapper">📺</div>
+                <div class="feature-text">Remove all intrusive ads forever!</div>
+            </div>
+            <div class="feature-item">
+                <div class="icon-wrapper">📶</div>
+                <div class="feature-text">Play without internet connection!</div>
+            </div>
+            <div class="feature-item">
+                <div class="icon-wrapper">🎬</div>
+                <div class="feature-text">Keep optional ads for rewards!</div>
+            </div>
+        </div>
+
+        <button class="cta-btn">
+            TRY 399.99
+        </button>
+    </div>
+
+</body>
+</html>
