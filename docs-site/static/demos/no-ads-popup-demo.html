@@ -316,12 +316,6 @@
             const panelHeight = 140;
             const panelRadius = 14;
 
-            // Panel shadow
-            const panelShadow = new PIXI.Graphics();
-            panelShadow.roundRect(panelX + 2, panelY + 3, panelWidth, panelHeight, panelRadius);
-            panelShadow.fill({ color: 0x000000, alpha: 0.15 });
-            stage.addChild(panelShadow);
-
             // Panel background
             const featurePanel = new PIXI.Graphics();
             featurePanel.roundRect(panelX, panelY, panelWidth, panelHeight, panelRadius);
