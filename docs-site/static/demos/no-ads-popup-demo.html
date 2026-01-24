@@ -565,38 +565,39 @@
             const ctaX = modalX + (modalWidth - ctaWidth) / 2;
             const ctaY = modalY + 485;
             const ctaRadius = 14;
+            const shadowOffset = 6;
 
-            // Button shadow (90 derece - siyah)
+            // 1. Black border (tüm butonu çerçeveleyen - shadow dahil)
+            const ctaOuterBorder = new PIXI.Graphics();
+            ctaOuterBorder.roundRect(ctaX - 3, ctaY - 3, ctaWidth + 6, ctaHeight + shadowOffset + 6, ctaRadius + 3);
+            ctaOuterBorder.fill(0x000000);
+            stage.addChild(ctaOuterBorder);
+
+            // 2. Shadow (alt kısım - yeşil)
             const ctaShadow = new PIXI.Graphics();
-            ctaShadow.roundRect(ctaX, ctaY + 5, ctaWidth, ctaHeight, ctaRadius);
-            ctaShadow.fill({ color: 0x000000, alpha: 0.4 });
+            ctaShadow.roundRect(ctaX, ctaY + shadowOffset, ctaWidth, ctaHeight, ctaRadius);
+            ctaShadow.fill(0x28A165);
             stage.addChild(ctaShadow);
 
-            // Button border
-            const ctaBorder = new PIXI.Graphics();
-            ctaBorder.roundRect(ctaX - 2, ctaY - 2, ctaWidth + 4, ctaHeight + 4, ctaRadius + 2);
-            ctaBorder.fill(COLORS.ctaGreenDark);
-            stage.addChild(ctaBorder);
-
-            // Button main
+            // 3. Button main (ana yüzey)
             const ctaBtn = new PIXI.Graphics();
             ctaBtn.roundRect(ctaX, ctaY, ctaWidth, ctaHeight, ctaRadius);
-            ctaBtn.fill(COLORS.ctaGreen);
+            ctaBtn.fill(0x2484D3);
             ctaBtn.eventMode = 'static';
             ctaBtn.cursor = 'pointer';
             stage.addChild(ctaBtn);
 
-            // Button top highlight (üst yarı daha açık)
+            // 4. Highlight (parlama efekti)
             const ctaHighlightTop = new PIXI.Graphics();
             ctaHighlightTop.roundRect(ctaX + 4, ctaY + 4, ctaWidth - 8, ctaHeight * 0.45, ctaRadius - 2);
-            ctaHighlightTop.fill({ color: COLORS.ctaGreenLight, alpha: 0.5 });
+            ctaHighlightTop.fill({ color: 0x6DED7C, alpha: 0.6 });
             stage.addChild(ctaHighlightTop);
 
-            // Button shine line (en üstte ince beyaz)
-            const ctaShine = new PIXI.Graphics();
-            ctaShine.roundRect(ctaX + 10, ctaY + 5, ctaWidth - 20, 6, 3);
-            ctaShine.fill({ color: 0xffffff, alpha: 0.3 });
-            stage.addChild(ctaShine);
+            // 5. Jellybean efekti (sol üst köşe)
+            const ctaJellybean = new PIXI.Graphics();
+            ctaJellybean.ellipse(ctaX + 30, ctaY + 16, 20, 10);
+            ctaJellybean.fill({ color: 0xE6FCE9, alpha: 0.7 });
+            stage.addChild(ctaJellybean);
 
             // Button text
             const ctaText = new PIXI.Text({
