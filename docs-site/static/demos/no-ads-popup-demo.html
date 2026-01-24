@@ -579,10 +579,10 @@
             ctaShadow.fill(0x28A165);
             stage.addChild(ctaShadow);
 
-            // 2.5. Top shine (üst parlaklık - beyaz, 1px, %50 opak)
+            // 2.5. Top shine (üst parlaklık - border içinde kalacak, %60 opak)
             const ctaTopShine = new PIXI.Graphics();
-            ctaTopShine.roundRect(ctaX, ctaY - 1, ctaWidth, ctaHeight, ctaRadius);
-            ctaTopShine.fill({ color: 0xFFFFFF, alpha: 0.75 });
+            ctaTopShine.roundRect(ctaX + 0.5, ctaY - 0.5, ctaWidth - 1, ctaHeight, ctaRadius);
+            ctaTopShine.fill({ color: 0xFFFFFF, alpha: 0.60 });
             stage.addChild(ctaTopShine);
 
             // 3. Button main (ana yüzey - yeşil)
