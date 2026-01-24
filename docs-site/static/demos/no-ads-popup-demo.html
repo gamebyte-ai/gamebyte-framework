@@ -530,58 +530,78 @@
             // ===========================================
             const headerText = new PIXI.Text({
                 text: 'NO ADS',
-                style: createTextStyle(32, 6)
+                style: {
+                    fontFamily: 'Arial Black, Arial',
+                    fontSize: 32,
+                    fontWeight: '900',
+                    fill: 0xffffff,
+                    stroke: { color: 0x1a2a3a, width: 6 },
+                    dropShadow: {
+                        color: 0x000000,
+                        blur: 1,
+                        distance: 4,
+                        angle: Math.PI / 4, // 45° - sağa doğru
+                        alpha: 0.7
+                    }
+                }
             });
             headerText.anchor.set(0.5);
-            headerText.x = modalX + modalWidth / 2 - 18;
+            headerText.x = modalX + modalWidth / 2; // Tam ortalı
             headerText.y = modalY + headerHeight / 2;
             stage.addChild(headerText);
 
             // ===========================================
             // CLOSE BUTTON - Gradient ve beyaz çerçeve
             // ===========================================
-            const closeBtnSize = 36;
-            const closeBtnX = modalX + modalWidth - closeBtnSize - 8;
+            const closeBtnSize = 34;
+            const closeBtnX = modalX + modalWidth - closeBtnSize - 10;
             const closeBtnY = modalY + (headerHeight - closeBtnSize) / 2;
+            const closeBtnRadius = 10;
 
-            // Close button beyaz dış çerçeve
+            // Close button KATI beyaz dış çerçeve
             const closeWhiteBorder = new PIXI.Graphics();
-            closeWhiteBorder.roundRect(closeBtnX - 2, closeBtnY - 2, closeBtnSize + 4, closeBtnSize + 4, 10);
-            closeWhiteBorder.fill({ color: 0xffffff, alpha: 0.4 });
+            closeWhiteBorder.roundRect(closeBtnX - 2, closeBtnY - 2, closeBtnSize + 4, closeBtnSize + 4, closeBtnRadius + 2);
+            closeWhiteBorder.fill({ color: 0xffffff, alpha: 0.9 });
             stage.addChild(closeWhiteBorder);
 
-            // Close button shadow
+            // Close button shadow (sağ alt)
             const closeShadow = new PIXI.Graphics();
-            closeShadow.roundRect(closeBtnX + 2, closeBtnY + 3, closeBtnSize, closeBtnSize, 8);
-            closeShadow.fill(COLORS.closeBtnRedDark);
+            closeShadow.roundRect(closeBtnX + 2, closeBtnY + 3, closeBtnSize, closeBtnSize, closeBtnRadius);
+            closeShadow.fill({ color: 0x000000, alpha: 0.3 });
             stage.addChild(closeShadow);
 
-            // Close button main (koyu alt)
+            // Close button - gradient simülasyonu (alt koyu)
             const closeBtnBase = new PIXI.Graphics();
-            closeBtnBase.roundRect(closeBtnX, closeBtnY, closeBtnSize, closeBtnSize, 8);
-            closeBtnBase.fill(COLORS.closeBtnRedDark);
+            closeBtnBase.roundRect(closeBtnX, closeBtnY, closeBtnSize, closeBtnSize, closeBtnRadius);
+            closeBtnBase.fill(0x8a2030); // Koyu kırmızı
             stage.addChild(closeBtnBase);
 
-            // Close button üst yarı (açık - gradient efekti)
+            // Close button - üst 2/3 açık kırmızı (gradient efekti)
+            const closeBtnMid = new PIXI.Graphics();
+            closeBtnMid.roundRect(closeBtnX, closeBtnY, closeBtnSize, closeBtnSize * 0.75, closeBtnRadius);
+            closeBtnMid.fill(0xc83545);
+            stage.addChild(closeBtnMid);
+
+            // Close button - üst 1/3 daha açık (gradient devam)
             const closeBtnTop = new PIXI.Graphics();
-            closeBtnTop.roundRect(closeBtnX, closeBtnY, closeBtnSize, closeBtnSize * 0.6, 8);
-            closeBtnTop.fill(COLORS.closeBtnRed);
+            closeBtnTop.roundRect(closeBtnX, closeBtnY, closeBtnSize, closeBtnSize * 0.45, closeBtnRadius);
+            closeBtnTop.fill(0xd84050);
             closeBtnTop.eventMode = 'static';
             closeBtnTop.cursor = 'pointer';
             stage.addChild(closeBtnTop);
 
-            // Close button highlight
+            // Close button üst highlight (parlak çizgi)
             const closeHighlight = new PIXI.Graphics();
-            closeHighlight.roundRect(closeBtnX + 4, closeBtnY + 3, closeBtnSize - 8, 10, 4);
-            closeHighlight.fill({ color: 0xffffff, alpha: 0.35 });
+            closeHighlight.roundRect(closeBtnX + 5, closeBtnY + 4, closeBtnSize - 10, 8, 4);
+            closeHighlight.fill({ color: 0xffffff, alpha: 0.3 });
             stage.addChild(closeHighlight);
 
-            // Close X - iç gölge efekti için
+            // Close X - gölge
             const closeXShadow = new PIXI.Text({
                 text: '✕',
                 style: {
                     fontFamily: 'Arial Black',
-                    fontSize: 20,
+                    fontSize: 22,
                     fontWeight: '900',
                     fill: 0x000000,
                 }
@@ -589,14 +609,18 @@
             closeXShadow.anchor.set(0.5);
             closeXShadow.x = closeBtnX + closeBtnSize / 2 + 1;
             closeXShadow.y = closeBtnY + closeBtnSize / 2 + 2;
-            closeXShadow.alpha = 0.4;
+            closeXShadow.alpha = 0.5;
             stage.addChild(closeXShadow);
 
-            // Close X
+            // Close X - ana (kalın beyaz, koyu stroke)
             const closeX = new PIXI.Text({
                 text: '✕',
                 style: {
-                    ...createTextStyle(20, 3),
+                    fontFamily: 'Arial Black',
+                    fontSize: 22,
+                    fontWeight: '900',
+                    fill: 0xffffff,
+                    stroke: { color: 0x2a1a1a, width: 4 },
                 }
             });
             closeX.anchor.set(0.5);
@@ -607,7 +631,9 @@
             // ===========================================
             // INTERACTIONS
             // ===========================================
-            closeBtnTop.on('pointerdown', () => {
+            closeBtnBase.eventMode = 'static';
+            closeBtnBase.cursor = 'pointer';
+            closeBtnBase.on('pointerdown', () => {
                 console.log('Close clicked');
             });
 
