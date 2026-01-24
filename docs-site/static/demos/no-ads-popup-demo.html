@@ -587,10 +587,22 @@
             ctaBtn.cursor = 'pointer';
             stage.addChild(ctaBtn);
 
-            // 4. Highlight (parlama efekti - main üstüne gelince #6DED7C görünecek)
+            // 4. Highlight (parlama efekti - üst köşeler yuvarlak, alt keskin)
             const ctaHighlightTop = new PIXI.Graphics();
-            ctaHighlightTop.roundRect(ctaX + 4, ctaY + 4, ctaWidth - 8, ctaHeight * 0.45, ctaRadius - 2);
-            ctaHighlightTop.fill({ color: 0xFFFFFF, alpha: 0.35 }); // Main (#2DE45A) + beyaz = #6DED7C görünümü
+            const hlX = ctaX + 4;
+            const hlY = ctaY + 4;
+            const hlW = ctaWidth - 8;
+            const hlH = ctaHeight * 0.45;
+            const hlR = ctaRadius - 2;
+            ctaHighlightTop.moveTo(hlX + hlR, hlY);
+            ctaHighlightTop.lineTo(hlX + hlW - hlR, hlY);
+            ctaHighlightTop.arc(hlX + hlW - hlR, hlY + hlR, hlR, -Math.PI / 2, 0);
+            ctaHighlightTop.lineTo(hlX + hlW, hlY + hlH);
+            ctaHighlightTop.lineTo(hlX, hlY + hlH);
+            ctaHighlightTop.lineTo(hlX, hlY + hlR);
+            ctaHighlightTop.arc(hlX + hlR, hlY + hlR, hlR, Math.PI, -Math.PI / 2);
+            ctaHighlightTop.closePath();
+            ctaHighlightTop.fill({ color: 0xFFFFFF, alpha: 0.35 });
             stage.addChild(ctaHighlightTop);
 
             // 5. Jellybean efekti (sol üst köşe - #E6FCE9, küçük, 25° sola eğik)
