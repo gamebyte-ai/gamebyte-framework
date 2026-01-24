@@ -1065,7 +1065,6 @@
 	            return this;
 	        }
 	        const renderer = this.make('renderer');
-	        this.make('scene.manager');
 	        renderer.start();
 	        this.running = true;
 	        this.emit('started');
@@ -46622,14 +46621,15 @@
 
 	/**
 	 * Get graphics factory - requires GraphicsEngine to be initialized
+	 * Shared utility for all UI effects
 	 */
-	function getGraphicsFactory$2() {
+	function getGraphicsFactory() {
 	    if (!GraphicsEngine.isInitialized()) {
-	        console.error('ConfettiSystem: GraphicsEngine not initialized!');
 	        throw new Error('GraphicsEngine not initialized. Call game.initialize() first.');
 	    }
 	    return GraphicsEngine.getFactory();
 	}
+
 	/**
 	 * Default confetti configuration
 	 */
@@ -46734,7 +46734,7 @@
 	     * Create a single confetti particle
 	     */
 	    createParticle(x, y, vx, vy, config) {
-	        const factory = getGraphicsFactory$2();
+	        const factory = getGraphicsFactory();
 	        const graphic = factory.createGraphics();
 	        const color = config.colors[Math.floor(Math.random() * config.colors.length)];
 	        const shape = config.shapes[Math.floor(Math.random() * config.shapes.length)];
@@ -46878,16 +46878,6 @@
 	}
 
 	/**
-	 * Get graphics factory - requires GraphicsEngine to be initialized
-	 */
-	function getGraphicsFactory$1() {
-	    if (!GraphicsEngine.isInitialized()) {
-	        console.error('ShineEffect: GraphicsEngine not initialized!');
-	        throw new Error('GraphicsEngine not initialized. Call game.initialize() first.');
-	    }
-	    return GraphicsEngine.getFactory();
-	}
-	/**
 	 * Default configurations
 	 */
 	const DEFAULT_SHIMMER = {
@@ -46941,7 +46931,7 @@
 	     */
 	    shimmer(target, config = {}) {
 	        const cfg = { ...DEFAULT_SHIMMER, ...config };
-	        const factory = getGraphicsFactory$1();
+	        const factory = getGraphicsFactory();
 	        // Get target size for shimmer dimensions
 	        const size = this.getTargetBounds(target);
 	        const targetWidth = size.width || 40;
@@ -47083,37 +47073,6 @@
 	        return instance;
 	    }
 	    /**
-	     * Draw the shimmer light streak
-	     * Uses Pixi.js v8 Graphics API
-	     */
-	    drawShimmerStreak(graphic, config) {
-	        graphic.clear();
-	        const height = 100; // Tall enough to cover most elements
-	        const angleRad = (config.angle * Math.PI) / 180;
-	        // Create angled rectangle for light streak
-	        const points = [];
-	        const hw = config.width / 2;
-	        // Calculate rotated rectangle points
-	        const cos = Math.cos(angleRad);
-	        const sin = Math.sin(angleRad);
-	        points.push(-hw * cos, -hw * sin); // Top left
-	        points.push(hw * cos, hw * sin); // Top right
-	        points.push(hw * cos + sin * height, hw * sin + cos * height); // Bottom right
-	        points.push(-hw * cos + sin * height, -hw * sin + cos * height); // Bottom left
-	        // Pixi v8: poly().fill() with color and alpha
-	        graphic.poly(points).fill({ color: config.color, alpha: config.alpha });
-	    }
-	    /**
-	     * Create a circular mask as fallback
-	     */
-	    createCircularMask(factory, width, height) {
-	        const mask = factory.createGraphics();
-	        const radius = Math.min(width, height) / 2;
-	        mask.circle(0, 0, radius);
-	        mask.fill(0xFFFFFF);
-	        return mask;
-	    }
-	    /**
 	     * Get target dimensions for shimmer animation
 	     */
 	    getTargetBounds(target) {
@@ -47162,7 +47121,7 @@
 	    sparkle(x, y, config = {}) {
 	        const cfg = { ...DEFAULT_SPARKLE, ...config };
 	        return new Promise((resolve) => {
-	            const factory = getGraphicsFactory$1();
+	            const factory = getGraphicsFactory();
 	            for (let i = 0; i < cfg.particleCount; i++) {
 	                const graphic = factory.createGraphics();
 	                // Draw star/sparkle shape
@@ -47320,16 +47279,6 @@
 	}
 
 	/**
-	 * Get graphics factory - requires GraphicsEngine to be initialized
-	 */
-	function getGraphicsFactory() {
-	    if (!GraphicsEngine.isInitialized()) {
-	        console.error('StarBurstEffect: GraphicsEngine not initialized!');
-	        throw new Error('GraphicsEngine not initialized. Call game.initialize() first.');
-	    }
-	    return GraphicsEngine.getFactory();
-	}
-	/**
 	 * Default configuration
 	 */
 	const DEFAULT_CONFIG = {
@@ -47447,10 +47396,12 @@
 	        const factory = getGraphicsFactory();
 	        const graphic = factory.createGraphics();
 	        // 70% small (4-pointed), 30% large (6-pointed)
-	        const type = Math.random() < 0.7 ? 'small' : 'large';
+	        const isLarge = Math.random() >= 0.7;
+	        const spikes = isLarge ? 6 : 4;
 	        const color = zone.config.colors[Math.floor(Math.random() * zone.config.colors.length)];
+	        const size = isLarge ? 10 : 8;
 	        // Draw the sparkle shape
-	        this.drawSparkle(graphic, type, color);
+	        this.drawStar(graphic, spikes, size, color);
 	        // Random position within radius
 	        const angle = Math.random() * Math.PI * 2;
 	        const distance = Math.random() * zone.config.radius;
@@ -47467,11 +47418,11 @@
 	        const targetScale = zone.config.scale.min +
 	            Math.random() * (zone.config.scale.max - zone.config.scale.min);
 	        // Large stars are slower but only slightly bigger
-	        const durationMultiplier = type === 'large' ? 1.3 : 1;
-	        const scaleMultiplier = type === 'large' ? 1.15 : 1; // Reduced: was 1.4
+	        const durationMultiplier = isLarge ? 1.3 : 1;
+	        const scaleMultiplier = isLarge ? 1.15 : 1;
 	        const particle = {
 	            graphic,
-	            type,
+	            spikes,
 	            x,
 	            y,
 	            targetScale: targetScale * scaleMultiplier,
@@ -47483,48 +47434,20 @@
 	            phase: 'spawn',
 	        };
 	        zone.particles.push(particle);
-	        this.emit('sparkle-spawned', { x, y, type });
+	        this.emit('sparkle-spawned', { x, y, spikes });
 	    }
 	    /**
-	     * Draw sparkle shape based on type
+	     * Draw star shape with configurable spike count
+	     * @param spikes Number of points (4 or 6)
+	     * @param size Outer radius of the star
 	     */
-	    drawSparkle(graphic, type, color) {
+	    drawStar(graphic, spikes, size, color) {
 	        graphic.clear();
-	        if (type === 'small') {
-	            // 4-pointed star (+ shape)
-	            this.draw4PointedStar(graphic, color, 8);
-	        }
-	        else {
-	            // 6-pointed star
-	            this.draw6PointedStar(graphic, color, 10);
-	        }
-	    }
-	    /**
-	     * Draw 4-pointed star (+ shape with pointed ends)
-	     */
-	    draw4PointedStar(graphic, color, size) {
+	        const innerRatio = spikes === 4 ? 0.25 : 0.4;
+	        const innerRadius = size * innerRatio;
 	        const points = [];
-	        const outerRadius = size;
-	        const innerRadius = size * 0.25;
-	        const spikes = 4;
 	        for (let i = 0; i < spikes * 2; i++) {
-	            const radius = i % 2 === 0 ? outerRadius : innerRadius;
-	            const angle = (i * Math.PI) / spikes - Math.PI / 2;
-	            points.push(Math.cos(angle) * radius);
-	            points.push(Math.sin(angle) * radius);
-	        }
-	        graphic.poly(points).fill(color);
-	    }
-	    /**
-	     * Draw 6-pointed star
-	     */
-	    draw6PointedStar(graphic, color, size) {
-	        const points = [];
-	        const outerRadius = size;
-	        const innerRadius = size * 0.4;
-	        const spikes = 6;
-	        for (let i = 0; i < spikes * 2; i++) {
-	            const radius = i % 2 === 0 ? outerRadius : innerRadius;
+	            const radius = i % 2 === 0 ? size : innerRadius;
 	            const angle = (i * Math.PI) / spikes - Math.PI / 2;
 	            points.push(Math.cos(angle) * radius);
 	            points.push(Math.sin(angle) * radius);
@@ -47970,27 +47893,13 @@
 	     * @param type Type of shimmer preset ('gold', 'gem', 'star') or custom config
 	     */
 	    addShimmer(target, type = 'gold') {
-	        // Remove existing shimmer on this target
 	        this.removeShimmer(target);
-	        let config;
-	        if (typeof type === 'string') {
-	            switch (type) {
-	                case 'gold':
-	                    config = CelebrationPresets.GOLD_SHIMMER;
-	                    break;
-	                case 'gem':
-	                    config = CelebrationPresets.GEM_SHIMMER;
-	                    break;
-	                case 'star':
-	                    config = CelebrationPresets.STAR_SHIMMER;
-	                    break;
-	                default:
-	                    config = CelebrationPresets.GOLD_SHIMMER;
-	            }
-	        }
-	        else {
-	            config = type;
-	        }
+	        const shimmerPresets = {
+	            gold: CelebrationPresets.GOLD_SHIMMER,
+	            gem: CelebrationPresets.GEM_SHIMMER,
+	            star: CelebrationPresets.STAR_SHIMMER,
+	        };
+	        const config = typeof type === 'string' ? shimmerPresets[type] : type;
 	        const instance = this.shine.shimmer(target, config);
 	        this.shimmerInstances.set(target, instance);
 	        this.emit('shimmer-added', target);
@@ -48015,30 +47924,14 @@
 	     * @param type Type of starburst preset ('gold', 'gem', 'star', 'victory') or custom config
 	     */
 	    addStarburst(target, type = 'gold') {
-	        // Remove existing starburst on this target
 	        this.removeStarburst(target);
-	        let config;
-	        if (typeof type === 'string') {
-	            switch (type) {
-	                case 'gold':
-	                    config = CelebrationPresets.GOLD_STARBURST;
-	                    break;
-	                case 'gem':
-	                    config = CelebrationPresets.GEM_STARBURST;
-	                    break;
-	                case 'star':
-	                    config = CelebrationPresets.STAR_STARBURST;
-	                    break;
-	                case 'victory':
-	                    config = CelebrationPresets.VICTORY_STARBURST;
-	                    break;
-	                default:
-	                    config = CelebrationPresets.GOLD_STARBURST;
-	            }
-	        }
-	        else {
-	            config = type;
-	        }
+	        const starburstPresets = {
+	            gold: CelebrationPresets.GOLD_STARBURST,
+	            gem: CelebrationPresets.GEM_STARBURST,
+	            star: CelebrationPresets.STAR_STARBURST,
+	            victory: CelebrationPresets.VICTORY_STARBURST,
+	        };
+	        const config = typeof type === 'string' ? starburstPresets[type] : type;
 	        const instance = this.starburst.addZone(target, config);
 	        this.starburstInstances.set(target, instance);
 	        return instance;

@@ -6,7 +6,7 @@
     <title>ResultScreen Demo - GameByte Framework</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { overflow: hidden; background: #1a1a2e; }
+        body { overflow: hidden; background: #1c2333; }
         canvas { display: block; margin: 0 auto; }
     </style>
 </head>
@@ -18,19 +18,53 @@
         const { createGame, CelebrationManager } = GameByteFramework;
 
         const CONFIG = { width: 360, height: 700 };
+
+        // Pixel-perfect color palette from reference
         const COLORS = {
-            darkBg: 0x1a1a2e,
-            panelBg: 0x2a4a7a,
-            panelLight: 0x4a7ab0,
-            panelBorder: 0x1a3050,
-            ribbonBlue: 0x3a8ad0,
-            ribbonDark: 0x2a6aa0,
-            greenBtn: 0x5cb85c,
-            greenBtnDark: 0x449d44,
-            orangeBtn: 0xf0ad4e,
-            orangeBtnDark: 0xd9963a,
+            // Background
+            darkBg: 0x1c2333,
+
+            // Light rays
+            rayColor: 0x2a3f5f,
+            rayAlpha: 0.35,
+
+            // Trophy glow (olive-yellow tones)
+            glowOuter: 0xa5a845,
+            glowMiddle: 0xb8b850,
+            glowInner: 0xd4d870,
+
+            // Main panel
+            panelBg: 0x4a7ab5,
+            panelBorder: 0x2a4a75,
+            panelGradientTop: 0x5a8ac5,
+            panelGradientBottom: 0x3a6a95,
+
+            // Banner
+            bannerBlue: 0x5ab0e8,
+            bannerLight: 0x7ac8f8,
+            bannerDark: 0x3a90c8,
+
+            // Reward panel
+            rewardPanelBg: 0x5a8ab8,
+            rewardPanelBorder: 0x3a5a85,
+
+            // Buttons
+            greenBtn: 0x6ac46a,
+            greenBtnShadow: 0x3a8a3a,
+            greenBtnHighlight: 0x8ae88a,
+
+            orangeBtn: 0xe8c878,
+            orangeBtnShadow: 0xc8a050,
+            orangeBtnHighlight: 0xf8e0a0,
+
+            // Text
             textWhite: 0xffffff,
-            textOutline: 0x2a2a4a
+            textOutline: 0x2a4a6a,
+            textDark: 0x4a5a6a,
+
+            // Coin display
+            coinDisplayBg: 0x3a4a6a,
+            plusButton: 0xe8a040
         };
 
         const canvas = document.createElement('canvas');
@@ -40,6 +74,110 @@
 
         const game = createGame();
         let celebration = null;
+
+        // ===== LIGHT RAYS HELPER =====
+        // Creates trapezoid-shaped light rays (not triangles!)
+        function createLightRays(config) {
+            const container = new PIXI.Container();
+            const {
+                rayCount = 16,
+                innerRadius = 20,
+                outerRadius = 350,
+                innerWidth = 0.08,  // Angular width at center (radians)
+                outerWidth = 0.12,  // Angular width at edge (radians)
+                color = COLORS.rayColor,
+                alpha = COLORS.rayAlpha
+            } = config;
+
+            for (let i = 0; i < rayCount; i++) {
+                const angle = (i / rayCount) * Math.PI * 2;
+
+                const ray = new PIXI.Graphics();
+
+                // Trapezoid points (clockwise from inner-left)
+                const innerLeft = {
+                    x: Math.cos(angle - innerWidth / 2) * innerRadius,
+                    y: Math.sin(angle - innerWidth / 2) * innerRadius
+                };
+                const innerRight = {
+                    x: Math.cos(angle + innerWidth / 2) * innerRadius,
+                    y: Math.sin(angle + innerWidth / 2) * innerRadius
+                };
+                const outerRight = {
+                    x: Math.cos(angle + outerWidth / 2) * outerRadius,
+                    y: Math.sin(angle + outerWidth / 2) * outerRadius
+                };
+                const outerLeft = {
+                    x: Math.cos(angle - outerWidth / 2) * outerRadius,
+                    y: Math.sin(angle - outerWidth / 2) * outerRadius
+                };
+
+                ray.poly([
+                    innerLeft.x, innerLeft.y,
+                    innerRight.x, innerRight.y,
+                    outerRight.x, outerRight.y,
+                    outerLeft.x, outerLeft.y
+                ]);
+                ray.fill({ color, alpha });
+                container.addChild(ray);
+            }
+
+            return container;
+        }
+
+        // ===== MULTI-LAYER GLOW HELPER =====
+        function createGlow() {
+            const container = new PIXI.Container();
+
+            // Outer glow layer
+            const outer = new PIXI.Graphics();
+            outer.circle(0, 0, 100);
+            outer.fill({ color: COLORS.glowOuter, alpha: 0.25 });
+            container.addChild(outer);
+
+            // Middle glow layer
+            const middle = new PIXI.Graphics();
+            middle.circle(0, 0, 70);
+            middle.fill({ color: COLORS.glowMiddle, alpha: 0.5 });
+            container.addChild(middle);
+
+            // Inner glow layer (brightest)
+            const inner = new PIXI.Graphics();
+            inner.circle(0, 0, 50);
+            inner.fill({ color: COLORS.glowInner, alpha: 0.8 });
+            container.addChild(inner);
+
+            return container;
+        }
+
+        // ===== 3D BUTTON HELPER =====
+        function create3DButton(x, y, width, height, config) {
+            const container = new PIXI.Container();
+            const { mainColor, shadowColor, highlightColor } = config;
+
+            // Shadow layer (bottom)
+            const shadow = new PIXI.Graphics();
+            shadow.roundRect(x, y + 4, width, height, 12);
+            shadow.fill(shadowColor);
+            container.addChild(shadow);
+
+            // Main button
+            const btn = new PIXI.Graphics();
+            btn.roundRect(x, y, width, height, 12);
+            btn.fill(mainColor);
+            btn.eventMode = 'static';
+            btn.cursor = 'pointer';
+            container.addChild(btn);
+
+            // Highlight layer (top)
+            const highlight = new PIXI.Graphics();
+            highlight.roundRect(x + 5, y + 3, width - 10, 15, 8);
+            highlight.fill({ color: highlightColor, alpha: 0.4 });
+            container.addChild(highlight);
+
+            container.mainBtn = btn;
+            return container;
+        }
 
         (async () => {
             await game.initialize(canvas, '2d');
@@ -63,33 +201,62 @@
                 bg.fill(COLORS.darkBg);
                 stage.addChild(bg);
 
+                // ===== TROPHY LIGHT RAYS (Behind everything, very long!) =====
+                const trophyY = 110;
+
+                const trophyRays = createLightRays({
+                    rayCount: 16,
+                    innerRadius: 15,
+                    outerRadius: 350,
+                    innerWidth: 0.06,
+                    outerWidth: 0.14
+                });
+                trophyRays.x = centerX;
+                trophyRays.y = trophyY + 40;
+                stage.addChild(trophyRays);
+
+                // Animate rays slowly
+                game.on('update', () => {
+                    trophyRays.rotation += 0.002;
+                });
+
+                // ===== TROPHY GLOW (3-layer olive-yellow) =====
+                const trophyGlow = createGlow();
+                trophyGlow.x = centerX;
+                trophyGlow.y = trophyY + 40;
+                stage.addChild(trophyGlow);
+
                 // ===== TOP RIGHT COIN DISPLAY =====
                 const coinDisplay = new PIXI.Container();
                 coinDisplay.x = CONFIG.width - 80;
                 coinDisplay.y = 25;
                 stage.addChild(coinDisplay);
 
+                // Pill background
                 const coinBg = new PIXI.Graphics();
                 coinBg.roundRect(-50, -15, 100, 30, 15);
-                coinBg.fill(0x3a3a5a);
+                coinBg.fill(COLORS.coinDisplayBg);
                 coinDisplay.addChild(coinBg);
 
+                // Coin icon
                 const coinIcon = new PIXI.Text({ text: '🪙', style: { fontSize: 22 } });
                 coinIcon.anchor.set(0.5);
-                coinIcon.x = -35;
+                coinIcon.x = -32;
                 coinDisplay.addChild(coinIcon);
 
+                // Amount text
                 const coinAmount = new PIXI.Text({
                     text: '1460',
                     style: { fontFamily: 'Arial', fontSize: 16, fontWeight: 'bold', fill: COLORS.textWhite }
                 });
                 coinAmount.anchor.set(0, 0.5);
-                coinAmount.x = -18;
+                coinAmount.x = -16;
                 coinDisplay.addChild(coinAmount);
 
+                // Plus button (orange circle)
                 const plusBtn = new PIXI.Graphics();
                 plusBtn.circle(35, 0, 12);
-                plusBtn.fill(0xf0ad4e);
+                plusBtn.fill(COLORS.plusButton);
                 coinDisplay.addChild(plusBtn);
 
                 const plusText = new PIXI.Text({
@@ -104,99 +271,92 @@
                 const panelY = 100;
                 const panelWidth = 300;
                 const panelHeight = 480;
+                const panelX = centerX - panelWidth / 2;
 
-                // Panel outer border (dark)
+                // Panel border (dark outer)
                 const panelBorder = new PIXI.Graphics();
-                panelBorder.roundRect(centerX - panelWidth/2 - 5, panelY - 5, panelWidth + 10, panelHeight + 10, 25);
+                panelBorder.roundRect(panelX - 4, panelY - 4, panelWidth + 8, panelHeight + 8, 28);
                 panelBorder.fill(COLORS.panelBorder);
                 stage.addChild(panelBorder);
 
-                // Panel main background (gradient effect with multiple layers)
+                // Panel main background
                 const panelBg = new PIXI.Graphics();
-                panelBg.roundRect(centerX - panelWidth/2, panelY, panelWidth, panelHeight, 20);
+                panelBg.roundRect(panelX, panelY, panelWidth, panelHeight, 25);
                 panelBg.fill(COLORS.panelBg);
                 stage.addChild(panelBg);
 
-                // Panel top highlight
+                // Panel gradient overlay (darker at bottom)
+                const panelGradient = new PIXI.Graphics();
+                panelGradient.roundRect(panelX, panelY + panelHeight * 0.6, panelWidth, panelHeight * 0.4, 25);
+                panelGradient.fill({ color: COLORS.panelGradientBottom, alpha: 0.4 });
+                stage.addChild(panelGradient);
+
+                // Panel top highlight line
                 const panelHighlight = new PIXI.Graphics();
-                panelHighlight.roundRect(centerX - panelWidth/2 + 5, panelY + 5, panelWidth - 10, panelHeight/3, 18);
-                panelHighlight.fill({ color: COLORS.panelLight, alpha: 0.3 });
+                panelHighlight.roundRect(panelX + 10, panelY + 5, panelWidth - 20, 4, 2);
+                panelHighlight.fill({ color: 0xffffff, alpha: 0.15 });
                 stage.addChild(panelHighlight);
 
-                // ===== TROPHY WITH LIGHT RAYS =====
-                const trophyY = panelY - 30;
-
-                // Light rays behind trophy
-                const trophyRays = new PIXI.Graphics();
-                const rayCount = 16;
-                for (let i = 0; i < rayCount; i++) {
-                    const angle = (i / rayCount) * Math.PI * 2;
-                    const nextAngle = ((i + 0.4) / rayCount) * Math.PI * 2;
-                    trophyRays.moveTo(0, 0);
-                    trophyRays.lineTo(Math.cos(angle) * 120, Math.sin(angle) * 120);
-                    trophyRays.lineTo(Math.cos(nextAngle) * 120, Math.sin(nextAngle) * 120);
-                    trophyRays.fill({ color: 0xFFFFFF, alpha: 0.15 });
-                }
-                trophyRays.x = centerX;
-                trophyRays.y = trophyY + 40;
-                stage.addChild(trophyRays);
-
-                // Trophy glow
-                const trophyGlow = new PIXI.Graphics();
-                trophyGlow.circle(0, 0, 50);
-                trophyGlow.fill({ color: 0xFFD700, alpha: 0.4 });
-                trophyGlow.x = centerX;
-                trophyGlow.y = trophyY + 40;
-                stage.addChild(trophyGlow);
-
-                // Trophy emoji
+                // ===== TROPHY EMOJI =====
                 const trophy = new PIXI.Text({ text: '🏆', style: { fontSize: 72 } });
                 trophy.anchor.set(0.5);
                 trophy.x = centerX;
                 trophy.y = trophyY + 40;
                 stage.addChild(trophy);
 
-                // Animate rays rotation
-                game.on('update', () => {
-                    trophyRays.rotation += 0.003;
-                });
-
-                // ===== LEVEL COMPLETED RIBBON/BANNER =====
+                // ===== LEVEL COMPLETED BANNER =====
                 const ribbonY = panelY + 100;
+                const ribbonWidth = 260;
+                const ribbonHeight = 55;
 
-                // Ribbon background (blue banner shape)
-                const ribbon = new PIXI.Graphics();
-                // Main ribbon body
-                ribbon.roundRect(centerX - 120, ribbonY, 240, 55, 5);
-                ribbon.fill(COLORS.ribbonBlue);
-                // Left ribbon end
-                ribbon.moveTo(centerX - 130, ribbonY + 5);
-                ribbon.lineTo(centerX - 120, ribbonY + 5);
-                ribbon.lineTo(centerX - 120, ribbonY + 50);
-                ribbon.lineTo(centerX - 130, ribbonY + 50);
-                ribbon.lineTo(centerX - 120, ribbonY + 27);
-                ribbon.fill(COLORS.ribbonDark);
-                // Right ribbon end
-                ribbon.moveTo(centerX + 130, ribbonY + 5);
-                ribbon.lineTo(centerX + 120, ribbonY + 5);
-                ribbon.lineTo(centerX + 120, ribbonY + 50);
-                ribbon.lineTo(centerX + 130, ribbonY + 50);
-                ribbon.lineTo(centerX + 120, ribbonY + 27);
-                ribbon.fill(COLORS.ribbonDark);
-                stage.addChild(ribbon);
+                // Banner shadow (3D bottom)
+                const bannerShadow = new PIXI.Graphics();
+                bannerShadow.roundRect(centerX - ribbonWidth/2, ribbonY + 3, ribbonWidth, ribbonHeight, 8);
+                bannerShadow.fill(COLORS.bannerDark);
+                stage.addChild(bannerShadow);
 
-                // Ribbon highlight
-                const ribbonHighlight = new PIXI.Graphics();
-                ribbonHighlight.roundRect(centerX - 115, ribbonY + 3, 230, 20, 3);
-                ribbonHighlight.fill({ color: 0xFFFFFF, alpha: 0.2 });
-                stage.addChild(ribbonHighlight);
+                // Banner main body
+                const banner = new PIXI.Graphics();
+                banner.roundRect(centerX - ribbonWidth/2, ribbonY, ribbonWidth, ribbonHeight - 3, 8);
+                banner.fill(COLORS.bannerBlue);
+                stage.addChild(banner);
+
+                // Banner top highlight
+                const bannerHighlight = new PIXI.Graphics();
+                bannerHighlight.roundRect(centerX - ribbonWidth/2 + 5, ribbonY + 2, ribbonWidth - 10, 3, 2);
+                bannerHighlight.fill(COLORS.bannerLight);
+                stage.addChild(bannerHighlight);
+
+                // Left ribbon end (folded trapezoid)
+                const leftRibbon = new PIXI.Graphics();
+                leftRibbon.poly([
+                    centerX - ribbonWidth/2 - 10, ribbonY + 8,     // Outer top
+                    centerX - ribbonWidth/2, ribbonY + 8,          // Inner top
+                    centerX - ribbonWidth/2, ribbonY + 47,         // Inner bottom
+                    centerX - ribbonWidth/2 - 10, ribbonY + 47,    // Outer bottom
+                    centerX - ribbonWidth/2, ribbonY + 27          // Fold point (inward)
+                ]);
+                leftRibbon.fill(COLORS.bannerDark);
+                stage.addChild(leftRibbon);
+
+                // Right ribbon end (folded trapezoid)
+                const rightRibbon = new PIXI.Graphics();
+                rightRibbon.poly([
+                    centerX + ribbonWidth/2 + 10, ribbonY + 8,     // Outer top
+                    centerX + ribbonWidth/2, ribbonY + 8,          // Inner top
+                    centerX + ribbonWidth/2, ribbonY + 47,         // Inner bottom
+                    centerX + ribbonWidth/2 + 10, ribbonY + 47,    // Outer bottom
+                    centerX + ribbonWidth/2, ribbonY + 27          // Fold point (inward)
+                ]);
+                rightRibbon.fill(COLORS.bannerDark);
+                stage.addChild(rightRibbon);
 
                 // "LEVEL 20" text
                 const levelText = new PIXI.Text({
                     text: 'LEVEL 20',
                     style: {
                         fontFamily: 'Arial',
-                        fontSize: 22,
+                        fontSize: 24,
                         fontWeight: 'bold',
                         fill: COLORS.textWhite,
                         dropShadow: true,
@@ -215,32 +375,31 @@
                     text: 'COMPLETED!',
                     style: {
                         fontFamily: 'Arial',
-                        fontSize: 14,
+                        fontSize: 12,
                         fontWeight: 'bold',
                         fill: COLORS.textWhite,
                         dropShadow: true,
                         dropShadowColor: 0x000000,
-                        dropShadowDistance: 1,
-                        dropShadowBlur: 1
+                        dropShadowDistance: 2,
+                        dropShadowBlur: 2
                     }
                 });
                 completedText.anchor.set(0.5);
                 completedText.x = centerX;
-                completedText.y = ribbonY + 40;
+                completedText.y = ribbonY + 38;
                 stage.addChild(completedText);
 
-                // ===== REWARDS SECTION =====
-                const rewardsY = ribbonY + 80;
+                // ===== REWARDS TITLE =====
+                const rewardsY = ribbonY + 75;
 
-                // "REWARDS" title with stroke effect
                 const rewardsTitle = new PIXI.Text({
                     text: 'REWARDS',
                     style: {
                         fontFamily: 'Arial',
-                        fontSize: 20,
+                        fontSize: 22,
                         fontWeight: 'bold',
                         fill: COLORS.textWhite,
-                        stroke: { color: COLORS.textOutline, width: 4 }
+                        stroke: { color: COLORS.textOutline, width: 5 }
                     }
                 });
                 rewardsTitle.anchor.set(0.5);
@@ -248,65 +407,63 @@
                 rewardsTitle.y = rewardsY;
                 stage.addChild(rewardsTitle);
 
-                // ===== REWARD PANEL (inner blue panel) =====
+                // ===== REWARD PANEL (Inner panel with coin) =====
                 const rewardPanelY = rewardsY + 25;
                 const rewardPanelWidth = 260;
                 const rewardPanelHeight = 140;
+                const rewardPanelX = centerX - rewardPanelWidth / 2;
 
                 // Reward panel border
                 const rewardBorder = new PIXI.Graphics();
-                rewardBorder.roundRect(centerX - rewardPanelWidth/2 - 3, rewardPanelY - 3, rewardPanelWidth + 6, rewardPanelHeight + 6, 15);
-                rewardBorder.fill(COLORS.panelBorder);
+                rewardBorder.roundRect(rewardPanelX - 3, rewardPanelY - 3, rewardPanelWidth + 6, rewardPanelHeight + 6, 18);
+                rewardBorder.fill(COLORS.rewardPanelBorder);
                 stage.addChild(rewardBorder);
 
                 // Reward panel background
                 const rewardPanel = new PIXI.Graphics();
-                rewardPanel.roundRect(centerX - rewardPanelWidth/2, rewardPanelY, rewardPanelWidth, rewardPanelHeight, 12);
-                rewardPanel.fill(COLORS.panelLight);
+                rewardPanel.roundRect(rewardPanelX, rewardPanelY, rewardPanelWidth, rewardPanelHeight, 15);
+                rewardPanel.fill(COLORS.rewardPanelBg);
                 stage.addChild(rewardPanel);
 
-                // Light rays behind coin
-                const coinRays = new PIXI.Graphics();
-                const coinRayCount = 20;
-                for (let i = 0; i < coinRayCount; i++) {
-                    const angle = (i / coinRayCount) * Math.PI * 2;
-                    const nextAngle = ((i + 0.3) / coinRayCount) * Math.PI * 2;
-                    coinRays.moveTo(0, 0);
-                    coinRays.lineTo(Math.cos(angle) * 80, Math.sin(angle) * 80);
-                    coinRays.lineTo(Math.cos(nextAngle) * 80, Math.sin(nextAngle) * 80);
-                    coinRays.fill({ color: 0xFFFFFF, alpha: 0.2 });
-                }
+                // Coin light rays (inside reward panel)
+                const coinRays = createLightRays({
+                    rayCount: 18,
+                    innerRadius: 10,
+                    outerRadius: 90,
+                    innerWidth: 0.05,
+                    outerWidth: 0.10
+                });
                 coinRays.x = centerX;
                 coinRays.y = rewardPanelY + 55;
                 stage.addChild(coinRays);
 
-                // Animate coin rays
+                // Animate coin rays (opposite direction)
                 game.on('update', () => {
-                    coinRays.rotation -= 0.005;
+                    coinRays.rotation -= 0.003;
                 });
 
-                // Coin container (for shimmer)
+                // Coin container (for shimmer effect)
                 const rewardCoinContainer = new PIXI.Container();
                 rewardCoinContainer.x = centerX;
                 rewardCoinContainer.y = rewardPanelY + 50;
                 stage.addChild(rewardCoinContainer);
 
-                // Large coin emoji
+                // Large reward coin
                 const rewardCoin = new PIXI.Text({ text: '🪙', style: { fontSize: 56 } });
                 rewardCoin.anchor.set(0.5);
                 rewardCoinContainer.addChild(rewardCoin);
 
-                // Add shimmer to coin
+                // Add shimmer effect
                 setTimeout(() => {
                     celebration.addShimmer(rewardCoinContainer, 'gold');
                 }, 500);
 
-                // Reward amount "40" with stroke
+                // Reward amount "40"
                 const rewardAmount = new PIXI.Text({
                     text: '40',
                     style: {
                         fontFamily: 'Arial',
-                        fontSize: 36,
+                        fontSize: 40,
                         fontWeight: 'bold',
                         fill: COLORS.textWhite,
                         stroke: { color: COLORS.textOutline, width: 5 }
@@ -314,7 +471,7 @@
                 });
                 rewardAmount.anchor.set(0.5);
                 rewardAmount.x = centerX;
-                rewardAmount.y = rewardPanelY + 110;
+                rewardAmount.y = rewardPanelY + 112;
                 stage.addChild(rewardAmount);
 
                 // ===== BUTTONS =====
@@ -323,24 +480,16 @@
                 const btnHeight = 50;
                 const btnGap = 20;
 
-                // Continue button (green)
-                const continueBtnShadow = new PIXI.Graphics();
-                continueBtnShadow.roundRect(centerX - btnWidth - btnGap/2, btnY + 4, btnWidth, btnHeight, 12);
-                continueBtnShadow.fill(COLORS.greenBtnDark);
-                stage.addChild(continueBtnShadow);
-
-                const continueBtn = new PIXI.Graphics();
-                continueBtn.roundRect(centerX - btnWidth - btnGap/2, btnY, btnWidth, btnHeight, 12);
-                continueBtn.fill(COLORS.greenBtn);
-                continueBtn.eventMode = 'static';
-                continueBtn.cursor = 'pointer';
+                // Continue button (green, 3D)
+                const continueBtn = create3DButton(
+                    centerX - btnWidth - btnGap/2, btnY, btnWidth, btnHeight,
+                    {
+                        mainColor: COLORS.greenBtn,
+                        shadowColor: COLORS.greenBtnShadow,
+                        highlightColor: COLORS.greenBtnHighlight
+                    }
+                );
                 stage.addChild(continueBtn);
-
-                // Button highlight
-                const continueBtnHighlight = new PIXI.Graphics();
-                continueBtnHighlight.roundRect(centerX - btnWidth - btnGap/2 + 5, btnY + 3, btnWidth - 10, 15, 8);
-                continueBtnHighlight.fill({ color: 0xFFFFFF, alpha: 0.3 });
-                stage.addChild(continueBtnHighlight);
 
                 const continueText = new PIXI.Text({
                     text: 'Continue',
@@ -360,77 +509,71 @@
                 continueText.y = btnY + btnHeight/2;
                 stage.addChild(continueText);
 
-                // Watch Ad button (orange)
-                const adBtnShadow = new PIXI.Graphics();
-                adBtnShadow.roundRect(centerX + btnGap/2, btnY + 4, btnWidth, btnHeight, 12);
-                adBtnShadow.fill(COLORS.orangeBtnDark);
-                stage.addChild(adBtnShadow);
-
-                const adBtn = new PIXI.Graphics();
-                adBtn.roundRect(centerX + btnGap/2, btnY, btnWidth, btnHeight, 12);
-                adBtn.fill(COLORS.orangeBtn);
-                adBtn.eventMode = 'static';
-                adBtn.cursor = 'pointer';
+                // Watch Ad button (beige-orange, 3D)
+                const adBtn = create3DButton(
+                    centerX + btnGap/2, btnY, btnWidth, btnHeight,
+                    {
+                        mainColor: COLORS.orangeBtn,
+                        shadowColor: COLORS.orangeBtnShadow,
+                        highlightColor: COLORS.orangeBtnHighlight
+                    }
+                );
                 stage.addChild(adBtn);
 
-                // Ad button highlight
-                const adBtnHighlight = new PIXI.Graphics();
-                adBtnHighlight.roundRect(centerX + btnGap/2 + 5, btnY + 3, btnWidth - 10, 15, 8);
-                adBtnHighlight.fill({ color: 0xFFFFFF, alpha: 0.3 });
-                stage.addChild(adBtnHighlight);
-
-                // Video icon
+                // Clapperboard icon
                 const videoIcon = new PIXI.Text({ text: '🎬', style: { fontSize: 18 } });
                 videoIcon.anchor.set(0.5);
                 videoIcon.x = centerX + btnGap/2 + 20;
                 videoIcon.y = btnY + btnHeight/2;
                 stage.addChild(videoIcon);
 
-                // "80" text
+                // "80" text (darker color for contrast on beige)
                 const adAmountText = new PIXI.Text({
                     text: '80',
                     style: {
                         fontFamily: 'Arial',
-                        fontSize: 16,
+                        fontSize: 18,
                         fontWeight: 'bold',
-                        fill: COLORS.textWhite,
-                        dropShadow: true,
-                        dropShadowColor: 0x000000,
-                        dropShadowDistance: 1,
-                        dropShadowBlur: 1
+                        fill: COLORS.textDark
                     }
                 });
                 adAmountText.anchor.set(0.5);
                 adAmountText.x = centerX + btnGap/2 + 55;
-                adAmountText.y = btnY + btnHeight/2 - 5;
+                adAmountText.y = btnY + btnHeight/2 - 3;
                 stage.addChild(adAmountText);
 
-                // Small coin and x2 badge
+                // Small coin icon
                 const smallCoin = new PIXI.Text({ text: '🪙', style: { fontSize: 14 } });
                 smallCoin.anchor.set(0.5);
-                smallCoin.x = centerX + btnGap/2 + 80;
-                smallCoin.y = btnY + btnHeight/2 - 5;
+                smallCoin.x = centerX + btnGap/2 + 82;
+                smallCoin.y = btnY + btnHeight/2 - 3;
                 stage.addChild(smallCoin);
 
+                // x2 badge (red-orange)
                 const x2Badge = new PIXI.Text({
                     text: 'x2',
-                    style: { fontFamily: 'Arial', fontSize: 10, fontWeight: 'bold', fill: 0xFFD700 }
+                    style: {
+                        fontFamily: 'Arial',
+                        fontSize: 11,
+                        fontWeight: 'bold',
+                        fill: 0xe85050
+                    }
                 });
                 x2Badge.anchor.set(0.5);
                 x2Badge.x = centerX + btnGap/2 + 100;
-                x2Badge.y = btnY + btnHeight/2 + 5;
+                x2Badge.y = btnY + btnHeight/2 + 8;
                 stage.addChild(x2Badge);
 
-                // ===== CONFETTI CELEBRATION =====
+                // ===== VICTORY CONFETTI =====
                 setTimeout(() => {
                     celebration.victory();
                 }, 300);
 
                 // Button hover effects
-                continueBtn.on('pointerover', () => continueBtn.tint = 0xccffcc);
-                continueBtn.on('pointerout', () => continueBtn.tint = 0xffffff);
-                adBtn.on('pointerover', () => adBtn.tint = 0xffffcc);
-                adBtn.on('pointerout', () => adBtn.tint = 0xffffff);
+                continueBtn.mainBtn.on('pointerover', () => continueBtn.mainBtn.tint = 0xccffcc);
+                continueBtn.mainBtn.on('pointerout', () => continueBtn.mainBtn.tint = 0xffffff);
+                adBtn.mainBtn.on('pointerover', () => adBtn.mainBtn.tint = 0xffffee);
+                adBtn.mainBtn.on('pointerout', () => adBtn.mainBtn.tint = 0xffffff);
             }
 
             // Game loop for celebration updates

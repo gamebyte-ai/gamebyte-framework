@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>No Ads Popup - Pixel Perfect - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #0f1923; }
+        canvas { display: block; margin: 0 auto; }
+    </style>
+</head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
+
+    <script>
+        const { createGame } = GameByteFramework;
+
+        const CONFIG = {
+            width: 390,
+            height: 720
+        };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.body.appendChild(canvas);
+
+        const game = createGame();
+
+        // ===========================================
+        // TEXT STYLE FACTORY - Tüm yazılar için
+        // ===========================================
+        function createTextStyle(fontSize) {
+            return {
+                fontFamily: 'Arial Black, Arial',
+                fontSize: fontSize,
+                fontWeight: '900',
+                fill: 0xffffff,
+                stroke: { color: 0x1a2a3a, width: Math.max(3, fontSize * 0.12) },
+                dropShadow: {
+                    color: 0x000000,
+                    blur: 0,
+                    distance: Math.max(2, fontSize * 0.06),
+                    angle: Math.PI / 2,
+                    alpha: 0.5
+                }
+            };
+        }
+
+        (async () => {
+            await game.initialize(canvas, '2d');
+            const renderer = game.make('renderer');
+            const stage = renderer.getStage();
+
+            // ===========================================
+            // MODAL DIMENSIONS
+            // ===========================================
+            const modalWidth = 340;
+            const modalHeight = 560;
+            const modalX = (CONFIG.width - modalWidth) / 2;
+            const modalY = 70;
+            const modalRadius = 18;
+            const borderWidth = 4;
+
+            // ===========================================
+            // COLORS (Resimden çıkarılan)
+            // ===========================================
+            const COLORS = {
+                bgDark: 0x0f1923,
+                modalBorder: 0x1e3a5f,
+                modalBg: 0x6bc8eb,
+                headerBorderBottom: 0x4a9cc8,
+                panelBg: 0x4a90b8,
+                panelBorder: 0x3d7a9e,
+                prohibitRed: 0xe63946,
+                prohibitRedDark: 0xa82d38,
+                prohibitRedLight: 0xf07080,
+                ctaGreen: 0x7dd860,
+                ctaGreenDark: 0x4a9a35,
+                ctaGreenLight: 0x9de880,
+                closeBtnRed: 0xd94452,
+                closeBtnRedDark: 0xa83340,
+            };
+
+            // ===========================================
+            // BACKGROUND
+            // ===========================================
+            const bg = new PIXI.Graphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill(COLORS.bgDark);
+            stage.addChild(bg);
+
+            // ===========================================
+            // MODAL SHADOW
+            // ===========================================
+            const modalShadow = new PIXI.Graphics();
+            modalShadow.roundRect(modalX + 5, modalY + 8, modalWidth, modalHeight, modalRadius);
+            modalShadow.fill({ color: 0x000000, alpha: 0.4 });
+            stage.addChild(modalShadow);
+
+            // ===========================================
+            // MODAL BORDER (Koyu lacivert)
+            // ===========================================
+            const modalBorder = new PIXI.Graphics();
+            modalBorder.roundRect(
+                modalX - borderWidth,
+                modalY - borderWidth,
+                modalWidth + borderWidth * 2,
+                modalHeight + borderWidth * 2,
+                modalRadius + borderWidth
+            );
+            modalBorder.fill(COLORS.modalBorder);
+            stage.addChild(modalBorder);
+
+            // ===========================================
+            // MODAL BACKGROUND (Açık mavi)
+            // ===========================================
+            const modalBg = new PIXI.Graphics();
+            modalBg.roundRect(modalX, modalY, modalWidth, modalHeight, modalRadius);
+            modalBg.fill(COLORS.modalBg);
+            stage.addChild(modalBg);
+
+            // ===========================================
+            // HEADER
+            // ===========================================
+            const headerHeight = 52;
+
+            // Header arka plan (modal ile aynı renk, görünmez ama mask için)
+            const headerMask = new PIXI.Graphics();
+            headerMask.roundRect(modalX, modalY, modalWidth, modalHeight, modalRadius);
+            headerMask.fill(0xffffff);
+
+            // Header alt border
+            const headerBorder = new PIXI.Graphics();
+            headerBorder.rect(modalX, modalY + headerHeight - 2, modalWidth, 2);
+            headerBorder.fill(COLORS.headerBorderBottom);
+            stage.addChild(headerBorder);
+
+            // ===========================================
+            // LIGHT RAYS (SUNBURST) - 6 ray, maskelenmiş
+            // ===========================================
+            const raysContainer = new PIXI.Container();
+            const raysCenterX = modalX + modalWidth / 2;
+            const raysCenterY = modalY + 200; // Badge merkezi
+
+            // Rays mask - modal içinde, header altında
+            const raysMask = new PIXI.Graphics();
+            raysMask.rect(modalX, modalY + headerHeight, modalWidth, modalHeight * 0.6 - headerHeight);
+            raysMask.fill(0xffffff);
+            stage.addChild(raysMask);
+
+            // 6 ray, eşit olmayan aralıklar
+            const rayAngles = [0, 58, 120, 178, 240, 300]; // Derece cinsinden, hafif düzensiz
+            const rayWidth = 28; // Her ray'in açısal genişliği (derece)
+            const rayLength = 220;
+
+            for (let i = 0; i < rayAngles.length; i++) {
+                const startAngle = (rayAngles[i] - rayWidth / 2) * Math.PI / 180;
+                const endAngle = (rayAngles[i] + rayWidth / 2) * Math.PI / 180;
+
+                const ray = new PIXI.Graphics();
+
+                // Linear gradient efekti için birden fazla segment
+                const segments = 10;
+                for (let s = 0; s < segments; s++) {
+                    const innerR = (rayLength / segments) * s;
+                    const outerR = (rayLength / segments) * (s + 1);
+                    const alpha = 0.35 * (1 - s / segments); // Merkez opak, uç şeffaf
+
+                    ray.moveTo(
+                        Math.cos(startAngle) * innerR,
+                        Math.sin(startAngle) * innerR
+                    );
+                    ray.lineTo(
+                        Math.cos(startAngle) * outerR,
+                        Math.sin(startAngle) * outerR
+                    );
+                    ray.lineTo(
+                        Math.cos(endAngle) * outerR,
+                        Math.sin(endAngle) * outerR
+                    );
+                    ray.lineTo(
+                        Math.cos(endAngle) * innerR,
+                        Math.sin(endAngle) * innerR
+                    );
+                    ray.closePath();
+                    ray.fill({ color: 0xffffff, alpha: alpha });
+                }
+
+                raysContainer.addChild(ray);
+            }
+
+            raysContainer.x = raysCenterX;
+            raysContainer.y = raysCenterY;
+            raysContainer.mask = raysMask;
+            stage.addChild(raysContainer);
+
+            // Rays animasyonu
+            game.on('update', () => {
+                raysContainer.rotation += 0.002;
+            });
+
+            // ===========================================
+            // ADS BADGE
+            // ===========================================
+            const badgeCenterX = modalX + modalWidth / 2;
+            const badgeCenterY = modalY + 200;
+            const badgeOuterRadius = 80;
+            const badgeInnerRadius = 55;
+            const stripeWidth = 22;
+
+            // --- Katman 1: Kırmızı Yasak İşareti ---
+
+            // Badge drop shadow
+            const badgeShadow = new PIXI.Graphics();
+            badgeShadow.circle(badgeCenterX + 4, badgeCenterY + 6, badgeOuterRadius);
+            badgeShadow.fill({ color: 0x000000, alpha: 0.35 });
+            stage.addChild(badgeShadow);
+
+            // Prohibition sign container (halka + çizgi tek bütün)
+            const prohibitSign = new PIXI.Container();
+            prohibitSign.x = badgeCenterX;
+            prohibitSign.y = badgeCenterY;
+
+            // Halka - dış koyu kenar
+            const ringOuter = new PIXI.Graphics();
+            ringOuter.circle(0, 0, badgeOuterRadius);
+            ringOuter.cut();
+            ringOuter.circle(0, 0, badgeInnerRadius);
+            ringOuter.fill(COLORS.prohibitRedDark);
+            prohibitSign.addChild(ringOuter);
+
+            // Halka - ana kırmızı
+            const ringMain = new PIXI.Graphics();
+            ringMain.circle(0, 0, badgeOuterRadius - 3);
+            ringMain.cut();
+            ringMain.circle(0, 0, badgeInnerRadius + 3);
+            ringMain.fill(COLORS.prohibitRed);
+            prohibitSign.addChild(ringMain);
+
+            // Halka - üst highlight
+            const ringHighlight = new PIXI.Graphics();
+            ringHighlight.arc(0, 0, badgeOuterRadius - 8, -Math.PI * 0.85, -Math.PI * 0.15);
+            ringHighlight.arc(0, 0, badgeOuterRadius - 16, -Math.PI * 0.15, -Math.PI * 0.85, true);
+            ringHighlight.closePath();
+            ringHighlight.fill({ color: COLORS.prohibitRedLight, alpha: 0.6 });
+            prohibitSign.addChild(ringHighlight);
+
+            // Çapraz çizgi - sol üstten sağ alta
+            const stripeAngle = Math.PI / 4; // 45 derece
+            const stripeLength = badgeOuterRadius * 1.6;
+
+            // Çizgi koyu kenar
+            const stripeDark = new PIXI.Graphics();
+            stripeDark.rect(-stripeLength / 2, -stripeWidth / 2 - 2, stripeLength, stripeWidth + 4);
+            stripeDark.fill(COLORS.prohibitRedDark);
+            stripeDark.rotation = stripeAngle;
+            prohibitSign.addChild(stripeDark);
+
+            // Çizgi ana
+            const stripeMain = new PIXI.Graphics();
+            stripeMain.rect(-stripeLength / 2, -stripeWidth / 2, stripeLength, stripeWidth);
+            stripeMain.fill(COLORS.prohibitRed);
+            stripeMain.rotation = stripeAngle;
+            prohibitSign.addChild(stripeMain);
+
+            // Çizgi highlight
+            const stripeHighlight = new PIXI.Graphics();
+            stripeHighlight.rect(-stripeLength / 2, -stripeWidth / 2, stripeLength, 5);
+            stripeHighlight.fill({ color: COLORS.prohibitRedLight, alpha: 0.5 });
+            stripeHighlight.rotation = stripeAngle;
+            prohibitSign.addChild(stripeHighlight);
+
+            stage.addChild(prohibitSign);
+
+            // --- Katman 2: Yazı Gölgesi ---
+            const adsTextShadow = new PIXI.Text({
+                text: 'ADS',
+                style: {
+                    fontFamily: 'Arial Black, Impact, Arial',
+                    fontSize: 52,
+                    fontWeight: '900',
+                    fontStyle: 'italic',
+                    fill: 0x000000,
+                }
+            });
+            adsTextShadow.anchor.set(0.5);
+            adsTextShadow.x = badgeCenterX + 3;
+            adsTextShadow.y = badgeCenterY + 5;
+            adsTextShadow.alpha = 0.4;
+            stage.addChild(adsTextShadow);
+
+            // --- Katman 3: "ADS" Yazısı (EN ÜST) ---
+            const adsText = new PIXI.Text({
+                text: 'ADS',
+                style: {
+                    fontFamily: 'Arial Black, Impact, Arial',
+                    fontSize: 52,
+                    fontWeight: '900',
+                    fontStyle: 'italic',
+                    fill: 0xffffff,
+                    stroke: { color: 0x2a4a60, width: 5 },
+                }
+            });
+            adsText.anchor.set(0.5);
+            adsText.x = badgeCenterX;
+            adsText.y = badgeCenterY;
+            stage.addChild(adsText);
+
+            // ===========================================
+            // FEATURE PANEL
+            // ===========================================
+            const panelX = modalX + 18;
+            const panelY = modalY + 320;
+            const panelWidth = modalWidth - 36;
+            const panelHeight = 140;
+            const panelRadius = 14;
+
+            // Panel shadow
+            const panelShadow = new PIXI.Graphics();
+            panelShadow.roundRect(panelX + 2, panelY + 3, panelWidth, panelHeight, panelRadius);
+            panelShadow.fill({ color: 0x000000, alpha: 0.15 });
+            stage.addChild(panelShadow);
+
+            // Panel background
+            const featurePanel = new PIXI.Graphics();
+            featurePanel.roundRect(panelX, panelY, panelWidth, panelHeight, panelRadius);
+            featurePanel.fill({ color: COLORS.panelBg, alpha: 0.7 });
+            stage.addChild(featurePanel);
+
+            // Panel border
+            const panelBorderG = new PIXI.Graphics();
+            panelBorderG.roundRect(panelX, panelY, panelWidth, panelHeight, panelRadius);
+            panelBorderG.stroke({ color: COLORS.panelBorder, width: 2, alpha: 0.6 });
+            stage.addChild(panelBorderG);
+
+            // ===========================================
+            // FEATURE LIST
+            // ===========================================
+            const features = [
+                { icon: '📺', text: 'Remove all intrusive ads\nforever!', iconBg: 0x4CAF50, hasBlock: true },
+                { icon: '📶', text: 'Play without internet\nconnection!', iconBg: 0x4CAF50, hasX: true },
+                { icon: '🎬', text: 'Keep optional ads for\nrewards!', iconBg: 0x5a6a7a }
+            ];
+
+            const featureStartY = panelY + 14;
+            const featureSpacing = 42;
+
+            features.forEach((feature, i) => {
+                const y = featureStartY + i * featureSpacing;
+
+                // İkon arka plan
+                const iconBg = new PIXI.Graphics();
+                iconBg.roundRect(panelX + 12, y, 34, 34, 8);
+                iconBg.fill(feature.iconBg);
+                stage.addChild(iconBg);
+
+                // İkon
+                const icon = new PIXI.Text({
+                    text: feature.icon,
+                    style: { fontSize: 20 }
+                });
+                icon.anchor.set(0.5);
+                icon.x = panelX + 29;
+                icon.y = y + 17;
+                stage.addChild(icon);
+
+                // Block/X overlay
+                if (feature.hasBlock) {
+                    const block = new PIXI.Text({
+                        text: '⛔',
+                        style: { fontSize: 12 }
+                    });
+                    block.anchor.set(0.5);
+                    block.x = panelX + 38;
+                    block.y = y + 26;
+                    stage.addChild(block);
+                }
+                if (feature.hasX) {
+                    const xMark = new PIXI.Text({
+                        text: '✕',
+                        style: { fontSize: 12, fill: 0xe63946, fontWeight: 'bold' }
+                    });
+                    xMark.anchor.set(0.5);
+                    xMark.x = panelX + 40;
+                    xMark.y = y + 26;
+                    stage.addChild(xMark);
+                }
+
+                // Feature text
+                const featureText = new PIXI.Text({
+                    text: feature.text,
+                    style: {
+                        ...createTextStyle(15),
+                        lineHeight: 18
+                    }
+                });
+                featureText.x = panelX + 55;
+                featureText.y = y + 2;
+                stage.addChild(featureText);
+            });
+
+            // ===========================================
+            // CTA BUTTON
+            // ===========================================
+            const ctaWidth = 240;
+            const ctaHeight = 58;
+            const ctaX = modalX + (modalWidth - ctaWidth) / 2;
+            const ctaY = modalY + 485;
+            const ctaRadius = 14;
+
+            // Button shadow (koyu yeşil, alt)
+            const ctaShadow = new PIXI.Graphics();
+            ctaShadow.roundRect(ctaX, ctaY + 5, ctaWidth, ctaHeight, ctaRadius);
+            ctaShadow.fill(COLORS.ctaGreenDark);
+            stage.addChild(ctaShadow);
+
+            // Button border
+            const ctaBorder = new PIXI.Graphics();
+            ctaBorder.roundRect(ctaX - 2, ctaY - 2, ctaWidth + 4, ctaHeight + 4, ctaRadius + 2);
+            ctaBorder.fill(COLORS.ctaGreenDark);
+            stage.addChild(ctaBorder);
+
+            // Button main
+            const ctaBtn = new PIXI.Graphics();
+            ctaBtn.roundRect(ctaX, ctaY, ctaWidth, ctaHeight, ctaRadius);
+            ctaBtn.fill(COLORS.ctaGreen);
+            ctaBtn.eventMode = 'static';
+            ctaBtn.cursor = 'pointer';
+            stage.addChild(ctaBtn);
+
+            // Button top highlight (üst yarı daha açık)
+            const ctaHighlightTop = new PIXI.Graphics();
+            ctaHighlightTop.roundRect(ctaX + 4, ctaY + 4, ctaWidth - 8, ctaHeight * 0.45, ctaRadius - 2);
+            ctaHighlightTop.fill({ color: COLORS.ctaGreenLight, alpha: 0.5 });
+            stage.addChild(ctaHighlightTop);
+
+            // Button shine line (en üstte ince beyaz)
+            const ctaShine = new PIXI.Graphics();
+            ctaShine.roundRect(ctaX + 10, ctaY + 5, ctaWidth - 20, 6, 3);
+            ctaShine.fill({ color: 0xffffff, alpha: 0.3 });
+            stage.addChild(ctaShine);
+
+            // Button text
+            const ctaText = new PIXI.Text({
+                text: 'TRY 399.99',
+                style: createTextStyle(28)
+            });
+            ctaText.anchor.set(0.5);
+            ctaText.x = ctaX + ctaWidth / 2;
+            ctaText.y = ctaY + ctaHeight / 2;
+            stage.addChild(ctaText);
+
+            // ===========================================
+            // HEADER TEXT - "NO ADS"
+            // ===========================================
+            const headerText = new PIXI.Text({
+                text: 'NO ADS',
+                style: createTextStyle(30)
+            });
+            headerText.anchor.set(0.5);
+            headerText.x = modalX + modalWidth / 2 - 20; // Close button'dan dolayı sola kaymış
+            headerText.y = modalY + headerHeight / 2;
+            stage.addChild(headerText);
+
+            // ===========================================
+            // CLOSE BUTTON
+            // ===========================================
+            const closeBtnSize = 38;
+            const closeBtnX = modalX + modalWidth - closeBtnSize - 8;
+            const closeBtnY = modalY + (headerHeight - closeBtnSize) / 2;
+
+            // Close button shadow
+            const closeShadow = new PIXI.Graphics();
+            closeShadow.roundRect(closeBtnX + 2, closeBtnY + 3, closeBtnSize, closeBtnSize, 8);
+            closeShadow.fill(COLORS.closeBtnRedDark);
+            stage.addChild(closeShadow);
+
+            // Close button main
+            const closeBtn = new PIXI.Graphics();
+            closeBtn.roundRect(closeBtnX, closeBtnY, closeBtnSize, closeBtnSize, 8);
+            closeBtn.fill(COLORS.closeBtnRed);
+            closeBtn.eventMode = 'static';
+            closeBtn.cursor = 'pointer';
+            stage.addChild(closeBtn);
+
+            // Close button highlight (üst)
+            const closeHighlight = new PIXI.Graphics();
+            closeHighlight.roundRect(closeBtnX + 3, closeBtnY + 3, closeBtnSize - 6, closeBtnSize * 0.4, 5);
+            closeHighlight.fill({ color: 0xffffff, alpha: 0.2 });
+            stage.addChild(closeHighlight);
+
+            // Close X
+            const closeX = new PIXI.Text({
+                text: '✕',
+                style: {
+                    ...createTextStyle(20),
+                    stroke: { color: 0x000000, width: 2 }
+                }
+            });
+            closeX.anchor.set(0.5);
+            closeX.x = closeBtnX + closeBtnSize / 2;
+            closeX.y = closeBtnY + closeBtnSize / 2;
+            stage.addChild(closeX);
+
+            // ===========================================
+            // INTERACTIONS
+            // ===========================================
+            closeBtn.on('pointerdown', () => {
+                console.log('Close clicked');
+            });
+
+            ctaBtn.on('pointerdown', () => {
+                console.log('Purchase clicked: TRY 399.99');
+            });
+
+            game.start();
+        })();
+    </script>
+</body>
+</html>
