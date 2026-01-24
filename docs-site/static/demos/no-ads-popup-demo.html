@@ -595,9 +595,9 @@
 
             // 4. Highlight (parlama efekti - üst köşeler yuvarlak, alt keskin)
             const ctaHighlightTop = new PIXI.Graphics();
-            const hlX = ctaX + 2;
-            const hlY = ctaY + 2;
-            const hlW = ctaWidth - 4;
+            const hlX = ctaX + 3;
+            const hlY = ctaY + 3;
+            const hlW = ctaWidth - 6;
             const hlH = ctaHeight * 0.45;
             const hlR = ctaRadius - 2;
             ctaHighlightTop.moveTo(hlX + hlR, hlY);
@@ -608,7 +608,7 @@
             ctaHighlightTop.lineTo(hlX, hlY + hlR);
             ctaHighlightTop.arc(hlX + hlR, hlY + hlR, hlR, Math.PI, -Math.PI / 2);
             ctaHighlightTop.closePath();
-            ctaHighlightTop.fill({ color: 0xFFFFFF, alpha: 0.25 });
+            ctaHighlightTop.fill({ color: 0xFFFFFF, alpha: 0.50 });
             stage.addChild(ctaHighlightTop);
 
             // 5. Jellybean efekti (sol üst köşe - #E6FCE9, küçük, 25° sola eğik)
