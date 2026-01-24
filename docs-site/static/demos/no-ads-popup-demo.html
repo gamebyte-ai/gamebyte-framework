@@ -96,7 +96,7 @@
             // MODAL SHADOW
             // ===========================================
             const modalShadow = new PIXI.Graphics();
-            modalShadow.roundRect(modalX + 5, modalY + 8, modalWidth, modalHeight, modalRadius);
+            modalShadow.roundRect(modalX, modalY + 8, modalWidth, modalHeight, modalRadius);
             modalShadow.fill({ color: 0x000000, alpha: 0.4 });
             stage.addChild(modalShadow);
 
@@ -225,9 +225,9 @@
 
             // --- Katman 1: Kırmızı Yasak İşareti ---
 
-            // Badge drop shadow
+            // Badge drop shadow (90 derece - sadece Y offset)
             const badgeShadow = new PIXI.Graphics();
-            badgeShadow.circle(badgeCenterX + 4, badgeCenterY + 6, badgeOuterRadius);
+            badgeShadow.circle(badgeCenterX, badgeCenterY + 6, badgeOuterRadius);
             badgeShadow.fill({ color: 0x000000, alpha: 0.35 });
             stage.addChild(badgeShadow);
 
@@ -297,7 +297,7 @@
                 }
             });
             adsTextShadow.anchor.set(0.5);
-            adsTextShadow.x = badgeCenterX + 3;
+            adsTextShadow.x = badgeCenterX;
             adsTextShadow.y = badgeCenterY + 5;
             adsTextShadow.rotation = -20 * Math.PI / 180; // 20 derece sola
             adsTextShadow.alpha = 0.4;
@@ -575,10 +575,10 @@
             const ctaY = modalY + 485;
             const ctaRadius = 14;
 
-            // Button shadow (koyu yeşil, alt)
+            // Button shadow (90 derece - siyah)
             const ctaShadow = new PIXI.Graphics();
             ctaShadow.roundRect(ctaX, ctaY + 5, ctaWidth, ctaHeight, ctaRadius);
-            ctaShadow.fill(COLORS.ctaGreenDark);
+            ctaShadow.fill({ color: 0x000000, alpha: 0.4 });
             stage.addChild(ctaShadow);
 
             // Button border
@@ -636,10 +636,10 @@
             const closeBtnX = modalX + modalWidth - closeBtnSize - 8;
             const closeBtnY = modalY + (headerHeight - closeBtnSize) / 2;
 
-            // Close button shadow
+            // Close button shadow (90 derece - siyah)
             const closeShadow = new PIXI.Graphics();
-            closeShadow.roundRect(closeBtnX + 2, closeBtnY + 3, closeBtnSize, closeBtnSize, 8);
-            closeShadow.fill(COLORS.closeBtnRedDark);
+            closeShadow.roundRect(closeBtnX, closeBtnY + 3, closeBtnSize, closeBtnSize, 8);
+            closeShadow.fill({ color: 0x000000, alpha: 0.4 });
             stage.addChild(closeShadow);
 
             // Close button main
