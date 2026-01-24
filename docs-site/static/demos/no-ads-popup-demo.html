@@ -147,21 +147,15 @@
             raysMask.fill(0xffffff);
             stage.addChild(raysMask);
 
-            // Radial gradient glow (güneş gibi parlama - sarımsı)
-            const glowRadius = 220; // Ray ile aynı çap
-            const glowSegments = 15;
-            const glowContainer = new PIXI.Graphics();
-
-            for (let i = glowSegments; i >= 0; i--) {
-                const radius = (glowRadius / glowSegments) * (i + 1);
-                const alpha = 0.2 * (1 - i / glowSegments); // Merkezde opak, dışta şeffaf
-                glowContainer.circle(0, 0, radius);
-                glowContainer.fill({ color: 0xFFFAE6, alpha: alpha }); // Hafif sarımsı
-            }
-            glowContainer.x = raysCenterX;
-            glowContainer.y = raysCenterY;
-            glowContainer.mask = raysMask;
-            stage.addChild(glowContainer);
+            // Radial gradient glow (BlurFilter ile smooth)
+            const glowCircle = new PIXI.Graphics();
+            glowCircle.circle(0, 0, 110); // Blur ile yayılacak
+            glowCircle.fill({ color: 0xFFFAE6, alpha: 0.5 }); // Sarımsı
+            glowCircle.x = raysCenterX;
+            glowCircle.y = raysCenterY;
+            glowCircle.filters = [new PIXI.BlurFilter({ strength: 60, quality: 4 })];
+            glowCircle.mask = raysMask;
+            stage.addChild(glowCircle);
 
             // 6 ray, eşit olmayan aralıklar
             const rayAngles = [0, 58, 120, 178, 240, 300]; // Derece cinsinden, hafif düzensiz
