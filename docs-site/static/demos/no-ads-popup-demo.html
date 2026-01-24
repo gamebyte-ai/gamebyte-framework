@@ -567,10 +567,10 @@
             const ctaRadius = 14;
             const shadowOffset = 6;
 
-            // 1. Black border (tüm butonu çerçeveleyen - shadow dahil)
+            // 1. Black border (tüm butonu çerçeveleyen - shadow dahil, 1px)
             const ctaOuterBorder = new PIXI.Graphics();
-            ctaOuterBorder.roundRect(ctaX - 3, ctaY - 3, ctaWidth + 6, ctaHeight + shadowOffset + 6, ctaRadius + 3);
-            ctaOuterBorder.fill(0x000000);
+            ctaOuterBorder.roundRect(ctaX - 1, ctaY - 1, ctaWidth + 2, ctaHeight + shadowOffset + 2, ctaRadius + 1);
+            ctaOuterBorder.stroke({ color: 0x000000, width: 1 });
             stage.addChild(ctaOuterBorder);
 
             // 2. Shadow (alt kısım - yeşil)
