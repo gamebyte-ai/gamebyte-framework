@@ -579,24 +579,24 @@
             ctaShadow.fill(0x28A165);
             stage.addChild(ctaShadow);
 
-            // 3. Button main (ana yüzey)
+            // 3. Button main (ana yüzey - yeşil)
             const ctaBtn = new PIXI.Graphics();
             ctaBtn.roundRect(ctaX, ctaY, ctaWidth, ctaHeight, ctaRadius);
-            ctaBtn.fill(0x2484D3);
+            ctaBtn.fill(0x2DE45A);
             ctaBtn.eventMode = 'static';
             ctaBtn.cursor = 'pointer';
             stage.addChild(ctaBtn);
 
-            // 4. Highlight (parlama efekti)
+            // 4. Highlight (parlama efekti - #6DED7C)
             const ctaHighlightTop = new PIXI.Graphics();
             ctaHighlightTop.roundRect(ctaX + 4, ctaY + 4, ctaWidth - 8, ctaHeight * 0.45, ctaRadius - 2);
-            ctaHighlightTop.fill({ color: 0x6DED7C, alpha: 0.6 });
+            ctaHighlightTop.fill(0x6DED7C);
             stage.addChild(ctaHighlightTop);
 
-            // 5. Jellybean efekti (sol üst köşe)
+            // 5. Jellybean efekti (sol üst köşe - #E6FCE9)
             const ctaJellybean = new PIXI.Graphics();
             ctaJellybean.ellipse(ctaX + 30, ctaY + 16, 20, 10);
-            ctaJellybean.fill({ color: 0xE6FCE9, alpha: 0.7 });
+            ctaJellybean.fill(0xE6FCE9);
             stage.addChild(ctaJellybean);
 
             // Button text
