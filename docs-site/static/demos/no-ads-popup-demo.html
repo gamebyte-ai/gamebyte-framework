@@ -587,10 +587,10 @@
             ctaBtn.cursor = 'pointer';
             stage.addChild(ctaBtn);
 
-            // 4. Highlight (parlama efekti - #6DED7C)
+            // 4. Highlight (parlama efekti - main üstüne gelince #6DED7C görünecek)
             const ctaHighlightTop = new PIXI.Graphics();
             ctaHighlightTop.roundRect(ctaX + 4, ctaY + 4, ctaWidth - 8, ctaHeight * 0.45, ctaRadius - 2);
-            ctaHighlightTop.fill(0x6DED7C);
+            ctaHighlightTop.fill({ color: 0xFFFFFF, alpha: 0.35 }); // Main (#2DE45A) + beyaz = #6DED7C görünümü
             stage.addChild(ctaHighlightTop);
 
             // 5. Jellybean efekti (sol üst köşe - #E6FCE9)
