@@ -53,6 +53,7 @@ export interface GameButtonColorScheme {
   highlight: number;
   text: number;
   textStroke: number;
+  jellybean?: number;  // Optional jellybean gloss color
 }
 
 /**
@@ -124,18 +125,18 @@ export class GameStyleButton extends EventEmitter {
   constructor(config: GameStyleButtonConfig = {}) {
     super();
 
-    // Default configuration - Mobile game style defaults
+    // Default configuration - Mobile game style defaults (No Ads popup style)
     this.config = {
       text: config.text || 'Button',
       width: config.width || 200,
       height: config.height || 70,
       fontSize: config.fontSize || 28,
       fontFamily: config.fontFamily || '"Fredoka One", "Arial Black", sans-serif',
-      colorScheme: config.colorScheme || GameStyleColors.YELLOW_BUTTON,
+      colorScheme: config.colorScheme || GameStyleColors.GREEN_BUTTON,
       buttonStyle: config.buttonStyle || 'raised',  // 'raised' or 'flat'
-      borderRadius: config.borderRadius || 16,
-      borderWidth: config.borderWidth || 3,
-      shadowOffset: config.shadowOffset || 4,
+      borderRadius: config.borderRadius || 14,
+      borderWidth: config.borderWidth || 1,
+      shadowOffset: config.shadowOffset || 3,
       disabled: config.disabled || false,
       icon: config.icon || ''
     };
@@ -256,8 +257,8 @@ export class GameStyleButton extends EventEmitter {
   }
 
   /**
-   * Render 'raised' style - Classic 3D with drop shadow behind the button
-   * Like Candy Crush, Brawl Stars (reference screenshot 1)
+   * Render 'raised' style - No Ads popup button style
+   * Features: black outer border, green shadow, top shine, highlight, jellybean
    */
   private renderRaisedStyle(
     width: number,
@@ -268,32 +269,47 @@ export class GameStyleButton extends EventEmitter {
     colors: GameButtonColorScheme
   ): void {
     // Pressed state adjustments
-    const pressedOffset = this.isPressed ? shadowOffset - 2 : 0;
-    const currentShadowOffset = this.isPressed ? 2 : shadowOffset;
+    const pressedOffset = this.isPressed ? shadowOffset - 1 : 0;
+    const currentShadowOffset = this.isPressed ? 1 : shadowOffset;
 
-    // Layer 1: Drop Shadow - positioned BEHIND and BELOW the button
-    // This shadow is what makes it look "raised" or "floating"
+    // Layer 1: Black outer border (stroke around everything including shadow)
     this.shadowGraphics.roundRect(
-      2,                          // Slight X offset
-      currentShadowOffset + 2,    // Y offset (shadow below button)
-      width - 2,
+      -1,
+      -1,
+      width + 2,
+      height + currentShadowOffset + 2,
+      borderRadius + 1
+    );
+    this.shadowGraphics.stroke({ color: 0x000000, width: 1 });
+
+    // Layer 2: Shadow/depth (green, visible at bottom)
+    this.borderGraphics.roundRect(
+      0,
+      currentShadowOffset + pressedOffset,
+      width,
       height,
       borderRadius
     );
-    this.shadowGraphics.fill({ color: colors.shadow, alpha: 0.85 });
+    this.borderGraphics.fill({ color: colors.shadow });
 
-    // Layer 2: Main button border
-    this.borderGraphics.roundRect(0, pressedOffset, width, height, borderRadius);
-    this.borderGraphics.fill({ color: colors.border });
+    // Layer 3: Top shine (white, peek above main button)
+    this.backgroundGraphics.roundRect(
+      0.5,
+      pressedOffset - 0.5,
+      width - 1,
+      height,
+      borderRadius
+    );
+    this.backgroundGraphics.fill({ color: 0xFFFFFF, alpha: 0.60 });
 
-    // Layer 3: Inner fill area with gradient
-    const fillX = borderWidth;
-    const fillY = borderWidth + pressedOffset;
-    const fillWidth = width - borderWidth * 2;
-    const fillHeight = height - borderWidth * 2;
-    const fillRadius = Math.max(4, borderRadius - borderWidth);
+    // Layer 4: Main button fill
+    const fillX = 0;
+    const fillY = pressedOffset;
+    const fillWidth = width;
+    const fillHeight = height;
+    const fillRadius = borderRadius;
 
-    // Create gradient texture and sprite
+    // Create gradient texture and sprite (or solid color)
     const gradientCanvas = createGradientTexture(
       fillWidth,
       fillHeight,
@@ -306,39 +322,38 @@ export class GameStyleButton extends EventEmitter {
     this.gradientSprite.x = fillX;
     this.gradientSprite.y = fillY;
 
-    // Insert gradient sprite after border graphics
-    const borderIndex = this.container.getChildIndex(this.borderGraphics);
+    // Insert gradient sprite after background graphics
+    const bgIndex = this.container.getChildIndex(this.backgroundGraphics);
     this.container.addChild(this.gradientSprite);
-    this.container.setChildIndex(this.gradientSprite, borderIndex + 1);
+    this.container.setChildIndex(this.gradientSprite, bgIndex + 1);
 
-    // Layer 4: Subtle highlight overlay for glass effect (upper half)
-    const highlightHeight = fillHeight * 0.35;
+    // Layer 5: Highlight (upper portion, white 25% alpha, sharp bottom)
+    const hlX = fillX + 3;
+    const hlY = fillY + 3;
+    const hlW = fillWidth - 6;
+    const hlH = fillHeight * 0.45;
+    const hlR = Math.max(4, fillRadius - 2);
+
     if (!this.isPressed) {
-      this.highlightGraphics.roundRect(
-        fillX + 3,
-        fillY + 2,
-        fillWidth - 6,
-        highlightHeight,
-        Math.min(fillRadius - 2, 10)
-      );
-      this.highlightGraphics.fill({ color: 0xFFFFFF, alpha: 0.12 });
+      // Draw highlight with rounded top, sharp bottom
+      this.highlightGraphics.moveTo(hlX + hlR, hlY);
+      this.highlightGraphics.lineTo(hlX + hlW - hlR, hlY);
+      this.highlightGraphics.arc(hlX + hlW - hlR, hlY + hlR, hlR, -Math.PI / 2, 0);
+      this.highlightGraphics.lineTo(hlX + hlW, hlY + hlH);
+      this.highlightGraphics.lineTo(hlX, hlY + hlH);
+      this.highlightGraphics.lineTo(hlX, hlY + hlR);
+      this.highlightGraphics.arc(hlX + hlR, hlY + hlR, hlR, Math.PI, -Math.PI / 2);
+      this.highlightGraphics.closePath();
+      this.highlightGraphics.fill({ color: 0xFFFFFF, alpha: 0.25 });
     }
 
-    // Layer 5: Specular highlights
-    // Rim light - very thin bright arc at top edge (like light reflection)
-    this.shineGraphics.roundRect(
-      fillX + 8,
-      fillY + 2,
-      fillWidth - 16,
-      2,
-      1
-    );
-    this.shineGraphics.fill({ color: 0xFFFFFF, alpha: this.isPressed ? 0.15 : 0.4 });
-
-    // Corner specular - small ellipse at top-left (glass reflection)
-    if (!this.isPressed) {
-      this.shineGraphics.ellipse(fillX + 14, fillY + 8, 5, 3);
-      this.shineGraphics.fill({ color: 0xFFFFFF, alpha: 0.5 });
+    // Layer 6: Jellybean gloss (small ellipse top-left, rotated)
+    if (!this.isPressed && colors.jellybean) {
+      this.shineGraphics.ellipse(0, 0, 3.5, 2.6);
+      this.shineGraphics.fill({ color: colors.jellybean });
+      this.shineGraphics.x = fillX + 10;
+      this.shineGraphics.y = fillY + 9;
+      this.shineGraphics.rotation = -25 * Math.PI / 180;
     }
 
     // Update text position for press animation

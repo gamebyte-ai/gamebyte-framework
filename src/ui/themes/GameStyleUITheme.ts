@@ -126,13 +126,14 @@ export const GameStyleColors = {
   },
 
   GREEN_BUTTON: {
-    gradientTop: 0x6DD66D,    // Bright lime green
-    gradientBottom: 0x3DA63D, // Forest green
-    border: 0x267326,         // Dark green border
-    shadow: 0x1A4D1A,         // Deep forest shadow
-    highlight: 0xB3FFB3,
+    gradientTop: 0x2DE45A,    // Main green (No Ads popup style)
+    gradientBottom: 0x2DE45A, // Same - solid color
+    border: 0x000000,         // Black outer border
+    shadow: 0x28A165,         // Green shadow/depth
+    highlight: 0xFFFFFF,      // White highlight (25% alpha applied in code)
     text: 0xFFFFFF,
-    textStroke: 0x1A4D1A
+    textStroke: 0x1A4D1A,
+    jellybean: 0xE6FCE9       // Jellybean gloss color
   },
 
   BLUE_BUTTON: {
