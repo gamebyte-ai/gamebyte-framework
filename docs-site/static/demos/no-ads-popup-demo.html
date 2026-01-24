@@ -147,6 +147,22 @@
             raysMask.fill(0xffffff);
             stage.addChild(raysMask);
 
+            // Radial gradient glow (güneş gibi parlama)
+            const glowRadius = 220 * 0.6; // Ray'in %60'ı
+            const glowSegments = 15;
+            const glowContainer = new PIXI.Graphics();
+
+            for (let i = glowSegments; i >= 0; i--) {
+                const radius = (glowRadius / glowSegments) * (i + 1);
+                const alpha = 0.25 * (1 - i / glowSegments); // Merkezde opak, dışta şeffaf
+                glowContainer.circle(0, 0, radius);
+                glowContainer.fill({ color: 0xffffff, alpha: alpha });
+            }
+            glowContainer.x = raysCenterX;
+            glowContainer.y = raysCenterY;
+            glowContainer.mask = raysMask;
+            stage.addChild(glowContainer);
+
             // 6 ray, eşit olmayan aralıklar
             const rayAngles = [0, 58, 120, 178, 240, 300]; // Derece cinsinden, hafif düzensiz
             const rayWidth = 28; // Her ray'in açısal genişliği (derece)
