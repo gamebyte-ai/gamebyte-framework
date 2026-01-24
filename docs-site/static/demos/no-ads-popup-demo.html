@@ -464,37 +464,52 @@
             // ===========================================
             // CLOSE BUTTON
             // ===========================================
-            const closeBtnSize = 36;
-            const closeBtnX = modalX + modalWidth - closeBtnSize - 10;
+            const closeBtnSize = 38;
+            const closeBtnX = modalX + modalWidth - closeBtnSize - 8;
             const closeBtnY = modalY + (headerHeight - closeBtnSize) / 2;
-            const closeBtnRadius = 10;
 
-            // Kalın beyaz border
-            const closeWhiteBorder = new PIXI.Graphics();
-            closeWhiteBorder.roundRect(closeBtnX - 3, closeBtnY - 3, closeBtnSize + 6, closeBtnSize + 6, closeBtnRadius + 3);
-            closeWhiteBorder.fill(0xffffff);
-            stage.addChild(closeWhiteBorder);
-
-            // Küçük keskin siyah shadow (sadece aşağı)
+            // Close button shadow
             const closeShadow = new PIXI.Graphics();
-            closeShadow.roundRect(closeBtnX, closeBtnY + 2, closeBtnSize, closeBtnSize, closeBtnRadius);
-            closeShadow.fill({ color: 0x000000, alpha: 0.3 });
+            closeShadow.roundRect(closeBtnX + 2, closeBtnY + 3, closeBtnSize, closeBtnSize, 8);
+            closeShadow.fill(COLORS.closeBtnRedDark);
             stage.addChild(closeShadow);
 
             // Close button main
             const closeBtn = new PIXI.Graphics();
-            closeBtn.roundRect(closeBtnX, closeBtnY, closeBtnSize, closeBtnSize, closeBtnRadius);
+            closeBtn.roundRect(closeBtnX, closeBtnY, closeBtnSize, closeBtnSize, 8);
             closeBtn.fill(COLORS.closeBtnRed);
             closeBtn.eventMode = 'static';
             closeBtn.cursor = 'pointer';
             stage.addChild(closeBtn);
 
-            // Close X - ince stroke
+            // Close button highlight (üst)
+            const closeHighlight = new PIXI.Graphics();
+            closeHighlight.roundRect(closeBtnX + 3, closeBtnY + 3, closeBtnSize - 6, closeBtnSize * 0.4, 5);
+            closeHighlight.fill({ color: 0xffffff, alpha: 0.2 });
+            stage.addChild(closeHighlight);
+
+            // X shadow (küçük keskin, aşağı doğru)
+            const closeXShadow = new PIXI.Text({
+                text: '✕',
+                style: {
+                    fontFamily: 'Arial Black, Arial',
+                    fontSize: 22,
+                    fontWeight: '900',
+                    fill: 0x000000,
+                }
+            });
+            closeXShadow.anchor.set(0.5);
+            closeXShadow.x = closeBtnX + closeBtnSize / 2;
+            closeXShadow.y = closeBtnY + closeBtnSize / 2 + 2;
+            closeXShadow.alpha = 0.4;
+            stage.addChild(closeXShadow);
+
+            // Close X - etli beyaz, ince stroke
             const closeX = new PIXI.Text({
                 text: '✕',
                 style: {
                     fontFamily: 'Arial Black, Arial',
-                    fontSize: 20,
+                    fontSize: 22,
                     fontWeight: '900',
                     fill: 0xffffff,
                     stroke: { color: 0x000000, width: 1 }
