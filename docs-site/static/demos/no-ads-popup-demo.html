@@ -127,16 +127,12 @@
             // ===========================================
             const headerHeight = 52;
 
-            // Header arka plan (modal ile aynı renk, görünmez ama mask için)
-            const headerMask = new PIXI.Graphics();
-            headerMask.roundRect(modalX, modalY, modalWidth, modalHeight, modalRadius);
-            headerMask.fill(0xffffff);
-
-            // Header alt border
-            const headerBorder = new PIXI.Graphics();
-            headerBorder.rect(modalX, modalY + headerHeight - 2, modalWidth, 2);
-            headerBorder.fill(COLORS.headerBorderBottom);
-            stage.addChild(headerBorder);
+            // Header arka plan (koyu mavi)
+            const headerBg = new PIXI.Graphics();
+            headerBg.roundRect(modalX, modalY, modalWidth, headerHeight, modalRadius);
+            headerBg.rect(modalX, modalY + headerHeight - modalRadius, modalWidth, modalRadius);
+            headerBg.fill(0x2889F0);
+            stage.addChild(headerBg);
 
             // ===========================================
             // LIGHT RAYS (SUNBURST) - 6 ray, maskelenmiş
