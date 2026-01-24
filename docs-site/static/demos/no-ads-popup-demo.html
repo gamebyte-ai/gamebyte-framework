@@ -224,28 +224,26 @@
             prohibitSign.x = badgeCenterX;
             prohibitSign.y = badgeCenterY;
 
-            // Halka - dış koyu kenar
+            // Halka kalınlığı
+            const ringThickness = badgeOuterRadius - badgeInnerRadius;
+            const ringMidRadius = (badgeOuterRadius + badgeInnerRadius) / 2;
+
+            // Halka - dış koyu kenar (stroke ile)
             const ringOuter = new PIXI.Graphics();
-            ringOuter.circle(0, 0, badgeOuterRadius);
-            ringOuter.cut();
-            ringOuter.circle(0, 0, badgeInnerRadius);
-            ringOuter.fill(COLORS.prohibitRedDark);
+            ringOuter.circle(0, 0, ringMidRadius);
+            ringOuter.stroke({ color: COLORS.prohibitRedDark, width: ringThickness + 4 });
             prohibitSign.addChild(ringOuter);
 
-            // Halka - ana kırmızı
+            // Halka - ana kırmızı (stroke ile)
             const ringMain = new PIXI.Graphics();
-            ringMain.circle(0, 0, badgeOuterRadius - 3);
-            ringMain.cut();
-            ringMain.circle(0, 0, badgeInnerRadius + 3);
-            ringMain.fill(COLORS.prohibitRed);
+            ringMain.circle(0, 0, ringMidRadius);
+            ringMain.stroke({ color: COLORS.prohibitRed, width: ringThickness - 2 });
             prohibitSign.addChild(ringMain);
 
-            // Halka - üst highlight
+            // Halka - üst highlight (arc ile)
             const ringHighlight = new PIXI.Graphics();
-            ringHighlight.arc(0, 0, badgeOuterRadius - 8, -Math.PI * 0.85, -Math.PI * 0.15);
-            ringHighlight.arc(0, 0, badgeOuterRadius - 16, -Math.PI * 0.15, -Math.PI * 0.85, true);
-            ringHighlight.closePath();
-            ringHighlight.fill({ color: COLORS.prohibitRedLight, alpha: 0.6 });
+            ringHighlight.arc(0, 0, ringMidRadius, -Math.PI * 0.85, -Math.PI * 0.15);
+            ringHighlight.stroke({ color: COLORS.prohibitRedLight, width: ringThickness * 0.4, alpha: 0.6 });
             prohibitSign.addChild(ringHighlight);
 
             // Çapraz çizgi - sol üstten sağ alta
