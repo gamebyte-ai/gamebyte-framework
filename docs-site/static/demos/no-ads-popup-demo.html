@@ -331,11 +331,11 @@
                 radius: 75,              // Badge etrafındaki alan
                 count: 1,                // Teker teker çıksın
                 color: 0xFFFFFF,         // Sadece beyaz
-                duration: 400,           // ms - hızlı animasyon
+                duration: 600,           // ms - %50 daha uzun
                 spawnDelayMin: 200,
                 spawnDelayMax: 500,
-                scaleMin: 0.4,
-                scaleMax: 0.8,
+                scaleMin: 0.6,
+                scaleMax: 1.0,           // Biraz daha büyük
                 rotationSpeed: 0.005     // Çok yavaş dönüş
             };
 
@@ -365,7 +365,7 @@
                 if (sparkles.length >= sparkleConfig.count) return;
 
                 const graphic = new PIXI.Graphics();
-                const size = 10;
+                const size = 14;  // Biraz daha büyük
 
                 // Sadece 4 kollu beyaz yıldız
                 drawStar(graphic, 4, size, sparkleConfig.color);
