@@ -65,6 +65,15 @@ class MockRenderer {
   destroy(): void {
     this.destroyed = true;
   }
+
+  // Mock event emitter methods for tick events
+  on(event: string, callback: Function): void {
+    // No-op for testing
+  }
+
+  off(event: string, callback: Function): void {
+    // No-op for testing
+  }
 }
 
 // Mock scene manager

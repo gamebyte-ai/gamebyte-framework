@@ -22,7 +22,9 @@ module.exports = {
   coverageReporters: ['text', 'lcov', 'html'],
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1'
+    '^@/(.*)$': '<rootDir>/src/$1',
+    // Handle ESM-style .js imports by mapping to .ts files
+    '^(\\.{1,2}/.*)\\.js$': '$1'
   },
   testTimeout: 10000
 };
