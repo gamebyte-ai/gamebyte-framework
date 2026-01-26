@@ -7,7 +7,7 @@ GameByte is a comprehensive JavaScript game framework that unifies 2D (Pixi.js v
 
 ## Quick Start
 - /overview - Framework introduction and features
-- /getting-started/installation - npm install gamebyte-framework
+- /getting-started/installation - npm install @gamebyte/framework
 - /getting-started/quick-start - Build first game in 5 minutes
 - /getting-started/first-game-tutorial - Complete platformer tutorial
 
@@ -28,12 +28,21 @@ GameByte is a comprehensive JavaScript game framework that unifies 2D (Pixi.js v
 
 ## UI Components
 - /ui-components/overview - Mobile-first UI system
-- /ui-components/button - UIButton with effects
-- /ui-components/panel - Container with styling
+- /ui-components/button - GameStyleButton, UIButton
+- /ui-components/panel - GameStylePanel, UIPanel
 - /ui-components/text - UIText typography
-- /ui-components/topbar - HUD resources/timers
+- /ui-components/topbar - GameTopBar, TopBar (HUD resources)
 - /ui-components/progress-bar - Health, loading bars
+- /ui-components/navigation - GameBottomNav, ArcheroMenu
+- /ui-components/level-selector - HexagonLevelButton, LevelPath
 - /ui-components/responsive-layout - Adaptive layouts
+
+## Boilerplate (Game Screens)
+- /boilerplate/overview - Complete game boilerplate system
+- /boilerplate/screen-manager - ScreenManager (push/pop navigation)
+- /boilerplate/screens - HubScreen, GameHUDScreen, ResultScreen
+- /boilerplate/panels - GameModalPanel, GameBottomSheet
+- /boilerplate/simple-screen - SimpleScreen base class
 
 ## Physics
 - /physics/overview - 2D and 3D physics
@@ -48,7 +57,7 @@ GameByte is a comprehensive JavaScript game framework that unifies 2D (Pixi.js v
 ## Input
 - /input/overview - Unified input system
 - /input/keyboard-mouse - Desktop controls
-- /input/touch - Mobile gestures
+- /input/touch - Mobile gestures, virtual joystick
 - /input/gamepad - Controller support
 
 ## Assets
@@ -66,6 +75,7 @@ GameByte is a comprehensive JavaScript game framework that unifies 2D (Pixi.js v
 
 ### Setup
 ```typescript
+import { createGame } from '@gamebyte/framework';
 const game = createGame();
 await game.initialize(canvas, '2d');
 game.start();
@@ -73,6 +83,7 @@ game.start();
 
 ### Scene
 ```typescript
+import { BaseScene } from '@gamebyte/framework';
 class MyScene extends BaseScene {
     constructor() { super('id', 'Name'); }
     async initialize() { await super.initialize(); }
@@ -80,30 +91,90 @@ class MyScene extends BaseScene {
 }
 ```
 
-### UI Button
+### Graphics Abstraction (Renderer-Agnostic)
 ```typescript
-new UIButton({ text: 'PLAY', width: 200, height: 60, backgroundColor: 0x4CAF50 })
+import { graphics } from '@gamebyte/framework';
+const gfx = graphics();
+const container = gfx.createContainer();
+const rect = gfx.createGraphics();
+rect.rect(0, 0, 100, 50).fill(0x4CAF50);
+const text = gfx.createText('Hello', { fontSize: 24, fill: 0xffffff });
+```
+
+### Game-Style Button
+```typescript
+import { GameStyleButton, GameStyleColors } from '@gamebyte/framework';
+const btn = new GameStyleButton({
+    text: 'Play',
+    width: 200,
+    height: 60,
+    colorScheme: GameStyleColors.YELLOW_BUTTON
+});
+btn.on('click', () => startGame());
+```
+
+### Screen Navigation
+```typescript
+import { ScreenManager, HubScreen } from '@gamebyte/framework';
+const screenManager = new ScreenManager({ container: stage, width: 720, height: 1280 });
+screenManager.push(new HubScreen({ /* config */ }));
+screenManager.push(gameScreen, 'slide');
+screenManager.pop();
 ```
 
 ### Input
 ```typescript
+const input = game.make('input');
 input.keyboard.on('Space', (pressed) => { if (pressed) jump(); });
 ```
 
 ### Physics
 ```typescript
+import { Physics } from '@gamebyte/framework';
 Physics.create2DWorld({ gravity: { x: 0, y: 1 } });
 Physics.createBody({ x: 100, y: 100, width: 32, height: 48 });
 ```
 
+## Key Exports
+
+### Core
+- `createGame()` - Entry point
+- `BaseScene`, `BaseScene3D` - Scene base classes
+- `graphics()` - Renderer-agnostic graphics factory
+
+### UI Components
+- `GameStyleButton`, `GameButtons` - Game-style buttons
+- `GameStylePanel` - Game-style panel with title/close
+- `GameTopBar` - Resource bar (lives, coins, gems)
+- `GameBottomNav` - Bottom navigation
+- `ArcheroMenu` - Animated bottom menu with particles
+- `HexagonLevelButton`, `LevelPath` - Level selector
+- `GameToggle`, `GameSlider` - Form controls
+- `UIButton`, `UIPanel`, `UIText`, `UIProgressBar` - Basic UI
+
+### Screens & Panels
+- `ScreenManager` - Stack-based screen navigation
+- `PanelManager` - Modal/sheet overlay management
+- `HubScreen` - Main menu hub
+- `GameHUDScreen` - In-game HUD
+- `ResultScreen` - Victory/defeat screen
+- `GameModalPanel` - Centered modal
+- `GameBottomSheet` - Slide-up panel
+- `SimpleScreen` - Lightweight screen base
+
+### Color Schemes
+- `GameStyleColors.YELLOW_BUTTON`, `GREEN_BUTTON`, `BLUE_BUTTON`, `RED_BUTTON`, `PURPLE_BUTTON`
+- `GameStyleColors.PANEL_BLUE`, `PANEL_PURPLE`
+- `ARCHERO_COLORS.red`, `.blue`, `.purple`, `.green`, `.activeYellow`
+
 ## Service Keys
-- renderer - Rendering control
-- scene.manager - Scene management
-- input - Input handling
-- audio - Audio playback
-- assets - Asset loading
-- physics - Physics engine
+- `renderer` - Rendering control
+- `scene.manager` - Scene management
+- `input` - Input handling
+- `audio` - Audio playback
+- `assets` - Asset loading
+- `physics` - Physics engine
 
 ## Links
-- GitHub: https://github.com/gamebyte-ai/gamebyte-framework
+- GitHub: https://github.com/nicholasdelucca/gamebyte-framework
 - Full API: /llms-full.txt

@@ -23,6 +23,10 @@ GameByte provides a comprehensive UI system optimized for mobile games with **ga
   title="Game UI Showcase"
 />
 
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the sun/moon button in the navigation bar!
+:::
+
 ## Design Principles
 
 ### Mobile-First
@@ -75,7 +79,7 @@ import {
     GameTopBar,
     HexagonLevelButton,
     GameBottomNav
-} from 'gamebyte-framework';
+} from '@gamebyte/framework';
 
 // Game-style play button (Candy Crush style)
 const playButton = new GameStyleButton({
@@ -159,10 +163,10 @@ abstract class BaseUIComponent {
 Apply consistent styles across components:
 
 ```typescript
-import { UITheme } from 'gamebyte-framework';
+import { Themes } from '@gamebyte/framework';
 
 // Set global theme
-UITheme.set({
+Themes.set({
     primaryColor: 0x6366f1,
     secondaryColor: 0x22c55e,
     backgroundColor: 0x1a1a2e,
@@ -197,19 +201,19 @@ button.once('click', () => console.log('First click only'));
 ## Animation Helpers
 
 ```typescript
-import { UIAnimations } from 'gamebyte-framework';
+import { Animations } from '@gamebyte/framework';
 
 // Fade in
-UIAnimations.fadeIn(button, { duration: 300 });
+Animations.fadeIn(button, { duration: 300 });
 
 // Slide in from bottom
-UIAnimations.slideIn(panel, { from: 'bottom', duration: 500 });
+Animations.slideIn(panel, { from: 'bottom', duration: 500 });
 
 // Scale bounce
-UIAnimations.bounce(button, { scale: 1.1, duration: 200 });
+Animations.bounce(button, { scale: 1.1, duration: 200 });
 
 // Shake (error feedback)
-UIAnimations.shake(input, { intensity: 5, duration: 300 });
+Animations.shake(input, { intensity: 5, duration: 300 });
 ```
 
 ## Accessibility

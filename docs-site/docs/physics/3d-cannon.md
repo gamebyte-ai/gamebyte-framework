@@ -18,7 +18,7 @@ GameByte uses Cannon-es for 3D physics simulation.
 ## World Setup
 
 ```typescript
-import { Physics } from 'gamebyte-framework';
+import { Physics } from '@gamebyte/framework';
 
 Physics.create3DWorld({
     gravity: { x: 0, y: -9.8, z: 0 },
@@ -32,6 +32,10 @@ Physics.create3DWorld({
   height={400}
   title="3D Physics Demo"
 />
+
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the 🌙/☀️ button in the navigation bar!
+:::
 
 ## Creating Bodies
 

@@ -50,6 +50,10 @@ await sceneManager.switchTo('menu', {
   title="Scene Transitions"
 />
 
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the 🌙/☀️ button in the navigation bar!
+:::
+
 ## Transition Options
 
 ```typescript
@@ -96,7 +100,7 @@ await sceneManager.switchTo('shop', {
 ## Custom Transitions
 
 ```typescript
-import { SceneTransition } from 'gamebyte-framework';
+import { SceneTransition } from '@gamebyte/framework';
 
 class CircleWipeTransition extends SceneTransition {
     async execute(
@@ -105,11 +109,10 @@ class CircleWipeTransition extends SceneTransition {
     ): Promise<void> {
         const { width, height } = this.renderer;
 
-        // Create circular mask
+        // Create circular mask (Pixi v8 API)
         const mask = new PIXI.Graphics();
-        mask.beginFill(0xffffff);
-        mask.drawCircle(width / 2, height / 2, 0);
-        mask.endFill();
+        mask.circle(width / 2, height / 2, 0);
+        mask.fill(0xffffff);
 
         toScene.container.mask = mask;
         toScene.container.visible = true;

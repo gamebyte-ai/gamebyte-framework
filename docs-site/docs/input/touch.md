@@ -42,6 +42,10 @@ touch.on('hold', (event) => {
   title="Touch Input Demo"
 />
 
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the 🌙/☀️ button in the navigation bar!
+:::
+
 ## Gestures
 
 ### Swipe
@@ -77,7 +81,7 @@ touch.on('pan', (event) => {
 ## Virtual Joystick
 
 ```typescript
-import { VirtualJoystick } from 'gamebyte-framework';
+import { VirtualJoystick } from '@gamebyte/framework';
 
 const joystick = new VirtualJoystick({
     position: { x: 100, y: 500 },

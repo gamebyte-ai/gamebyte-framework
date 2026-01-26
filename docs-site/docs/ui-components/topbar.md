@@ -23,6 +23,10 @@ GameByte provides **GameTopBar** for mobile game style HUDs with settings button
   title="GameTopBar Demo"
 />
 
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the sun/moon button in the navigation bar!
+:::
+
 ## GameTopBar
 
 A game-style top bar with circular settings button, heart icon with lives, coin display with add button.
@@ -39,7 +43,7 @@ A game-style top bar with circular settings button, heart icon with lives, coin 
 ### Basic Usage
 
 ```typescript
-import { GameTopBar } from 'gamebyte-framework';
+import { GameTopBar } from '@gamebyte/framework';
 
 const topBar = new GameTopBar({
     width: 400,
@@ -152,7 +156,7 @@ topBar.on('add-click', (resourceType) => {
 For simpler HUD needs, use the basic `TopBar` component:
 
 ```typescript
-import { TopBar, TopBarItemType } from 'gamebyte-framework';
+import { TopBar, TopBarItemType } from '@gamebyte/framework';
 
 const topBar = new TopBar({
     width: 800,
@@ -289,7 +293,7 @@ topBar.stopTimer('timer');
 ## Complete Example
 
 ```typescript
-import { TopBar, TopBarItemType } from 'gamebyte-framework';
+import { TopBar, TopBarItemType } from '@gamebyte/framework';
 
 class GameHUD {
     private topBar: TopBar;

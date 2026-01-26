@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Archero Menu Demo - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #0f1624; touch-action: none; transition: background 0.3s ease; }
+        body.light-theme { background: #e8eef5; }
+        canvas { display: block; }
+    </style>
+    <!-- GSAP for smooth animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+</head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
+
+    <script>
+        // =====================================================
+        // Archero Menu Demo - Using Framework Abstractions
+        // =====================================================
+        // This demo showcases:
+        // - ArcheroMenu component with gold gradient buttons
+        // - GSAP-powered smooth animations
+        // - Particle effects on section change
+        // - Swipe gesture support
+        // - Dynamic content switching
+        // - graphics() abstraction instead of direct PIXI usage
+        // =====================================================
+
+        const {
+            createGame,
+            ArcheroMenu,
+            ARCHERO_COLORS,
+            graphics,
+            loadFrameworkFont
+        } = GameByteFramework;
+
+        // Design resolution (9:16 portrait for mobile)
+        const DESIGN = {
+            width: 390,
+            height: 844
+        };
+
+        // ===== THEME DETECTION =====
+        function detectTheme() {
+            try {
+                if (window.parent && window.parent.document) {
+                    const parentTheme = window.parent.document.documentElement.getAttribute('data-theme');
+                    if (parentTheme) return parentTheme;
+                }
+            } catch (e) { /* Cross-origin */ }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const themeParam = urlParams.get('theme');
+            if (themeParam) return themeParam;
+
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                return 'light';
+            }
+            return 'dark';
+        }
+
+        let currentTheme = detectTheme();
+
+        function setupThemeListener() {
+            try {
+                if (window.parent && window.parent.document) {
+                    const observer = new MutationObserver((mutations) => {
+                        mutations.forEach((mutation) => {
+                            if (mutation.attributeName === 'data-theme') {
+                                const newTheme = window.parent.document.documentElement.getAttribute('data-theme');
+                                if (newTheme && newTheme !== currentTheme) {
+                                    currentTheme = newTheme;
+                                    applyTheme();
+                                }
+                            }
+                        });
+                    });
+                    observer.observe(window.parent.document.documentElement, { attributes: true });
+                }
+            } catch (e) {
+                window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
+                    currentTheme = e.matches ? 'light' : 'dark';
+                    applyTheme();
+                });
+            }
+        }
+
+        // ===== THEME COLOR PALETTES =====
+        const THEME_COLORS = {
+            dark: {
+                background: 0x0f1624,
+                bodyBg: '#0f1624',
+                contentBg: 0x1a2332,
+                textPrimary: 0xFFFFFF,
+                textSecondary: 0x8899AA
+            },
+            light: {
+                background: 0xe8eef5,
+                bodyBg: '#e8eef5',
+                contentBg: 0xffffff,
+                textPrimary: 0x2d3748,
+                textSecondary: 0x718096
+            }
+        };
+
+        function getColors() {
+            return THEME_COLORS[currentTheme] || THEME_COLORS.dark;
+        }
+
+        // Create full-screen canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        document.body.appendChild(canvas);
+
+        const game = createGame();
+        let renderer, stage, archeroMenu, contentContainer;
+
+        // Section content data
+        const SECTION_CONTENT = {
+            'Shop': {
+                title: 'SHOP',
+                description: 'Buy items and upgrades',
+                items: ['Sword +10', 'Shield +5', 'Potion x3']
+            },
+            'Gear': {
+                title: 'GEAR',
+                description: 'Equip your hero',
+                items: ['Helmet', 'Armor', 'Boots']
+            },
+            'Campaign': {
+                title: 'CAMPAIGN',
+                description: 'Continue your adventure',
+                items: ['Chapter 5', 'Boss: Dragon', 'Rewards: 500 Gold']
+            },
+            'Trophy': {
+                title: 'ACHIEVEMENTS',
+                description: 'Your accomplishments',
+                items: ['First Blood', 'Level 10', 'Boss Slayer']
+            },
+            'Chest': {
+                title: 'REWARDS',
+                description: 'Claim your prizes',
+                items: ['Daily Chest', 'Weekly Bonus', 'Special Gift']
+            }
+        };
+
+        let isRecreating = false;
+        async function applyTheme() {
+            if (isRecreating) return;
+            isRecreating = true;
+
+            document.body.classList.toggle('light-theme', currentTheme === 'light');
+            if (stage && window.createScreen) {
+                await loadFrameworkFont();
+                window.createScreen();
+            }
+            setTimeout(() => { isRecreating = false; }, 100);
+        }
+
+        function createContentPanel(sectionName) {
+            const colors = getColors();
+            const gfx = graphics();
+            const content = SECTION_CONTENT[sectionName] || SECTION_CONTENT['Campaign'];
+
+            const panel = gfx.createContainer();
+
+            // Content background card
+            const cardBg = gfx.createGraphics();
+            cardBg.roundRect(20, 20, DESIGN.width - 40, 300, 20);
+            cardBg.fill({ color: colors.contentBg, alpha: 0.9 });
+            panel.addChild(cardBg);
+
+            // Section title
+            const title = gfx.createText(content.title, {
+                fontSize: 32,
+                fontWeight: 'bold',
+                fill: colors.textPrimary
+            });
+            title.x = 40;
+            title.y = 40;
+            panel.addChild(title);
+
+            // Description
+            const desc = gfx.createText(content.description, {
+                fontSize: 16,
+                fill: colors.textSecondary
+            });
+            desc.x = 40;
+            desc.y = 85;
+            panel.addChild(desc);
+
+            // Divider line
+            const divider = gfx.createGraphics();
+            divider.rect(40, 115, DESIGN.width - 80, 2);
+            divider.fill({ color: colors.textSecondary, alpha: 0.3 });
+            panel.addChild(divider);
+
+            // Items list
+            content.items.forEach((item, index) => {
+                const itemRow = gfx.createContainer();
+                itemRow.y = 135 + (index * 50);
+                itemRow.x = 40;
+
+                // Bullet point
+                const bullet = gfx.createGraphics();
+                bullet.circle(8, 18, 6);
+                bullet.fill({ color: ARCHERO_COLORS.activeYellow });
+                itemRow.addChild(bullet);
+
+                // Item text
+                const itemText = gfx.createText(item, {
+                    fontSize: 18,
+                    fill: colors.textPrimary
+                });
+                itemText.x = 25;
+                itemRow.addChild(itemText);
+
+                panel.addChild(itemRow);
+            });
+
+            return panel;
+        }
+
+        (async () => {
+            await loadFrameworkFont();
+            await game.initialize(canvas, '2d');
+
+            renderer = game.make('renderer');
+            stage = renderer.getStage();
+
+            setupThemeListener();
+
+            function createScreen() {
+                const colors = getColors();
+                const gfx = graphics();
+
+                // Clear stage
+                while (stage.children.length > 0) {
+                    stage.removeChildAt(0);
+                }
+
+                // Calculate scale to fit design in viewport
+                const scaleX = window.innerWidth / DESIGN.width;
+                const scaleY = window.innerHeight / DESIGN.height;
+                const scale = Math.min(scaleX, scaleY);
+
+                // Main container with scaling
+                const mainContainer = gfx.createContainer();
+                mainContainer.scale.x = scale;
+                mainContainer.scale.y = scale;
+                mainContainer.x = (window.innerWidth - DESIGN.width * scale) / 2;
+                mainContainer.y = (window.innerHeight - DESIGN.height * scale) / 2;
+                stage.addChild(mainContainer);
+
+                // Background
+                const bg = gfx.createGraphics();
+                bg.rect(0, 0, DESIGN.width, DESIGN.height);
+                bg.fill(colors.background);
+                mainContainer.addChild(bg);
+
+                // Header
+                const header = gfx.createText('ARCHERO MENU', {
+                    fontSize: 24,
+                    fontWeight: 'bold',
+                    fill: colors.textPrimary
+                });
+                header.x = DESIGN.width / 2 - header.width / 2;
+                header.y = 30;
+                mainContainer.addChild(header);
+
+                // Subtitle
+                const subtitle = gfx.createText('Tap buttons or swipe to navigate', {
+                    fontSize: 14,
+                    fill: colors.textSecondary
+                });
+                subtitle.x = DESIGN.width / 2 - subtitle.width / 2;
+                subtitle.y = 65;
+                mainContainer.addChild(subtitle);
+
+                // Content container
+                contentContainer = gfx.createContainer();
+                contentContainer.y = 100;
+                mainContainer.addChild(contentContainer);
+
+                // Initial content
+                const initialContent = createContentPanel('Campaign');
+                contentContainer.addChild(initialContent);
+
+                // Define menu sections
+                const sections = [
+                    { name: 'Shop', icon: '\ud83c\udfea', iconColor: ARCHERO_COLORS.red },
+                    { name: 'Gear', icon: '\u2694\ufe0f', iconColor: ARCHERO_COLORS.purple },
+                    { name: 'Campaign', icon: '\ud83c\udfaf', iconColor: ARCHERO_COLORS.activeYellow },
+                    { name: 'Trophy', icon: '\ud83c\udfc6', iconColor: ARCHERO_COLORS.green },
+                    { name: 'Chest', icon: '\ud83c\udf81', iconColor: ARCHERO_COLORS.blue }
+                ];
+
+                // Create Archero Menu
+                archeroMenu = new ArcheroMenu({
+                    sections,
+                    activeSection: 2, // Start with Campaign
+                    style: {
+                        navHeight: 140,
+                        buttonSize: 70,
+                        activeButtonSize: 140,
+                        buttonRadius: 18,
+                        iconSize: 40,
+                        activeIconSize: 70,
+                        labelSize: 18,
+                        padding: 20,
+                        elevationOffset: 15,
+                        transitionDuration: 0.4,
+                        iconAnimDuration: 0.25,
+                        repositionDuration: 0.35,
+                        enableParticles: true,
+                        particleCount: 20,
+                        particleSizeRange: [2, 6],
+                        particleSpeedRange: [3, 10]
+                    },
+                    callbacks: {
+                        onSectionChange: (index, section) => {
+                            console.log('Section changed:', section.name);
+
+                            // Animate content change
+                            if (contentContainer && gsap) {
+                                gsap.to(contentContainer, {
+                                    alpha: 0,
+                                    duration: 0.15,
+                                    onComplete: () => {
+                                        // Clear old content
+                                        while (contentContainer.children.length > 0) {
+                                            contentContainer.removeChildAt(0);
+                                        }
+
+                                        // Add new content
+                                        const newContent = createContentPanel(section.name);
+                                        contentContainer.addChild(newContent);
+
+                                        // Fade in
+                                        gsap.to(contentContainer, {
+                                            alpha: 1,
+                                            duration: 0.2
+                                        });
+                                    }
+                                });
+                            }
+                        },
+                        onButtonPress: (index) => {
+                            console.log('Button pressed:', sections[index].name);
+                        },
+                        onSwipe: (direction) => {
+                            console.log('Swipe:', direction);
+                        }
+                    },
+                    enableSwipe: true,
+                    canvasWidth: DESIGN.width,
+                    canvasHeight: DESIGN.height
+                });
+
+                mainContainer.addChild(archeroMenu.getContainer());
+
+                // Update loop for particles
+                game.off('update');
+                game.on('update', (dt) => {
+                    if (archeroMenu) {
+                        archeroMenu.update(dt);
+                    }
+                });
+            }
+
+            window.createScreen = createScreen;
+
+            window.addEventListener('resize', () => {
+                renderer.resize(window.innerWidth, window.innerHeight);
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                createScreen();
+            });
+
+            document.body.classList.toggle('light-theme', currentTheme === 'light');
+            createScreen();
+            game.start();
+        })();
+    </script>
+</body>
+</html>

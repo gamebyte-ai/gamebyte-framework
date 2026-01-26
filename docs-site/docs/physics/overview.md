@@ -25,7 +25,7 @@ GameByte integrates industry-standard physics engines for realistic simulations.
 ### 2D Physics
 
 ```typescript
-import { Physics } from 'gamebyte-framework';
+import { Physics } from '@gamebyte/framework';
 
 // Create world
 Physics.create2DWorld({

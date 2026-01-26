@@ -15,13 +15,31 @@ import LiveDemo from '@site/src/components/LiveDemo';
 
 GameByte provides **GameStylePanel** for mobile game style dialogs with skinnable borders, and **UIPanel** for basic containers.
 
-## Live Demo
+## Live Demos
+
+### No Ads Popup
+
+<LiveDemo
+  src="/demos/no-ads-popup-demo.html"
+  height={680}
+  title="No Ads Popup - Mobile Game Style"
+/>
+
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the sun/moon button in the navigation bar!
+:::
+
+### Settings Panel
 
 <LiveDemo
   src="/demos/game-settings-panel.html"
   height={570}
   title="GameStylePanel Settings"
 />
+
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the sun/moon button in the navigation bar!
+:::
 
 ## GameStylePanel
 
@@ -39,7 +57,7 @@ A mobile game style panel with multi-layer borders, gradient backgrounds, title 
 ### Basic Usage
 
 ```typescript
-import { GameStylePanel, GameStyleColors } from 'gamebyte-framework';
+import { GameStylePanel, GameStyleColors } from '@gamebyte/framework';
 
 const settingsPanel = new GameStylePanel({
     width: 350,
@@ -87,7 +105,7 @@ interface GamePanelColorScheme {
 ### Color Schemes
 
 ```typescript
-import { GameStylePanel, GameStyleColors } from 'gamebyte-framework';
+import { GameStylePanel, GameStyleColors } from '@gamebyte/framework';
 
 // Blue (default)
 GameStyleColors.PANEL_BLUE
@@ -175,7 +193,7 @@ import {
     GameStyleButton,
     GameToggle,
     GameStyleColors
-} from 'gamebyte-framework';
+} from '@gamebyte/framework';
 
 class SettingsScreen {
     private panel: GameStylePanel;
@@ -255,10 +273,14 @@ For simpler panel needs, use the basic `UIPanel` component.
   title="Basic Panel"
 />
 
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the sun/moon button in the navigation bar!
+:::
+
 ### Basic Usage
 
 ```typescript
-import { UIPanel, UIText, UIButton } from 'gamebyte-framework';
+import { UIPanel, UIText, UIButton } from '@gamebyte/framework';
 
 const panel = new UIPanel({
     width: 300,
@@ -315,6 +337,10 @@ interface UIPanelConfig {
   height={350}
   title="Panel Variants"
 />
+
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the sun/moon button in the navigation bar!
+:::
 
 #### Card Style
 

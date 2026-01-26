@@ -25,7 +25,7 @@ GameByte provides a unified input system for all platforms.
 ## Quick Start
 
 ```typescript
-import { Input } from 'gamebyte-framework';
+import { Input } from '@gamebyte/framework';
 
 const input = game.make('input');
 

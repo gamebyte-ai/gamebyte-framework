@@ -23,6 +23,10 @@ GameByte provides **HexagonLevelButton** for Candy Crush style level selection s
   title="HexagonLevelButton Demo"
 />
 
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the sun/moon button in the navigation bar!
+:::
+
 ## HexagonLevelButton
 
 A hexagon-shaped level button with multiple states, star ratings, and Candy Crush style golden borders.
@@ -39,7 +43,7 @@ A hexagon-shaped level button with multiple states, star ratings, and Candy Crus
 ### Basic Usage
 
 ```typescript
-import { HexagonLevelButton, GameStyleColors } from 'gamebyte-framework';
+import { HexagonLevelButton, GameStyleColors } from '@gamebyte/framework';
 
 // Current level with golden border
 const currentLevel = new HexagonLevelButton({
@@ -120,7 +124,7 @@ const locked = new HexagonLevelButton({
 GameByte includes pre-defined Candy Crush style color schemes:
 
 ```typescript
-import { GameStyleColors } from 'gamebyte-framework';
+import { GameStyleColors } from '@gamebyte/framework';
 
 // Blue hexagon with golden border
 GameStyleColors.HEXAGON_CANDY_BLUE
@@ -173,7 +177,7 @@ A golden path that connects level buttons on a level selection map.
 ### Basic Usage
 
 ```typescript
-import { LevelPath } from 'gamebyte-framework';
+import { LevelPath } from '@gamebyte/framework';
 
 const path = new LevelPath({
     points: [
@@ -215,7 +219,7 @@ import {
     HexagonLevelButton,
     LevelPath,
     GameStyleColors
-} from 'gamebyte-framework';
+} from '@gamebyte/framework';
 
 class LevelMap {
     private levels: HexagonLevelButton[] = [];

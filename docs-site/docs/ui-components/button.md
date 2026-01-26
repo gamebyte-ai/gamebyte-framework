@@ -23,6 +23,10 @@ GameByte provides two button components: **GameStyleButton** for mobile game UIs
   title="GameStyleButton - Raised vs Flat Styles"
 />
 
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the sun/moon button in the navigation bar!
+:::
+
 ## GameStyleButton
 
 A mobile-game style button with multi-layer effects inspired by Candy Crush, Brawl Stars, and Clash Royale.
@@ -64,7 +68,7 @@ const flatBtn = new GameStyleButton({
 ### Basic Usage
 
 ```typescript
-import { GameStyleButton, GameStyleColors } from 'gamebyte-framework';
+import { GameStyleButton, GameStyleColors } from '@gamebyte/framework';
 
 // Yellow Play Button (Candy Crush style)
 const playButton = new GameStyleButton({
@@ -85,7 +89,7 @@ stage.addChild(playButton.getContainer());
 GameByte includes pre-defined color schemes for common button types:
 
 ```typescript
-import { GameStyleButton, GameStyleColors } from 'gamebyte-framework';
+import { GameStyleButton, GameStyleColors } from '@gamebyte/framework';
 
 // Yellow (Play, Primary Action)
 const yellow = new GameStyleButton({
@@ -151,7 +155,7 @@ interface GameButtonColorScheme {
 Quick button creation with `GameButtons`:
 
 ```typescript
-import { GameButtons } from 'gamebyte-framework';
+import { GameButtons } from '@gamebyte/framework';
 
 const play = GameButtons.play('Play', 220, 70);
 const success = GameButtons.success('Continue', 160, 56);
@@ -167,7 +171,7 @@ const special = GameButtons.special('Premium', 160, 56);
 For simpler button needs, use `UIButton`:
 
 ```typescript
-import { UIButton } from 'gamebyte-framework';
+import { UIButton } from '@gamebyte/framework';
 
 const button = new UIButton({
     text: 'PLAY',
@@ -293,6 +297,10 @@ const button = new UIButton({
   height={300}
   title="Button Effects"
 />
+
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the sun/moon button in the navigation bar!
+:::
 
 ## Methods
 
@@ -450,16 +458,16 @@ button.on('keydown', (event) => {
 ## Animation
 
 ```typescript
-import { UIAnimations } from 'gamebyte-framework';
+import { Animations } from '@gamebyte/framework';
 
 // Entrance animation
-UIAnimations.scaleIn(button, { duration: 300, ease: 'back.out' });
+Animations.scaleIn(button, { duration: 300, ease: 'back.out' });
 
 // Click feedback (built-in, but customizable)
 button.on('click', () => {
-    UIAnimations.bounce(button, { scale: 0.95, duration: 100 });
+    Animations.bounce(button, { scale: 0.95, duration: 100 });
 });
 
 // Attention grabber
-UIAnimations.pulse(button, { scale: 1.05, repeat: 3 });
+Animations.pulse(button, { scale: 1.05, repeat: 3 });
 ```

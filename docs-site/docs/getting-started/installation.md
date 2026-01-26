@@ -4,7 +4,7 @@ title: Installation
 description: How to install GameByte Framework in your project
 sidebar_position: 1
 keywords: [install, npm, cdn, setup, typescript]
-llm_summary: "Install via npm: 'npm install gamebyte-framework'. For browser: use UMD build with Pixi.js CDN. Supports ESM, CJS, and UMD formats."
+llm_summary: "Install via npm: 'npm install @gamebyte/framework'. For browser: use UMD build with Pixi.js CDN. Supports ESM, CJS, and UMD formats."
 ---
 
 <!-- llm-context: installation, npm, cdn, umd, esm, cjs, typescript, pixi-peer-dependency -->
@@ -16,7 +16,7 @@ GameByte Framework can be installed via npm or used directly in the browser via 
 ## npm (Recommended)
 
 ```bash
-npm install gamebyte-framework
+npm install @gamebyte/framework
 ```
 
 ### Peer Dependencies
@@ -73,7 +73,7 @@ For quick prototyping or simple games, use the UMD build:
     <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
 
     <!-- Load GameByte -->
-    <script src="https://cdn.jsdelivr.net/npm/gamebyte-framework/dist/gamebyte.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@gamebyte/framework/dist/gamebyte.umd.js"></script>
 
     <script>
         const game = GameByteFramework.createGame();
@@ -109,7 +109,7 @@ GameByte provides multiple module formats:
 ### ESM Import
 
 ```typescript
-import { createGame, UIButton, BaseScene } from 'gamebyte-framework';
+import { createGame, UIButton, BaseScene } from '@gamebyte/framework';
 ```
 
 ### Selective Imports
@@ -132,7 +132,7 @@ import { MatterPhysics } from 'gamebyte-framework/physics2d';
 Verify installation with a simple test:
 
 ```typescript
-import { createGame } from 'gamebyte-framework';
+import { createGame } from '@gamebyte/framework';
 
 const game = createGame();
 console.log('GameByte version:', game.version);

@@ -12,6 +12,10 @@ The GameByte Framework provides a complete boilerplate system for building hyper
   title="HubScreen with TopBar and Navigation"
 />
 
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the sun/moon button in the navigation bar!
+:::
+
 ## Architecture
 
 ```

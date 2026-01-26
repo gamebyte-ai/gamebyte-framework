@@ -24,7 +24,7 @@ GameByte's audio system handles music, sound effects, and spatial audio.
 ## Quick Start
 
 ```typescript
-import { Music, SFX, Audio } from 'gamebyte-framework';
+import { Music, SFX, Audio } from '@gamebyte/framework';
 
 // Play background music
 Music.play('assets/music.mp3', { loop: true, volume: 0.7 });
@@ -41,7 +41,7 @@ Audio.setMasterVolume(0.8);
 Audio on mobile requires user interaction to unlock:
 
 ```typescript
-import { Audio } from 'gamebyte-framework';
+import { Audio } from '@gamebyte/framework';
 
 // GameByte handles unlock automatically
 // Audio plays after first touch/click

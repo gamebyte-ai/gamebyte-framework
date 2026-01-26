@@ -18,7 +18,7 @@ GameByte uses Three.js for 3D game rendering with WebGL/WebGPU support.
 ## Basic Setup
 
 ```typescript
-import { createGame } from 'gamebyte-framework';
+import { createGame } from '@gamebyte/framework';
 import * as THREE from 'three';
 
 const game = createGame();
@@ -64,6 +64,10 @@ scene.add(ground);
   height={400}
   title="3D Basic Shapes"
 />
+
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the 🌙/☀️ button in the navigation bar!
+:::
 
 ## Materials
 
@@ -207,7 +211,7 @@ loader.load('assets/character.glb', (gltf) => {
 ### With GameByte Assets
 
 ```typescript
-import { Assets } from 'gamebyte-framework';
+import { Assets } from '@gamebyte/framework';
 
 await Assets.load([
     { key: 'character', url: 'assets/character.glb', type: 'model' }
@@ -244,6 +248,10 @@ function render() {
   height={400}
   title="Post-Processing Effects"
 />
+
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the 🌙/☀️ button in the navigation bar!
+:::
 
 ## Animation
 

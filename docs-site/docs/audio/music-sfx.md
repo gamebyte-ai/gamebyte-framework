@@ -16,7 +16,7 @@ llm_summary: "Music: play(), pause(), resume(), stop(), crossFade(). SFX: play()
 ### Basic Playback
 
 ```typescript
-import { Music } from 'gamebyte-framework';
+import { Music } from '@gamebyte/framework';
 
 // Play music
 Music.play('assets/music.mp3', {
@@ -57,7 +57,7 @@ await Music.crossFade('game-music.mp3', {
 ### Basic Playback
 
 ```typescript
-import { SFX } from 'gamebyte-framework';
+import { SFX } from '@gamebyte/framework';
 
 // Play sound
 SFX.play('click.mp3');
@@ -84,7 +84,7 @@ SFX.playRandom(['step1.mp3', 'step2.mp3', 'step3.mp3']);
 ### Preloading
 
 ```typescript
-import { Assets } from 'gamebyte-framework';
+import { Assets } from '@gamebyte/framework';
 
 // Preload for instant playback
 await Assets.load([

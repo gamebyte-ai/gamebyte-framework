@@ -12,6 +12,10 @@ Stack-based screen navigation with animated transitions, similar to mobile app n
   title="ScreenManager Navigation"
 />
 
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the sun/moon button in the navigation bar!
+:::
+
 ## Features
 
 - Push/pop/replace navigation

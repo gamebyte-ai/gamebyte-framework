@@ -16,7 +16,7 @@ GameByte's asset system handles loading, caching, and memory management.
 ## Basic Loading
 
 ```typescript
-import { Assets } from 'gamebyte-framework';
+import { Assets } from '@gamebyte/framework';
 
 // Load single asset
 const texture = await Assets.load({ key: 'player', url: 'player.png', type: 'texture' });

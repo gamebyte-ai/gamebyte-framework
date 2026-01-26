@@ -70,6 +70,10 @@ panelManager.on('resize', ({ width, height }) => { });
   title="GameModalPanel with Scale Animation"
 />
 
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the sun/moon button in the navigation bar!
+:::
+
 Centered modal panel with scale animation and dark overlay.
 
 ```typescript
@@ -125,6 +129,10 @@ panelManager.show(settingsPanel);
   height={660}
   title="GameBottomSheet with Drag-to-Close"
 />
+
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the sun/moon button in the navigation bar!
+:::
 
 Slide-up panel from the bottom with drag-to-close gesture.
 

@@ -12,6 +12,10 @@ GameByte provides ready-to-use screens for common mobile game patterns.
   title="HubScreen with Navigation"
 />
 
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the sun/moon button in the navigation bar!
+:::
+
 Main menu/hub screen with top bar, bottom navigation, and tab-based content.
 
 ```typescript
@@ -83,6 +87,10 @@ hub.on('tab-changed', (tabId) => {
   height={660}
   title="GameHUDScreen with Score, Timer, Lives"
 />
+
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the sun/moon button in the navigation bar!
+:::
 
 In-game screen with HUD overlay showing score, timer, lives, and pause functionality.
 
@@ -165,6 +173,10 @@ gameScreen.on('progress-changed', (progress) => { });
   height={660}
   title="ResultScreen Victory/Defeat"
 />
+
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the sun/moon button in the navigation bar!
+:::
 
 Victory or defeat screen with star rating, score display, rewards, and action buttons.
 

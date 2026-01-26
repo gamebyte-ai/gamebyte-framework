@@ -18,7 +18,7 @@ GameByte wraps Matter.js for easy 2D physics.
 ## World Setup
 
 ```typescript
-import { Physics } from 'gamebyte-framework';
+import { Physics } from '@gamebyte/framework';
 
 Physics.create2DWorld({
     gravity: { x: 0, y: 1 },    // Earth-like gravity
@@ -32,6 +32,10 @@ Physics.create2DWorld({
   height={400}
   title="2D Physics Demo"
 />
+
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the 🌙/☀️ button in the navigation bar!
+:::
 
 ## Creating Bodies
 

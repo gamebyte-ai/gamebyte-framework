@@ -43,7 +43,7 @@ GameByte supports three rendering modes to cover any game type.
 ### 2D Mode (Pixi.js)
 
 ```typescript
-import { createGame } from 'gamebyte-framework';
+import { createGame } from '@gamebyte/framework';
 
 const game = createGame();
 await game.initialize(canvas, '2d');
