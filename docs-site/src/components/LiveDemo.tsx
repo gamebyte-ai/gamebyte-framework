@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useColorMode } from '@docusaurus/theme-common';
 
 interface LiveDemoProps {
   src: string;
@@ -27,6 +28,21 @@ export default function LiveDemo({
 }: LiveDemoProps): JSX.Element {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const { colorMode } = useColorMode();
+
+  // Build iframe URL with theme parameter (SSR-safe)
+  const iframeSrc = (() => {
+    if (typeof window === 'undefined') return src;
+    try {
+      const url = new URL(src, window.location.origin);
+      url.searchParams.set('theme', colorMode);
+      return url.toString();
+    } catch {
+      // Fallback for invalid URLs
+      const separator = src.includes('?') ? '&' : '?';
+      return `${src}${separator}theme=${colorMode}`;
+    }
+  })();
 
   const handleLoad = () => {
     setIsLoading(false);
@@ -101,7 +117,8 @@ export default function LiveDemo({
           </div>
         ) : (
           <iframe
-            src={src}
+            key={colorMode} // Force reload on theme change
+            src={iframeSrc}
             className="live-demo-iframe"
             style={{ height, display: isLoading ? 'none' : 'block' }}
             onLoad={handleLoad}
