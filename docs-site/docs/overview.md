@@ -32,7 +32,7 @@ GameByte is a comprehensive JavaScript game framework that unifies 2D and 3D gam
 ## Quick Example
 
 ```typescript
-import { createGame } from 'gamebyte-framework';
+import { createGame } from '@gamebyte/framework';
 
 // Create and initialize
 const game = createGame();
@@ -67,14 +67,14 @@ game.start();
 ## Installation
 
 ```bash
-npm install gamebyte-framework
+npm install @gamebyte/framework
 ```
 
 Or use via CDN:
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/gamebyte-framework/dist/gamebyte.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@gamebyte/framework/dist/gamebyte.umd.js"></script>
 ```
 
 ## Next Steps

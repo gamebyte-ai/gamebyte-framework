@@ -16,7 +16,7 @@ A styled text component for labels, titles, and body text.
 ## Basic Usage
 
 ```typescript
-import { UIText } from 'gamebyte-framework';
+import { UIText } from '@gamebyte/framework';
 
 const text = new UIText({
     text: 'Hello World!',

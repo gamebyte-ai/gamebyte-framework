@@ -63,7 +63,7 @@ export class GameStyleUITheme implements UITheme {
 
   // Bold typography for games
   public typography = {
-    fontFamily: '"Fredoka One", "Bubblegum Sans", "Comic Sans MS", "Arial Black", sans-serif',
+    fontFamily: '"Lilita One", "Arial Black", sans-serif',
 
     sizes: {
       small: 16,
@@ -114,66 +114,73 @@ export class GameStyleUITheme implements UITheme {
  * Game style color utilities
  */
 export const GameStyleColors = {
-  // Pre-defined button color schemes - Mobile game style (Candy Crush, Brawl Stars)
+  // Pre-defined button color schemes - No Ads popup style (solid color, black border, jellybean)
+
   YELLOW_BUTTON: {
-    gradientTop: 0xFFD966,    // Bright golden yellow (top section)
-    gradientBottom: 0xE6A800, // Darker orange-gold (bottom section)
-    border: 0xB37700,         // Dark brown-orange border
-    shadow: 0x805500,         // Deep brown shadow
-    highlight: 0xFFF0B3,      // Light cream highlight
+    gradientTop: 0xFFD966,    // Golden yellow (solid)
+    gradientBottom: 0xFFD966, // Same - solid color
+    border: 0x000000,         // Black outer border
+    shadow: 0xCC9900,         // Darker yellow shadow
+    highlight: 0xFFFFFF,      // White highlight (25% alpha applied in code)
     text: 0xFFFFFF,
-    textStroke: 0x805500
+    textStroke: 0x805500,
+    jellybean: 0xFFFBE6       // Light cream jellybean
   },
 
   GREEN_BUTTON: {
-    gradientTop: 0x6DD66D,    // Bright lime green
-    gradientBottom: 0x3DA63D, // Forest green
-    border: 0x267326,         // Dark green border
-    shadow: 0x1A4D1A,         // Deep forest shadow
-    highlight: 0xB3FFB3,
+    gradientTop: 0x2DE45A,    // Main green (No Ads popup style)
+    gradientBottom: 0x2DE45A, // Same - solid color
+    border: 0x000000,         // Black outer border
+    shadow: 0x28A165,         // Green shadow/depth
+    highlight: 0xFFFFFF,      // White highlight (25% alpha applied in code)
     text: 0xFFFFFF,
-    textStroke: 0x1A4D1A
+    textStroke: 0x1A4D1A,
+    jellybean: 0xE6FCE9       // Jellybean gloss color
   },
 
   BLUE_BUTTON: {
-    gradientTop: 0x5DADEC,    // Sky blue
-    gradientBottom: 0x2E86C9, // Ocean blue
-    border: 0x1A5C8F,         // Dark navy border
-    shadow: 0x0D3A5C,         // Deep navy shadow
-    highlight: 0xB3DBFF,
+    gradientTop: 0x4DA6FF,    // Bright blue (solid)
+    gradientBottom: 0x4DA6FF, // Same - solid color
+    border: 0x000000,         // Black outer border
+    shadow: 0x2E7BC9,         // Darker blue shadow
+    highlight: 0xFFFFFF,      // White highlight (25% alpha applied in code)
     text: 0xFFFFFF,
-    textStroke: 0x0D3A5C
+    textStroke: 0x1A4B7A,
+    jellybean: 0xE6F3FF       // Light blue jellybean
   },
 
   RED_BUTTON: {
-    gradientTop: 0xE85C5C,    // Coral red
-    gradientBottom: 0xC92A2A, // Deep red
-    border: 0x8F1A1A,         // Dark crimson border
-    shadow: 0x5C0D0D,         // Deep crimson shadow
-    highlight: 0xFFB3B3,
+    gradientTop: 0xE85C5C,    // Coral red (solid)
+    gradientBottom: 0xE85C5C, // Same - solid color
+    border: 0x000000,         // Black outer border
+    shadow: 0xB34040,         // Darker red shadow
+    highlight: 0xFFFFFF,      // White highlight (25% alpha applied in code)
     text: 0xFFFFFF,
-    textStroke: 0x5C0D0D
+    textStroke: 0x5C0D0D,
+    jellybean: 0xFFE6E6       // Light pink jellybean
   },
 
   PURPLE_BUTTON: {
-    gradientTop: 0xAD6DD6,    // Lavender
-    gradientBottom: 0x8338B5, // Royal purple
-    border: 0x5C2680,         // Dark purple border
-    shadow: 0x3D1A54,         // Deep purple shadow
-    highlight: 0xDDB3FF,
+    gradientTop: 0xAD6DD6,    // Lavender (solid)
+    gradientBottom: 0xAD6DD6, // Same - solid color
+    border: 0x000000,         // Black outer border
+    shadow: 0x8050B0,         // Darker purple shadow
+    highlight: 0xFFFFFF,      // White highlight (25% alpha applied in code)
     text: 0xFFFFFF,
-    textStroke: 0x3D1A54
+    textStroke: 0x3D1A54,
+    jellybean: 0xF3E6FF       // Light lavender jellybean
   },
 
-  // Cream/Beige Play Button (Candy Crush style)
+  // Cream/Beige Play Button (Candy Crush style - keeps gradient for variety)
   CREAM_BUTTON: {
     gradientTop: 0xFFFBF0,
     gradientBottom: 0xF5E6C8,
-    border: 0xD4A857,
-    shadow: 0x8B6914,
+    border: 0x000000,         // Black outer border
+    shadow: 0xD4A857,
     highlight: 0xFFFFFF,
     text: 0x8B6914,
-    textStroke: 0xD4A857
+    textStroke: 0xD4A857,
+    jellybean: 0xFFFFFF       // White jellybean
   },
 
   // Hexagon level colors
@@ -238,17 +245,18 @@ export const GameStyleColors = {
     outerBorder: 0x4A5568
   },
 
-  // Panel color schemes
+  // Panel color schemes (matches No Ads popup style)
   PANEL_BLUE: {
-    fillTop: 0x5BA3E0,
-    fillBottom: 0x3B7BBF,
-    borderOuter: 0x1A4B7A,
-    borderInner: 0x2A6B9A,
-    borderWidth: 8,
+    fillTop: 0x41A7FB,      // Light blue (same as No Ads modal bg)
+    fillBottom: 0x41A7FB,   // Solid color, no gradient
+    borderOuter: 0x1e3a5f,  // Dark navy border
+    borderInner: 0x1e3a5f,  // Same - single border layer
+    borderWidth: 4,         // Thinner border like No Ads
     titleColor: 0xFFFFFF,
-    titleStroke: 0x1A4B7A,
+    titleStroke: 0x1a2a3a,  // Darker stroke for title
+    headerBg: 0x2889F0,     // Darker blue header
     closeButtonBg: 0xE84C4C,
-    closeButtonBorder: 0x8B2020,
+    closeButtonBorder: 0xA83340,
     closeButtonX: 0xFFFFFF
   },
 

@@ -1,6 +1,7 @@
 import { EventEmitter } from 'eventemitter3';
 import { IContainer, IGraphics, IText, ISprite, ITexture } from '../../contracts/Graphics';
 import { graphics } from '../../graphics/GraphicsEngine';
+import { getFrameworkFontFamily } from '../utils/FontLoader';
 
 /**
  * TopBar item types
@@ -116,7 +117,7 @@ export class TopBar extends EventEmitter {
       padding: 15,
       itemSpacing: 20,
       borderRadius: 0,
-      fontFamily: 'Arial',
+      fontFamily: getFrameworkFontFamily(),
       fontSize: 24,
       ...config.theme
     };

@@ -1,5 +1,6 @@
 import { BaseUIComponent } from '../core/BaseUIComponent';
 import { Color } from '../../contracts/UI';
+import { getFrameworkFontFamily } from '../utils/FontLoader';
 
 export interface UITextConfig {
   text?: string;
@@ -32,7 +33,7 @@ export class UIText extends BaseUIComponent {
   // Text properties
   public text: string = '';
   public fontSize: number = 16;
-  public fontFamily: string = 'Arial, sans-serif';
+  public fontFamily: string = getFrameworkFontFamily();
   public fontWeight: string = 'normal';
   public color: Color = { r: 0, g: 0, b: 0, a: 1 };
   public textAlign: 'left' | 'center' | 'right' = 'left';

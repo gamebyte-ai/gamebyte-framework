@@ -20,7 +20,7 @@ The service container manages all game services and their dependencies.
 ### Basic Usage
 
 ```typescript
-import { createGame } from 'gamebyte-framework';
+import { createGame } from '@gamebyte/framework';
 
 const game = createGame();
 
@@ -84,7 +84,7 @@ Service providers organize service registration and boot logic.
 ### Creating a Provider
 
 ```typescript
-import { AbstractServiceProvider, GameByte } from 'gamebyte-framework';
+import { AbstractServiceProvider, GameByte } from '@gamebyte/framework';
 
 export class ScoreServiceProvider extends AbstractServiceProvider {
     register(app: GameByte): void {
@@ -135,7 +135,7 @@ Facades provide static access to services for convenience.
 ### Using Facades
 
 ```typescript
-import { Renderer, Scenes, Audio, Input } from 'gamebyte-framework';
+import { Renderer, Scenes, Audio, Input } from '@gamebyte/framework';
 
 // Instead of:
 const renderer = game.make('renderer');
@@ -167,7 +167,7 @@ Input.on('click', handleClick);
 ### Creating Custom Facades
 
 ```typescript
-import { Facade } from 'gamebyte-framework';
+import { Facade } from '@gamebyte/framework';
 
 class Score extends Facade {
     protected static getFacadeAccessor(): string {

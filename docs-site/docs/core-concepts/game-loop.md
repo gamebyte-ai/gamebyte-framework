@@ -133,7 +133,7 @@ class GameScene extends BaseScene {
 For physics simulations, use fixed timestep to ensure consistent behavior:
 
 ```typescript
-import { Physics } from 'gamebyte-framework';
+import { Physics } from '@gamebyte/framework';
 
 // Physics automatically uses fixed timestep (1/60)
 Physics.create2DWorld({

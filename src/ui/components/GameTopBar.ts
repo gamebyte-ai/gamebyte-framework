@@ -2,6 +2,7 @@ import { EventEmitter } from 'eventemitter3';
 import { IContainer, IGraphics, IText } from '../../contracts/Graphics';
 import { graphics } from '../../graphics/GraphicsEngine';
 import { numberToHex } from '../themes/GameStyleUITheme';
+import { getFrameworkFontFamily } from '../utils/FontLoader';
 
 /**
  * Resource display type
@@ -253,7 +254,7 @@ export class GameTopBar extends EventEmitter {
 
     // Value text
     const valueText = graphics().createText(this.formatValue(res.value), {
-      fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+      fontFamily: '"Lilita One", "Arial Black", sans-serif',
       fontSize: 18,
       fontWeight: 'bold',
       fill: 0xFFFFFF,
@@ -275,7 +276,7 @@ export class GameTopBar extends EventEmitter {
       container.addChild(labelBg);
 
       const labelText = graphics().createText(res.label, {
-        fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+        fontFamily: '"Lilita One", "Arial Black", sans-serif',
         fontSize: 12,
         fontWeight: 'bold',
         fill: 0xFFFFFF
@@ -438,7 +439,7 @@ export class GameTopBar extends EventEmitter {
 
     // Plus sign
     const plus = graphics().createText('+', {
-      fontFamily: '"Arial Black", sans-serif',
+      fontFamily: getFrameworkFontFamily(),
       fontSize: 20,
       fontWeight: 'bold',
       fill: 0xFFFFFF

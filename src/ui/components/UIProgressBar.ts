@@ -1,5 +1,6 @@
 import { BaseUIComponent } from '../core/BaseUIComponent';
 import { Color, AnimationConfig } from '../../contracts/UI';
+import { getFrameworkFontFamily } from '../utils/FontLoader';
 
 export interface UIProgressBarConfig {
   value?: number; // 0-1
@@ -48,7 +49,7 @@ export class UIProgressBar extends BaseUIComponent {
   public showText: boolean = false;
   public textColor: Color = { r: 255, g: 255, b: 255, a: 1 };
   public fontSize: number = 14;
-  public fontFamily: string = 'Arial, sans-serif';
+  public fontFamily: string = getFrameworkFontFamily();
   public textFormat: (value: number, min: number, max: number) => string = this.defaultTextFormat;
   
   // Animation properties

@@ -2,6 +2,7 @@ import { EventEmitter } from 'eventemitter3';
 import { IContainer, IGraphics, IText, ISprite } from '../../contracts/Graphics';
 import { graphics } from '../../graphics/GraphicsEngine';
 import { GameStyleColors, numberToHex, lightenColor, darkenColor } from '../themes/GameStyleUITheme';
+import { getFrameworkFontFamily, loadFrameworkFont } from '../utils/FontLoader';
 
 /**
  * Creates a vertical linear gradient texture using canvas
@@ -53,6 +54,7 @@ export interface GameButtonColorScheme {
   highlight: number;
   text: number;
   textStroke: number;
+  jellybean?: number;  // Optional jellybean gloss color
 }
 
 /**
@@ -109,12 +111,13 @@ export interface GameStyleButtonConfig {
  */
 export class GameStyleButton extends EventEmitter {
   private container: IContainer;
-  private shadowGraphics: IGraphics;
-  private borderGraphics: IGraphics;
-  private backgroundGraphics: IGraphics;
-  private highlightGraphics: IGraphics;
-  private shineGraphics: IGraphics;  // Specular highlight & rim light
-  private gradientSprite?: ISprite;  // Gradient fill sprite
+  // Layer order (bottom to top): border → shadow → topShine → mainFill → highlight → jellybean → text
+  private borderGraphics: IGraphics;      // 1. Black outer border (stroke)
+  private shadowGraphics: IGraphics;      // 2. Shadow/depth (fill)
+  private topShineGraphics: IGraphics;    // 3. Top shine (white 60% alpha)
+  private mainFillGraphics: IGraphics;    // 4. Main button fill
+  private highlightGraphics: IGraphics;   // 5. Highlight (white 25% alpha, rounded top)
+  private jellybeanGraphics: IGraphics;   // 6. Jellybean gloss
   private textField?: IText;
 
   private config: Required<GameStyleButtonConfig>;
@@ -124,40 +127,43 @@ export class GameStyleButton extends EventEmitter {
   constructor(config: GameStyleButtonConfig = {}) {
     super();
 
-    // Default configuration - Mobile game style defaults
+    // Trigger font loading (non-blocking)
+    loadFrameworkFont();
+
+    // Default configuration - Mobile game style defaults (No Ads popup style)
     this.config = {
       text: config.text || 'Button',
       width: config.width || 200,
       height: config.height || 70,
       fontSize: config.fontSize || 28,
-      fontFamily: config.fontFamily || '"Fredoka One", "Arial Black", sans-serif',
-      colorScheme: config.colorScheme || GameStyleColors.YELLOW_BUTTON,
+      fontFamily: config.fontFamily || getFrameworkFontFamily(),
+      colorScheme: config.colorScheme || GameStyleColors.GREEN_BUTTON,
       buttonStyle: config.buttonStyle || 'raised',  // 'raised' or 'flat'
-      borderRadius: config.borderRadius || 16,
-      borderWidth: config.borderWidth || 3,
-      shadowOffset: config.shadowOffset || 4,
+      borderRadius: config.borderRadius || 14,
+      borderWidth: config.borderWidth || 1,
+      shadowOffset: config.shadowOffset || 3,
       disabled: config.disabled || false,
       icon: config.icon || ''
     };
 
-    // Ensure minimum touch target
-    this.config.width = Math.max(this.config.width, 88);
-    this.config.height = Math.max(this.config.height, 44);
+    // Note: No minimum size constraint - developer controls button size
 
     // Create containers and graphics
     this.container = graphics().createContainer();
-    this.shadowGraphics = graphics().createGraphics();
     this.borderGraphics = graphics().createGraphics();
-    this.backgroundGraphics = graphics().createGraphics();
+    this.shadowGraphics = graphics().createGraphics();
+    this.topShineGraphics = graphics().createGraphics();
+    this.mainFillGraphics = graphics().createGraphics();
     this.highlightGraphics = graphics().createGraphics();
-    this.shineGraphics = graphics().createGraphics();
+    this.jellybeanGraphics = graphics().createGraphics();
 
-    // Build button layers (order matters for z-index)
-    this.container.addChild(this.shadowGraphics);
-    this.container.addChild(this.borderGraphics);
-    this.container.addChild(this.backgroundGraphics);
-    this.container.addChild(this.highlightGraphics);
-    this.container.addChild(this.shineGraphics);
+    // Build button layers (order matters for z-index) - exactly like no-ads-popup-demo
+    this.container.addChild(this.borderGraphics);      // 1. Black outer border
+    this.container.addChild(this.shadowGraphics);      // 2. Shadow
+    this.container.addChild(this.topShineGraphics);    // 3. Top shine
+    this.container.addChild(this.mainFillGraphics);    // 4. Main fill
+    this.container.addChild(this.highlightGraphics);   // 5. Highlight
+    this.container.addChild(this.jellybeanGraphics);   // 6. Jellybean
 
     // Create text
     if (this.config.text) {
@@ -188,7 +194,7 @@ export class GameStyleButton extends EventEmitter {
     this.textField = graphics().createText(this.config.text, {
       fontFamily: fontFamily,
       fontSize: fontSize,
-      fontWeight: 'bold',
+      fontWeight: '700',  // Bold - Fredoka's max weight
       fill: textColor,
       stroke: strokeColor,
       strokeThickness: strokeThickness,
@@ -232,32 +238,28 @@ export class GameStyleButton extends EventEmitter {
     const { width, height, borderRadius, borderWidth, shadowOffset, colorScheme, buttonStyle, disabled } = this.config;
 
     // Clear all graphics
-    this.shadowGraphics.clear();
     this.borderGraphics.clear();
-    this.backgroundGraphics.clear();
+    this.shadowGraphics.clear();
+    this.topShineGraphics.clear();
+    this.mainFillGraphics.clear();
     this.highlightGraphics.clear();
-    this.shineGraphics.clear();
+    this.jellybeanGraphics.clear();
 
-    // Remove old gradient sprite if exists
-    if (this.gradientSprite) {
-      this.container.removeChild(this.gradientSprite);
-      this.gradientSprite = undefined;
-    }
+    // Reset jellybean transform
+    this.jellybeanGraphics.x = 0;
+    this.jellybeanGraphics.y = 0;
+    this.jellybeanGraphics.rotation = 0;
 
     // Get colors (grayed out if disabled)
     const colors = disabled ? this.getDisabledColors() : colorScheme;
 
-    // Render based on style
-    if (buttonStyle === 'flat') {
-      this.renderFlatStyle(width, height, borderRadius, borderWidth, colors);
-    } else {
-      this.renderRaisedStyle(width, height, borderRadius, borderWidth, shadowOffset, colors);
-    }
+    // Render raised style (No Ads popup style)
+    this.renderRaisedStyle(width, height, borderRadius, borderWidth, shadowOffset, colors);
   }
 
   /**
-   * Render 'raised' style - Classic 3D with drop shadow behind the button
-   * Like Candy Crush, Brawl Stars (reference screenshot 1)
+   * Render 'raised' style - EXACT copy from no-ads-popup-demo.html
+   * Layer order: border → shadow → topShine → mainFill → highlight → jellybean
    */
   private renderRaisedStyle(
     width: number,
@@ -267,174 +269,95 @@ export class GameStyleButton extends EventEmitter {
     shadowOffset: number,
     colors: GameButtonColorScheme
   ): void {
-    // Pressed state adjustments
-    const pressedOffset = this.isPressed ? shadowOffset - 2 : 0;
-    const currentShadowOffset = this.isPressed ? 2 : shadowOffset;
+    // Demo variables (origin is 0,0 for button-local coordinates)
+    const ctaX = 0;
+    const ctaY = this.isPressed ? shadowOffset - 1 : 0;
+    const ctaWidth = width;
+    const ctaHeight = height;
+    const ctaRadius = borderRadius;
+    const currentShadowOffset = this.isPressed ? 1 : shadowOffset;
 
-    // Layer 1: Drop Shadow - positioned BEHIND and BELOW the button
-    // This shadow is what makes it look "raised" or "floating"
+    // 1. Black border (tüm butonu çerçeveleyen - shadow dahil, 1px)
+    // Demo: ctaOuterBorder.roundRect(ctaX - 1, ctaY - 1, ctaWidth + 2, ctaHeight + shadowOffset + 2, ctaRadius + 1);
+    // Demo: ctaOuterBorder.stroke({ color: 0x000000, width: 1 });
+    this.borderGraphics.roundRect(
+      ctaX - 1,
+      -1,  // Always starts at -1 (border is fixed position)
+      ctaWidth + 2,
+      ctaHeight + currentShadowOffset + 2,
+      ctaRadius + 1
+    );
+    this.borderGraphics.stroke({ color: colors.border, width: borderWidth });
+
+    // 2. Shadow (alt kısım - yeşil)
+    // Demo: ctaShadow.roundRect(ctaX, ctaY + shadowOffset, ctaWidth, ctaHeight, ctaRadius);
+    // Demo: ctaShadow.fill(0x28A165);
     this.shadowGraphics.roundRect(
-      2,                          // Slight X offset
-      currentShadowOffset + 2,    // Y offset (shadow below button)
-      width - 2,
-      height,
-      borderRadius
+      ctaX,
+      currentShadowOffset,  // Shadow is always at shadowOffset from top
+      ctaWidth,
+      ctaHeight,
+      ctaRadius
     );
-    this.shadowGraphics.fill({ color: colors.shadow, alpha: 0.85 });
+    this.shadowGraphics.fill({ color: colors.shadow });
 
-    // Layer 2: Main button border
-    this.borderGraphics.roundRect(0, pressedOffset, width, height, borderRadius);
-    this.borderGraphics.fill({ color: colors.border });
-
-    // Layer 3: Inner fill area with gradient
-    const fillX = borderWidth;
-    const fillY = borderWidth + pressedOffset;
-    const fillWidth = width - borderWidth * 2;
-    const fillHeight = height - borderWidth * 2;
-    const fillRadius = Math.max(4, borderRadius - borderWidth);
-
-    // Create gradient texture and sprite
-    const gradientCanvas = createGradientTexture(
-      fillWidth,
-      fillHeight,
-      colors.gradientTop,
-      colors.gradientBottom,
-      fillRadius
+    // 2.5. Top shine (üst parlaklık - border içinde kalacak, %60 opak)
+    // Demo: ctaTopShine.roundRect(ctaX + 0.5, ctaY - 0.5, ctaWidth - 1, ctaHeight, ctaRadius);
+    // Demo: ctaTopShine.fill({ color: 0xFFFFFF, alpha: 0.60 });
+    this.topShineGraphics.roundRect(
+      ctaX + 0.5,
+      ctaY - 0.5,
+      ctaWidth - 1,
+      ctaHeight,
+      ctaRadius
     );
-    const gradientTexture = graphics().createTexture(gradientCanvas);
-    this.gradientSprite = graphics().createSprite(gradientTexture);
-    this.gradientSprite.x = fillX;
-    this.gradientSprite.y = fillY;
+    this.topShineGraphics.fill({ color: 0xFFFFFF, alpha: 0.60 });
 
-    // Insert gradient sprite after border graphics
-    const borderIndex = this.container.getChildIndex(this.borderGraphics);
-    this.container.addChild(this.gradientSprite);
-    this.container.setChildIndex(this.gradientSprite, borderIndex + 1);
+    // 3. Button main (ana yüzey - yeşil)
+    // Demo: ctaBtn.roundRect(ctaX, ctaY, ctaWidth, ctaHeight, ctaRadius);
+    // Demo: ctaBtn.fill(0x2DE45A);
+    this.mainFillGraphics.roundRect(ctaX, ctaY, ctaWidth, ctaHeight, ctaRadius);
+    this.mainFillGraphics.fill({ color: colors.gradientTop });
 
-    // Layer 4: Subtle highlight overlay for glass effect (upper half)
-    const highlightHeight = fillHeight * 0.35;
+    // 4. Highlight (parlama efekti - üst köşeler yuvarlak, alt keskin)
+    // Demo: exactly as written
     if (!this.isPressed) {
-      this.highlightGraphics.roundRect(
-        fillX + 3,
-        fillY + 2,
-        fillWidth - 6,
-        highlightHeight,
-        Math.min(fillRadius - 2, 10)
-      );
-      this.highlightGraphics.fill({ color: 0xFFFFFF, alpha: 0.12 });
+      const hlX = ctaX + 3;
+      const hlY = ctaY + 3;
+      const hlW = ctaWidth - 6;
+      const hlH = ctaHeight * 0.45;
+      const hlR = ctaRadius - 2;
+
+      this.highlightGraphics.moveTo(hlX + hlR, hlY);
+      this.highlightGraphics.lineTo(hlX + hlW - hlR, hlY);
+      this.highlightGraphics.arc(hlX + hlW - hlR, hlY + hlR, hlR, -Math.PI / 2, 0);
+      this.highlightGraphics.lineTo(hlX + hlW, hlY + hlH);
+      this.highlightGraphics.lineTo(hlX, hlY + hlH);
+      this.highlightGraphics.lineTo(hlX, hlY + hlR);
+      this.highlightGraphics.arc(hlX + hlR, hlY + hlR, hlR, Math.PI, -Math.PI / 2);
+      this.highlightGraphics.closePath();
+      this.highlightGraphics.fill({ color: 0xFFFFFF, alpha: 0.25 });
     }
 
-    // Layer 5: Specular highlights
-    // Rim light - very thin bright arc at top edge (like light reflection)
-    this.shineGraphics.roundRect(
-      fillX + 8,
-      fillY + 2,
-      fillWidth - 16,
-      2,
-      1
-    );
-    this.shineGraphics.fill({ color: 0xFFFFFF, alpha: this.isPressed ? 0.15 : 0.4 });
+    // 5. Jellybean efekti (sol üst köşe, orantılı boyut)
+    // Base size for 58px height button: 3.5x2.6, position: 10,9
+    if (!this.isPressed && colors.jellybean) {
+      const scale = ctaHeight / 58;  // Scale relative to standard button height
+      const jbWidth = 3.5 * scale;
+      const jbHeight = 2.6 * scale;
+      const jbX = 10 * scale;
+      const jbY = 9 * scale;
 
-    // Corner specular - small ellipse at top-left (glass reflection)
-    if (!this.isPressed) {
-      this.shineGraphics.ellipse(fillX + 14, fillY + 8, 5, 3);
-      this.shineGraphics.fill({ color: 0xFFFFFF, alpha: 0.5 });
+      this.jellybeanGraphics.ellipse(0, 0, jbWidth, jbHeight);
+      this.jellybeanGraphics.fill({ color: colors.jellybean });
+      this.jellybeanGraphics.x = ctaX + jbX;
+      this.jellybeanGraphics.y = ctaY + jbY;
+      this.jellybeanGraphics.rotation = -25 * Math.PI / 180;
     }
 
     // Update text position for press animation
     if (this.textField) {
-      this.textField.y = this.config.height / 2 + pressedOffset;
-    }
-  }
-
-  /**
-   * Render 'flat' style - 3D depth effect via extended bottom border
-   * The button looks like a thick 3D box - border extends downward at bottom
-   * NO separate shadow - the depth IS part of the border
-   * Modern mobile game style (like reference screenshot 2)
-   */
-  private renderFlatStyle(
-    width: number,
-    height: number,
-    borderRadius: number,
-    borderWidth: number,
-    colors: GameButtonColorScheme
-  ): void {
-    // Bottom depth - how much the border extends below (creates 3D thickness)
-    const bottomDepth = 6;
-    const pressedOffset = this.isPressed ? bottomDepth - 1 : 0;
-    const currentDepth = this.isPressed ? 1 : bottomDepth;
-
-    // Calculate derived colors
-    const depthColor = darkenColor(colors.border, 0.2);  // Slightly darker for depth
-
-    // Layer 1: Full border shape including bottom depth
-    // This is ONE piece - the border wraps around AND extends at bottom
-    this.shadowGraphics.roundRect(0, 0, width, height + currentDepth, borderRadius);
-    this.shadowGraphics.fill({ color: depthColor });
-
-    // Layer 2: Main border (covers most of layer 1, leaving depth visible at bottom)
-    this.borderGraphics.roundRect(0, pressedOffset, width, height, borderRadius);
-    this.borderGraphics.fill({ color: colors.border });
-
-    // Layer 3: Inner fill area with gradient
-    const fillX = borderWidth;
-    const fillY = borderWidth + pressedOffset;
-    const fillWidth = width - borderWidth * 2;
-    const fillHeight = height - borderWidth * 2;
-    const fillRadius = Math.max(4, borderRadius - borderWidth);
-
-    // Create gradient texture and sprite
-    const gradientCanvas = createGradientTexture(
-      fillWidth,
-      fillHeight,
-      colors.gradientTop,
-      colors.gradientBottom,
-      fillRadius
-    );
-    const gradientTexture = graphics().createTexture(gradientCanvas);
-    this.gradientSprite = graphics().createSprite(gradientTexture);
-    this.gradientSprite.x = fillX;
-    this.gradientSprite.y = fillY;
-
-    // Insert gradient sprite after border graphics
-    const borderIndex = this.container.getChildIndex(this.borderGraphics);
-    this.container.addChild(this.gradientSprite);
-    this.container.setChildIndex(this.gradientSprite, borderIndex + 1);
-
-    // Layer 4: Subtle highlight overlay for glass effect (upper half)
-    const highlightHeight = fillHeight * 0.35;
-    if (!this.isPressed) {
-      this.highlightGraphics.roundRect(
-        fillX + 3,
-        fillY + 2,
-        fillWidth - 6,
-        highlightHeight,
-        Math.min(fillRadius - 2, 10)
-      );
-      this.highlightGraphics.fill({ color: 0xFFFFFF, alpha: 0.12 });
-    }
-
-    // Layer 5: Specular highlights
-    // Rim light - very thin bright arc at top edge (like light reflection)
-    this.shineGraphics.roundRect(
-      fillX + 8,
-      fillY + 2,
-      fillWidth - 16,
-      2,
-      1
-    );
-    this.shineGraphics.fill({ color: 0xFFFFFF, alpha: this.isPressed ? 0.15 : 0.4 });
-
-    // Corner specular - small ellipse at top-left (glass reflection)
-    if (!this.isPressed) {
-      this.shineGraphics.ellipse(fillX + 14, fillY + 8, 5, 3);
-      this.shineGraphics.fill({ color: 0xFFFFFF, alpha: 0.5 });
-    }
-
-    // Update text position for press effect
-    if (this.textField) {
-      this.textField.y = this.config.height / 2 + pressedOffset;
+      this.textField.y = this.config.height / 2 + ctaY;
     }
   }
 
@@ -463,6 +386,52 @@ export class GameStyleButton extends EventEmitter {
     // Using relative luminance formula
     const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
     return luminance > 0.6;
+  }
+
+  /**
+   * Create points for a rectangle with rounded top corners and sharp bottom corners
+   * Used for highlight effect that sits inside the button
+   */
+  private createRoundedTopRectPoints(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    radius: number
+  ): number[] {
+    const points: number[] = [];
+    const r = Math.min(radius, width / 2, height / 2);
+    const segments = 8; // segments per corner arc
+
+    // Start at bottom-left (sharp corner)
+    points.push(x, y + height);
+
+    // Bottom-right (sharp corner)
+    points.push(x + width, y + height);
+
+    // Right side up to top-right arc start
+    points.push(x + width, y + r);
+
+    // Top-right arc (quarter circle)
+    for (let i = 0; i <= segments; i++) {
+      const angle = (Math.PI / 2) * (1 - i / segments); // from 90° to 0°
+      const px = x + width - r + Math.cos(angle) * r;
+      const py = y + r - Math.sin(angle) * r;
+      points.push(px, py);
+    }
+
+    // Top-left arc (quarter circle)
+    for (let i = 0; i <= segments; i++) {
+      const angle = (Math.PI / 2) * i / segments + Math.PI / 2; // from 90° to 180°
+      const px = x + r + Math.cos(angle) * r;
+      const py = y + r - Math.sin(angle) * r;
+      points.push(px, py);
+    }
+
+    // Left side down to bottom-left
+    points.push(x, y + r);
+
+    return points;
   }
 
   /**
@@ -669,66 +638,67 @@ export const GameButtons = {
 
   /**
    * Create a small square icon button (e.g., close, settings)
+   * Same style as No Ads popup buttons but square
    * @param icon - Icon character (emoji or text like '✕', '⚙', '⏸')
    * @param colorScheme - Color scheme (default: RED for close buttons)
-   * @param size - Button size (default: 40)
+   * @param size - Button size (default: 36)
    */
-  icon(
+  mini(
     icon: string,
     colorScheme: GameButtonColorScheme = GameStyleColors.RED_BUTTON,
-    size: number = 40
+    size: number = 36
   ): GameStyleButton {
     return new GameStyleButton({
       text: icon,
       width: size,
       height: size,
-      fontSize: Math.floor(size * 0.5),
+      fontSize: Math.floor(size * 0.55),  // Larger font for icons
       colorScheme,
-      borderRadius: Math.floor(size * 0.25),
-      borderWidth: 2,
-      shadowOffset: 3
+      borderRadius: Math.floor(size * 0.22),
+      borderWidth: 1,
+      shadowOffset: 2
     });
   },
 
   /**
    * Create a close (X) icon button - red square
    */
-  close(size: number = 40): GameStyleButton {
-    return GameButtons.icon('✕', GameStyleColors.RED_BUTTON, size);
+  close(size: number = 36): GameStyleButton {
+    return GameButtons.mini('X', GameStyleColors.RED_BUTTON, size);
   },
 
   /**
    * Create a settings (gear) icon button
    */
-  settings(size: number = 40): GameStyleButton {
-    return GameButtons.icon('⚙', GameStyleColors.BLUE_BUTTON, size);
+  settings(size: number = 36): GameStyleButton {
+    return GameButtons.mini('⚙', GameStyleColors.BLUE_BUTTON, size);
   },
 
   /**
    * Create a pause icon button
    */
-  pause(size: number = 40): GameStyleButton {
-    return GameButtons.icon('⏸', GameStyleColors.YELLOW_BUTTON, size);
+  pause(size: number = 36): GameStyleButton {
+    return GameButtons.mini('⏸', GameStyleColors.YELLOW_BUTTON, size);
   },
 
   /**
    * Create a play icon button (triangle)
    */
-  playIcon(size: number = 40): GameStyleButton {
-    return GameButtons.icon('▶', GameStyleColors.GREEN_BUTTON, size);
+  playIcon(size: number = 36): GameStyleButton {
+    return GameButtons.mini('▶', GameStyleColors.GREEN_BUTTON, size);
   },
 
   /**
    * Create an info icon button
    */
-  info(size: number = 40): GameStyleButton {
-    return GameButtons.icon('ℹ', GameStyleColors.BLUE_BUTTON, size);
+  info(size: number = 36): GameStyleButton {
+    return GameButtons.mini('ℹ', GameStyleColors.BLUE_BUTTON, size);
   },
 
   /**
    * Create a home icon button
    */
-  home(size: number = 40): GameStyleButton {
-    return GameButtons.icon('🏠', GameStyleColors.YELLOW_BUTTON, size);
+  home(size: number = 36): GameStyleButton {
+    return GameButtons.mini('🏠', GameStyleColors.YELLOW_BUTTON, size);
   }
 };

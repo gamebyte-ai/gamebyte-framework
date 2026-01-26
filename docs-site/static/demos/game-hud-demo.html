@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameHUDScreen Demo - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #87CEEB; }
+        canvas { display: block; margin: 0 auto; }
+    </style>
+</head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
+
+    <script>
+        const { createGame, CelebrationManager } = GameByteFramework;
+
+        const CONFIG = { width: 360, height: 640 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.body.appendChild(canvas);
+
+        const game = createGame();
+
+        // Game state
+        let score = 0;
+        let lives = 3;
+        let maxLives = 3;
+        let timeLeft = 60;
+        let isPaused = false;
+        let progress = 0;
+        let celebration = null;
+
+        (async () => {
+            await game.initialize(canvas, '2d');
+            const renderer = game.make('renderer');
+            const stage = renderer.getStage();
+
+            // Create celebration manager
+            celebration = new CelebrationManager(stage, CONFIG.width, CONFIG.height);
+
+            // Sky background with gradient effect
+            const bg = new PIXI.Graphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill(0x87CEEB);
+            stage.addChild(bg);
+
+            // Clouds
+            for (let i = 0; i < 4; i++) {
+                const cloud = new PIXI.Graphics();
+                cloud.circle(0, 0, 30);
+                cloud.circle(25, 5, 25);
+                cloud.circle(50, 0, 30);
+                cloud.circle(25, -10, 20);
+                cloud.fill({ color: 0xffffff, alpha: 0.8 });
+                cloud.x = 50 + i * 100;
+                cloud.y = 120 + (i % 2) * 40;
+                stage.addChild(cloud);
+            }
+
+            // Ground with texture
+            const ground = new PIXI.Graphics();
+            ground.rect(0, CONFIG.height - 100, CONFIG.width, 100);
+            ground.fill(0x8B4513);
+            stage.addChild(ground);
+
+            // Ground pattern
+            for (let i = 0; i < 8; i++) {
+                const dirt = new PIXI.Graphics();
+                dirt.circle(20 + i * 50, CONFIG.height - 50, 8);
+                dirt.fill({ color: 0x5D3A1A, alpha: 0.5 });
+                stage.addChild(dirt);
+            }
+
+            // Grass
+            const grass = new PIXI.Graphics();
+            grass.rect(0, CONFIG.height - 100, CONFIG.width, 15);
+            grass.fill(0x228B22);
+            stage.addChild(grass);
+
+            // Simple game elements (collectibles)
+            const collectibles = [];
+            for (let i = 0; i < 5; i++) {
+                const coinContainer = new PIXI.Container();
+                coinContainer.x = 50 + Math.random() * (CONFIG.width - 100);
+                coinContainer.y = 150 + Math.random() * 300;
+
+                // Coin glow
+                const glow = new PIXI.Graphics();
+                glow.circle(0, 0, 25);
+                glow.fill({ color: 0xFFD700, alpha: 0.3 });
+                coinContainer.addChild(glow);
+
+                // Coin
+                const coin = new PIXI.Graphics();
+                coin.circle(0, 0, 20);
+                coin.fill(0xFFD700);
+                coinContainer.addChild(coin);
+
+                // Coin inner
+                const coinInner = new PIXI.Graphics();
+                coinInner.circle(0, 0, 15);
+                coinInner.fill(0xFFC000);
+                coinContainer.addChild(coinInner);
+
+                // Coin symbol
+                const symbol = new PIXI.Text({
+                    text: '$',
+                    style: { fontFamily: 'Arial', fontSize: 18, fontWeight: 'bold', fill: 0xDAA520 }
+                });
+                symbol.anchor.set(0.5);
+                coinContainer.addChild(symbol);
+
+                coinContainer.eventMode = 'static';
+                coinContainer.cursor = 'pointer';
+
+                // Add shimmer to coins
+                celebration.addShimmer(coinContainer, 'gold');
+
+                coinContainer.on('pointerdown', () => {
+                    if (isPaused) return;
+
+                    // Sparkle effect at coin position
+                    celebration.rewardReceived(coinContainer.x, coinContainer.y);
+
+                    score += 100;
+                    updateScore();
+                    progress = Math.min(100, progress + 20);
+                    updateProgress();
+                    coinContainer.visible = false;
+
+                    if (progress >= 100) {
+                        showVictory();
+                    }
+                });
+
+                stage.addChild(coinContainer);
+                collectibles.push(coinContainer);
+            }
+
+            // HUD Container
+            const hud = new PIXI.Container();
+            stage.addChild(hud);
+
+            // HUD Background with gradient effect
+            const hudBg = new PIXI.Graphics();
+            hudBg.rect(0, 0, CONFIG.width, 75);
+            hudBg.fill({ color: 0x000000, alpha: 0.6 });
+            hud.addChild(hudBg);
+
+            // HUD border
+            const hudBorder = new PIXI.Graphics();
+            hudBorder.rect(0, 73, CONFIG.width, 3);
+            hudBorder.fill(0x333344);
+            hud.addChild(hudBorder);
+
+            // Score display with icon
+            const scoreIcon = new PIXI.Text({
+                text: '🪙',
+                style: { fontSize: 20 }
+            });
+            scoreIcon.x = 10;
+            scoreIcon.y = 8;
+            hud.addChild(scoreIcon);
+
+            const scoreText = new PIXI.Text({
+                text: `${score}`,
+                style: { fontFamily: 'Arial', fontSize: 20, fontWeight: 'bold', fill: 0xFFD700 }
+            });
+            scoreText.x = 38;
+            scoreText.y = 10;
+            hud.addChild(scoreText);
+
+            function updateScore() {
+                scoreText.text = `${score}`;
+            }
+
+            // Timer display with glow
+            const timerGlow = new PIXI.Graphics();
+            timerGlow.roundRect(CONFIG.width / 2 - 40, 5, 80, 35, 10);
+            timerGlow.fill({ color: 0x4CAF50, alpha: 0.3 });
+            hud.addChild(timerGlow);
+
+            const timerBg = new PIXI.Graphics();
+            timerBg.roundRect(CONFIG.width / 2 - 38, 7, 76, 31, 8);
+            timerBg.fill(0x2d2d44);
+            hud.addChild(timerBg);
+
+            const timerIcon = new PIXI.Text({
+                text: '⏱️',
+                style: { fontSize: 14 }
+            });
+            timerIcon.x = CONFIG.width / 2 - 30;
+            timerIcon.y = 12;
+            hud.addChild(timerIcon);
+
+            const timerText = new PIXI.Text({
+                text: formatTime(timeLeft),
+                style: { fontFamily: 'Arial', fontSize: 18, fontWeight: 'bold', fill: 0xffffff }
+            });
+            timerText.x = CONFIG.width / 2 - 5;
+            timerText.y = 13;
+            hud.addChild(timerText);
+
+            function formatTime(seconds) {
+                const m = Math.floor(seconds / 60);
+                const s = seconds % 60;
+                return `${m}:${s.toString().padStart(2, '0')}`;
+            }
+
+            // Lives display
+            const livesContainer = new PIXI.Container();
+            livesContainer.x = 10;
+            livesContainer.y = 45;
+            hud.addChild(livesContainer);
+
+            function updateLives() {
+                livesContainer.removeChildren();
+                for (let i = 0; i < maxLives; i++) {
+                    const heart = new PIXI.Text({
+                        text: i < lives ? '❤️' : '🖤',
+                        style: { fontSize: 18 }
+                    });
+                    heart.x = i * 25;
+                    livesContainer.addChild(heart);
+                }
+            }
+            updateLives();
+
+            // Pause button with border
+            const pauseBtnBorder = new PIXI.Graphics();
+            pauseBtnBorder.roundRect(CONFIG.width - 53, 7, 46, 46, 10);
+            pauseBtnBorder.fill(0x444455);
+            hud.addChild(pauseBtnBorder);
+
+            const pauseBtn = new PIXI.Graphics();
+            pauseBtn.roundRect(CONFIG.width - 50, 10, 40, 40, 8);
+            pauseBtn.fill(0x2d2d44);
+            pauseBtn.eventMode = 'static';
+            pauseBtn.cursor = 'pointer';
+            hud.addChild(pauseBtn);
+
+            const pauseIcon = new PIXI.Text({
+                text: '⏸',
+                style: { fontSize: 22 }
+            });
+            pauseIcon.anchor.set(0.5);
+            pauseIcon.x = CONFIG.width - 30;
+            pauseIcon.y = 30;
+            hud.addChild(pauseIcon);
+
+            // Progress bar with border
+            const progressLabel = new PIXI.Text({
+                text: 'Progress',
+                style: { fontFamily: 'Arial', fontSize: 10, fill: 0x888888 }
+            });
+            progressLabel.x = 100;
+            progressLabel.y = 43;
+            hud.addChild(progressLabel);
+
+            const progressBorder = new PIXI.Graphics();
+            progressBorder.roundRect(98, 55, 164, 14, 7);
+            progressBorder.fill(0x444455);
+            hud.addChild(progressBorder);
+
+            const progressBg = new PIXI.Graphics();
+            progressBg.roundRect(100, 57, 160, 10, 5);
+            progressBg.fill(0x2d2d44);
+            hud.addChild(progressBg);
+
+            const progressBar = new PIXI.Graphics();
+            hud.addChild(progressBar);
+
+            function updateProgress() {
+                progressBar.clear();
+                const width = Math.max(0, (progress / 100) * 160);
+                if (width > 0) {
+                    progressBar.roundRect(100, 57, width, 10, 5);
+                    progressBar.fill(0x4CAF50);
+                }
+            }
+            updateProgress();
+
+            // Pause overlay
+            const pauseOverlay = new PIXI.Container();
+            pauseOverlay.visible = false;
+            stage.addChild(pauseOverlay);
+
+            const pauseDim = new PIXI.Graphics();
+            pauseDim.rect(0, 0, CONFIG.width, CONFIG.height);
+            pauseDim.fill({ color: 0x000000, alpha: 0.7 });
+            pauseOverlay.addChild(pauseDim);
+
+            // Pause panel border
+            const pausePanelBorder = new PIXI.Graphics();
+            pausePanelBorder.roundRect(CONFIG.width / 2 - 105, CONFIG.height / 2 - 105, 210, 210, 22);
+            pausePanelBorder.fill(0x4d4d6c);
+            pauseOverlay.addChild(pausePanelBorder);
+
+            const pausePanel = new PIXI.Graphics();
+            pausePanel.roundRect(CONFIG.width / 2 - 100, CONFIG.height / 2 - 100, 200, 200, 20);
+            pausePanel.fill(0x2d2d44);
+            pauseOverlay.addChild(pausePanel);
+
+            const pausedText = new PIXI.Text({
+                text: 'PAUSED',
+                style: {
+                    fontFamily: 'Arial',
+                    fontSize: 28,
+                    fontWeight: 'bold',
+                    fill: 0xffffff,
+                    dropShadow: true,
+                    dropShadowDistance: 2
+                }
+            });
+            pausedText.anchor.set(0.5);
+            pausedText.x = CONFIG.width / 2;
+            pausedText.y = CONFIG.height / 2 - 50;
+            pauseOverlay.addChild(pausedText);
+
+            // Resume button with border
+            const resumeBtnBorder = new PIXI.Graphics();
+            resumeBtnBorder.roundRect(CONFIG.width / 2 - 73, CONFIG.height / 2 - 3, 146, 56, 14);
+            resumeBtnBorder.fill(0x2E7D32);
+            pauseOverlay.addChild(resumeBtnBorder);
+
+            const resumeBtn = new PIXI.Graphics();
+            resumeBtn.roundRect(CONFIG.width / 2 - 70, CONFIG.height / 2, 140, 50, 12);
+            resumeBtn.fill(0x4CAF50);
+            resumeBtn.eventMode = 'static';
+            resumeBtn.cursor = 'pointer';
+            pauseOverlay.addChild(resumeBtn);
+
+            const resumeText = new PIXI.Text({
+                text: 'RESUME',
+                style: { fontFamily: 'Arial', fontSize: 20, fontWeight: 'bold', fill: 0xffffff }
+            });
+            resumeText.anchor.set(0.5);
+            resumeText.x = CONFIG.width / 2;
+            resumeText.y = CONFIG.height / 2 + 25;
+            pauseOverlay.addChild(resumeText);
+
+            resumeBtn.on('pointerdown', togglePause);
+            pauseBtn.on('pointerdown', togglePause);
+
+            function togglePause() {
+                isPaused = !isPaused;
+                pauseOverlay.visible = isPaused;
+                pauseIcon.text = isPaused ? '▶' : '⏸';
+            }
+
+            // Timer countdown
+            let lastTime = Date.now();
+            function updateTimer() {
+                if (isPaused || timeLeft <= 0) return;
+
+                const now = Date.now();
+                if (now - lastTime >= 1000) {
+                    lastTime = now;
+                    timeLeft--;
+                    timerText.text = formatTime(timeLeft);
+
+                    if (timeLeft <= 10) {
+                        timerText.style.fill = 0xFF4444;
+                        timerGlow.clear();
+                        timerGlow.roundRect(CONFIG.width / 2 - 40, 5, 80, 35, 10);
+                        timerGlow.fill({ color: 0xFF4444, alpha: 0.3 });
+                    }
+
+                    if (timeLeft <= 0) {
+                        showDefeat();
+                    }
+                }
+            }
+
+            // Lose life button (demo)
+            const loseLifeBtnBorder = new PIXI.Graphics();
+            loseLifeBtnBorder.roundRect(CONFIG.width / 2 - 63, CONFIG.height - 63, 126, 46, 10);
+            loseLifeBtnBorder.fill(0xA33030);
+            stage.addChild(loseLifeBtnBorder);
+
+            const loseLifeBtn = new PIXI.Graphics();
+            loseLifeBtn.roundRect(CONFIG.width / 2 - 60, CONFIG.height - 60, 120, 40, 8);
+            loseLifeBtn.fill(0xE84C4C);
+            loseLifeBtn.eventMode = 'static';
+            loseLifeBtn.cursor = 'pointer';
+            stage.addChild(loseLifeBtn);
+
+            const loseLifeText = new PIXI.Text({
+                text: 'Lose Life',
+                style: { fontFamily: 'Arial', fontSize: 14, fontWeight: 'bold', fill: 0xffffff }
+            });
+            loseLifeText.anchor.set(0.5);
+            loseLifeText.x = CONFIG.width / 2;
+            loseLifeText.y = CONFIG.height - 40;
+            stage.addChild(loseLifeText);
+
+            loseLifeBtn.on('pointerdown', () => {
+                if (isPaused || lives <= 0) return;
+                lives--;
+                updateLives();
+                if (lives <= 0) {
+                    showDefeat();
+                }
+            });
+
+            function showVictory() {
+                isPaused = true;
+                pausedText.text = 'VICTORY!';
+                pausedText.style.fill = 0x4CAF50;
+                resumeText.text = 'Play Again';
+                pauseOverlay.visible = true;
+
+                // Victory celebration with confetti!
+                celebration.victory();
+            }
+
+            function showDefeat() {
+                isPaused = true;
+                pausedText.text = 'GAME OVER';
+                pausedText.style.fill = 0xE84C4C;
+                resumeText.text = 'Try Again';
+                pauseOverlay.visible = true;
+            }
+
+            // Instructions
+            const instr = new PIXI.Text({
+                text: 'Tap coins to collect!',
+                style: {
+                    fontFamily: 'Arial',
+                    fontSize: 14,
+                    fill: 0x333333,
+                    dropShadow: true,
+                    dropShadowColor: 0xffffff,
+                    dropShadowDistance: 1
+                }
+            });
+            instr.anchor.set(0.5);
+            instr.x = CONFIG.width / 2;
+            instr.y = 100;
+            stage.addChild(instr);
+
+            // Game loop
+            game.on('update', (deltaTime) => {
+                updateTimer();
+                celebration.update(deltaTime);
+            });
+
+            game.start();
+        })();
+    </script>
+</body>
+</html>

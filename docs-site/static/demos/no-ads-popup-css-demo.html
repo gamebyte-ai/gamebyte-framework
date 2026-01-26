@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>No Ads Modal - Pixel Perfect</title>
+    <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #0f1923;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Lilita One', cursive;
+        }
+
+        /* --- ANA MODAL --- */
+        .modal-container {
+            position: relative;
+            width: 340px;
+            background: linear-gradient(180deg, #7ad4f8 0%, #4aa8e8 50%, #3d98d8 100%);
+            border-radius: 20px;
+            border: 4px solid #1a3a5a;
+            padding: 15px 18px 20px;
+            box-shadow:
+                0 8px 25px rgba(0,0,0,0.5),
+                inset 0 1px 0 rgba(255,255,255,0.2);
+            overflow: hidden;
+        }
+
+        /* Sunburst Rays */
+        .sunburst {
+            position: absolute;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 400px;
+            height: 400px;
+            background: conic-gradient(
+                from 0deg,
+                transparent 0deg 25deg,
+                rgba(255,255,255,0.08) 25deg 35deg,
+                transparent 35deg 60deg,
+                rgba(255,255,255,0.08) 60deg 70deg,
+                transparent 70deg 95deg,
+                rgba(255,255,255,0.08) 95deg 105deg,
+                transparent 105deg 130deg,
+                rgba(255,255,255,0.08) 130deg 140deg,
+                transparent 140deg 165deg,
+                rgba(255,255,255,0.08) 165deg 175deg,
+                transparent 175deg 200deg,
+                rgba(255,255,255,0.08) 200deg 210deg,
+                transparent 210deg 235deg,
+                rgba(255,255,255,0.08) 235deg 245deg,
+                transparent 245deg 270deg,
+                rgba(255,255,255,0.08) 270deg 280deg,
+                transparent 280deg 305deg,
+                rgba(255,255,255,0.08) 305deg 315deg,
+                transparent 315deg 340deg,
+                rgba(255,255,255,0.08) 340deg 350deg,
+                transparent 350deg 360deg
+            );
+            z-index: 0;
+            animation: spin 25s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes spin {
+            100% { transform: translateX(-50%) rotate(360deg); }
+        }
+
+        /* --- HEADER --- */
+        .header {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 12px;
+        }
+
+        .title {
+            font-size: 32px;
+            color: white;
+            text-shadow:
+                -2px -2px 0 #000,
+                2px -2px 0 #000,
+                -2px 2px 0 #000,
+                2px 2px 0 #000,
+                3px 3px 0 #000,
+                4px 4px 4px rgba(0,0,0,0.4);
+            letter-spacing: 2px;
+            margin: 0;
+            flex-grow: 1;
+            text-align: center;
+            padding-left: 40px;
+        }
+
+        .close-btn {
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(180deg, #e04858 0%, #a03040 100%);
+            border: 2px solid rgba(255,255,255,0.9);
+            border-radius: 10px;
+            color: white;
+            font-size: 22px;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow:
+                0 3px 0 #802030,
+                0 5px 8px rgba(0,0,0,0.3);
+            text-shadow:
+                1px 1px 0 #000,
+                2px 2px 2px rgba(0,0,0,0.3);
+            line-height: 1;
+            padding-bottom: 2px;
+        }
+
+        .close-btn:hover {
+            background: linear-gradient(180deg, #f05868 0%, #b04050 100%);
+        }
+
+        /* --- BADGE CONTAINER --- */
+        .badge-container {
+            position: relative;
+            z-index: 2;
+            width: 160px;
+            height: 160px;
+            margin: 5px auto 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Gri Taban (Madalyon) */
+        .badge-base {
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #6a7a8a 0%, #4a5a6a 50%, #3a4a5a 100%);
+            box-shadow:
+                0 6px 12px rgba(0,0,0,0.4),
+                inset 0 2px 4px rgba(255,255,255,0.2),
+                inset 0 -2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* Kırmızı Yasak Halkası */
+        .prohibition-ring {
+            position: absolute;
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            background: transparent;
+            border: 22px solid #e63946;
+            box-shadow:
+                inset 4px 4px 8px rgba(255,150,150,0.5),
+                inset -3px -3px 6px rgba(0,0,0,0.3),
+                0 0 0 3px #b82030;
+        }
+
+        /* Çapraz Çizgi */
+        .prohibition-line {
+            position: absolute;
+            width: 120px;
+            height: 24px;
+            background: linear-gradient(180deg, #ff6070 0%, #e63946 40%, #c82836 100%);
+            transform: rotate(45deg);
+            border-radius: 4px;
+            box-shadow:
+                0 3px 6px rgba(0,0,0,0.4),
+                inset 0 3px 3px rgba(255,200,200,0.4),
+                inset 0 -2px 3px rgba(0,0,0,0.2);
+            z-index: 1;
+        }
+
+        /* "ADS" Yazısı */
+        .ads-text {
+            position: relative;
+            z-index: 10;
+            font-size: 52px;
+            color: white;
+            font-style: italic;
+            text-shadow:
+                -3px -3px 0 #1a3050,
+                3px -3px 0 #1a3050,
+                -3px 3px 0 #1a3050,
+                3px 3px 0 #1a3050,
+                4px 4px 0 #1a3050,
+                5px 5px 0 #1a3050,
+                6px 6px 8px rgba(0,0,0,0.5);
+            letter-spacing: 1px;
+        }
+
+        /* StarBurst Effect - Framework benzeri yıldız parlamaları */
+        .starburst-container {
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 12;
+        }
+
+        .star {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            opacity: 0;
+        }
+
+        /* 4-pointed star shape */
+        .star::before,
+        .star::after {
+            content: '';
+            position: absolute;
+            background: white;
+            border-radius: 2px;
+        }
+
+        .star::before {
+            width: 100%;
+            height: 30%;
+            top: 35%;
+            left: 0;
+        }
+
+        .star::after {
+            width: 30%;
+            height: 100%;
+            top: 0;
+            left: 35%;
+        }
+
+        /* Individual star positions and animations */
+        .star-1 {
+            top: 10%;
+            left: 5%;
+            animation: starburst-1 2.5s ease-in-out infinite;
+        }
+
+        .star-2 {
+            top: 25%;
+            right: 8%;
+            animation: starburst-2 3s ease-in-out infinite 0.5s;
+        }
+
+        .star-3 {
+            bottom: 20%;
+            left: 10%;
+            animation: starburst-3 2.8s ease-in-out infinite 1s;
+        }
+
+        .star-4 {
+            bottom: 30%;
+            right: 5%;
+            animation: starburst-4 2.2s ease-in-out infinite 1.5s;
+        }
+
+        .star-5 {
+            top: 5%;
+            left: 40%;
+            animation: starburst-5 3.2s ease-in-out infinite 0.8s;
+        }
+
+        .star-6 {
+            bottom: 10%;
+            right: 30%;
+            animation: starburst-6 2.6s ease-in-out infinite 1.2s;
+        }
+
+        /* Gold colored stars */
+        .star-gold::before,
+        .star-gold::after {
+            background: linear-gradient(135deg, #fff 0%, #ffd700 50%, #ffb800 100%);
+        }
+
+        /* StarBurst animations - scale + rotate + fade */
+        @keyframes starburst-1 {
+            0%, 100% { opacity: 0; transform: scale(0.2) rotate(0deg); }
+            15% { opacity: 1; transform: scale(0.5) rotate(20deg); }
+            50% { opacity: 0.9; transform: scale(0.4) rotate(45deg); }
+            85% { opacity: 0.3; transform: scale(0.3) rotate(70deg); }
+        }
+
+        @keyframes starburst-2 {
+            0%, 100% { opacity: 0; transform: scale(0.1) rotate(0deg); }
+            20% { opacity: 1; transform: scale(0.6) rotate(-15deg); }
+            60% { opacity: 0.8; transform: scale(0.5) rotate(-35deg); }
+            90% { opacity: 0; transform: scale(0.2) rotate(-50deg); }
+        }
+
+        @keyframes starburst-3 {
+            0%, 100% { opacity: 0; transform: scale(0.15) rotate(10deg); }
+            25% { opacity: 0.9; transform: scale(0.45) rotate(30deg); }
+            55% { opacity: 1; transform: scale(0.55) rotate(55deg); }
+            80% { opacity: 0.2; transform: scale(0.25) rotate(75deg); }
+        }
+
+        @keyframes starburst-4 {
+            0%, 100% { opacity: 0; transform: scale(0.2) rotate(-5deg); }
+            30% { opacity: 1; transform: scale(0.5) rotate(25deg); }
+            65% { opacity: 0.7; transform: scale(0.4) rotate(50deg); }
+            90% { opacity: 0; transform: scale(0.15) rotate(70deg); }
+        }
+
+        @keyframes starburst-5 {
+            0%, 100% { opacity: 0; transform: scale(0.1) rotate(0deg); }
+            20% { opacity: 0.8; transform: scale(0.35) rotate(20deg); }
+            50% { opacity: 1; transform: scale(0.4) rotate(40deg); }
+            80% { opacity: 0.3; transform: scale(0.2) rotate(60deg); }
+        }
+
+        @keyframes starburst-6 {
+            0%, 100% { opacity: 0; transform: scale(0.15) rotate(-10deg); }
+            25% { opacity: 1; transform: scale(0.5) rotate(15deg); }
+            60% { opacity: 0.6; transform: scale(0.35) rotate(40deg); }
+            85% { opacity: 0; transform: scale(0.1) rotate(55deg); }
+        }
+
+        /* --- FEATURE BOX --- */
+        .feature-box {
+            position: relative;
+            z-index: 2;
+            background: rgba(40, 80, 120, 0.5);
+            border-radius: 16px;
+            padding: 12px 14px;
+            margin-bottom: 18px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .feature-item:last-child {
+            margin-bottom: 0;
+        }
+
+        /* İkon Container */
+        .icon-wrapper {
+            position: relative;
+            width: 38px;
+            height: 38px;
+            margin-right: 12px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 22px;
+            box-shadow:
+                0 3px 0 rgba(0,0,0,0.3),
+                inset 0 1px 2px rgba(255,255,255,0.3);
+        }
+
+        .icon-green {
+            background: linear-gradient(180deg, #5cba47 0%, #3d9a30 100%);
+        }
+
+        .icon-purple {
+            background: linear-gradient(180deg, #7a6a9a 0%, #5a4a7a 100%);
+        }
+
+        /* Mini overlay işaretler */
+        .icon-overlay {
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            font-size: 14px;
+            filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.5));
+        }
+
+        .feature-text {
+            flex: 1;
+            color: white;
+            font-size: 15px;
+            line-height: 1.25;
+            text-shadow:
+                -1px -1px 0 #000,
+                1px -1px 0 #000,
+                -1px 1px 0 #000,
+                1px 1px 0 #000,
+                2px 2px 3px rgba(0,0,0,0.4);
+        }
+
+        /* --- CTA BUTTON --- */
+        .cta-btn {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            padding: 14px 20px;
+            background: linear-gradient(180deg, #a8f060 0%, #78e830 50%, #60d020 100%);
+            border: none;
+            border-radius: 16px;
+            color: white;
+            font-family: 'Lilita One', cursive;
+            font-size: 26px;
+            cursor: pointer;
+            box-shadow:
+                0 5px 0 #2d7a18,
+                0 8px 15px rgba(0,0,0,0.3),
+                inset 0 2px 4px rgba(255,255,255,0.4);
+            text-shadow:
+                -2px -2px 0 #000,
+                2px -2px 0 #000,
+                -2px 2px 0 #000,
+                2px 2px 0 #000,
+                3px 3px 4px rgba(0,0,0,0.3);
+            border: 3px solid #2d7a18;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        .cta-btn:hover {
+            background: linear-gradient(180deg, #b8ff70 0%, #88f840 50%, #70e030 100%);
+        }
+
+        .cta-btn:active {
+            transform: translateY(3px);
+            box-shadow:
+                0 2px 0 #2d7a18,
+                0 4px 8px rgba(0,0,0,0.3),
+                inset 0 2px 4px rgba(255,255,255,0.4);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="modal-container">
+        <div class="sunburst"></div>
+
+        <div class="header">
+            <h1 class="title">NO ADS</h1>
+            <div class="close-btn">✕</div>
+        </div>
+
+        <div class="badge-container">
+            <div class="badge-base"></div>
+            <div class="prohibition-ring"></div>
+            <div class="prohibition-line"></div>
+            <div class="ads-text">ADS</div>
+
+            <!-- StarBurst Effect - Framework benzeri -->
+            <div class="starburst-container">
+                <div class="star star-1"></div>
+                <div class="star star-2 star-gold"></div>
+                <div class="star star-3"></div>
+                <div class="star star-4 star-gold"></div>
+                <div class="star star-5"></div>
+                <div class="star star-6 star-gold"></div>
+            </div>
+        </div>
+
+        <div class="feature-box">
+            <div class="feature-item">
+                <div class="icon-wrapper icon-green">
+                    📺
+                    <span class="icon-overlay">⛔</span>
+                </div>
+                <div class="feature-text">Remove all intrusive ads forever!</div>
+            </div>
+            <div class="feature-item">
+                <div class="icon-wrapper icon-green">
+                    📶
+                    <span class="icon-overlay">✕</span>
+                </div>
+                <div class="feature-text">Play without internet connection!</div>
+            </div>
+            <div class="feature-item">
+                <div class="icon-wrapper icon-purple">
+                    🎬
+                </div>
+                <div class="feature-text">Keep optional ads for rewards!</div>
+            </div>
+        </div>
+
+        <button class="cta-btn">TRY 399.99</button>
+    </div>
+
+</body>
+</html>

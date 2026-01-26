@@ -301,6 +301,21 @@ class ThreeGraphicsWrapper extends ThreeDisplayObjectBase implements IGraphics {
     return this;
   }
 
+  // Arc and path methods
+  arc(cx: number, cy: number, radius: number, startAngle: number, endAngle: number, anticlockwise?: boolean): this {
+    if (!this.pathStarted) {
+      this.ctx.beginPath();
+      this.pathStarted = true;
+    }
+    this.ctx.arc(cx, cy, radius, startAngle, endAngle, anticlockwise);
+    return this;
+  }
+
+  closePath(): this {
+    this.ctx.closePath();
+    return this;
+  }
+
   // Texture support
   texture(texture: ITexture): this {
     // For Three.js/CSS2D Canvas, we can't directly use Pixi textures

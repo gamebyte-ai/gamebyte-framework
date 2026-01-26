@@ -24,7 +24,7 @@ Hybrid mode combines Three.js (3D world) with Pixi.js (2D UI overlay) for the be
 ## Setup
 
 ```typescript
-import { createGame } from 'gamebyte-framework';
+import { createGame } from '@gamebyte/framework';
 import * as THREE from 'three';
 import * as PIXI from 'pixi.js';
 
@@ -63,7 +63,7 @@ const stage2D = renderer2D.getStage();
 ## Example: 3D Game with 2D HUD
 
 ```typescript
-import { BaseScene, UIButton, TopBar, TopBarItemType } from 'gamebyte-framework';
+import { BaseScene, UIButton, TopBar, TopBarItemType } from '@gamebyte/framework';
 import * as THREE from 'three';
 
 class GameScene extends BaseScene {
@@ -167,6 +167,10 @@ class GameScene extends BaseScene {
   title="Hybrid 3D Game with 2D UI"
 />
 
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the 🌙/☀️ button in the navigation bar!
+:::
+
 ## Layer Management
 
 ### Z-Order Control
@@ -190,11 +194,10 @@ The 2D layer has a transparent background by default:
 // 2D background is transparent (shows 3D behind)
 renderer2D.setBackgroundColor(0x000000, 0); // alpha = 0
 
-// For solid 2D areas (menus), use panels:
+// For solid 2D areas (menus), use panels (Pixi v8 API):
 const menuBackground = new PIXI.Graphics();
-menuBackground.beginFill(0x1a1a2e, 0.9);
-menuBackground.drawRect(0, 0, 800, 600);
-menuBackground.endFill();
+menuBackground.rect(0, 0, 800, 600);
+menuBackground.fill({ color: 0x1a1a2e, alpha: 0.9 });
 ```
 
 ## Input Handling

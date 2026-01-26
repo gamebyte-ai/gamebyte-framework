@@ -335,6 +335,19 @@ export { SplashScreen } from './ui/screens/SplashScreen';
 // MainMenuScreen temporarily disabled - needs refactoring to work with UIComponent
 // export { MainMenuScreen } from './ui/screens/MainMenuScreen';
 
+// SimpleScreen Base Class
+export { SimpleScreen } from './ui/screens/SimpleScreen';
+
+// Boilerplate Screens
+export { HubScreen } from './ui/screens/HubScreen';
+export type { HubScreenConfig, HubTabContent } from './ui/screens/HubScreen';
+
+export { GameHUDScreen } from './ui/screens/GameHUDScreen';
+export type { GameHUDScreenConfig, GameHUDConfig } from './ui/screens/GameHUDScreen';
+
+export { ResultScreen } from './ui/screens/ResultScreen';
+export type { ResultScreenConfig, ResultType, RewardItem, ResultAction } from './ui/screens/ResultScreen';
+
 // UI Animation System
 export { GameByteUIAnimationSystem, GameByteUITimeline } from './ui/animations/UIAnimationSystem';
 
@@ -379,6 +392,37 @@ export type { GameStylePanelConfig, GamePanelColorScheme } from './ui/components
 
 export { GameToggle, GameToggleColors } from './ui/components/GameToggle';
 export type { GameToggleConfig, GameToggleColorScheme } from './ui/components/GameToggle';
+
+export { GameSlider, GameSliderColors } from './ui/components/GameSlider';
+export type { GameSliderConfig, GameSliderColorScheme } from './ui/components/GameSlider';
+
+// Font Loader (auto-loads framework font)
+export { loadFrameworkFont, getFrameworkFontFamily, isFontReady } from './ui/utils/FontLoader';
+
+// Screen & Panel Management (Boilerplate)
+export { ScreenManager } from './ui/app/ScreenManager';
+export type { ScreenManagerConfig, TransitionType, TransitionDirection } from './ui/app/ScreenManager';
+
+export { PanelManager } from './ui/app/PanelManager';
+export type { PanelManagerConfig } from './ui/app/PanelManager';
+
+// Panel Components
+export { GamePanel, DEFAULT_PANEL_THEME } from './ui/panels/GamePanel';
+export type { GamePanelConfig, GamePanelTheme } from './ui/panels/GamePanel';
+
+export { GameModalPanel } from './ui/panels/GameModalPanel';
+export type { GameModalPanelConfig } from './ui/panels/GameModalPanel';
+
+export { GameBottomSheet } from './ui/panels/GameBottomSheet';
+export type { GameBottomSheetConfig, BottomSheetHeight } from './ui/panels/GameBottomSheet';
+
+// UI Effects System
+export { ConfettiSystem } from './ui/effects/ConfettiSystem';
+export type { ConfettiConfig, ConfettiShape } from './ui/effects/ConfettiSystem';
+export { ShineEffect } from './ui/effects/ShineEffect';
+export type { ShimmerConfig, SparkleConfig, ShimmerInstance } from './ui/effects/ShineEffect';
+export { CelebrationManager, CelebrationPresets } from './ui/effects/CelebrationManager';
+export type { CelebrationConfig, ICelebrationAudioManager } from './ui/effects/CelebrationManager';
 
 // UI Input System
 export { GameByteUIInputSystem } from './ui/input/UIInputSystem';

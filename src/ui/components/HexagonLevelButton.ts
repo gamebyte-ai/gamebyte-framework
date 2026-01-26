@@ -86,7 +86,7 @@ export class HexagonLevelButton extends EventEmitter {
       showStars: config.showStars ?? true,
       stars: config.stars || 0,
       fontSize: config.fontSize || Math.round((config.size || 80) * 0.35),
-      fontFamily: config.fontFamily || '"Fredoka One", "Arial Black", sans-serif'
+      fontFamily: config.fontFamily || '"Lilita One", "Arial Black", sans-serif'
     };
 
     // Create container and graphics layers

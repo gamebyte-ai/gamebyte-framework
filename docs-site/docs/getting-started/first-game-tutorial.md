@@ -30,6 +30,10 @@ A simple platformer with:
   title="Complete Platformer"
 />
 
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the 🌙/☀️ button in the navigation bar!
+:::
+
 ## Project Setup
 
 ### 1. Create Project Structure
@@ -54,7 +58,7 @@ my-platformer/
 
 ```bash
 npm init -y
-npm install gamebyte-framework pixi.js matter-js
+npm install @gamebyte/framework pixi.js matter-js
 npm install -D typescript vite
 ```
 
@@ -62,7 +66,7 @@ npm install -D typescript vite
 
 ```typescript
 // src/main.ts
-import { createGame, SceneManager } from 'gamebyte-framework';
+import { createGame, SceneManager } from '@gamebyte/framework';
 import { MenuScene } from './scenes/MenuScene';
 import { GameScene } from './scenes/GameScene';
 
@@ -91,7 +95,7 @@ main();
 
 ```typescript
 // src/scenes/MenuScene.ts
-import { BaseScene, UIButton, UIText } from 'gamebyte-framework';
+import { BaseScene, UIButton, UIText } from '@gamebyte/framework';
 
 export class MenuScene extends BaseScene {
     constructor() {
@@ -138,7 +142,7 @@ export class MenuScene extends BaseScene {
 ```typescript
 // src/entities/Player.ts
 import * as PIXI from 'pixi.js';
-import { Physics } from 'gamebyte-framework';
+import { Physics } from '@gamebyte/framework';
 
 export class Player {
     public sprite: PIXI.Sprite;
@@ -195,7 +199,7 @@ export class Player {
 
 ```typescript
 // src/scenes/GameScene.ts
-import { BaseScene, Physics, TopBar, TopBarItemType } from 'gamebyte-framework';
+import { BaseScene, Physics, TopBar, TopBarItemType } from '@gamebyte/framework';
 import { Player } from '../entities/Player';
 
 export class GameScene extends BaseScene {
@@ -240,11 +244,10 @@ export class GameScene extends BaseScene {
         ];
 
         platforms.forEach(p => {
-            // Visual
+            // Visual (Pixi v8 API)
             const graphics = new PIXI.Graphics();
-            graphics.beginFill(0x4a5568);
-            graphics.drawRect(-p.width/2, -p.height/2, p.width, p.height);
-            graphics.endFill();
+            graphics.rect(-p.width/2, -p.height/2, p.width, p.height);
+            graphics.fill(0x4a5568);
             graphics.position.set(p.x, p.y);
             this.container.addChild(graphics);
 
@@ -314,20 +317,24 @@ export class GameScene extends BaseScene {
 ### Screen Shake on Coin Collect
 
 ```typescript
-import { Effects } from 'gamebyte-framework';
+import { gsap } from 'gsap';
 
 private collectCoin(coinBody: Matter.Body): void {
     this.score += 10;
     this.topBar.updateItem('score', this.score, true);
 
-    // Screen shake
-    Effects.shake(this.container, { intensity: 5, duration: 200 });
-
-    // Particle burst
-    Effects.particles(coinBody.position, {
-        count: 10,
-        color: 0xffd700,
-        speed: 3
+    // Screen shake with GSAP
+    const originalX = this.container.x;
+    const originalY = this.container.y;
+    gsap.to(this.container, {
+        x: originalX + 5,
+        duration: 0.05,
+        repeat: 3,
+        yoyo: true,
+        onComplete: () => {
+            this.container.x = originalX;
+            this.container.y = originalY;
+        }
     });
 
     Physics.removeBody(coinBody);
@@ -337,7 +344,7 @@ private collectCoin(coinBody: Matter.Body): void {
 ### Background Music
 
 ```typescript
-import { Music, SFX } from 'gamebyte-framework';
+import { Music, SFX } from '@gamebyte/framework';
 
 async initialize(): Promise<void> {
     // ... existing code

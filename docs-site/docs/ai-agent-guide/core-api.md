@@ -16,7 +16,7 @@ Essential GameByte API (~2000 tokens).
 ## Setup
 
 ```typescript
-import { createGame, BaseScene, UIButton } from 'gamebyte-framework';
+import { createGame, BaseScene, UIButton } from '@gamebyte/framework';
 
 const game = createGame();
 await game.initialize(canvas, '2d'); // '2d' | '3d' | 'hybrid'

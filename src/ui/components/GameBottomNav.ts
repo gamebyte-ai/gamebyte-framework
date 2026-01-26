@@ -2,6 +2,7 @@ import { EventEmitter } from 'eventemitter3';
 import { IContainer, IGraphics, IText } from '../../contracts/Graphics';
 import { graphics } from '../../graphics/GraphicsEngine';
 import { numberToHex, darkenColor, lightenColor } from '../themes/GameStyleUITheme';
+import { getFrameworkFontFamily } from '../utils/FontLoader';
 
 /**
  * Bottom nav item type
@@ -180,7 +181,7 @@ export class GameBottomNav extends EventEmitter {
     // Label
     if (item.label) {
       const label = graphics().createText(item.label, {
-        fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+        fontFamily: '"Lilita One", "Arial Black", sans-serif',
         fontSize: 12,
         fontWeight: 'bold',
         fill: 0xFFFFFF,
@@ -454,7 +455,7 @@ export class GameBottomNav extends EventEmitter {
     container.addChild(g);
 
     const text = graphics().createText(count > 99 ? '99+' : count.toString(), {
-      fontFamily: 'Arial',
+      fontFamily: getFrameworkFontFamily(),
       fontSize: 10,
       fontWeight: 'bold',
       fill: 0xFFFFFF

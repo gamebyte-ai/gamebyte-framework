@@ -18,7 +18,7 @@ import LiveDemo from '@site/src/components/LiveDemo';
 ## Basic Usage
 
 ```typescript
-import { Spatial } from 'gamebyte-framework';
+import { Spatial } from '@gamebyte/framework';
 
 // Set listener position (usually camera)
 Spatial.setListener({
@@ -37,6 +37,10 @@ Spatial.play('explosion', {
   height={400}
   title="Spatial Audio Demo"
 />
+
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the 🌙/☀️ button in the navigation bar!
+:::
 
 ## Configuration
 
@@ -85,7 +89,7 @@ ambience.stop();
 ## 2D Panning (For 2D Games)
 
 ```typescript
-import { Spatial } from 'gamebyte-framework';
+import { Spatial } from '@gamebyte/framework';
 
 // Enable 2D mode (left/right panning only)
 Spatial.setMode('2d');

@@ -18,7 +18,7 @@ GameByte uses Pixi.js v8 for high-performance 2D rendering with WebGL/WebGPU.
 ## Basic Setup
 
 ```typescript
-import { createGame } from 'gamebyte-framework';
+import { createGame } from '@gamebyte/framework';
 import * as PIXI from 'pixi.js';
 
 const game = createGame();
@@ -76,41 +76,37 @@ scene.container.addChild(animated);
   title="Sprite Animation"
 />
 
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the 🌙/☀️ button in the navigation bar!
+:::
+
 ## Graphics API
 
-Draw shapes procedurally:
+Draw shapes procedurally with Pixi v8 API:
 
 ```typescript
 const graphics = new PIXI.Graphics();
 
 // Rectangle
-graphics.beginFill(0x4CAF50);
-graphics.drawRect(0, 0, 100, 50);
-graphics.endFill();
+graphics.rect(0, 0, 100, 50);
+graphics.fill(0x4CAF50);
 
 // Rounded rectangle
-graphics.beginFill(0x2196F3);
-graphics.drawRoundedRect(120, 0, 100, 50, 10);
-graphics.endFill();
+graphics.roundRect(120, 0, 100, 50, 10);
+graphics.fill(0x2196F3);
 
 // Circle
-graphics.beginFill(0xF44336);
-graphics.drawCircle(300, 25, 25);
-graphics.endFill();
+graphics.circle(300, 25, 25);
+graphics.fill(0xF44336);
 
 // Line
-graphics.lineStyle(4, 0xFFFFFF);
 graphics.moveTo(0, 100);
 graphics.lineTo(400, 100);
+graphics.stroke({ width: 4, color: 0xFFFFFF });
 
 // Polygon
-graphics.beginFill(0x9C27B0);
-graphics.drawPolygon([
-    350, 0,
-    400, 50,
-    350, 50
-]);
-graphics.endFill();
+graphics.poly([350, 0, 400, 50, 350, 50]);
+graphics.fill(0x9C27B0);
 
 scene.container.addChild(graphics);
 ```
@@ -121,19 +117,29 @@ scene.container.addChild(graphics);
   title="Graphics Shapes"
 />
 
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the 🌙/☀️ button in the navigation bar!
+:::
+
 ## Text
 
 ### Canvas Text
 
 ```typescript
-const text = new PIXI.Text('Hello World!', {
-    fontFamily: 'Arial',
-    fontSize: 36,
-    fill: 0xffffff,
-    stroke: 0x000000,
-    strokeThickness: 4,
-    dropShadow: true,
-    dropShadowDistance: 2
+// Pixi v8 Text constructor uses object format
+const text = new PIXI.Text({
+    text: 'Hello World!',
+    style: {
+        fontFamily: 'Arial',
+        fontSize: 36,
+        fill: 0xffffff,
+        stroke: { color: 0x000000, width: 4 },
+        dropShadow: {
+            color: 0x000000,
+            blur: 2,
+            distance: 2
+        }
+    }
 });
 
 text.anchor.set(0.5);
@@ -186,6 +192,10 @@ sprite.filters = [
   title="Filter Effects"
 />
 
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the 🌙/☀️ button in the navigation bar!
+:::
+
 ## Containers
 
 Organize display objects:
@@ -211,11 +221,10 @@ container.sortChildren();
 Clip rendering to a shape:
 
 ```typescript
-// Graphics mask
+// Graphics mask (Pixi v8)
 const mask = new PIXI.Graphics();
-mask.beginFill(0xffffff);
-mask.drawCircle(200, 200, 100);
-mask.endFill();
+mask.circle(200, 200, 100);
+mask.fill(0xffffff);
 
 sprite.mask = mask;
 

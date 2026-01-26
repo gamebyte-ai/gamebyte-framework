@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameBottomSheet Demo - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #1a1a2e; }
+        canvas { display: block; margin: 0 auto; }
+    </style>
+</head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
+
+    <script>
+        const { createGame, CelebrationManager } = GameByteFramework;
+
+        const CONFIG = { width: 360, height: 640 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.body.appendChild(canvas);
+
+        const game = createGame();
+        let celebration = null;
+
+        (async () => {
+            await game.initialize(canvas, '2d');
+            const renderer = game.make('renderer');
+            const stage = renderer.getStage();
+
+            // Create celebration manager
+            celebration = new CelebrationManager(stage, CONFIG.width, CONFIG.height);
+
+            // Background
+            const bg = new PIXI.Graphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill(0x1a1a2e);
+            stage.addChild(bg);
+
+            // Title with decoration
+            const titleDecorLeft = new PIXI.Graphics();
+            titleDecorLeft.roundRect(30, 60, 50, 3, 2);
+            titleDecorLeft.fill(0x6366f1);
+            stage.addChild(titleDecorLeft);
+
+            const titleDecorRight = new PIXI.Graphics();
+            titleDecorRight.roundRect(CONFIG.width - 80, 60, 50, 3, 2);
+            titleDecorRight.fill(0x6366f1);
+            stage.addChild(titleDecorRight);
+
+            const pageTitle = new PIXI.Text({
+                text: 'Select an Item',
+                style: {
+                    fontFamily: 'Arial',
+                    fontSize: 24,
+                    fontWeight: 'bold',
+                    fill: 0xffffff,
+                    dropShadow: true,
+                    dropShadowDistance: 2
+                }
+            });
+            pageTitle.anchor.set(0.5);
+            pageTitle.x = CONFIG.width / 2;
+            pageTitle.y = 60;
+            stage.addChild(pageTitle);
+
+            // Show Bottom Sheet buttons
+            const sizes = [
+                { label: 'Half Sheet', height: 'half', icon: '📋' },
+                { label: 'Full Sheet', height: 'full', icon: '📄' },
+                { label: 'Auto Sheet', height: 'auto', icon: '📑' }
+            ];
+
+            sizes.forEach((size, i) => {
+                // Button glow
+                const btnGlow = new PIXI.Graphics();
+                btnGlow.roundRect(35, 115 + i * 70, CONFIG.width - 70, 60, 14);
+                btnGlow.fill({ color: 0x6366f1, alpha: 0.2 });
+                stage.addChild(btnGlow);
+
+                // Button border
+                const btnBorder = new PIXI.Graphics();
+                btnBorder.roundRect(38, 118 + i * 70, CONFIG.width - 76, 57, 13);
+                btnBorder.fill(0x4F51C5);
+                stage.addChild(btnBorder);
+
+                const btn = new PIXI.Graphics();
+                btn.roundRect(40, 120 + i * 70, CONFIG.width - 80, 55, 12);
+                btn.fill(0x6366f1);
+                btn.eventMode = 'static';
+                btn.cursor = 'pointer';
+                stage.addChild(btn);
+
+                const icon = new PIXI.Text({
+                    text: size.icon,
+                    style: { fontSize: 20 }
+                });
+                icon.x = 60;
+                icon.y = 135 + i * 70;
+                stage.addChild(icon);
+
+                const text = new PIXI.Text({
+                    text: size.label,
+                    style: { fontFamily: 'Arial', fontSize: 18, fontWeight: 'bold', fill: 0xffffff }
+                });
+                text.anchor.set(0.5);
+                text.x = CONFIG.width / 2 + 10;
+                text.y = 147 + i * 70;
+                stage.addChild(text);
+
+                btn.on('pointerdown', () => showBottomSheet(size.height));
+            });
+
+            // Bottom Sheet overlay
+            const sheetOverlay = new PIXI.Container();
+            sheetOverlay.visible = false;
+            stage.addChild(sheetOverlay);
+
+            // Dim background
+            const dim = new PIXI.Graphics();
+            dim.rect(0, 0, CONFIG.width, CONFIG.height);
+            dim.fill({ color: 0x000000, alpha: 0.6 });
+            dim.eventMode = 'static';
+            sheetOverlay.addChild(dim);
+
+            // Sheet container
+            const sheet = new PIXI.Container();
+            sheetOverlay.addChild(sheet);
+
+            let sheetHeight = 320;
+            let isDragging = false;
+            let dragStartY = 0;
+            let sheetStartY = 0;
+            let itemContainers = [];
+
+            function getSheetHeight(heightOption) {
+                switch (heightOption) {
+                    case 'half': return CONFIG.height * 0.5;
+                    case 'full': return CONFIG.height * 0.9;
+                    case 'auto': return 400;
+                    default: return 400;
+                }
+            }
+
+            function createSheetContent(height) {
+                // Clear previous content
+                while (sheet.children.length > 0) {
+                    sheet.removeChildAt(0);
+                }
+                itemContainers = [];
+
+                sheetHeight = height;
+                sheet.y = CONFIG.height;
+
+                // Sheet outer glow
+                const sheetGlow = new PIXI.Graphics();
+                sheetGlow.roundRect(-5, -5, CONFIG.width + 10, sheetHeight + 60, 28);
+                sheetGlow.fill({ color: 0x6366f1, alpha: 0.15 });
+                sheet.addChild(sheetGlow);
+
+                // Sheet border
+                const sheetBorder = new PIXI.Graphics();
+                sheetBorder.roundRect(-2, -2, CONFIG.width + 4, sheetHeight + 54, 26);
+                sheetBorder.fill(0x4d4d6c);
+                sheet.addChild(sheetBorder);
+
+                // Sheet background
+                const sheetBg = new PIXI.Graphics();
+                sheetBg.roundRect(0, 0, CONFIG.width, sheetHeight + 50, 24);
+                sheetBg.fill(0x2d2d44);
+                sheet.addChild(sheetBg);
+
+                // Handle with highlight
+                const handleBg = new PIXI.Graphics();
+                handleBg.roundRect(CONFIG.width / 2 - 30, 10, 60, 8, 4);
+                handleBg.fill(0x444455);
+                sheet.addChild(handleBg);
+
+                const handle = new PIXI.Graphics();
+                handle.roundRect(CONFIG.width / 2 - 25, 12, 50, 5, 3);
+                handle.fill(0x666677);
+                sheet.addChild(handle);
+
+                // Drag area
+                const dragArea = new PIXI.Graphics();
+                dragArea.rect(0, 0, CONFIG.width, 50);
+                dragArea.fill({ color: 0xffffff, alpha: 0 });
+                dragArea.eventMode = 'static';
+                dragArea.cursor = 'grab';
+                sheet.addChild(dragArea);
+
+                // Title
+                const title = new PIXI.Text({
+                    text: 'Select Item',
+                    style: {
+                        fontFamily: 'Arial',
+                        fontSize: 22,
+                        fontWeight: 'bold',
+                        fill: 0xffffff,
+                        dropShadow: true,
+                        dropShadowDistance: 1
+                    }
+                });
+                title.anchor.set(0.5, 0);
+                title.x = CONFIG.width / 2;
+                title.y = 35;
+                sheet.addChild(title);
+
+                // Close button with glow
+                const closeBtnGlow = new PIXI.Graphics();
+                closeBtnGlow.circle(CONFIG.width - 30, 45, 20);
+                closeBtnGlow.fill({ color: 0x4b5563, alpha: 0.3 });
+                sheet.addChild(closeBtnGlow);
+
+                const closeBtn = new PIXI.Graphics();
+                closeBtn.circle(CONFIG.width - 30, 45, 16);
+                closeBtn.fill(0x4b5563);
+                closeBtn.eventMode = 'static';
+                closeBtn.cursor = 'pointer';
+                sheet.addChild(closeBtn);
+
+                const closeX = new PIXI.Text({
+                    text: '✕',
+                    style: { fontFamily: 'Arial', fontSize: 14, fill: 0xffffff }
+                });
+                closeX.anchor.set(0.5);
+                closeX.x = CONFIG.width - 30;
+                closeX.y = 45;
+                sheet.addChild(closeX);
+
+                closeBtn.on('pointerdown', hideBottomSheet);
+
+                // Items
+                const items = [
+                    { icon: '⚔️', name: 'Sword', desc: 'Attack +10', type: 'weapon', rarity: 'common' },
+                    { icon: '🛡️', name: 'Shield', desc: 'Defense +15', type: 'armor', rarity: 'common' },
+                    { icon: '🧪', name: 'Potion', desc: 'Health +50', type: 'consumable', rarity: 'common' },
+                    { icon: '🔮', name: 'Magic Orb', desc: 'Magic +20', type: 'accessory', rarity: 'rare' },
+                    { icon: '👟', name: 'Boots', desc: 'Speed +5', type: 'armor', rarity: 'common' }
+                ];
+
+                const visibleItems = height >= 400 ? items : items.slice(0, 3);
+
+                visibleItems.forEach((item, i) => {
+                    // Item container for shimmer
+                    const itemContainer = new PIXI.Container();
+                    itemContainer.x = 0;
+                    itemContainer.y = 80 + i * 60;
+                    sheet.addChild(itemContainer);
+                    itemContainers.push(itemContainer);
+
+                    // Item border (highlight for rare items)
+                    const itemBorder = new PIXI.Graphics();
+                    itemBorder.roundRect(18, 0, CONFIG.width - 36, 52, 11);
+                    itemBorder.fill(item.rarity === 'rare' ? 0x8B5CF6 : 0x4d4d6c);
+                    itemContainer.addChild(itemBorder);
+
+                    // Item background
+                    const itemBg = new PIXI.Graphics();
+                    itemBg.roundRect(20, 2, CONFIG.width - 40, 48, 10);
+                    itemBg.fill(0x3d3d5c);
+                    itemBg.eventMode = 'static';
+                    itemBg.cursor = 'pointer';
+                    itemContainer.addChild(itemBg);
+
+                    // Icon container
+                    const iconContainer = new PIXI.Container();
+                    iconContainer.x = 45;
+                    iconContainer.y = 26;
+                    itemContainer.addChild(iconContainer);
+
+                    const icon = new PIXI.Text({
+                        text: item.icon,
+                        style: { fontSize: 24 }
+                    });
+                    icon.anchor.set(0.5);
+                    iconContainer.addChild(icon);
+
+                    // Add shimmer to rare items
+                    if (item.rarity === 'rare') {
+                        celebration.addShimmer(iconContainer, 'gem');
+                    }
+
+                    const name = new PIXI.Text({
+                        text: item.name,
+                        style: {
+                            fontFamily: 'Arial',
+                            fontSize: 16,
+                            fontWeight: 'bold',
+                            fill: item.rarity === 'rare' ? 0xC4B5FD : 0xffffff
+                        }
+                    });
+                    name.x = 70;
+                    name.y = 10;
+                    itemContainer.addChild(name);
+
+                    const desc = new PIXI.Text({
+                        text: item.desc,
+                        style: { fontFamily: 'Arial', fontSize: 12, fill: 0x888888 }
+                    });
+                    desc.x = 70;
+                    desc.y = 30;
+                    itemContainer.addChild(desc);
+
+                    // Rarity badge for rare items
+                    if (item.rarity === 'rare') {
+                        const badge = new PIXI.Graphics();
+                        badge.roundRect(CONFIG.width - 75, 15, 40, 20, 5);
+                        badge.fill(0x8B5CF6);
+                        itemContainer.addChild(badge);
+
+                        const badgeText = new PIXI.Text({
+                            text: 'Rare',
+                            style: { fontFamily: 'Arial', fontSize: 10, fontWeight: 'bold', fill: 0xffffff }
+                        });
+                        badgeText.anchor.set(0.5);
+                        badgeText.x = CONFIG.width - 55;
+                        badgeText.y = 25;
+                        itemContainer.addChild(badgeText);
+                    }
+
+                    itemBg.on('pointerdown', () => {
+                        // Sparkle effect on item selection
+                        const worldY = sheet.y + itemContainer.y + 26;
+                        celebration.rewardReceived(CONFIG.width / 2, worldY);
+
+                        console.log('Selected:', item.name);
+                        setTimeout(() => hideBottomSheet(), 200);
+                    });
+                });
+
+                // Drag events
+                dragArea.on('pointerdown', (e) => {
+                    isDragging = true;
+                    dragStartY = e.global.y;
+                    sheetStartY = sheet.y;
+                    dragArea.cursor = 'grabbing';
+                });
+
+                stage.eventMode = 'static';
+                stage.on('pointermove', (e) => {
+                    if (!isDragging) return;
+                    const delta = e.global.y - dragStartY;
+                    const newY = Math.max(CONFIG.height - sheetHeight, sheetStartY + delta);
+                    sheet.y = newY;
+                });
+
+                stage.on('pointerup', () => {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    dragArea.cursor = 'grab';
+
+                    // Check if should close (dragged > 100px down)
+                    const dragDistance = sheet.y - (CONFIG.height - sheetHeight);
+                    if (dragDistance > 100) {
+                        hideBottomSheet();
+                    } else {
+                        // Snap back
+                        animate(sheet, { y: CONFIG.height - sheetHeight }, 200);
+                    }
+                });
+            }
+
+            function animate(target, props, duration) {
+                return new Promise(resolve => {
+                    const start = {};
+                    for (const key in props) {
+                        start[key] = target[key];
+                    }
+                    const startTime = Date.now();
+
+                    const tick = () => {
+                        const elapsed = Date.now() - startTime;
+                        const progress = Math.min(elapsed / duration, 1);
+                        const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+
+                        for (const key in props) {
+                            target[key] = start[key] + (props[key] - start[key]) * eased;
+                        }
+
+                        if (progress < 1) {
+                            requestAnimationFrame(tick);
+                        } else {
+                            resolve();
+                        }
+                    };
+                    tick();
+                });
+            }
+
+            async function showBottomSheet(heightOption) {
+                const height = getSheetHeight(heightOption);
+                createSheetContent(height);
+                sheetOverlay.visible = true;
+                dim.alpha = 0;
+
+                await Promise.all([
+                    animate(dim, { alpha: 0.6 }, 200),
+                    animate(sheet, { y: CONFIG.height - height }, 300)
+                ]);
+            }
+
+            async function hideBottomSheet() {
+                await Promise.all([
+                    animate(dim, { alpha: 0 }, 150),
+                    animate(sheet, { y: CONFIG.height }, 250)
+                ]);
+                sheetOverlay.visible = false;
+            }
+
+            dim.on('pointerdown', hideBottomSheet);
+
+            // Instructions
+            const instr = new PIXI.Text({
+                text: 'Drag handle down to close',
+                style: { fontFamily: 'Arial', fontSize: 12, fill: 0x888888 }
+            });
+            instr.anchor.set(0.5);
+            instr.x = CONFIG.width / 2;
+            instr.y = CONFIG.height - 30;
+            stage.addChild(instr);
+
+            // Game loop for celebration updates
+            game.on('update', (deltaTime) => {
+                celebration.update(deltaTime);
+            });
+
+            game.start();
+        })();
+    </script>
+</body>
+</html>

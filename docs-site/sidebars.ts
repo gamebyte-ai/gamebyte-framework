@@ -50,7 +50,20 @@ const sidebars: SidebarsConfig = {
         'ui-components/text',
         'ui-components/topbar',
         'ui-components/progress-bar',
+        'ui-components/navigation',
+        'ui-components/level-selector',
         'ui-components/responsive-layout',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Game Boilerplate',
+      items: [
+        'boilerplate/overview',
+        'boilerplate/screen-manager',
+        'boilerplate/simple-screen',
+        'boilerplate/screens',
+        'boilerplate/panels',
       ],
     },
     {

@@ -16,7 +16,7 @@ Scenes organize your game into distinct states like menus, gameplay, and game ov
 ## Basic Usage
 
 ```typescript
-import { createGame, BaseScene, SceneManager } from 'gamebyte-framework';
+import { createGame, BaseScene, SceneManager } from '@gamebyte/framework';
 
 // Create a scene
 class MenuScene extends BaseScene {
@@ -98,7 +98,7 @@ abstract class BaseScene {
 ## Creating Scenes
 
 ```typescript
-import { BaseScene, UIButton, UIText } from 'gamebyte-framework';
+import { BaseScene, UIButton, UIText } from '@gamebyte/framework';
 
 class GameScene extends BaseScene {
     private player: Player;

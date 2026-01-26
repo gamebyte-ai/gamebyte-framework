@@ -18,7 +18,7 @@ A versatile progress bar for health, loading, energy, and more.
 ## Basic Usage
 
 ```typescript
-import { UIProgressBar } from 'gamebyte-framework';
+import { UIProgressBar } from '@gamebyte/framework';
 
 const healthBar = new UIProgressBar({
     width: 200,
@@ -37,6 +37,10 @@ scene.addChild(healthBar.getContainer());
   height={200}
   title="Progress Bar Variants"
 />
+
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the sun/moon button in the navigation bar!
+:::
 
 ## Configuration Options
 

@@ -16,7 +16,7 @@ GameByte's layout system adapts to any screen size.
 ## Screen Adaptation
 
 ```typescript
-import { ResponsiveLayoutManager } from 'gamebyte-framework';
+import { ResponsiveLayoutManager } from '@gamebyte/framework';
 
 const layout = new ResponsiveLayoutManager({
     designWidth: 800,
@@ -69,7 +69,7 @@ const safeHeight = layout.getSafeHeight();
 Adapt layout for different screen sizes:
 
 ```typescript
-import { Breakpoints } from 'gamebyte-framework';
+import { Breakpoints } from '@gamebyte/framework';
 
 // Define breakpoints
 Breakpoints.define({
@@ -98,7 +98,7 @@ if (Breakpoints.is('phone')) {
 ## UIContainer (Flex Layout)
 
 ```typescript
-import { UIContainer } from 'gamebyte-framework';
+import { UIContainer } from '@gamebyte/framework';
 
 // Horizontal row
 const row = new UIContainer({
@@ -131,7 +131,7 @@ const column = new UIContainer({
 Position elements relative to screen edges:
 
 ```typescript
-import { Anchor } from 'gamebyte-framework';
+import { Anchor } from '@gamebyte/framework';
 
 // Top-right corner
 Anchor.set(pauseButton, {
@@ -157,7 +157,7 @@ Anchor.set(actionBar, {
 ## Grid Layout
 
 ```typescript
-import { UIGrid } from 'gamebyte-framework';
+import { UIGrid } from '@gamebyte/framework';
 
 const inventoryGrid = new UIGrid({
     columns: 4,

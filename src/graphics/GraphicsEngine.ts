@@ -24,6 +24,7 @@ import { RenderingMode } from '../contracts/Renderer';
  */
 export class GraphicsEngine implements IGraphicsEngine {
   private static instance: GraphicsEngine;
+  private static _renderer: unknown;
   private _factory: IGraphicsFactory;
   private _type: 'PIXI' | 'THREE';
 
@@ -96,6 +97,20 @@ export class GraphicsEngine implements IGraphicsEngine {
       throw new Error('GraphicsEngine not initialized.');
     }
     return GraphicsEngine.instance.type;
+  }
+
+  /**
+   * Set the renderer instance (called by GameByte during initialization)
+   */
+  static setRenderer(renderer: unknown): void {
+    GraphicsEngine._renderer = renderer;
+  }
+
+  /**
+   * Get the renderer instance
+   */
+  static getRenderer(): unknown {
+    return GraphicsEngine._renderer;
   }
 
   /**

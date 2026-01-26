@@ -30,7 +30,7 @@ Build your first GameByte game in 5 minutes.
 <body>
     <canvas id="game-canvas"></canvas>
     <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/gamebyte-framework/dist/gamebyte.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@gamebyte/framework/dist/gamebyte.umd.js"></script>
     <script src="game.js"></script>
 </body>
 </html>
@@ -111,6 +111,10 @@ npx http-server -p 8080
   title="Quick Start Demo"
 />
 
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the 🌙/☀️ button in the navigation bar!
+:::
+
 ## What's Happening?
 
 1. **`createGame()`** - Creates the game instance with service container
@@ -122,7 +126,7 @@ npx http-server -p 8080
 ## TypeScript Version
 
 ```typescript
-import { createGame, BaseScene, UIButton, GameByte, SceneManager } from 'gamebyte-framework';
+import { createGame, BaseScene, UIButton, GameByte, SceneManager } from '@gamebyte/framework';
 import * as PIXI from 'pixi.js';
 
 class MenuScene extends BaseScene {

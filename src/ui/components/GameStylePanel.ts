@@ -1,9 +1,11 @@
 import { EventEmitter } from 'eventemitter3';
 import { graphics } from '../../graphics/GraphicsEngine';
 import { IContainer, IGraphics, IText, ISprite } from '../../contracts/Graphics';
+import { GameButtons } from './GameStyleButton';
+import { getFrameworkFontFamily, loadFrameworkFont } from '../utils/FontLoader';
 
 /**
- * Panel color scheme for game-style panels
+ * Panel color scheme for game-style panels (No Ads popup style)
  */
 export interface GamePanelColorScheme {
   // Background
@@ -13,6 +15,8 @@ export interface GamePanelColorScheme {
   borderOuter: number;
   borderInner: number;
   borderWidth: number;
+  // Header
+  headerBg?: number;       // Header background color (darker than fill)
   // Title
   titleColor: number;
   titleStroke: number;
@@ -75,22 +79,26 @@ export class GameStylePanel extends EventEmitter {
 
   private config: Required<GameStylePanelConfig>;
 
-  // Default blue panel color scheme
+  // Default blue panel color scheme (matches No Ads popup)
   private static readonly DEFAULT_SCHEME: GamePanelColorScheme = {
-    fillTop: 0x5BA3E0,
-    fillBottom: 0x3B7BBF,
-    borderOuter: 0x1A4B7A,
-    borderInner: 0x2A6B9A,
-    borderWidth: 8,
+    fillTop: 0x41A7FB,      // Light blue modal background
+    fillBottom: 0x41A7FB,   // Solid color
+    borderOuter: 0x1e3a5f,  // Dark navy border
+    borderInner: 0x1e3a5f,  // Same - single border
+    borderWidth: 4,
+    headerBg: 0x2889F0,     // Darker blue header
     titleColor: 0xFFFFFF,
-    titleStroke: 0x1A4B7A,
+    titleStroke: 0x1a2a3a,
     closeButtonBg: 0xE84C4C,
-    closeButtonBorder: 0x8B2020,
+    closeButtonBorder: 0xA83340,
     closeButtonX: 0xFFFFFF,
   };
 
   constructor(config: GameStylePanelConfig = {}) {
     super();
+
+    // Trigger font loading (non-blocking)
+    loadFrameworkFont();
 
     this.config = {
       width: config.width || 350,
@@ -98,8 +106,8 @@ export class GameStylePanel extends EventEmitter {
       title: config.title || '',
       showCloseButton: config.showCloseButton !== false,
       colorScheme: config.colorScheme || GameStylePanel.DEFAULT_SCHEME,
-      borderRadius: config.borderRadius || 24,
-      borderWidth: config.borderWidth || 8,
+      borderRadius: config.borderRadius || 18,  // Matches No Ads popup
+      borderWidth: config.borderWidth || 4,     // Matches No Ads popup
       titleFontSize: config.titleFontSize || 28,
       padding: config.padding || 20,
       onClose: config.onClose || (() => {}),
@@ -141,255 +149,121 @@ export class GameStylePanel extends EventEmitter {
   }
 
   /**
-   * Render the panel graphics
+   * Render the panel graphics (No Ads popup style)
    */
   private render(): void {
     const { width, height, borderRadius, borderWidth, colorScheme } = this.config;
+    const headerHeight = this.config.title ? 52 : 0;
 
     // Clear previous graphics
     this.shadowGraphics.clear();
     this.borderGraphics.clear();
     this.backgroundGraphics.clear();
 
-    // Draw shadow
-    this.shadowGraphics.roundRect(6, 6, width, height, borderRadius);
-    this.shadowGraphics.fill({ color: 0x000000, alpha: 0.3 });
+    // ==========================================
+    // No Ads popup style rendering
+    // ==========================================
 
-    // Draw outer border
-    this.borderGraphics.roundRect(0, 0, width, height, borderRadius);
+    // 1. Shadow (8px down, 40% alpha)
+    this.shadowGraphics.roundRect(0, 8, width, height, borderRadius);
+    this.shadowGraphics.fill({ color: 0x000000, alpha: 0.4 });
+
+    // 2. Border (single dark navy border)
+    this.borderGraphics.roundRect(
+      -borderWidth,
+      -borderWidth,
+      width + borderWidth * 2,
+      height + borderWidth * 2,
+      borderRadius + borderWidth
+    );
     this.borderGraphics.fill(colorScheme.borderOuter);
 
-    // Draw inner border
-    const innerOffset = borderWidth / 2;
-    this.borderGraphics.roundRect(
-      innerOffset,
-      innerOffset,
-      width - borderWidth,
-      height - borderWidth,
-      borderRadius - innerOffset
-    );
-    this.borderGraphics.fill(colorScheme.borderInner);
+    // 3. Main background (solid color)
+    this.backgroundGraphics.roundRect(0, 0, width, height, borderRadius);
+    this.backgroundGraphics.fill(colorScheme.fillTop);
 
-    // Draw gradient background using canvas
-    const bgOffset = borderWidth;
-    const bgWidth = width - borderWidth * 2;
-    const bgHeight = height - borderWidth * 2;
-    const bgRadius = borderRadius - borderWidth;
-
-    const gradCanvas = document.createElement('canvas');
-    gradCanvas.width = bgWidth;
-    gradCanvas.height = bgHeight;
-    const ctx = gradCanvas.getContext('2d')!;
-
-    // Create vertical gradient
-    const gradient = ctx.createLinearGradient(0, 0, 0, bgHeight);
-    gradient.addColorStop(0, this.hexToRgb(colorScheme.fillTop));
-    gradient.addColorStop(1, this.hexToRgb(colorScheme.fillBottom));
-
-    // Draw rounded rect with gradient
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-    ctx.roundRect(0, 0, bgWidth, bgHeight, bgRadius);
-    ctx.fill();
-
-    // Remove old gradient sprite if exists
-    if (this.gradientSprite) {
-      this.container.removeChild(this.gradientSprite);
+    // 4. Header background (darker blue, only if title exists)
+    if (headerHeight > 0 && colorScheme.headerBg) {
+      // Header with rounded top corners, straight bottom
+      this.backgroundGraphics.roundRect(0, 0, width, headerHeight, borderRadius);
+      this.backgroundGraphics.rect(0, headerHeight - borderRadius, width, borderRadius);
+      this.backgroundGraphics.fill(colorScheme.headerBg);
     }
 
-    // Create new gradient sprite
-    const texture = graphics().createTexture(gradCanvas);
-    this.gradientSprite = graphics().createSprite(texture);
-    this.gradientSprite.x = bgOffset;
-    this.gradientSprite.y = bgOffset;
+    // Remove old gradient sprite if exists (not used in new style)
+    if (this.gradientSprite) {
+      this.container.removeChild(this.gradientSprite);
+      this.gradientSprite = undefined;
+    }
 
-    // Insert gradient sprite BEFORE content container (at index 3, after backgroundGraphics)
-    // Order: shadow(0), border(1), background(2), gradientSprite(3), contentContainer(4)
-    const contentIndex = this.container.getChildIndex(this.contentContainer);
-    this.container.addChild(this.gradientSprite);
-    this.container.setChildIndex(this.gradientSprite, contentIndex);
-
-    // Position content container
-    const titleHeight = this.config.title ? 50 : 0;
-    this.contentContainer.x = bgOffset + this.config.padding;
-    this.contentContainer.y = bgOffset + titleHeight + this.config.padding;
+    // Position content container (below header)
+    this.contentContainer.x = this.config.padding;
+    this.contentContainer.y = headerHeight + this.config.padding;
   }
 
   /**
-   * Create the title text
+   * Create the title text (centered in 52px header, No Ads popup style)
    */
   private createTitle(): void {
-    const { width, colorScheme, titleFontSize, borderWidth } = this.config;
+    const { width, colorScheme, titleFontSize } = this.config;
+    const headerHeight = 52;
 
+    // No Ads popup style text - stroke + dropShadow
     this.titleText = graphics().createText(this.config.title, {
-      fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+      fontFamily: getFrameworkFontFamily(),
       fontSize: titleFontSize,
-      fontWeight: 'bold',
+      fontWeight: '900',
       fill: colorScheme.titleColor,
       stroke: colorScheme.titleStroke,
-      strokeThickness: 4,
+      strokeThickness: Math.max(3, titleFontSize * 0.12),
       align: 'center',
+      dropShadow: true,
+      dropShadowColor: 0x000000,
+      dropShadowBlur: 0,
+      dropShadowDistance: Math.max(2, titleFontSize * 0.06),
+      dropShadowAngle: Math.PI / 2,
+      dropShadowAlpha: 0.5,
     });
 
-    // Center title
+    // Center title in header
     const titleWidth = this.titleText.width || 100;
+    const titleHeight = this.titleText.height || titleFontSize;
     this.titleText.x = (width - titleWidth) / 2;
-    this.titleText.y = borderWidth + 12;
+    this.titleText.y = (headerHeight - titleHeight) / 2;
 
     this.container.addChild(this.titleText);
   }
 
   /**
-   * Create the close button - polished game style
+   * Create the close button - uses new GameStyleButton (positioned in header)
    */
   private createCloseButton(): void {
-    const { width, colorScheme, borderWidth } = this.config;
-    const factory = graphics();
+    const { width } = this.config;
+    const headerHeight = 52;
 
     // Remove existing close button if any
     if (this.closeButton) {
       this.container.removeChild(this.closeButton);
     }
 
-    this.closeButton = factory.createContainer();
+    // Use the new GameButtons.close() for consistent button style
+    const buttonSize = 38;
+    const closeBtn = GameButtons.close(buttonSize);
 
-    // Button size
-    const buttonSize = 44;
-    const buttonRadius = buttonSize / 2;
-    const depthOffset = 3;
-    const borderSize = 3;
+    // Position at top right corner within header
+    const buttonX = width - buttonSize - 8;
+    const buttonY = (headerHeight - buttonSize) / 2;
 
-    // Position at top right, slightly overlapping
-    const buttonX = width - buttonSize / 2 - borderWidth;
-    const buttonY = borderWidth - buttonSize / 4;
+    closeBtn.setPosition(buttonX, buttonY);
 
-    // Layer 1: Depth (darker, extends below)
-    const depth = factory.createGraphics();
-    depth.circle(buttonSize / 2, buttonSize / 2 + depthOffset, buttonRadius);
-    depth.fill({ color: this.darkenColor(colorScheme.closeButtonBorder, 0.3) });
-    this.closeButton.addChild(depth);
-
-    // Layer 2: Border
-    const border = factory.createGraphics();
-    border.circle(buttonSize / 2, buttonSize / 2, buttonRadius);
-    border.fill(colorScheme.closeButtonBorder);
-    this.closeButton.addChild(border);
-
-    // Layer 3: Background with gradient effect (using multiple fills)
-    const bg = factory.createGraphics();
-    const innerRadius = buttonRadius - borderSize;
-
-    // Bottom half (darker)
-    bg.circle(buttonSize / 2, buttonSize / 2, innerRadius);
-    bg.fill(this.darkenColor(colorScheme.closeButtonBg, 0.15));
-
-    // Top half overlay (lighter)
-    bg.ellipse(buttonSize / 2, buttonSize / 2 - innerRadius * 0.15, innerRadius * 0.95, innerRadius * 0.75);
-    bg.fill(colorScheme.closeButtonBg);
-
-    this.closeButton.addChild(bg);
-
-    // Layer 4: Specular highlights
-    const shine = factory.createGraphics();
-    // Rim light at top
-    shine.ellipse(buttonSize / 2, buttonSize / 2 - innerRadius + 4, innerRadius * 0.6, 2);
-    shine.fill({ color: 0xFFFFFF, alpha: 0.4 });
-    // Corner specular
-    shine.ellipse(buttonSize / 2 - innerRadius * 0.3, buttonSize / 2 - innerRadius * 0.4, 4, 2);
-    shine.fill({ color: 0xFFFFFF, alpha: 0.5 });
-    this.closeButton.addChild(shine);
-
-    // Layer 5: X icon
-    const xGraphics = factory.createGraphics();
-    const xSize = 9;
-    const xCenter = buttonSize / 2;
-    const xThickness = 4;
-
-    // Draw X shadow
-    xGraphics.moveTo(xCenter - xSize + 1, xCenter - xSize + 2);
-    xGraphics.lineTo(xCenter + xSize + 1, xCenter + xSize + 2);
-    xGraphics.moveTo(xCenter + xSize + 1, xCenter - xSize + 2);
-    xGraphics.lineTo(xCenter - xSize + 1, xCenter + xSize + 2);
-    xGraphics.stroke({ width: xThickness, color: 0x000000, alpha: 0.3, cap: 'round' });
-
-    // Draw X
-    xGraphics.moveTo(xCenter - xSize, xCenter - xSize);
-    xGraphics.lineTo(xCenter + xSize, xCenter + xSize);
-    xGraphics.moveTo(xCenter + xSize, xCenter - xSize);
-    xGraphics.lineTo(xCenter - xSize, xCenter + xSize);
-    xGraphics.stroke({ width: xThickness, color: colorScheme.closeButtonX, cap: 'round' });
-
-    this.closeButton.addChild(xGraphics);
-
-    this.closeButton.x = buttonX - buttonSize / 2;
-    this.closeButton.y = buttonY;
-
-    // Make interactive with press animation
-    this.closeButton.eventMode = 'static';
-    this.closeButton.cursor = 'pointer';
-
-    // Hit area
-    this.closeButton.hitArea = {
-      contains: (x: number, y: number) => {
-        const dx = x - buttonSize / 2;
-        const dy = y - buttonSize / 2;
-        return dx * dx + dy * dy <= buttonRadius * buttonRadius;
-      }
-    };
-
-    let isPressed = false;
-
-    this.closeButton.on('pointerdown', () => {
-      isPressed = true;
-      // Press animation - scale from center
-      const scale = 0.92;
-      const offset = buttonSize * (1 - scale) / 2;
-      this.closeButton!.scale.x = scale;
-      this.closeButton!.scale.y = scale;
-      this.closeButton!.x += offset;
-      this.closeButton!.y += offset;
+    // Wire up click handler
+    closeBtn.on('click', () => {
+      this.emit('close');
+      this.config.onClose();
     });
 
-    this.closeButton.on('pointerup', () => {
-      if (isPressed) {
-        // Restore scale
-        const scale = 0.92;
-        const offset = buttonSize * (1 - scale) / 2;
-        this.closeButton!.x -= offset;
-        this.closeButton!.y -= offset;
-        this.closeButton!.scale.x = 1;
-        this.closeButton!.scale.y = 1;
-        isPressed = false;
-
-        this.emit('close');
-        this.config.onClose();
-      }
-    });
-
-    this.closeButton.on('pointerupoutside', () => {
-      if (isPressed) {
-        // Restore scale without triggering close
-        const scale = 0.92;
-        const offset = buttonSize * (1 - scale) / 2;
-        this.closeButton!.x -= offset;
-        this.closeButton!.y -= offset;
-        this.closeButton!.scale.x = 1;
-        this.closeButton!.scale.y = 1;
-        isPressed = false;
-      }
-    });
-
+    this.closeButton = closeBtn.getContainer();
     this.container.addChild(this.closeButton);
-  }
-
-  /**
-   * Darken a color by a factor
-   */
-  private darkenColor(color: number, factor: number): number {
-    const r = Math.max(0, Math.floor(((color >> 16) & 0xFF) * (1 - factor)));
-    const g = Math.max(0, Math.floor(((color >> 8) & 0xFF) * (1 - factor)));
-    const b = Math.max(0, Math.floor((color & 0xFF) * (1 - factor)));
-    return (r << 16) | (g << 8) | b;
   }
 
   /**
