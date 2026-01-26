@@ -1,47 +1,8 @@
 import { EventEmitter } from 'eventemitter3';
 import { IContainer, IGraphics, IText, ISprite } from '../../contracts/Graphics';
 import { graphics } from '../../graphics/GraphicsEngine';
-import { GameStyleColors, numberToHex, lightenColor, darkenColor } from '../themes/GameStyleUITheme';
+import { GameStyleColors } from '../themes/GameStyleUITheme';
 import { getFrameworkFontFamily, loadFrameworkFont } from '../utils/FontLoader';
-
-/**
- * Creates a vertical linear gradient texture using canvas
- * @internal
- */
-function createGradientTexture(
-  width: number,
-  height: number,
-  colorTop: number,
-  colorBottom: number,
-  borderRadius: number = 0
-): HTMLCanvasElement {
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext('2d')!;
-
-  // Convert hex numbers to CSS color strings
-  const topHex = '#' + colorTop.toString(16).padStart(6, '0');
-  const bottomHex = '#' + colorBottom.toString(16).padStart(6, '0');
-
-  // Create vertical gradient
-  const gradient = ctx.createLinearGradient(0, 0, 0, height);
-  gradient.addColorStop(0, topHex);
-  gradient.addColorStop(1, bottomHex);
-
-  // Draw rounded rect with gradient
-  if (borderRadius > 0) {
-    ctx.beginPath();
-    ctx.roundRect(0, 0, width, height, borderRadius);
-    ctx.fillStyle = gradient;
-    ctx.fill();
-  } else {
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, width, height);
-  }
-
-  return canvas;
-}
 
 /**
  * Color scheme for game-style buttons
@@ -388,50 +349,18 @@ export class GameStyleButton extends EventEmitter {
     return luminance > 0.6;
   }
 
+  /** Press animation scale factor */
+  private static readonly PRESS_SCALE = 0.96;
+
   /**
-   * Create points for a rectangle with rounded top corners and sharp bottom corners
-   * Used for highlight effect that sits inside the button
+   * Get scale offset for press animation (centers the scale transform)
    */
-  private createRoundedTopRectPoints(
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-    radius: number
-  ): number[] {
-    const points: number[] = [];
-    const r = Math.min(radius, width / 2, height / 2);
-    const segments = 8; // segments per corner arc
-
-    // Start at bottom-left (sharp corner)
-    points.push(x, y + height);
-
-    // Bottom-right (sharp corner)
-    points.push(x + width, y + height);
-
-    // Right side up to top-right arc start
-    points.push(x + width, y + r);
-
-    // Top-right arc (quarter circle)
-    for (let i = 0; i <= segments; i++) {
-      const angle = (Math.PI / 2) * (1 - i / segments); // from 90° to 0°
-      const px = x + width - r + Math.cos(angle) * r;
-      const py = y + r - Math.sin(angle) * r;
-      points.push(px, py);
-    }
-
-    // Top-left arc (quarter circle)
-    for (let i = 0; i <= segments; i++) {
-      const angle = (Math.PI / 2) * i / segments + Math.PI / 2; // from 90° to 180°
-      const px = x + r + Math.cos(angle) * r;
-      const py = y + r - Math.sin(angle) * r;
-      points.push(px, py);
-    }
-
-    // Left side down to bottom-left
-    points.push(x, y + r);
-
-    return points;
+  private getScaleOffset(): { offsetX: number; offsetY: number } {
+    const scale = GameStyleButton.PRESS_SCALE;
+    return {
+      offsetX: this.config.width * (1 - scale) / 2,
+      offsetY: this.config.height * (1 - scale) / 2
+    };
   }
 
   /**
@@ -444,11 +373,9 @@ export class GameStyleButton extends EventEmitter {
     this.render();
 
     // Scale from center - apply scale and offset to compensate
-    const scale = 0.96;
-    const offsetX = this.config.width * (1 - scale) / 2;
-    const offsetY = this.config.height * (1 - scale) / 2;
-    this.container.scale.x = scale;
-    this.container.scale.y = scale;
+    const { offsetX, offsetY } = this.getScaleOffset();
+    this.container.scale.x = GameStyleButton.PRESS_SCALE;
+    this.container.scale.y = GameStyleButton.PRESS_SCALE;
     this.container.x += offsetX;
     this.container.y += offsetY;
 
@@ -459,9 +386,7 @@ export class GameStyleButton extends EventEmitter {
     if (this.config.disabled) return;
 
     // Restore position before scale reset
-    const scale = 0.96;
-    const offsetX = this.config.width * (1 - scale) / 2;
-    const offsetY = this.config.height * (1 - scale) / 2;
+    const { offsetX, offsetY } = this.getScaleOffset();
     this.container.x -= offsetX;
     this.container.y -= offsetY;
     this.container.scale.x = 1;
@@ -478,9 +403,7 @@ export class GameStyleButton extends EventEmitter {
     if (this.config.disabled) return;
 
     // Restore position before scale reset
-    const scale = 0.96;
-    const offsetX = this.config.width * (1 - scale) / 2;
-    const offsetY = this.config.height * (1 - scale) / 2;
+    const { offsetX, offsetY } = this.getScaleOffset();
     this.container.x -= offsetX;
     this.container.y -= offsetY;
     this.container.scale.x = 1;
