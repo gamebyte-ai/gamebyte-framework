@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Dual Joystick Demo - GameByte Framework</title>
+  <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      min-height: 100vh;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      touch-action: none;
+    }
+    #game-container {
+      width: 100vw;
+      height: 100vh;
+    }
+    canvas {
+      display: block;
+    }
+    .info-panel {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 14px;
+      z-index: 1000;
+      display: flex;
+      gap: 30px;
+    }
+    .info-section {
+      text-align: center;
+    }
+    .info-section h4 {
+      margin-bottom: 5px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .info-section.move h4 { color: #4CAF50; }
+    .info-section.aim h4 { color: #FF6B6B; }
+    .info-section.stats h4 { color: #64B5F6; }
+    .info-value {
+      font-family: monospace;
+      font-size: 16px;
+    }
+    .instructions {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 25px;
+      font-size: 14px;
+      text-align: center;
+      z-index: 1000;
+    }
+    .instructions span {
+      color: #4CAF50;
+    }
+    .instructions span.aim {
+      color: #FF6B6B;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container"></div>
+
+  <div class="info-panel">
+    <div class="info-section move">
+      <h4>Movement</h4>
+      <div class="info-value" id="move-dir">idle</div>
+    </div>
+    <div class="info-section aim">
+      <h4>Aim Angle</h4>
+      <div class="info-value" id="aim-angle">-</div>
+    </div>
+    <div class="info-section stats">
+      <h4>Bullets</h4>
+      <div class="info-value" id="bullet-count">0</div>
+    </div>
+  </div>
+
+  <div class="instructions">
+    <span>Left side</span> to move · <span class="aim">Right side</span> to aim & shoot
+  </div>
+
+  <script src="../gamebyte.umd.js"></script>
+  <script>
+    const { VirtualJoystick, GraphicsEngine, RenderingMode } = GameByteFramework;
+
+    // Game state
+    let playerX = window.innerWidth / 2;
+    let playerY = window.innerHeight / 2;
+    const playerSpeed = 4;
+    let playerAngle = 0;
+    let aimAngle = 0;
+    let isAiming = false;
+
+    // Bullets
+    const bullets = [];
+    const bulletSpeed = 12;
+    let bulletCount = 0;
+    let lastShotTime = 0;
+    const shootCooldown = 150; // ms
+
+    // Graphics
+    let playerGraphics = null;
+    let aimLineGraphics = null;
+    let bulletsContainer = null;
+
+    // Joysticks
+    let moveJoystick = null;
+    let aimJoystick = null;
+
+    // Enemies
+    const enemies = [];
+    const enemyCount = 8;
+
+    // Pixi app
+    const app = new PIXI.Application();
+
+    async function init() {
+      await app.init({
+        width: window.innerWidth,
+        height: window.innerHeight,
+        backgroundColor: 0x1a1a2e,
+        antialias: true,
+        resizeTo: window
+      });
+
+      document.getElementById('game-container').appendChild(app.canvas);
+
+      // Initialize graphics engine
+      GraphicsEngine.initialize(RenderingMode.RENDERER_2D);
+
+      // Create game objects
+      createEnemies();
+      createBulletsContainer();
+      createAimLine();
+      createPlayer();
+
+      // Create joysticks
+      createJoysticks();
+
+      // Start game loop
+      app.ticker.add(gameLoop);
+    }
+
+    function createPlayer() {
+      playerGraphics = new PIXI.Graphics();
+      drawPlayer();
+      app.stage.addChild(playerGraphics);
+    }
+
+    function drawPlayer() {
+      playerGraphics.clear();
+
+      // Body (tank-like shape)
+      playerGraphics.roundRect(-20, -15, 40, 30, 5);
+      playerGraphics.fill({ color: 0x4CAF50 });
+
+      // Turret base
+      playerGraphics.circle(0, 0, 12);
+      playerGraphics.fill({ color: 0x388E3C });
+
+      // Gun barrel
+      playerGraphics.roundRect(0, -4, 25, 8, 2);
+      playerGraphics.fill({ color: 0x2E7D32 });
+
+      // Tracks
+      playerGraphics.roundRect(-22, -18, 44, 5, 2);
+      playerGraphics.roundRect(-22, 13, 44, 5, 2);
+      playerGraphics.fill({ color: 0x1B5E20 });
+
+      playerGraphics.x = playerX;
+      playerGraphics.y = playerY;
+    }
+
+    function createAimLine() {
+      aimLineGraphics = new PIXI.Graphics();
+      app.stage.addChild(aimLineGraphics);
+    }
+
+    function drawAimLine() {
+      aimLineGraphics.clear();
+
+      if (isAiming) {
+        const lineLength = 100;
+        const endX = playerX + Math.cos(aimAngle) * lineLength;
+        const endY = playerY + Math.sin(aimAngle) * lineLength;
+
+        // Dotted line effect
+        const segments = 10;
+        for (let i = 0; i < segments; i++) {
+          const t1 = i / segments;
+          const t2 = (i + 0.5) / segments;
+          const x1 = playerX + (endX - playerX) * t1;
+          const y1 = playerY + (endY - playerY) * t1;
+          const x2 = playerX + (endX - playerX) * t2;
+          const y2 = playerY + (endY - playerY) * t2;
+
+          aimLineGraphics.moveTo(x1, y1);
+          aimLineGraphics.lineTo(x2, y2);
+        }
+        aimLineGraphics.stroke({ color: 0xFF6B6B, width: 2, alpha: 0.6 });
+
+        // Crosshair at end
+        aimLineGraphics.circle(endX, endY, 8);
+        aimLineGraphics.stroke({ color: 0xFF6B6B, width: 2, alpha: 0.8 });
+        aimLineGraphics.moveTo(endX - 12, endY);
+        aimLineGraphics.lineTo(endX + 12, endY);
+        aimLineGraphics.moveTo(endX, endY - 12);
+        aimLineGraphics.lineTo(endX, endY + 12);
+        aimLineGraphics.stroke({ color: 0xFF6B6B, width: 2, alpha: 0.8 });
+      }
+    }
+
+    function createBulletsContainer() {
+      bulletsContainer = new PIXI.Container();
+      app.stage.addChild(bulletsContainer);
+    }
+
+    function createEnemies() {
+      for (let i = 0; i < enemyCount; i++) {
+        spawnEnemy();
+      }
+    }
+
+    function spawnEnemy() {
+      const padding = 100;
+      const enemy = {
+        x: padding + Math.random() * (window.innerWidth - padding * 2),
+        y: padding + Math.random() * (window.innerHeight - padding * 2),
+        radius: 20,
+        health: 100,
+        graphics: new PIXI.Graphics()
+      };
+
+      // Avoid spawning too close to player
+      const dx = enemy.x - playerX;
+      const dy = enemy.y - playerY;
+      if (Math.sqrt(dx * dx + dy * dy) < 150) {
+        enemy.x += 200;
+      }
+
+      drawEnemy(enemy);
+      app.stage.addChild(enemy.graphics);
+      enemies.push(enemy);
+    }
+
+    function drawEnemy(enemy) {
+      enemy.graphics.clear();
+
+      // Body
+      enemy.graphics.circle(0, 0, enemy.radius);
+      enemy.graphics.fill({ color: 0xE53935 });
+
+      // Inner
+      enemy.graphics.circle(0, 0, enemy.radius - 5);
+      enemy.graphics.fill({ color: 0xEF5350 });
+
+      // Eyes
+      enemy.graphics.circle(-6, -5, 4);
+      enemy.graphics.circle(6, -5, 4);
+      enemy.graphics.fill({ color: 0xFFFFFF });
+
+      enemy.graphics.circle(-6, -5, 2);
+      enemy.graphics.circle(6, -5, 2);
+      enemy.graphics.fill({ color: 0x1a1a2e });
+
+      // Health bar background
+      enemy.graphics.roundRect(-15, -enemy.radius - 10, 30, 5, 2);
+      enemy.graphics.fill({ color: 0x333333 });
+
+      // Health bar
+      const healthWidth = (enemy.health / 100) * 28;
+      enemy.graphics.roundRect(-14, -enemy.radius - 9, healthWidth, 3, 1);
+      enemy.graphics.fill({ color: enemy.health > 30 ? 0x4CAF50 : 0xFF5722 });
+
+      enemy.graphics.x = enemy.x;
+      enemy.graphics.y = enemy.y;
+    }
+
+    function createJoysticks() {
+      // Movement joystick (left side)
+      moveJoystick = new VirtualJoystick({
+        mode: 'dynamic',
+        activationZone: { x: 0, y: 0, width: 0.5, height: 1 },
+        size: 120,
+        deadZone: 0.1,
+        hideWhenIdle: true,
+        style: {
+          baseColor: 0x000000,
+          baseAlpha: 0.5,
+          knobColor: 0x4CAF50,
+          knobAlpha: 0.9,
+          borderColor: 0x4CAF50,
+          borderWidth: 3,
+          borderAlpha: 0.7
+        }
+      });
+
+      // Aim joystick (right side)
+      aimJoystick = new VirtualJoystick({
+        mode: 'dynamic',
+        activationZone: { x: 0.5, y: 0, width: 0.5, height: 1 },
+        size: 120,
+        deadZone: 0.15,
+        hideWhenIdle: true,
+        style: {
+          baseColor: 0x000000,
+          baseAlpha: 0.5,
+          knobColor: 0xFF6B6B,
+          knobAlpha: 0.9,
+          borderColor: 0xFF6B6B,
+          borderWidth: 3,
+          borderAlpha: 0.7
+        }
+      });
+
+      // Add to stage
+      app.stage.addChild(moveJoystick.getContainer());
+      app.stage.addChild(aimJoystick.getContainer());
+
+      // Event listeners
+      aimJoystick.on('start', () => {
+        isAiming = true;
+      });
+
+      aimJoystick.on('end', () => {
+        isAiming = false;
+      });
+    }
+
+    function shoot() {
+      const now = Date.now();
+      if (now - lastShotTime < shootCooldown) return;
+      lastShotTime = now;
+
+      const bullet = {
+        x: playerX + Math.cos(aimAngle) * 30,
+        y: playerY + Math.sin(aimAngle) * 30,
+        vx: Math.cos(aimAngle) * bulletSpeed,
+        vy: Math.sin(aimAngle) * bulletSpeed,
+        graphics: new PIXI.Graphics()
+      };
+
+      // Draw bullet
+      bullet.graphics.circle(0, 0, 5);
+      bullet.graphics.fill({ color: 0xFFEB3B });
+      bullet.graphics.circle(0, 0, 3);
+      bullet.graphics.fill({ color: 0xFFF176 });
+
+      bullet.graphics.x = bullet.x;
+      bullet.graphics.y = bullet.y;
+
+      bulletsContainer.addChild(bullet.graphics);
+      bullets.push(bullet);
+      bulletCount++;
+      document.getElementById('bullet-count').textContent = bulletCount;
+    }
+
+    function updateBullets() {
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        const bullet = bullets[i];
+
+        // Move bullet
+        bullet.x += bullet.vx;
+        bullet.y += bullet.vy;
+        bullet.graphics.x = bullet.x;
+        bullet.graphics.y = bullet.y;
+
+        // Check bounds
+        if (bullet.x < -20 || bullet.x > window.innerWidth + 20 ||
+            bullet.y < -20 || bullet.y > window.innerHeight + 20) {
+          bulletsContainer.removeChild(bullet.graphics);
+          bullets.splice(i, 1);
+          continue;
+        }
+
+        // Check enemy collision
+        for (let j = enemies.length - 1; j >= 0; j--) {
+          const enemy = enemies[j];
+          const dx = bullet.x - enemy.x;
+          const dy = bullet.y - enemy.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < enemy.radius + 5) {
+            // Hit enemy
+            enemy.health -= 34;
+            bulletsContainer.removeChild(bullet.graphics);
+            bullets.splice(i, 1);
+
+            if (enemy.health <= 0) {
+              // Enemy destroyed
+              app.stage.removeChild(enemy.graphics);
+              enemies.splice(j, 1);
+
+              // Spawn new enemy after delay
+              setTimeout(spawnEnemy, 1500);
+            } else {
+              drawEnemy(enemy);
+            }
+            break;
+          }
+        }
+      }
+    }
+
+    function gameLoop(ticker) {
+      // Get joystick data
+      const moveData = moveJoystick.getData();
+      const aimData = aimJoystick.getData();
+
+      // Movement
+      if (moveData.magnitude > 0) {
+        playerX += moveData.vector.x * playerSpeed;
+        playerY += moveData.vector.y * playerSpeed;
+
+        // Keep in bounds
+        playerX = Math.max(30, Math.min(window.innerWidth - 30, playerX));
+        playerY = Math.max(30, Math.min(window.innerHeight - 30, playerY));
+
+        // Rotate body towards movement
+        playerAngle = Math.atan2(moveData.vector.y, moveData.vector.x);
+      }
+
+      // Aiming
+      if (aimData.magnitude > 0.1) {
+        aimAngle = Math.atan2(aimData.vector.y, aimData.vector.x);
+
+        // Auto-shoot when aiming with enough force
+        if (aimData.magnitude > 0.7) {
+          shoot();
+        }
+      }
+
+      // Update player position and rotation
+      playerGraphics.x = playerX;
+      playerGraphics.y = playerY;
+      playerGraphics.rotation = aimAngle; // Turret always points at aim
+
+      // Update bullets
+      updateBullets();
+
+      // Update aim line
+      drawAimLine();
+
+      // Update UI
+      document.getElementById('move-dir').textContent = moveData.direction;
+      document.getElementById('aim-angle').textContent = isAiming ?
+        Math.round(aimAngle * 180 / Math.PI) + '°' : '-';
+    }
+
+    // Handle resize
+    window.addEventListener('resize', () => {
+      // Joysticks auto-resize with activation zones
+    });
+
+    // Start
+    init();
+  </script>
+</body>
+</html>

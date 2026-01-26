@@ -440,6 +440,16 @@ export { GameByteVirtualControlsManager } from './input/VirtualControlsManager';
 export { GameByteInputMappingManager } from './input/InputMappingManager';
 export { GameByteInputPerformanceManager } from './input/InputPerformanceManager';
 
+// Virtual Joystick Component
+export { VirtualJoystick } from './ui/components/VirtualJoystick';
+export type {
+  VirtualJoystickConfig,
+  JoystickMoveData,
+  JoystickDirection,
+  JoystickStyle,
+  ActivationZone
+} from './ui/components/VirtualJoystick';
+
 // Game-Specific Input Handlers
 export { GameBytePlatformerInputHandler } from './input/handlers/PlatformerInputHandler';
 export { GameByteCameraInputHandler } from './input/handlers/CameraInputHandler';

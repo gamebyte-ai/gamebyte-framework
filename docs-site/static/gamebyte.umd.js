@@ -504,6 +504,147 @@
 	})(exports.RenderingMode || (exports.RenderingMode = {}));
 
 	/**
+	 * Font Loader Utility
+	 *
+	 * Automatically loads and manages fonts for the GameByte framework.
+	 * Ensures fonts are available before UI components render.
+	 */
+	// Default framework font configuration
+	// Lilita One - Playful, game-style display font
+	const FRAMEWORK_FONT = {
+	    family: 'Lilita One',
+	    googleFontsUrl: 'https://fonts.googleapis.com/css2?family=Lilita+One&display=swap'
+	};
+	let fontLoadPromise = null;
+	let fontLoaded = false;
+	/**
+	 * Inject Google Fonts stylesheet if not already present
+	 * Returns a promise that resolves when the stylesheet is loaded
+	 */
+	function injectFontStylesheet() {
+	    return new Promise((resolve) => {
+	        // Check if already injected
+	        const existingLink = document.querySelector(`link[href*="Lilita+One"]`);
+	        if (existingLink) {
+	            // Already exists, check if loaded
+	            if (existingLink.sheet) {
+	                resolve();
+	            }
+	            else {
+	                existingLink.addEventListener('load', () => resolve());
+	                existingLink.addEventListener('error', () => resolve()); // Resolve anyway on error
+	            }
+	            return;
+	        }
+	        // Add preconnect for faster loading
+	        const preconnect1 = document.createElement('link');
+	        preconnect1.rel = 'preconnect';
+	        preconnect1.href = 'https://fonts.googleapis.com';
+	        document.head.appendChild(preconnect1);
+	        const preconnect2 = document.createElement('link');
+	        preconnect2.rel = 'preconnect';
+	        preconnect2.href = 'https://fonts.gstatic.com';
+	        preconnect2.crossOrigin = 'anonymous';
+	        document.head.appendChild(preconnect2);
+	        // Add font stylesheet
+	        const link = document.createElement('link');
+	        link.rel = 'stylesheet';
+	        link.href = FRAMEWORK_FONT.googleFontsUrl;
+	        link.addEventListener('load', () => resolve());
+	        link.addEventListener('error', () => resolve()); // Resolve anyway on error
+	        document.head.appendChild(link);
+	    });
+	}
+	/**
+	 * Check if the framework font is loaded
+	 */
+	function isFontLoaded() {
+	    if (typeof document === 'undefined' || !document.fonts) {
+	        return true; // SSR or no Font API support
+	    }
+	    return document.fonts.check(`400 24px ${FRAMEWORK_FONT.family}`);
+	}
+	/**
+	 * Load the framework font
+	 * Returns a promise that resolves when the font is ready
+	 */
+	async function loadFrameworkFont() {
+	    // Return cached promise if already loading
+	    if (fontLoadPromise) {
+	        return fontLoadPromise;
+	    }
+	    // Already loaded
+	    if (fontLoaded) {
+	        return Promise.resolve();
+	    }
+	    fontLoadPromise = (async () => {
+	        // Skip if no document (SSR)
+	        if (typeof document === 'undefined') {
+	            fontLoaded = true;
+	            return;
+	        }
+	        // Check if already loaded
+	        if (isFontLoaded()) {
+	            fontLoaded = true;
+	            return;
+	        }
+	        // Inject stylesheet and wait for it to load
+	        await injectFontStylesheet();
+	        // Create hidden element to trigger font load
+	        const preload = document.createElement('div');
+	        preload.style.cssText = `
+      font-family: '${FRAMEWORK_FONT.family}', sans-serif;
+      font-weight: 400;
+      position: absolute;
+      left: -9999px;
+      visibility: hidden;
+      pointer-events: none;
+    `;
+	        preload.textContent = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+	        document.body.appendChild(preload);
+	        // Poll until font is loaded or timeout
+	        await new Promise((resolve) => {
+	            let attempts = 0;
+	            const maxAttempts = 100; // 5 seconds max
+	            const checkFont = () => {
+	                attempts++;
+	                if (isFontLoaded()) {
+	                    preload.remove();
+	                    fontLoaded = true;
+	                    resolve();
+	                    return;
+	                }
+	                if (attempts >= maxAttempts) {
+	                    // Timeout - resolve anyway to prevent blocking
+	                    console.warn('GameByte: Font loading timeout, using fallback');
+	                    preload.remove();
+	                    fontLoaded = true;
+	                    resolve();
+	                    return;
+	                }
+	                setTimeout(checkFont, 50);
+	            };
+	            // Start checking immediately since stylesheet is already loaded
+	            checkFont();
+	        });
+	    })();
+	    return fontLoadPromise;
+	}
+	/**
+	 * Get the framework font family string for use in styles
+	 * Includes emoji font fallbacks for cross-platform emoji support
+	 */
+	function getFrameworkFontFamily() {
+	    return `"${FRAMEWORK_FONT.family}", "Fredoka", "Arial Black", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji"`;
+	}
+	/**
+	 * Check if font is ready (non-blocking)
+	 */
+	function isFontReady() {
+	    return fontLoaded;
+	}
+
+	/**
 	 * Pixi.js Graphics Factory Implementation
 	 *
 	 * Provides Pixi.js-based implementations of framework graphics primitives.
@@ -547,7 +688,12 @@
 	    }
 	    createText(text, style) {
 	        // Pixi v8: new PIXI.Text({ text, style })
-	        const pixiStyle = style ? PixiGraphicsFactory.convertToPixiV8Style(style) : {};
+	        // Apply framework default font if not specified
+	        const styleWithDefaults = {
+	            fontFamily: getFrameworkFontFamily(),
+	            ...style
+	        };
+	        const pixiStyle = PixiGraphicsFactory.convertToPixiV8Style(styleWithDefaults);
 	        return new PIXI__namespace.Text({ text, style: pixiStyle });
 	    }
 	    createSprite(texture) {
@@ -572,6 +718,7 @@
 	    /**
 	     * Convert framework text style to Pixi v8 style object format
 	     * Pixi v8 uses object format for stroke and dropShadow in Text constructor
+	     * Supports both legacy format and modern Pixi v8 format
 	     */
 	    static convertToPixiV8Style(style) {
 	        const config = {
@@ -584,22 +731,51 @@
 	            wordWrapWidth: style.wordWrapWidth,
 	            lineHeight: style.lineHeight,
 	        };
+	        // Copy fontStyle if present
+	        if (style.fontStyle) {
+	            config.fontStyle = style.fontStyle;
+	        }
 	        // Pixi v8 stroke format: { color: number, width: number }
-	        if (style.stroke !== undefined || style.strokeThickness !== undefined) {
+	        // Handle both legacy (stroke as color number) and modern (stroke as object) formats
+	        if (style.stroke !== undefined) {
+	            const strokeValue = style.stroke;
+	            if (typeof strokeValue === 'object' && strokeValue !== null && 'color' in strokeValue) {
+	                // Modern Pixi v8 format: { color, width }
+	                config.stroke = strokeValue;
+	            }
+	            else if (typeof strokeValue === 'number' || typeof strokeValue === 'string') {
+	                // Legacy format: stroke is a color number/string
+	                config.stroke = {
+	                    color: strokeValue,
+	                    width: style.strokeThickness ?? 0
+	                };
+	            }
+	        }
+	        else if (style.strokeThickness !== undefined && style.strokeThickness > 0) {
+	            // Legacy format with only strokeThickness
 	            config.stroke = {
-	                color: style.stroke ?? 0x000000,
-	                width: style.strokeThickness ?? 0
+	                color: 0x000000,
+	                width: style.strokeThickness
 	            };
 	        }
 	        // Pixi v8 dropShadow format: { alpha, angle, blur, color, distance }
-	        if (style.dropShadow) {
-	            config.dropShadow = {
-	                alpha: style.dropShadowAlpha ?? 0.8,
-	                angle: style.dropShadowAngle ?? 0.523599, // ~30 degrees
-	                blur: style.dropShadowBlur ?? 0,
-	                color: style.dropShadowColor ?? 0x000000,
-	                distance: style.dropShadowDistance ?? 5
-	            };
+	        // Handle both legacy (dropShadow as boolean) and modern (dropShadow as object) formats
+	        if (style.dropShadow !== undefined) {
+	            const dropShadowValue = style.dropShadow;
+	            if (typeof dropShadowValue === 'object' && dropShadowValue !== null) {
+	                // Modern Pixi v8 format: { alpha, angle, blur, color, distance }
+	                config.dropShadow = dropShadowValue;
+	            }
+	            else if (dropShadowValue === true) {
+	                // Legacy format: dropShadow is boolean, use individual properties
+	                config.dropShadow = {
+	                    alpha: style.dropShadowAlpha ?? 0.8,
+	                    angle: style.dropShadowAngle ?? 0.523599, // ~30 degrees
+	                    blur: style.dropShadowBlur ?? 0,
+	                    color: style.dropShadowColor ?? 0x000000,
+	                    distance: style.dropShadowDistance ?? 5
+	                };
+	            }
 	        }
 	        return config;
 	    }
@@ -18230,7 +18406,7 @@
 	        // Text properties
 	        this.text = '';
 	        this.fontSize = 16;
-	        this.fontFamily = 'Arial, sans-serif';
+	        this.fontFamily = getFrameworkFontFamily();
 	        this.fontWeight = 'normal';
 	        this.color = { r: 0, g: 0, b: 0, a: 1 };
 	        this.textAlign = 'left';
@@ -18893,7 +19069,7 @@
 	        this.showText = false;
 	        this.textColor = { r: 255, g: 255, b: 255, a: 1 };
 	        this.fontSize = 14;
-	        this.fontFamily = 'Arial, sans-serif';
+	        this.fontFamily = getFrameworkFontFamily();
 	        this.textFormat = this.defaultTextFormat;
 	        // Animation properties
 	        this.animated = true;
@@ -37388,7 +37564,7 @@
 	            width: config.width || 180,
 	            height: config.height || 60,
 	            fontSize: config.fontSize || 24,
-	            fontFamily: config.fontFamily || 'Arial Black, Arial, sans-serif',
+	            fontFamily: config.fontFamily || getFrameworkFontFamily(),
 	            fontWeight: config.fontWeight || 'bold',
 	            textColor: config.textColor !== undefined ? config.textColor : 0xFFFFFF,
 	            backgroundColor: config.backgroundColor !== undefined ? config.backgroundColor : 0x007AFF,
@@ -37785,7 +37961,7 @@
 	            padding: 15,
 	            itemSpacing: 20,
 	            borderRadius: 0,
-	            fontFamily: 'Arial',
+	            fontFamily: getFrameworkFontFamily(),
 	            fontSize: 24,
 	            ...config.theme
 	        };
@@ -39891,7 +40067,7 @@
 	            this.container.addChild(this.uiContainer);
 	            if (this.sceneConfig.showScoreUI) {
 	                this.scoreText = graphics().createText('Score: 0', {
-	                    fontFamily: 'Arial',
+	                    fontFamily: getFrameworkFontFamily(),
 	                    fontSize: 24,
 	                    fill: 0xFFFFFF
 	                });
@@ -39901,7 +40077,7 @@
 	            }
 	            if (this.sceneConfig.showTierUI) {
 	                this.tierText = graphics().createText('Best Tier: 0', {
-	                    fontFamily: 'Arial',
+	                    fontFamily: getFrameworkFontFamily(),
 	                    fontSize: 18,
 	                    fill: 0xCCCCCC
 	                });
@@ -40052,7 +40228,7 @@
 	/**
 	 * Default style configuration
 	 */
-	const DEFAULT_STYLE = {
+	const DEFAULT_STYLE$1 = {
 	    // Button Sizes - Adjusted for better balance
 	    buttonSize: 130,
 	    activeButtonSize: 260,
@@ -40202,15 +40378,15 @@
 	        if (options.padding !== undefined)
 	            legacyOverrides.padding = options.padding;
 	        return {
-	            ...DEFAULT_STYLE,
+	            ...DEFAULT_STYLE$1,
 	            ...legacyOverrides,
 	            ...style,
 	            buttonGradient: {
-	                ...DEFAULT_STYLE.buttonGradient,
+	                ...DEFAULT_STYLE$1.buttonGradient,
 	                ...style.buttonGradient
 	            },
 	            shineGradient: {
-	                ...DEFAULT_STYLE.shineGradient,
+	                ...DEFAULT_STYLE$1.shineGradient,
 	                ...style.shineGradient
 	            }
 	        };
@@ -41468,7 +41644,7 @@
 	        container.addChild(icon);
 	        // Value text
 	        const valueText = graphics().createText(this.formatValue(res.value), {
-	            fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+	            fontFamily: '"Lilita One", "Arial Black", sans-serif',
 	            fontSize: 18,
 	            fontWeight: 'bold',
 	            fill: 0xFFFFFF,
@@ -41488,7 +41664,7 @@
 	            labelBg.fill({ color: labelBgColor });
 	            container.addChild(labelBg);
 	            const labelText = graphics().createText(res.label, {
-	                fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+	                fontFamily: '"Lilita One", "Arial Black", sans-serif',
 	                fontSize: 12,
 	                fontWeight: 'bold',
 	                fill: 0xFFFFFF
@@ -41629,7 +41805,7 @@
 	        container.addChild(bg);
 	        // Plus sign
 	        const plus = graphics().createText('+', {
-	            fontFamily: '"Arial Black", sans-serif',
+	            fontFamily: getFrameworkFontFamily(),
 	            fontSize: 20,
 	            fontWeight: 'bold',
 	            fill: 0xFFFFFF
@@ -41789,7 +41965,7 @@
 	        };
 	        // Bold typography for games
 	        this.typography = {
-	            fontFamily: '"Fredoka One", "Bubblegum Sans", "Comic Sans MS", "Arial Black", sans-serif',
+	            fontFamily: '"Lilita One", "Arial Black", sans-serif',
 	            sizes: {
 	                small: 16,
 	                medium: 22,
@@ -41834,61 +42010,67 @@
 	 * Game style color utilities
 	 */
 	const GameStyleColors = {
-	    // Pre-defined button color schemes - Mobile game style (Candy Crush, Brawl Stars)
+	    // Pre-defined button color schemes - No Ads popup style (solid color, black border, jellybean)
 	    YELLOW_BUTTON: {
-	        gradientTop: 0xFFD966, // Bright golden yellow (top section)
-	        gradientBottom: 0xE6A800, // Darker orange-gold (bottom section)
-	        border: 0xB37700, // Dark brown-orange border
-	        shadow: 0x805500, // Deep brown shadow
-	        highlight: 0xFFF0B3, // Light cream highlight
+	        gradientTop: 0xFFD966, // Golden yellow (solid)
+	        gradientBottom: 0xFFD966, // Same - solid color
+	        border: 0x000000, // Black outer border
+	        shadow: 0xCC9900, // Darker yellow shadow
+	        highlight: 0xFFFFFF, // White highlight (25% alpha applied in code)
 	        text: 0xFFFFFF,
-	        textStroke: 0x805500
+	        textStroke: 0x805500,
+	        jellybean: 0xFFFBE6 // Light cream jellybean
 	    },
 	    GREEN_BUTTON: {
-	        gradientTop: 0x6DD66D, // Bright lime green
-	        gradientBottom: 0x3DA63D, // Forest green
-	        border: 0x267326, // Dark green border
-	        shadow: 0x1A4D1A, // Deep forest shadow
-	        highlight: 0xB3FFB3,
+	        gradientTop: 0x2DE45A, // Main green (No Ads popup style)
+	        gradientBottom: 0x2DE45A, // Same - solid color
+	        border: 0x000000, // Black outer border
+	        shadow: 0x28A165, // Green shadow/depth
+	        highlight: 0xFFFFFF, // White highlight (25% alpha applied in code)
 	        text: 0xFFFFFF,
-	        textStroke: 0x1A4D1A
+	        textStroke: 0x1A4D1A,
+	        jellybean: 0xE6FCE9 // Jellybean gloss color
 	    },
 	    BLUE_BUTTON: {
-	        gradientTop: 0x5DADEC, // Sky blue
-	        gradientBottom: 0x2E86C9, // Ocean blue
-	        border: 0x1A5C8F, // Dark navy border
-	        shadow: 0x0D3A5C, // Deep navy shadow
-	        highlight: 0xB3DBFF,
+	        gradientTop: 0x4DA6FF, // Bright blue (solid)
+	        gradientBottom: 0x4DA6FF, // Same - solid color
+	        border: 0x000000, // Black outer border
+	        shadow: 0x2E7BC9, // Darker blue shadow
+	        highlight: 0xFFFFFF, // White highlight (25% alpha applied in code)
 	        text: 0xFFFFFF,
-	        textStroke: 0x0D3A5C
+	        textStroke: 0x1A4B7A,
+	        jellybean: 0xE6F3FF // Light blue jellybean
 	    },
 	    RED_BUTTON: {
-	        gradientTop: 0xE85C5C, // Coral red
-	        gradientBottom: 0xC92A2A, // Deep red
-	        border: 0x8F1A1A, // Dark crimson border
-	        shadow: 0x5C0D0D, // Deep crimson shadow
-	        highlight: 0xFFB3B3,
+	        gradientTop: 0xE85C5C, // Coral red (solid)
+	        gradientBottom: 0xE85C5C, // Same - solid color
+	        border: 0x000000, // Black outer border
+	        shadow: 0xB34040, // Darker red shadow
+	        highlight: 0xFFFFFF, // White highlight (25% alpha applied in code)
 	        text: 0xFFFFFF,
-	        textStroke: 0x5C0D0D
+	        textStroke: 0x5C0D0D,
+	        jellybean: 0xFFE6E6 // Light pink jellybean
 	    },
 	    PURPLE_BUTTON: {
-	        gradientTop: 0xAD6DD6, // Lavender
-	        gradientBottom: 0x8338B5, // Royal purple
-	        border: 0x5C2680, // Dark purple border
-	        shadow: 0x3D1A54, // Deep purple shadow
-	        highlight: 0xDDB3FF,
+	        gradientTop: 0xAD6DD6, // Lavender (solid)
+	        gradientBottom: 0xAD6DD6, // Same - solid color
+	        border: 0x000000, // Black outer border
+	        shadow: 0x8050B0, // Darker purple shadow
+	        highlight: 0xFFFFFF, // White highlight (25% alpha applied in code)
 	        text: 0xFFFFFF,
-	        textStroke: 0x3D1A54
+	        textStroke: 0x3D1A54,
+	        jellybean: 0xF3E6FF // Light lavender jellybean
 	    },
-	    // Cream/Beige Play Button (Candy Crush style)
+	    // Cream/Beige Play Button (Candy Crush style - keeps gradient for variety)
 	    CREAM_BUTTON: {
 	        gradientTop: 0xFFFBF0,
 	        gradientBottom: 0xF5E6C8,
-	        border: 0xD4A857,
-	        shadow: 0x8B6914,
+	        border: 0x000000, // Black outer border
+	        shadow: 0xD4A857,
 	        highlight: 0xFFFFFF,
 	        text: 0x8B6914,
-	        textStroke: 0xD4A857
+	        textStroke: 0xD4A857,
+	        jellybean: 0xFFFFFF // White jellybean
 	    },
 	    // Hexagon level colors
 	    HEXAGON_BLUE: {
@@ -41945,17 +42127,18 @@
 	        textStroke: 0x2D3748,
 	        outerBorder: 0x4A5568
 	    },
-	    // Panel color schemes
+	    // Panel color schemes (matches No Ads popup style)
 	    PANEL_BLUE: {
-	        fillTop: 0x5BA3E0,
-	        fillBottom: 0x3B7BBF,
-	        borderOuter: 0x1A4B7A,
-	        borderInner: 0x2A6B9A,
-	        borderWidth: 8,
+	        fillTop: 0x41A7FB, // Light blue (same as No Ads modal bg)
+	        fillBottom: 0x41A7FB, // Solid color, no gradient
+	        borderOuter: 0x1e3a5f, // Dark navy border
+	        borderInner: 0x1e3a5f, // Same - single border layer
+	        borderWidth: 4, // Thinner border like No Ads
 	        titleColor: 0xFFFFFF,
-	        titleStroke: 0x1A4B7A,
+	        titleStroke: 0x1a2a3a, // Darker stroke for title
+	        headerBg: 0x2889F0, // Darker blue header
 	        closeButtonBg: 0xE84C4C,
-	        closeButtonBorder: 0x8B2020,
+	        closeButtonBorder: 0xA83340,
 	        closeButtonX: 0xFFFFFF
 	    },
 	    PANEL_PURPLE: {
@@ -42215,7 +42398,7 @@
 	        // Label
 	        if (item.label) {
 	            const label = graphics().createText(item.label, {
-	                fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+	                fontFamily: '"Lilita One", "Arial Black", sans-serif',
 	                fontSize: 12,
 	                fontWeight: 'bold',
 	                fill: 0xFFFFFF,
@@ -42442,7 +42625,7 @@
 	        g.stroke({ color: 0xB71C1C, width: 2 });
 	        container.addChild(g);
 	        const text = graphics().createText(count > 99 ? '99+' : count.toString(), {
-	            fontFamily: 'Arial',
+	            fontFamily: getFrameworkFontFamily(),
 	            fontSize: 10,
 	            fontWeight: 'bold',
 	            fill: 0xFFFFFF
@@ -42691,35 +42874,6 @@
 	}
 
 	/**
-	 * Creates a vertical linear gradient texture using canvas
-	 * @internal
-	 */
-	function createGradientTexture(width, height, colorTop, colorBottom, borderRadius = 0) {
-	    const canvas = document.createElement('canvas');
-	    canvas.width = width;
-	    canvas.height = height;
-	    const ctx = canvas.getContext('2d');
-	    // Convert hex numbers to CSS color strings
-	    const topHex = '#' + colorTop.toString(16).padStart(6, '0');
-	    const bottomHex = '#' + colorBottom.toString(16).padStart(6, '0');
-	    // Create vertical gradient
-	    const gradient = ctx.createLinearGradient(0, 0, 0, height);
-	    gradient.addColorStop(0, topHex);
-	    gradient.addColorStop(1, bottomHex);
-	    // Draw rounded rect with gradient
-	    if (borderRadius > 0) {
-	        ctx.beginPath();
-	        ctx.roundRect(0, 0, width, height, borderRadius);
-	        ctx.fillStyle = gradient;
-	        ctx.fill();
-	    }
-	    else {
-	        ctx.fillStyle = gradient;
-	        ctx.fillRect(0, 0, width, height);
-	    }
-	    return canvas;
-	}
-	/**
 	 * GameStyleButton - Mobile game style button with multi-layer effects
 	 *
 	 * Features:
@@ -42751,37 +42905,39 @@
 	        super();
 	        this.isPressed = false;
 	        this.isHovered = false;
-	        // Default configuration - Mobile game style defaults
+	        // Trigger font loading (non-blocking)
+	        loadFrameworkFont();
+	        // Default configuration - Mobile game style defaults (No Ads popup style)
 	        this.config = {
 	            text: config.text || 'Button',
 	            width: config.width || 200,
 	            height: config.height || 70,
 	            fontSize: config.fontSize || 28,
-	            fontFamily: config.fontFamily || '"Fredoka One", "Arial Black", sans-serif',
-	            colorScheme: config.colorScheme || GameStyleColors.YELLOW_BUTTON,
+	            fontFamily: config.fontFamily || getFrameworkFontFamily(),
+	            colorScheme: config.colorScheme || GameStyleColors.GREEN_BUTTON,
 	            buttonStyle: config.buttonStyle || 'raised', // 'raised' or 'flat'
-	            borderRadius: config.borderRadius || 16,
-	            borderWidth: config.borderWidth || 3,
-	            shadowOffset: config.shadowOffset || 4,
+	            borderRadius: config.borderRadius || 14,
+	            borderWidth: config.borderWidth || 1,
+	            shadowOffset: config.shadowOffset || 3,
 	            disabled: config.disabled || false,
 	            icon: config.icon || ''
 	        };
-	        // Ensure minimum touch target
-	        this.config.width = Math.max(this.config.width, 88);
-	        this.config.height = Math.max(this.config.height, 44);
+	        // Note: No minimum size constraint - developer controls button size
 	        // Create containers and graphics
 	        this.container = graphics().createContainer();
-	        this.shadowGraphics = graphics().createGraphics();
 	        this.borderGraphics = graphics().createGraphics();
-	        this.backgroundGraphics = graphics().createGraphics();
+	        this.shadowGraphics = graphics().createGraphics();
+	        this.topShineGraphics = graphics().createGraphics();
+	        this.mainFillGraphics = graphics().createGraphics();
 	        this.highlightGraphics = graphics().createGraphics();
-	        this.shineGraphics = graphics().createGraphics();
-	        // Build button layers (order matters for z-index)
-	        this.container.addChild(this.shadowGraphics);
-	        this.container.addChild(this.borderGraphics);
-	        this.container.addChild(this.backgroundGraphics);
-	        this.container.addChild(this.highlightGraphics);
-	        this.container.addChild(this.shineGraphics);
+	        this.jellybeanGraphics = graphics().createGraphics();
+	        // Build button layers (order matters for z-index) - exactly like no-ads-popup-demo
+	        this.container.addChild(this.borderGraphics); // 1. Black outer border
+	        this.container.addChild(this.shadowGraphics); // 2. Shadow
+	        this.container.addChild(this.topShineGraphics); // 3. Top shine
+	        this.container.addChild(this.mainFillGraphics); // 4. Main fill
+	        this.container.addChild(this.highlightGraphics); // 5. Highlight
+	        this.container.addChild(this.jellybeanGraphics); // 6. Jellybean
 	        // Create text
 	        if (this.config.text) {
 	            this.createText();
@@ -42806,7 +42962,7 @@
 	        this.textField = graphics().createText(this.config.text, {
 	            fontFamily: fontFamily,
 	            fontSize: fontSize,
-	            fontWeight: 'bold',
+	            fontWeight: '700', // Bold - Fredoka's max weight
 	            fill: textColor,
 	            stroke: strokeColor,
 	            strokeThickness: strokeThickness,
@@ -42845,133 +43001,90 @@
 	    render() {
 	        const { width, height, borderRadius, borderWidth, shadowOffset, colorScheme, buttonStyle, disabled } = this.config;
 	        // Clear all graphics
-	        this.shadowGraphics.clear();
 	        this.borderGraphics.clear();
-	        this.backgroundGraphics.clear();
+	        this.shadowGraphics.clear();
+	        this.topShineGraphics.clear();
+	        this.mainFillGraphics.clear();
 	        this.highlightGraphics.clear();
-	        this.shineGraphics.clear();
-	        // Remove old gradient sprite if exists
-	        if (this.gradientSprite) {
-	            this.container.removeChild(this.gradientSprite);
-	            this.gradientSprite = undefined;
-	        }
+	        this.jellybeanGraphics.clear();
+	        // Reset jellybean transform
+	        this.jellybeanGraphics.x = 0;
+	        this.jellybeanGraphics.y = 0;
+	        this.jellybeanGraphics.rotation = 0;
 	        // Get colors (grayed out if disabled)
 	        const colors = disabled ? this.getDisabledColors() : colorScheme;
-	        // Render based on style
-	        if (buttonStyle === 'flat') {
-	            this.renderFlatStyle(width, height, borderRadius, borderWidth, colors);
-	        }
-	        else {
-	            this.renderRaisedStyle(width, height, borderRadius, borderWidth, shadowOffset, colors);
-	        }
+	        // Render raised style (No Ads popup style)
+	        this.renderRaisedStyle(width, height, borderRadius, borderWidth, shadowOffset, colors);
 	    }
 	    /**
-	     * Render 'raised' style - Classic 3D with drop shadow behind the button
-	     * Like Candy Crush, Brawl Stars (reference screenshot 1)
+	     * Render 'raised' style - EXACT copy from no-ads-popup-demo.html
+	     * Layer order: border → shadow → topShine → mainFill → highlight → jellybean
 	     */
 	    renderRaisedStyle(width, height, borderRadius, borderWidth, shadowOffset, colors) {
-	        // Pressed state adjustments
-	        const pressedOffset = this.isPressed ? shadowOffset - 2 : 0;
-	        const currentShadowOffset = this.isPressed ? 2 : shadowOffset;
-	        // Layer 1: Drop Shadow - positioned BEHIND and BELOW the button
-	        // This shadow is what makes it look "raised" or "floating"
-	        this.shadowGraphics.roundRect(2, // Slight X offset
-	        currentShadowOffset + 2, // Y offset (shadow below button)
-	        width - 2, height, borderRadius);
-	        this.shadowGraphics.fill({ color: colors.shadow, alpha: 0.85 });
-	        // Layer 2: Main button border
-	        this.borderGraphics.roundRect(0, pressedOffset, width, height, borderRadius);
-	        this.borderGraphics.fill({ color: colors.border });
-	        // Layer 3: Inner fill area with gradient
-	        const fillX = borderWidth;
-	        const fillY = borderWidth + pressedOffset;
-	        const fillWidth = width - borderWidth * 2;
-	        const fillHeight = height - borderWidth * 2;
-	        const fillRadius = Math.max(4, borderRadius - borderWidth);
-	        // Create gradient texture and sprite
-	        const gradientCanvas = createGradientTexture(fillWidth, fillHeight, colors.gradientTop, colors.gradientBottom, fillRadius);
-	        const gradientTexture = graphics().createTexture(gradientCanvas);
-	        this.gradientSprite = graphics().createSprite(gradientTexture);
-	        this.gradientSprite.x = fillX;
-	        this.gradientSprite.y = fillY;
-	        // Insert gradient sprite after border graphics
-	        const borderIndex = this.container.getChildIndex(this.borderGraphics);
-	        this.container.addChild(this.gradientSprite);
-	        this.container.setChildIndex(this.gradientSprite, borderIndex + 1);
-	        // Layer 4: Subtle highlight overlay for glass effect (upper half)
-	        const highlightHeight = fillHeight * 0.35;
+	        // Demo variables (origin is 0,0 for button-local coordinates)
+	        const ctaX = 0;
+	        const ctaY = this.isPressed ? shadowOffset - 1 : 0;
+	        const ctaWidth = width;
+	        const ctaHeight = height;
+	        const ctaRadius = borderRadius;
+	        const currentShadowOffset = this.isPressed ? 1 : shadowOffset;
+	        // 1. Black border (tüm butonu çerçeveleyen - shadow dahil, 1px)
+	        // Demo: ctaOuterBorder.roundRect(ctaX - 1, ctaY - 1, ctaWidth + 2, ctaHeight + shadowOffset + 2, ctaRadius + 1);
+	        // Demo: ctaOuterBorder.stroke({ color: 0x000000, width: 1 });
+	        this.borderGraphics.roundRect(ctaX - 1, -1, // Always starts at -1 (border is fixed position)
+	        ctaWidth + 2, ctaHeight + currentShadowOffset + 2, ctaRadius + 1);
+	        this.borderGraphics.stroke({ color: colors.border, width: borderWidth });
+	        // 2. Shadow (alt kısım - yeşil)
+	        // Demo: ctaShadow.roundRect(ctaX, ctaY + shadowOffset, ctaWidth, ctaHeight, ctaRadius);
+	        // Demo: ctaShadow.fill(0x28A165);
+	        this.shadowGraphics.roundRect(ctaX, currentShadowOffset, // Shadow is always at shadowOffset from top
+	        ctaWidth, ctaHeight, ctaRadius);
+	        this.shadowGraphics.fill({ color: colors.shadow });
+	        // 2.5. Top shine (üst parlaklık - border içinde kalacak, %60 opak)
+	        // Demo: ctaTopShine.roundRect(ctaX + 0.5, ctaY - 0.5, ctaWidth - 1, ctaHeight, ctaRadius);
+	        // Demo: ctaTopShine.fill({ color: 0xFFFFFF, alpha: 0.60 });
+	        this.topShineGraphics.roundRect(ctaX + 0.5, ctaY - 0.5, ctaWidth - 1, ctaHeight, ctaRadius);
+	        this.topShineGraphics.fill({ color: 0xFFFFFF, alpha: 0.60 });
+	        // 3. Button main (ana yüzey - yeşil)
+	        // Demo: ctaBtn.roundRect(ctaX, ctaY, ctaWidth, ctaHeight, ctaRadius);
+	        // Demo: ctaBtn.fill(0x2DE45A);
+	        this.mainFillGraphics.roundRect(ctaX, ctaY, ctaWidth, ctaHeight, ctaRadius);
+	        this.mainFillGraphics.fill({ color: colors.gradientTop });
+	        // 4. Highlight (parlama efekti - üst köşeler yuvarlak, alt keskin)
+	        // Demo: exactly as written
 	        if (!this.isPressed) {
-	            this.highlightGraphics.roundRect(fillX + 3, fillY + 2, fillWidth - 6, highlightHeight, Math.min(fillRadius - 2, 10));
-	            this.highlightGraphics.fill({ color: 0xFFFFFF, alpha: 0.12 });
+	            const hlX = ctaX + 3;
+	            const hlY = ctaY + 3;
+	            const hlW = ctaWidth - 6;
+	            const hlH = ctaHeight * 0.45;
+	            const hlR = ctaRadius - 2;
+	            this.highlightGraphics.moveTo(hlX + hlR, hlY);
+	            this.highlightGraphics.lineTo(hlX + hlW - hlR, hlY);
+	            this.highlightGraphics.arc(hlX + hlW - hlR, hlY + hlR, hlR, -Math.PI / 2, 0);
+	            this.highlightGraphics.lineTo(hlX + hlW, hlY + hlH);
+	            this.highlightGraphics.lineTo(hlX, hlY + hlH);
+	            this.highlightGraphics.lineTo(hlX, hlY + hlR);
+	            this.highlightGraphics.arc(hlX + hlR, hlY + hlR, hlR, Math.PI, -Math.PI / 2);
+	            this.highlightGraphics.closePath();
+	            this.highlightGraphics.fill({ color: 0xFFFFFF, alpha: 0.25 });
 	        }
-	        // Layer 5: Specular highlights
-	        // Rim light - very thin bright arc at top edge (like light reflection)
-	        this.shineGraphics.roundRect(fillX + 8, fillY + 2, fillWidth - 16, 2, 1);
-	        this.shineGraphics.fill({ color: 0xFFFFFF, alpha: this.isPressed ? 0.15 : 0.4 });
-	        // Corner specular - small ellipse at top-left (glass reflection)
-	        if (!this.isPressed) {
-	            this.shineGraphics.ellipse(fillX + 14, fillY + 8, 5, 3);
-	            this.shineGraphics.fill({ color: 0xFFFFFF, alpha: 0.5 });
+	        // 5. Jellybean efekti (sol üst köşe, orantılı boyut)
+	        // Base size for 58px height button: 3.5x2.6, position: 10,9
+	        if (!this.isPressed && colors.jellybean) {
+	            const scale = ctaHeight / 58; // Scale relative to standard button height
+	            const jbWidth = 3.5 * scale;
+	            const jbHeight = 2.6 * scale;
+	            const jbX = 10 * scale;
+	            const jbY = 9 * scale;
+	            this.jellybeanGraphics.ellipse(0, 0, jbWidth, jbHeight);
+	            this.jellybeanGraphics.fill({ color: colors.jellybean });
+	            this.jellybeanGraphics.x = ctaX + jbX;
+	            this.jellybeanGraphics.y = ctaY + jbY;
+	            this.jellybeanGraphics.rotation = -25 * Math.PI / 180;
 	        }
 	        // Update text position for press animation
 	        if (this.textField) {
-	            this.textField.y = this.config.height / 2 + pressedOffset;
-	        }
-	    }
-	    /**
-	     * Render 'flat' style - 3D depth effect via extended bottom border
-	     * The button looks like a thick 3D box - border extends downward at bottom
-	     * NO separate shadow - the depth IS part of the border
-	     * Modern mobile game style (like reference screenshot 2)
-	     */
-	    renderFlatStyle(width, height, borderRadius, borderWidth, colors) {
-	        // Bottom depth - how much the border extends below (creates 3D thickness)
-	        const bottomDepth = 6;
-	        const pressedOffset = this.isPressed ? bottomDepth - 1 : 0;
-	        const currentDepth = this.isPressed ? 1 : bottomDepth;
-	        // Calculate derived colors
-	        const depthColor = darkenColor$1(colors.border, 0.2); // Slightly darker for depth
-	        // Layer 1: Full border shape including bottom depth
-	        // This is ONE piece - the border wraps around AND extends at bottom
-	        this.shadowGraphics.roundRect(0, 0, width, height + currentDepth, borderRadius);
-	        this.shadowGraphics.fill({ color: depthColor });
-	        // Layer 2: Main border (covers most of layer 1, leaving depth visible at bottom)
-	        this.borderGraphics.roundRect(0, pressedOffset, width, height, borderRadius);
-	        this.borderGraphics.fill({ color: colors.border });
-	        // Layer 3: Inner fill area with gradient
-	        const fillX = borderWidth;
-	        const fillY = borderWidth + pressedOffset;
-	        const fillWidth = width - borderWidth * 2;
-	        const fillHeight = height - borderWidth * 2;
-	        const fillRadius = Math.max(4, borderRadius - borderWidth);
-	        // Create gradient texture and sprite
-	        const gradientCanvas = createGradientTexture(fillWidth, fillHeight, colors.gradientTop, colors.gradientBottom, fillRadius);
-	        const gradientTexture = graphics().createTexture(gradientCanvas);
-	        this.gradientSprite = graphics().createSprite(gradientTexture);
-	        this.gradientSprite.x = fillX;
-	        this.gradientSprite.y = fillY;
-	        // Insert gradient sprite after border graphics
-	        const borderIndex = this.container.getChildIndex(this.borderGraphics);
-	        this.container.addChild(this.gradientSprite);
-	        this.container.setChildIndex(this.gradientSprite, borderIndex + 1);
-	        // Layer 4: Subtle highlight overlay for glass effect (upper half)
-	        const highlightHeight = fillHeight * 0.35;
-	        if (!this.isPressed) {
-	            this.highlightGraphics.roundRect(fillX + 3, fillY + 2, fillWidth - 6, highlightHeight, Math.min(fillRadius - 2, 10));
-	            this.highlightGraphics.fill({ color: 0xFFFFFF, alpha: 0.12 });
-	        }
-	        // Layer 5: Specular highlights
-	        // Rim light - very thin bright arc at top edge (like light reflection)
-	        this.shineGraphics.roundRect(fillX + 8, fillY + 2, fillWidth - 16, 2, 1);
-	        this.shineGraphics.fill({ color: 0xFFFFFF, alpha: this.isPressed ? 0.15 : 0.4 });
-	        // Corner specular - small ellipse at top-left (glass reflection)
-	        if (!this.isPressed) {
-	            this.shineGraphics.ellipse(fillX + 14, fillY + 8, 5, 3);
-	            this.shineGraphics.fill({ color: 0xFFFFFF, alpha: 0.5 });
-	        }
-	        // Update text position for press effect
-	        if (this.textField) {
-	            this.textField.y = this.config.height / 2 + pressedOffset;
+	            this.textField.y = this.config.height / 2 + ctaY;
 	        }
 	    }
 	    /**
@@ -43000,6 +43113,16 @@
 	        return luminance > 0.6;
 	    }
 	    /**
+	     * Get scale offset for press animation (centers the scale transform)
+	     */
+	    getScaleOffset() {
+	        const scale = GameStyleButton.PRESS_SCALE;
+	        return {
+	            offsetX: this.config.width * (1 - scale) / 2,
+	            offsetY: this.config.height * (1 - scale) / 2
+	        };
+	    }
+	    /**
 	     * Pointer event handlers
 	     */
 	    onPointerDown(event) {
@@ -43008,11 +43131,9 @@
 	        this.isPressed = true;
 	        this.render();
 	        // Scale from center - apply scale and offset to compensate
-	        const scale = 0.96;
-	        const offsetX = this.config.width * (1 - scale) / 2;
-	        const offsetY = this.config.height * (1 - scale) / 2;
-	        this.container.scale.x = scale;
-	        this.container.scale.y = scale;
+	        const { offsetX, offsetY } = this.getScaleOffset();
+	        this.container.scale.x = GameStyleButton.PRESS_SCALE;
+	        this.container.scale.y = GameStyleButton.PRESS_SCALE;
 	        this.container.x += offsetX;
 	        this.container.y += offsetY;
 	        this.emit('press', event);
@@ -43021,9 +43142,7 @@
 	        if (this.config.disabled)
 	            return;
 	        // Restore position before scale reset
-	        const scale = 0.96;
-	        const offsetX = this.config.width * (1 - scale) / 2;
-	        const offsetY = this.config.height * (1 - scale) / 2;
+	        const { offsetX, offsetY } = this.getScaleOffset();
 	        this.container.x -= offsetX;
 	        this.container.y -= offsetY;
 	        this.container.scale.x = 1;
@@ -43037,9 +43156,7 @@
 	        if (this.config.disabled)
 	            return;
 	        // Restore position before scale reset
-	        const scale = 0.96;
-	        const offsetX = this.config.width * (1 - scale) / 2;
-	        const offsetY = this.config.height * (1 - scale) / 2;
+	        const { offsetX, offsetY } = this.getScaleOffset();
 	        this.container.x -= offsetX;
 	        this.container.y -= offsetY;
 	        this.container.scale.x = 1;
@@ -43105,6 +43222,8 @@
 	        this.removeAllListeners();
 	    }
 	}
+	/** Press animation scale factor */
+	GameStyleButton.PRESS_SCALE = 0.96;
 	/**
 	 * Pre-built button factory functions
 	 */
@@ -43179,57 +43298,58 @@
 	    },
 	    /**
 	     * Create a small square icon button (e.g., close, settings)
+	     * Same style as No Ads popup buttons but square
 	     * @param icon - Icon character (emoji or text like '✕', '⚙', '⏸')
 	     * @param colorScheme - Color scheme (default: RED for close buttons)
-	     * @param size - Button size (default: 40)
+	     * @param size - Button size (default: 36)
 	     */
-	    icon(icon, colorScheme = GameStyleColors.RED_BUTTON, size = 40) {
+	    mini(icon, colorScheme = GameStyleColors.RED_BUTTON, size = 36) {
 	        return new GameStyleButton({
 	            text: icon,
 	            width: size,
 	            height: size,
-	            fontSize: Math.floor(size * 0.5),
+	            fontSize: Math.floor(size * 0.55), // Larger font for icons
 	            colorScheme,
-	            borderRadius: Math.floor(size * 0.25),
-	            borderWidth: 2,
-	            shadowOffset: 3
+	            borderRadius: Math.floor(size * 0.22),
+	            borderWidth: 1,
+	            shadowOffset: 2
 	        });
 	    },
 	    /**
 	     * Create a close (X) icon button - red square
 	     */
-	    close(size = 40) {
-	        return GameButtons.icon('✕', GameStyleColors.RED_BUTTON, size);
+	    close(size = 36) {
+	        return GameButtons.mini('X', GameStyleColors.RED_BUTTON, size);
 	    },
 	    /**
 	     * Create a settings (gear) icon button
 	     */
-	    settings(size = 40) {
-	        return GameButtons.icon('⚙', GameStyleColors.BLUE_BUTTON, size);
+	    settings(size = 36) {
+	        return GameButtons.mini('⚙', GameStyleColors.BLUE_BUTTON, size);
 	    },
 	    /**
 	     * Create a pause icon button
 	     */
-	    pause(size = 40) {
-	        return GameButtons.icon('⏸', GameStyleColors.YELLOW_BUTTON, size);
+	    pause(size = 36) {
+	        return GameButtons.mini('⏸', GameStyleColors.YELLOW_BUTTON, size);
 	    },
 	    /**
 	     * Create a play icon button (triangle)
 	     */
-	    playIcon(size = 40) {
-	        return GameButtons.icon('▶', GameStyleColors.GREEN_BUTTON, size);
+	    playIcon(size = 36) {
+	        return GameButtons.mini('▶', GameStyleColors.GREEN_BUTTON, size);
 	    },
 	    /**
 	     * Create an info icon button
 	     */
-	    info(size = 40) {
-	        return GameButtons.icon('ℹ', GameStyleColors.BLUE_BUTTON, size);
+	    info(size = 36) {
+	        return GameButtons.mini('ℹ', GameStyleColors.BLUE_BUTTON, size);
 	    },
 	    /**
 	     * Create a home icon button
 	     */
-	    home(size = 40) {
-	        return GameButtons.icon('🏠', GameStyleColors.YELLOW_BUTTON, size);
+	    home(size = 36) {
+	        return GameButtons.mini('🏠', GameStyleColors.YELLOW_BUTTON, size);
 	    }
 	};
 
@@ -43363,7 +43483,7 @@
 	        // Score
 	        if (this.hudConfig.showScore) {
 	            this.scoreText = factory.createText('Score: 0', {
-	                fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+	                fontFamily: '"Lilita One", "Arial Black", sans-serif',
 	                fontSize: 22,
 	                fontWeight: 'bold',
 	                fill: 0xFFFFFF,
@@ -43380,7 +43500,7 @@
 	        // Timer
 	        if (this.hudConfig.showTimer) {
 	            this.timerText = factory.createText('0:00', {
-	                fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+	                fontFamily: '"Lilita One", "Arial Black", sans-serif',
 	                fontSize: 22,
 	                fontWeight: 'bold',
 	                fill: 0xFFFFFF,
@@ -43525,7 +43645,7 @@
 	        this.pauseOverlay.addChild(overlay);
 	        // Paused text
 	        const pausedText = factory.createText('PAUSED', {
-	            fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+	            fontFamily: '"Lilita One", "Arial Black", sans-serif',
 	            fontSize: 48,
 	            fontWeight: 'bold',
 	            fill: 0xFFFFFF,
@@ -43772,7 +43892,7 @@
 	        // Title
 	        const titleText = this.resultConfig.title || (isVictory ? 'VICTORY!' : 'DEFEAT');
 	        const title = factory.createText(titleText, {
-	            fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+	            fontFamily: '"Lilita One", "Arial Black", sans-serif',
 	            fontSize: 48,
 	            fontWeight: 'bold',
 	            fill: isVictory ? 0x4CAF50 : 0xE84C4C,
@@ -43858,7 +43978,7 @@
 	        const container = factory.createContainer();
 	        // Score label
 	        const scoreLabel = factory.createText('Score', {
-	            fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+	            fontFamily: '"Lilita One", "Arial Black", sans-serif',
 	            fontSize: 24,
 	            fill: 0x888888,
 	        });
@@ -43869,7 +43989,7 @@
 	        container.addChild(scoreLabel);
 	        // Score value
 	        const scoreValue = factory.createText(formatNumber(this.resultConfig.score || 0), {
-	            fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+	            fontFamily: '"Lilita One", "Arial Black", sans-serif',
 	            fontSize: 56,
 	            fontWeight: 'bold',
 	            fill: 0xFFFFFF,
@@ -43886,7 +44006,7 @@
 	            const isNewBest = (this.resultConfig.score || 0) >= this.resultConfig.bestScore;
 	            const bestText = isNewBest ? 'NEW BEST!' : `Best: ${formatNumber(this.resultConfig.bestScore)}`;
 	            const bestLabel = factory.createText(bestText, {
-	                fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+	                fontFamily: '"Lilita One", "Arial Black", sans-serif',
 	                fontSize: 18,
 	                fill: isNewBest ? 0xFFD700 : 0x888888,
 	            });
@@ -43911,7 +44031,7 @@
 	        let x = (width - totalWidth) / 2 + itemWidth / 2;
 	        // Rewards label
 	        const rewardsLabel = factory.createText('Rewards', {
-	            fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+	            fontFamily: '"Lilita One", "Arial Black", sans-serif',
 	            fontSize: 20,
 	            fill: 0x888888,
 	        });
@@ -43933,7 +44053,7 @@
 	            // Icon
 	            if (typeof reward.icon === 'string') {
 	                const iconText = factory.createText(reward.icon, {
-	                    fontFamily: 'Arial',
+	                    fontFamily: getFrameworkFontFamily(),
 	                    fontSize: 32,
 	                });
 	                if (iconText.anchor)
@@ -43943,7 +44063,7 @@
 	            }
 	            // Amount
 	            const amountText = factory.createText(`+${formatNumber(reward.amount)}`, {
-	                fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+	                fontFamily: '"Lilita One", "Arial Black", sans-serif',
 	                fontSize: 16,
 	                fontWeight: 'bold',
 	                fill: 0xFFFFFF,
@@ -44061,7 +44181,7 @@
 	            showStars: config.showStars ?? true,
 	            stars: config.stars || 0,
 	            fontSize: config.fontSize || Math.round((config.size || 80) * 0.35),
-	            fontFamily: config.fontFamily || '"Fredoka One", "Arial Black", sans-serif'
+	            fontFamily: config.fontFamily || '"Lilita One", "Arial Black", sans-serif'
 	        };
 	        // Create container and graphics layers
 	        this.container = graphics().createContainer();
@@ -44816,14 +44936,16 @@
 	class GameStylePanel extends EventEmitter {
 	    constructor(config = {}) {
 	        super();
+	        // Trigger font loading (non-blocking)
+	        loadFrameworkFont();
 	        this.config = {
 	            width: config.width || 350,
 	            height: config.height || 400,
 	            title: config.title || '',
 	            showCloseButton: config.showCloseButton !== false,
 	            colorScheme: config.colorScheme || GameStylePanel.DEFAULT_SCHEME,
-	            borderRadius: config.borderRadius || 24,
-	            borderWidth: config.borderWidth || 8,
+	            borderRadius: config.borderRadius || 18, // Matches No Ads popup
+	            borderWidth: config.borderWidth || 4, // Matches No Ads popup
 	            titleFontSize: config.titleFontSize || 28,
 	            padding: config.padding || 20,
 	            onClose: config.onClose || (() => { }),
@@ -44855,216 +44977,96 @@
 	        }
 	    }
 	    /**
-	     * Render the panel graphics
+	     * Render the panel graphics (No Ads popup style)
 	     */
 	    render() {
 	        const { width, height, borderRadius, borderWidth, colorScheme } = this.config;
+	        const headerHeight = this.config.title ? 52 : 0;
 	        // Clear previous graphics
 	        this.shadowGraphics.clear();
 	        this.borderGraphics.clear();
 	        this.backgroundGraphics.clear();
-	        // Draw shadow
-	        this.shadowGraphics.roundRect(6, 6, width, height, borderRadius);
-	        this.shadowGraphics.fill({ color: 0x000000, alpha: 0.3 });
-	        // Draw outer border
-	        this.borderGraphics.roundRect(0, 0, width, height, borderRadius);
+	        // ==========================================
+	        // No Ads popup style rendering
+	        // ==========================================
+	        // 1. Shadow (8px down, 40% alpha)
+	        this.shadowGraphics.roundRect(0, 8, width, height, borderRadius);
+	        this.shadowGraphics.fill({ color: 0x000000, alpha: 0.4 });
+	        // 2. Border (single dark navy border)
+	        this.borderGraphics.roundRect(-borderWidth, -borderWidth, width + borderWidth * 2, height + borderWidth * 2, borderRadius + borderWidth);
 	        this.borderGraphics.fill(colorScheme.borderOuter);
-	        // Draw inner border
-	        const innerOffset = borderWidth / 2;
-	        this.borderGraphics.roundRect(innerOffset, innerOffset, width - borderWidth, height - borderWidth, borderRadius - innerOffset);
-	        this.borderGraphics.fill(colorScheme.borderInner);
-	        // Draw gradient background using canvas
-	        const bgOffset = borderWidth;
-	        const bgWidth = width - borderWidth * 2;
-	        const bgHeight = height - borderWidth * 2;
-	        const bgRadius = borderRadius - borderWidth;
-	        const gradCanvas = document.createElement('canvas');
-	        gradCanvas.width = bgWidth;
-	        gradCanvas.height = bgHeight;
-	        const ctx = gradCanvas.getContext('2d');
-	        // Create vertical gradient
-	        const gradient = ctx.createLinearGradient(0, 0, 0, bgHeight);
-	        gradient.addColorStop(0, this.hexToRgb(colorScheme.fillTop));
-	        gradient.addColorStop(1, this.hexToRgb(colorScheme.fillBottom));
-	        // Draw rounded rect with gradient
-	        ctx.fillStyle = gradient;
-	        ctx.beginPath();
-	        ctx.roundRect(0, 0, bgWidth, bgHeight, bgRadius);
-	        ctx.fill();
-	        // Remove old gradient sprite if exists
+	        // 3. Main background (solid color)
+	        this.backgroundGraphics.roundRect(0, 0, width, height, borderRadius);
+	        this.backgroundGraphics.fill(colorScheme.fillTop);
+	        // 4. Header background (darker blue, only if title exists)
+	        if (headerHeight > 0 && colorScheme.headerBg) {
+	            // Header with rounded top corners, straight bottom
+	            this.backgroundGraphics.roundRect(0, 0, width, headerHeight, borderRadius);
+	            this.backgroundGraphics.rect(0, headerHeight - borderRadius, width, borderRadius);
+	            this.backgroundGraphics.fill(colorScheme.headerBg);
+	        }
+	        // Remove old gradient sprite if exists (not used in new style)
 	        if (this.gradientSprite) {
 	            this.container.removeChild(this.gradientSprite);
+	            this.gradientSprite = undefined;
 	        }
-	        // Create new gradient sprite
-	        const texture = graphics().createTexture(gradCanvas);
-	        this.gradientSprite = graphics().createSprite(texture);
-	        this.gradientSprite.x = bgOffset;
-	        this.gradientSprite.y = bgOffset;
-	        // Insert gradient sprite BEFORE content container (at index 3, after backgroundGraphics)
-	        // Order: shadow(0), border(1), background(2), gradientSprite(3), contentContainer(4)
-	        const contentIndex = this.container.getChildIndex(this.contentContainer);
-	        this.container.addChild(this.gradientSprite);
-	        this.container.setChildIndex(this.gradientSprite, contentIndex);
-	        // Position content container
-	        const titleHeight = this.config.title ? 50 : 0;
-	        this.contentContainer.x = bgOffset + this.config.padding;
-	        this.contentContainer.y = bgOffset + titleHeight + this.config.padding;
+	        // Position content container (below header)
+	        this.contentContainer.x = this.config.padding;
+	        this.contentContainer.y = headerHeight + this.config.padding;
 	    }
 	    /**
-	     * Create the title text
+	     * Create the title text (centered in 52px header, No Ads popup style)
 	     */
 	    createTitle() {
-	        const { width, colorScheme, titleFontSize, borderWidth } = this.config;
+	        const { width, colorScheme, titleFontSize } = this.config;
+	        const headerHeight = 52;
+	        // No Ads popup style text - stroke + dropShadow
 	        this.titleText = graphics().createText(this.config.title, {
-	            fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+	            fontFamily: getFrameworkFontFamily(),
 	            fontSize: titleFontSize,
-	            fontWeight: 'bold',
+	            fontWeight: '900',
 	            fill: colorScheme.titleColor,
 	            stroke: colorScheme.titleStroke,
-	            strokeThickness: 4,
+	            strokeThickness: Math.max(3, titleFontSize * 0.12),
 	            align: 'center',
+	            dropShadow: true,
+	            dropShadowColor: 0x000000,
+	            dropShadowBlur: 0,
+	            dropShadowDistance: Math.max(2, titleFontSize * 0.06),
+	            dropShadowAngle: Math.PI / 2,
+	            dropShadowAlpha: 0.5,
 	        });
-	        // Center title
+	        // Center title in header
 	        const titleWidth = this.titleText.width || 100;
+	        const titleHeight = this.titleText.height || titleFontSize;
 	        this.titleText.x = (width - titleWidth) / 2;
-	        this.titleText.y = borderWidth + 12;
+	        this.titleText.y = (headerHeight - titleHeight) / 2;
 	        this.container.addChild(this.titleText);
 	    }
 	    /**
-	     * Create the close button - polished game style
+	     * Create the close button - uses new GameStyleButton (positioned in header)
 	     */
 	    createCloseButton() {
-	        const { width, colorScheme, borderWidth } = this.config;
-	        const factory = graphics();
+	        const { width } = this.config;
+	        const headerHeight = 52;
 	        // Remove existing close button if any
 	        if (this.closeButton) {
 	            this.container.removeChild(this.closeButton);
 	        }
-	        this.closeButton = factory.createContainer();
-	        // Button size
-	        const buttonSize = 44;
-	        const buttonRadius = buttonSize / 2;
-	        const depthOffset = 3;
-	        const borderSize = 3;
-	        // Position at top right, slightly overlapping
-	        const buttonX = width - buttonSize / 2 - borderWidth;
-	        const buttonY = borderWidth - buttonSize / 4;
-	        // Layer 1: Depth (darker, extends below)
-	        const depth = factory.createGraphics();
-	        depth.circle(buttonSize / 2, buttonSize / 2 + depthOffset, buttonRadius);
-	        depth.fill({ color: this.darkenColor(colorScheme.closeButtonBorder, 0.3) });
-	        this.closeButton.addChild(depth);
-	        // Layer 2: Border
-	        const border = factory.createGraphics();
-	        border.circle(buttonSize / 2, buttonSize / 2, buttonRadius);
-	        border.fill(colorScheme.closeButtonBorder);
-	        this.closeButton.addChild(border);
-	        // Layer 3: Background with gradient effect (using multiple fills)
-	        const bg = factory.createGraphics();
-	        const innerRadius = buttonRadius - borderSize;
-	        // Bottom half (darker)
-	        bg.circle(buttonSize / 2, buttonSize / 2, innerRadius);
-	        bg.fill(this.darkenColor(colorScheme.closeButtonBg, 0.15));
-	        // Top half overlay (lighter)
-	        bg.ellipse(buttonSize / 2, buttonSize / 2 - innerRadius * 0.15, innerRadius * 0.95, innerRadius * 0.75);
-	        bg.fill(colorScheme.closeButtonBg);
-	        this.closeButton.addChild(bg);
-	        // Layer 4: Specular highlights
-	        const shine = factory.createGraphics();
-	        // Rim light at top
-	        shine.ellipse(buttonSize / 2, buttonSize / 2 - innerRadius + 4, innerRadius * 0.6, 2);
-	        shine.fill({ color: 0xFFFFFF, alpha: 0.4 });
-	        // Corner specular
-	        shine.ellipse(buttonSize / 2 - innerRadius * 0.3, buttonSize / 2 - innerRadius * 0.4, 4, 2);
-	        shine.fill({ color: 0xFFFFFF, alpha: 0.5 });
-	        this.closeButton.addChild(shine);
-	        // Layer 5: X icon
-	        const xGraphics = factory.createGraphics();
-	        const xSize = 9;
-	        const xCenter = buttonSize / 2;
-	        const xThickness = 4;
-	        // Draw X shadow
-	        xGraphics.moveTo(xCenter - xSize + 1, xCenter - xSize + 2);
-	        xGraphics.lineTo(xCenter + xSize + 1, xCenter + xSize + 2);
-	        xGraphics.moveTo(xCenter + xSize + 1, xCenter - xSize + 2);
-	        xGraphics.lineTo(xCenter - xSize + 1, xCenter + xSize + 2);
-	        xGraphics.stroke({ width: xThickness, color: 0x000000, alpha: 0.3, cap: 'round' });
-	        // Draw X
-	        xGraphics.moveTo(xCenter - xSize, xCenter - xSize);
-	        xGraphics.lineTo(xCenter + xSize, xCenter + xSize);
-	        xGraphics.moveTo(xCenter + xSize, xCenter - xSize);
-	        xGraphics.lineTo(xCenter - xSize, xCenter + xSize);
-	        xGraphics.stroke({ width: xThickness, color: colorScheme.closeButtonX, cap: 'round' });
-	        this.closeButton.addChild(xGraphics);
-	        this.closeButton.x = buttonX - buttonSize / 2;
-	        this.closeButton.y = buttonY;
-	        // Make interactive with press animation
-	        this.closeButton.eventMode = 'static';
-	        this.closeButton.cursor = 'pointer';
-	        // Hit area
-	        this.closeButton.hitArea = {
-	            contains: (x, y) => {
-	                const dx = x - buttonSize / 2;
-	                const dy = y - buttonSize / 2;
-	                return dx * dx + dy * dy <= buttonRadius * buttonRadius;
-	            }
-	        };
-	        let isPressed = false;
-	        this.closeButton.on('pointerdown', () => {
-	            isPressed = true;
-	            // Press animation - scale from center
-	            const scale = 0.92;
-	            const offset = buttonSize * (1 - scale) / 2;
-	            this.closeButton.scale.x = scale;
-	            this.closeButton.scale.y = scale;
-	            this.closeButton.x += offset;
-	            this.closeButton.y += offset;
+	        // Use the new GameButtons.close() for consistent button style
+	        const buttonSize = 38;
+	        const closeBtn = GameButtons.close(buttonSize);
+	        // Position at top right corner within header
+	        const buttonX = width - buttonSize - 8;
+	        const buttonY = (headerHeight - buttonSize) / 2;
+	        closeBtn.setPosition(buttonX, buttonY);
+	        // Wire up click handler
+	        closeBtn.on('click', () => {
+	            this.emit('close');
+	            this.config.onClose();
 	        });
-	        this.closeButton.on('pointerup', () => {
-	            if (isPressed) {
-	                // Restore scale
-	                const scale = 0.92;
-	                const offset = buttonSize * (1 - scale) / 2;
-	                this.closeButton.x -= offset;
-	                this.closeButton.y -= offset;
-	                this.closeButton.scale.x = 1;
-	                this.closeButton.scale.y = 1;
-	                isPressed = false;
-	                this.emit('close');
-	                this.config.onClose();
-	            }
-	        });
-	        this.closeButton.on('pointerupoutside', () => {
-	            if (isPressed) {
-	                // Restore scale without triggering close
-	                const scale = 0.92;
-	                const offset = buttonSize * (1 - scale) / 2;
-	                this.closeButton.x -= offset;
-	                this.closeButton.y -= offset;
-	                this.closeButton.scale.x = 1;
-	                this.closeButton.scale.y = 1;
-	                isPressed = false;
-	            }
-	        });
+	        this.closeButton = closeBtn.getContainer();
 	        this.container.addChild(this.closeButton);
-	    }
-	    /**
-	     * Darken a color by a factor
-	     */
-	    darkenColor(color, factor) {
-	        const r = Math.max(0, Math.floor(((color >> 16) & 0xFF) * (1 - factor)));
-	        const g = Math.max(0, Math.floor(((color >> 8) & 0xFF) * (1 - factor)));
-	        const b = Math.max(0, Math.floor((color & 0xFF) * (1 - factor)));
-	        return (r << 16) | (g << 8) | b;
-	    }
-	    /**
-	     * Convert hex to rgb string
-	     */
-	    hexToRgb(hex) {
-	        const r = (hex >> 16) & 0xFF;
-	        const g = (hex >> 8) & 0xFF;
-	        const b = hex & 0xFF;
-	        return `rgb(${r}, ${g}, ${b})`;
 	    }
 	    /**
 	     * Add child to content area
@@ -45166,7 +45168,7 @@
 	     * Get content area dimensions (usable space)
 	     */
 	    getContentSize() {
-	        const titleHeight = this.config.title ? 50 : 0;
+	        const titleHeight = this.config.title ? 52 : 0;
 	        return {
 	            width: this.config.width - this.config.borderWidth * 2 - this.config.padding * 2,
 	            height: this.config.height - this.config.borderWidth * 2 - titleHeight - this.config.padding * 2,
@@ -45180,17 +45182,18 @@
 	        this.removeAllListeners();
 	    }
 	}
-	// Default blue panel color scheme
+	// Default blue panel color scheme (matches No Ads popup)
 	GameStylePanel.DEFAULT_SCHEME = {
-	    fillTop: 0x5BA3E0,
-	    fillBottom: 0x3B7BBF,
-	    borderOuter: 0x1A4B7A,
-	    borderInner: 0x2A6B9A,
-	    borderWidth: 8,
+	    fillTop: 0x41A7FB, // Light blue modal background
+	    fillBottom: 0x41A7FB, // Solid color
+	    borderOuter: 0x1e3a5f, // Dark navy border
+	    borderInner: 0x1e3a5f, // Same - single border
+	    borderWidth: 4,
+	    headerBg: 0x2889F0, // Darker blue header
 	    titleColor: 0xFFFFFF,
-	    titleStroke: 0x1A4B7A,
+	    titleStroke: 0x1a2a3a,
 	    closeButtonBg: 0xE84C4C,
-	    closeButtonBorder: 0x8B2020,
+	    closeButtonBorder: 0xA83340,
 	    closeButtonX: 0xFFFFFF,
 	};
 
@@ -45198,7 +45201,7 @@
 	 * Creates a horizontal gradient texture for toggle track
 	 * @internal
 	 */
-	function createTrackGradient(width, height, colorLeft, colorRight, borderRadius) {
+	function createTrackGradient$1(width, height, colorLeft, colorRight, borderRadius) {
 	    const canvas = document.createElement('canvas');
 	    canvas.width = width;
 	    canvas.height = height;
@@ -45284,7 +45287,7 @@
 	            this.trackGradientSprite = undefined;
 	        }
 	        const alpha = disabled ? 0.5 : 1;
-	        const pressOffset = this.isPressed ? 2 : 0;
+	        const thumbScale = this.isPressed ? 0.9 : 1.0;
 	        // Determine track colors based on state
 	        const trackTopColor = this._value ? colorScheme.trackOnTop : colorScheme.trackOffTop;
 	        const trackBottomColor = this._value ? colorScheme.trackOnBottom : colorScheme.trackOffBottom;
@@ -45292,16 +45295,16 @@
 	        this.depthGraphics.roundRect(0, 0, width, height + depthOffset, radius);
 	        this.depthGraphics.fill({ color: colorScheme.borderDepth, alpha });
 	        // Layer 2: Border
-	        this.borderGraphics.roundRect(0, pressOffset, width, height, radius);
+	        this.borderGraphics.roundRect(0, 0, width, height, radius);
 	        this.borderGraphics.fill({ color: colorScheme.border, alpha });
 	        // Layer 3: Track fill with gradient
 	        const trackX = borderWidth;
-	        const trackY = borderWidth + pressOffset;
+	        const trackY = borderWidth;
 	        const trackWidth = width - borderWidth * 2;
 	        const trackHeight = height - borderWidth * 2;
 	        const trackRadius = radius - borderWidth;
 	        // Create gradient sprite for track
-	        const gradientCanvas = createTrackGradient(trackWidth, trackHeight, trackTopColor, trackBottomColor, trackRadius);
+	        const gradientCanvas = createTrackGradient$1(trackWidth, trackHeight, trackTopColor, trackBottomColor, trackRadius);
 	        const gradientTexture = graphics().createTexture(gradientCanvas);
 	        this.trackGradientSprite = graphics().createSprite(gradientTexture);
 	        this.trackGradientSprite.x = trackX;
@@ -45316,9 +45319,10 @@
 	        this.trackGraphics.roundRect(trackX + 2, trackY + 1, trackWidth - 4, 4, 2);
 	        this.trackGraphics.fill({ color: 0x000000, alpha: 0.15 * alpha });
 	        // Layer 4: Thumb
-	        const thumbRadius = (height - 10) / 2;
-	        const thumbX = this._value ? width - thumbRadius - 7 : thumbRadius + 7;
-	        const thumbY = height / 2 + pressOffset;
+	        const thumbBaseRadius = (height - 10) / 2;
+	        const thumbRadius = thumbBaseRadius * thumbScale;
+	        const thumbX = this._value ? width - thumbBaseRadius - 7 : thumbBaseRadius + 7;
+	        const thumbY = height / 2;
 	        // Thumb shadow
 	        this.thumbGraphics.circle(thumbX + 1, thumbY + 2, thumbRadius);
 	        this.thumbGraphics.fill({ color: 0x000000, alpha: 0.25 * alpha });
@@ -45500,6 +45504,408 @@
 	        thumbBottom: 0xE8E8E8,
 	        border: 0x6C3483,
 	        borderDepth: 0x4A235A,
+	    },
+	};
+
+	/**
+	 * Creates a horizontal gradient texture for slider track
+	 * @internal
+	 */
+	function createTrackGradient(width, height, colorTop, colorBottom, borderRadius) {
+	    const canvas = document.createElement('canvas');
+	    canvas.width = width;
+	    canvas.height = height;
+	    const ctx = canvas.getContext('2d');
+	    const topHex = '#' + colorTop.toString(16).padStart(6, '0');
+	    const bottomHex = '#' + colorBottom.toString(16).padStart(6, '0');
+	    // Vertical gradient (top lighter, bottom darker)
+	    const gradient = ctx.createLinearGradient(0, 0, 0, height);
+	    gradient.addColorStop(0, topHex);
+	    gradient.addColorStop(1, bottomHex);
+	    ctx.beginPath();
+	    ctx.roundRect(0, 0, width, height, borderRadius);
+	    ctx.fillStyle = gradient;
+	    ctx.fill();
+	    return canvas;
+	}
+	/**
+	 * Game-style slider component for volume, progress, etc.
+	 * Polished mobile game style with gradients and depth
+	 *
+	 * Features:
+	 * - Gradient track with fill indicator
+	 * - Glossy draggable thumb
+	 * - Smooth drag interaction
+	 * - Touch-friendly size
+	 *
+	 * @example
+	 * ```typescript
+	 * const volumeSlider = new GameSlider({
+	 *   min: 0,
+	 *   max: 100,
+	 *   value: 75,
+	 *   onChange: (value) => setVolume(value / 100)
+	 * });
+	 *
+	 * stage.addChild(volumeSlider.getContainer());
+	 * ```
+	 */
+	class GameSlider extends EventEmitter {
+	    constructor(config = {}) {
+	        super();
+	        this.isDragging = false;
+	        this.isPressed = false;
+	        this.config = {
+	            width: config.width || 200,
+	            height: config.height || 36,
+	            min: config.min !== undefined ? config.min : 0,
+	            max: config.max !== undefined ? config.max : 100,
+	            value: config.value !== undefined ? config.value : 50,
+	            step: config.step !== undefined ? config.step : 1,
+	            colorScheme: config.colorScheme || GameSlider.DEFAULT_SCHEME,
+	            disabled: config.disabled || false,
+	            onChange: config.onChange || (() => { }),
+	        };
+	        // Clamp initial value
+	        this._value = Math.max(this.config.min, Math.min(this.config.max, this.config.value));
+	        const factory = graphics();
+	        // Create container
+	        this.container = factory.createContainer();
+	        // Create layers (order matters)
+	        this.depthGraphics = factory.createGraphics();
+	        this.borderGraphics = factory.createGraphics();
+	        this.trackGraphics = factory.createGraphics();
+	        this.fillGraphics = factory.createGraphics();
+	        this.thumbGraphics = factory.createGraphics();
+	        this.container.addChild(this.depthGraphics);
+	        this.container.addChild(this.borderGraphics);
+	        this.container.addChild(this.trackGraphics);
+	        this.container.addChild(this.fillGraphics);
+	        this.container.addChild(this.thumbGraphics);
+	        // Render
+	        this.render();
+	        // Setup interaction
+	        this.setupInteraction();
+	    }
+	    /**
+	     * Get the normalized value (0-1)
+	     */
+	    getNormalizedValue() {
+	        const range = this.config.max - this.config.min;
+	        if (range === 0)
+	            return 0;
+	        return (this._value - this.config.min) / range;
+	    }
+	    /**
+	     * Set value from normalized (0-1)
+	     */
+	    setFromNormalized(normalized) {
+	        const range = this.config.max - this.config.min;
+	        let newValue = this.config.min + normalized * range;
+	        // Apply step
+	        if (this.config.step > 0) {
+	            newValue = Math.round(newValue / this.config.step) * this.config.step;
+	        }
+	        // Clamp
+	        newValue = Math.max(this.config.min, Math.min(this.config.max, newValue));
+	        if (newValue !== this._value) {
+	            this._value = newValue;
+	            this.render();
+	            this.emit('change', this._value);
+	            this.config.onChange(this._value);
+	        }
+	    }
+	    /**
+	     * Render the slider with game-style polish
+	     */
+	    render() {
+	        const { width, height, colorScheme, disabled } = this.config;
+	        const radius = height / 2;
+	        const borderWidth = 3;
+	        const depthOffset = 3;
+	        const trackPadding = 4;
+	        // Clear
+	        this.depthGraphics.clear();
+	        this.borderGraphics.clear();
+	        this.trackGraphics.clear();
+	        this.fillGraphics.clear();
+	        this.thumbGraphics.clear();
+	        // Remove old gradient sprites
+	        if (this.trackGradientSprite) {
+	            this.container.removeChild(this.trackGradientSprite);
+	            this.trackGradientSprite = undefined;
+	        }
+	        if (this.fillGradientSprite) {
+	            this.container.removeChild(this.fillGradientSprite);
+	            this.fillGradientSprite = undefined;
+	        }
+	        const alpha = disabled ? 0.5 : 1;
+	        const thumbScale = this.isPressed ? 0.9 : 1.0;
+	        // Calculate thumb position
+	        const trackX = borderWidth + trackPadding;
+	        const trackY = borderWidth + trackPadding;
+	        const trackWidth = width - (borderWidth + trackPadding) * 2;
+	        const trackHeight = height - (borderWidth + trackPadding) * 2;
+	        const trackRadius = trackHeight / 2;
+	        const thumbBaseRadius = (height - 8) / 2;
+	        const thumbRadius = thumbBaseRadius * thumbScale;
+	        const thumbMinX = trackX + thumbBaseRadius;
+	        const thumbMaxX = width - trackX - thumbBaseRadius;
+	        const thumbRange = thumbMaxX - thumbMinX;
+	        const thumbX = thumbMinX + this.getNormalizedValue() * thumbRange;
+	        const thumbY = height / 2;
+	        // Layer 1: Depth (extends below)
+	        this.depthGraphics.roundRect(0, 0, width, height + depthOffset, radius);
+	        this.depthGraphics.fill({ color: colorScheme.borderDepth, alpha });
+	        // Layer 2: Border
+	        this.borderGraphics.roundRect(0, 0, width, height, radius);
+	        this.borderGraphics.fill({ color: colorScheme.border, alpha });
+	        // Layer 3: Track background with gradient
+	        const trackBgCanvas = createTrackGradient(trackWidth, trackHeight, colorScheme.trackTop, colorScheme.trackBottom, trackRadius);
+	        const trackBgTexture = graphics().createTexture(trackBgCanvas);
+	        this.trackGradientSprite = graphics().createSprite(trackBgTexture);
+	        this.trackGradientSprite.x = trackX;
+	        this.trackGradientSprite.y = trackY;
+	        if (disabled)
+	            this.trackGradientSprite.alpha = alpha;
+	        // Insert after trackGraphics
+	        const trackIndex = this.container.getChildIndex(this.trackGraphics);
+	        this.container.addChild(this.trackGradientSprite);
+	        this.container.setChildIndex(this.trackGradientSprite, trackIndex + 1);
+	        // Layer 4: Fill (progress) with gradient
+	        const fillWidth = Math.max(trackHeight, (thumbX - trackX + thumbRadius));
+	        if (fillWidth > trackHeight) {
+	            const fillCanvas = createTrackGradient(fillWidth, trackHeight, colorScheme.fillTop, colorScheme.fillBottom, trackRadius);
+	            const fillTexture = graphics().createTexture(fillCanvas);
+	            this.fillGradientSprite = graphics().createSprite(fillTexture);
+	            this.fillGradientSprite.x = trackX;
+	            this.fillGradientSprite.y = trackY;
+	            if (disabled)
+	                this.fillGradientSprite.alpha = alpha;
+	            // Insert after track gradient
+	            const fillIndex = this.container.getChildIndex(this.trackGradientSprite);
+	            this.container.addChild(this.fillGradientSprite);
+	            this.container.setChildIndex(this.fillGradientSprite, fillIndex + 1);
+	        }
+	        // Inner shadow on track (subtle)
+	        this.trackGraphics.roundRect(trackX + 2, trackY + 1, trackWidth - 4, 3, 1.5);
+	        this.trackGraphics.fill({ color: 0x000000, alpha: 0.15 * alpha });
+	        // Layer 5: Thumb
+	        // Thumb shadow
+	        this.thumbGraphics.circle(thumbX + 1, thumbY + 2, thumbRadius);
+	        this.thumbGraphics.fill({ color: 0x000000, alpha: 0.3 * alpha });
+	        // Thumb base (darker bottom color)
+	        this.thumbGraphics.circle(thumbX, thumbY, thumbRadius);
+	        this.thumbGraphics.fill({ color: colorScheme.thumbBottom, alpha });
+	        // Thumb gradient effect (lighter top half)
+	        this.thumbGraphics.ellipse(thumbX, thumbY - thumbRadius * 0.15, thumbRadius * 0.9, thumbRadius * 0.7);
+	        this.thumbGraphics.fill({ color: colorScheme.thumbTop, alpha });
+	        // Thumb specular highlight (small bright spot)
+	        this.thumbGraphics.ellipse(thumbX - thumbRadius * 0.25, thumbY - thumbRadius * 0.35, thumbRadius * 0.35, thumbRadius * 0.2);
+	        this.thumbGraphics.fill({ color: 0xFFFFFF, alpha: 0.6 * alpha });
+	        // Rim light on thumb
+	        this.thumbGraphics.roundRect(thumbX - thumbRadius * 0.6, thumbY - thumbRadius + 2, thumbRadius * 1.2, 2, 1);
+	        this.thumbGraphics.fill({ color: 0xFFFFFF, alpha: 0.3 * alpha });
+	    }
+	    /**
+	     * Setup interaction handlers
+	     */
+	    setupInteraction() {
+	        this.container.eventMode = 'static';
+	        this.container.cursor = this.config.disabled ? 'default' : 'pointer';
+	        const { width, height } = this.config;
+	        this.container.hitArea = {
+	            contains: (x, y) => {
+	                return x >= 0 && x <= width && y >= 0 && y <= height + 3;
+	            }
+	        };
+	        this.container.on('pointerdown', this.onPointerDown.bind(this));
+	        this.container.on('pointermove', this.onPointerMove.bind(this));
+	        this.container.on('pointerup', this.onPointerUp.bind(this));
+	        this.container.on('pointerupoutside', this.onPointerUpOutside.bind(this));
+	    }
+	    onPointerDown(event) {
+	        if (this.config.disabled)
+	            return;
+	        this.isDragging = true;
+	        this.isPressed = true;
+	        this.updateValueFromPointer(event);
+	    }
+	    onPointerMove(event) {
+	        if (this.config.disabled || !this.isDragging)
+	            return;
+	        this.updateValueFromPointer(event);
+	    }
+	    onPointerUp() {
+	        if (this.config.disabled)
+	            return;
+	        this.isDragging = false;
+	        this.isPressed = false;
+	        this.render();
+	    }
+	    onPointerUpOutside() {
+	        if (this.config.disabled)
+	            return;
+	        this.isDragging = false;
+	        this.isPressed = false;
+	        this.render();
+	    }
+	    updateValueFromPointer(event) {
+	        const { width, height } = this.config;
+	        const borderWidth = 3;
+	        const trackPadding = 4;
+	        const thumbRadius = (height - 8) / 2;
+	        const thumbMinX = borderWidth + trackPadding + thumbRadius;
+	        const thumbMaxX = width - borderWidth - trackPadding - thumbRadius;
+	        const thumbRange = thumbMaxX - thumbMinX;
+	        // Get local position
+	        const localPos = event.getLocalPosition(this.container);
+	        const x = localPos.x;
+	        // Calculate normalized value
+	        let normalized = (x - thumbMinX) / thumbRange;
+	        normalized = Math.max(0, Math.min(1, normalized));
+	        this.setFromNormalized(normalized);
+	    }
+	    /**
+	     * Get current value
+	     */
+	    getValue() {
+	        return this._value;
+	    }
+	    /**
+	     * Set value
+	     */
+	    setValue(value) {
+	        const clampedValue = Math.max(this.config.min, Math.min(this.config.max, value));
+	        if (this._value !== clampedValue) {
+	            this._value = clampedValue;
+	            this.render();
+	            this.emit('change', this._value);
+	        }
+	    }
+	    /**
+	     * Set disabled state
+	     */
+	    setDisabled(disabled) {
+	        this.config.disabled = disabled;
+	        this.container.cursor = disabled ? 'default' : 'pointer';
+	        this.render();
+	    }
+	    /**
+	     * Check if disabled
+	     */
+	    isDisabled() {
+	        return this.config.disabled;
+	    }
+	    /**
+	     * Set position
+	     */
+	    setPosition(x, y) {
+	        this.container.x = x;
+	        this.container.y = y;
+	    }
+	    /**
+	     * Get position
+	     */
+	    getPosition() {
+	        return { x: this.container.x, y: this.container.y };
+	    }
+	    /**
+	     * Get the container
+	     */
+	    getContainer() {
+	        return this.container;
+	    }
+	    /**
+	     * Set color scheme
+	     */
+	    setColorScheme(scheme) {
+	        this.config.colorScheme = scheme;
+	        this.render();
+	    }
+	    /**
+	     * Get size
+	     */
+	    getSize() {
+	        return { width: this.config.width, height: this.config.height };
+	    }
+	    /**
+	     * Destroy the slider
+	     */
+	    destroy() {
+	        this.container.destroy();
+	        this.removeAllListeners();
+	    }
+	}
+	// Default color scheme - blue game style
+	GameSlider.DEFAULT_SCHEME = {
+	    trackTop: 0x4A5660,
+	    trackBottom: 0x3A4650,
+	    fillTop: 0x5DADE2,
+	    fillBottom: 0x2E86C1,
+	    thumbTop: 0xFFFFFF,
+	    thumbBottom: 0xE8E8E8,
+	    border: 0x3D4F5F,
+	    borderDepth: 0x2A3640,
+	};
+	/**
+	 * Pre-defined slider color schemes - game style
+	 */
+	const GameSliderColors = {
+	    // Default blue slider
+	    DEFAULT: {
+	        trackTop: 0x4A5660,
+	        trackBottom: 0x3A4650,
+	        fillTop: 0x5DADE2,
+	        fillBottom: 0x2E86C1,
+	        thumbTop: 0xFFFFFF,
+	        thumbBottom: 0xE8E8E8,
+	        border: 0x3D4F5F,
+	        borderDepth: 0x2A3640,
+	    },
+	    // Green slider
+	    GREEN: {
+	        trackTop: 0x4A5660,
+	        trackBottom: 0x3A4650,
+	        fillTop: 0x7ED321,
+	        fillBottom: 0x5BA017,
+	        thumbTop: 0xFFFFFF,
+	        thumbBottom: 0xE8E8E8,
+	        border: 0x3D4F5F,
+	        borderDepth: 0x2A3640,
+	    },
+	    // Orange slider
+	    ORANGE: {
+	        trackTop: 0x4A5660,
+	        trackBottom: 0x3A4650,
+	        fillTop: 0xF5B041,
+	        fillBottom: 0xD68910,
+	        thumbTop: 0xFFFFFF,
+	        thumbBottom: 0xE8E8E8,
+	        border: 0x3D4F5F,
+	        borderDepth: 0x2A3640,
+	    },
+	    // Purple slider
+	    PURPLE: {
+	        trackTop: 0x4A5660,
+	        trackBottom: 0x3A4650,
+	        fillTop: 0xBB8FCE,
+	        fillBottom: 0x8E44AD,
+	        thumbTop: 0xFFFFFF,
+	        thumbBottom: 0xE8E8E8,
+	        border: 0x3D4F5F,
+	        borderDepth: 0x2A3640,
+	    },
+	    // Red slider
+	    RED: {
+	        trackTop: 0x4A5660,
+	        trackBottom: 0x3A4650,
+	        fillTop: 0xE74C3C,
+	        fillBottom: 0xC0392B,
+	        thumbTop: 0xFFFFFF,
+	        thumbBottom: 0xE8E8E8,
+	        border: 0x3D4F5F,
+	        borderDepth: 0x2A3640,
 	    },
 	};
 
@@ -46113,7 +46519,7 @@
 	     */
 	    createTitle() {
 	        this.titleText = graphics().createText(this.config.title, {
-	            fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+	            fontFamily: '"Lilita One", "Arial Black", sans-serif',
 	            fontSize: 24,
 	            fontWeight: 'bold',
 	            fill: this.theme.title || 0xFFFFFF,
@@ -48860,6 +49266,522 @@
 	}
 
 	/**
+	 * Default joystick style - minimal/modern look
+	 */
+	const DEFAULT_STYLE = {
+	    baseColor: 0x000000,
+	    baseAlpha: 0.3,
+	    knobColor: 0xFFFFFF,
+	    knobAlpha: 0.8,
+	    borderColor: 0xFFFFFF,
+	    borderWidth: 2,
+	    borderAlpha: 0.5,
+	};
+	/**
+	 * VirtualJoystick - Touch-based joystick for mobile game controls
+	 *
+	 * Supports two modes:
+	 * - **fixed**: Always visible at a set position
+	 * - **dynamic**: Appears where the user touches within the activation zone
+	 *
+	 * @example
+	 * ```typescript
+	 * // Dynamic joystick (appears on touch)
+	 * const joystick = new VirtualJoystick({
+	 *   mode: 'dynamic',
+	 *   activationZone: { x: 0, y: 0, width: 0.5, height: 1 }
+	 * });
+	 *
+	 * joystick.on('move', (data) => {
+	 *   player.velocity.x = data.vector.x * speed;
+	 *   player.velocity.y = data.vector.y * speed;
+	 * });
+	 *
+	 * scene.addChild(joystick.getContainer());
+	 *
+	 * // Fixed joystick
+	 * const fixedJoystick = new VirtualJoystick({
+	 *   mode: 'fixed',
+	 *   position: { x: 100, y: 500 },
+	 *   size: 140
+	 * });
+	 * ```
+	 */
+	class VirtualJoystick extends EventEmitter {
+	    constructor(config) {
+	        super();
+	        // State
+	        this.isActive = false;
+	        this.activePointerId = null;
+	        this.centerPosition = { x: 0, y: 0 };
+	        this.knobPosition = { x: 0, y: 0 };
+	        // Animation
+	        this.fadeAnimation = null;
+	        this.currentAlpha = 1;
+	        // Screen dimensions cache
+	        this.screenWidth = window.innerWidth;
+	        this.screenHeight = window.innerHeight;
+	        // Merge config with defaults
+	        this.config = {
+	            mode: config.mode,
+	            position: config.position || { x: 100, y: window.innerHeight - 200 },
+	            activationZone: config.activationZone || { x: 0, y: 0, width: 0.5, height: 1 },
+	            size: config.size || 120,
+	            knobSize: config.knobSize || (config.size || 120) * 0.4,
+	            deadZone: config.deadZone ?? 0.1,
+	            maxDistance: config.maxDistance || (config.size || 120) * 0.4,
+	            style: config.style || {},
+	            hideWhenIdle: config.hideWhenIdle ?? true,
+	            fadeInDuration: config.fadeInDuration ?? 100,
+	            fadeOutDuration: config.fadeOutDuration ?? 200,
+	        };
+	        // Merge style with defaults
+	        this.style = { ...DEFAULT_STYLE, ...this.config.style };
+	        // Initialize move data
+	        this.currentData = {
+	            vector: { x: 0, y: 0 },
+	            angle: 0,
+	            magnitude: 0,
+	            direction: 'idle',
+	            rawPosition: { x: 0, y: 0 },
+	        };
+	        // Create graphics
+	        const factory = graphics();
+	        this.container = factory.createContainer();
+	        this.baseGraphics = factory.createGraphics();
+	        this.knobGraphics = factory.createGraphics();
+	        this.container.addChild(this.baseGraphics);
+	        this.container.addChild(this.knobGraphics);
+	        // Bind event handlers
+	        this.boundPointerDown = this.handlePointerDown.bind(this);
+	        this.boundPointerMove = this.handlePointerMove.bind(this);
+	        this.boundPointerUp = this.handlePointerUp.bind(this);
+	        // Initial render
+	        this.render();
+	        // Setup based on mode
+	        if (this.config.mode === 'fixed') {
+	            this.centerPosition = { ...this.config.position };
+	            this.updatePosition();
+	            this.container.alpha = 1;
+	        }
+	        else {
+	            // Dynamic mode - hide initially if configured
+	            if (this.config.hideWhenIdle) {
+	                this.container.alpha = 0;
+	                this.container.visible = false;
+	            }
+	        }
+	        // Setup event listeners
+	        this.setupEventListeners();
+	        // Listen for resize
+	        window.addEventListener('resize', this.handleResize.bind(this));
+	    }
+	    /**
+	     * Render the joystick graphics
+	     */
+	    render() {
+	        const { size, knobSize } = this.config;
+	        const halfSize = size / 2;
+	        const halfKnob = knobSize / 2;
+	        // Clear previous graphics
+	        this.baseGraphics.clear();
+	        this.knobGraphics.clear();
+	        // Draw base circle
+	        this.baseGraphics.circle(0, 0, halfSize);
+	        this.baseGraphics.fill({ color: this.style.baseColor, alpha: this.style.baseAlpha });
+	        this.baseGraphics.circle(0, 0, halfSize);
+	        this.baseGraphics.stroke({
+	            color: this.style.borderColor,
+	            width: this.style.borderWidth,
+	            alpha: this.style.borderAlpha
+	        });
+	        // Draw knob circle
+	        this.knobGraphics.circle(0, 0, halfKnob);
+	        this.knobGraphics.fill({ color: this.style.knobColor, alpha: this.style.knobAlpha });
+	    }
+	    /**
+	     * Setup pointer event listeners
+	     */
+	    setupEventListeners() {
+	        // Use document to capture all pointer events
+	        document.addEventListener('pointerdown', this.boundPointerDown);
+	        document.addEventListener('pointermove', this.boundPointerMove);
+	        document.addEventListener('pointerup', this.boundPointerUp);
+	        document.addEventListener('pointercancel', this.boundPointerUp);
+	    }
+	    /**
+	     * Remove event listeners
+	     */
+	    removeEventListeners() {
+	        document.removeEventListener('pointerdown', this.boundPointerDown);
+	        document.removeEventListener('pointermove', this.boundPointerMove);
+	        document.removeEventListener('pointerup', this.boundPointerUp);
+	        document.removeEventListener('pointercancel', this.boundPointerUp);
+	    }
+	    /**
+	     * Handle pointer down event
+	     */
+	    handlePointerDown(event) {
+	        // Already tracking a pointer
+	        if (this.activePointerId !== null)
+	            return;
+	        const pos = { x: event.clientX, y: event.clientY };
+	        if (this.config.mode === 'dynamic') {
+	            // Check if touch is within activation zone
+	            if (!this.isInActivationZone(pos))
+	                return;
+	            // Set center to touch position
+	            this.centerPosition = { ...pos };
+	            this.updatePosition();
+	            // Show joystick
+	            this.showJoystick();
+	        }
+	        else {
+	            // Fixed mode - check if touch is on the joystick
+	            if (!this.isInJoystickArea(pos))
+	                return;
+	        }
+	        // Start tracking
+	        this.isActive = true;
+	        this.activePointerId = event.pointerId;
+	        // Update knob position
+	        this.updateKnob(pos);
+	        this.emit('start');
+	    }
+	    /**
+	     * Handle pointer move event
+	     */
+	    handlePointerMove(event) {
+	        if (!this.isActive || event.pointerId !== this.activePointerId)
+	            return;
+	        const pos = { x: event.clientX, y: event.clientY };
+	        this.updateKnob(pos);
+	    }
+	    /**
+	     * Handle pointer up event
+	     */
+	    handlePointerUp(event) {
+	        if (event.pointerId !== this.activePointerId)
+	            return;
+	        this.isActive = false;
+	        this.activePointerId = null;
+	        // Reset knob to center
+	        this.resetKnob();
+	        // Hide joystick in dynamic mode
+	        if (this.config.mode === 'dynamic' && this.config.hideWhenIdle) {
+	            this.hideJoystick();
+	        }
+	        this.emit('end');
+	    }
+	    /**
+	     * Check if position is within activation zone
+	     */
+	    isInActivationZone(pos) {
+	        const zone = this.config.activationZone;
+	        const zoneX = zone.x * this.screenWidth;
+	        const zoneY = zone.y * this.screenHeight;
+	        const zoneW = zone.width * this.screenWidth;
+	        const zoneH = zone.height * this.screenHeight;
+	        return pos.x >= zoneX && pos.x <= zoneX + zoneW &&
+	            pos.y >= zoneY && pos.y <= zoneY + zoneH;
+	    }
+	    /**
+	     * Check if position is within joystick area (fixed mode)
+	     */
+	    isInJoystickArea(pos) {
+	        const dx = pos.x - this.centerPosition.x;
+	        const dy = pos.y - this.centerPosition.y;
+	        const distance = Math.sqrt(dx * dx + dy * dy);
+	        return distance <= this.config.size / 2;
+	    }
+	    /**
+	     * Update container position based on center
+	     */
+	    updatePosition() {
+	        this.container.x = this.centerPosition.x;
+	        this.container.y = this.centerPosition.y;
+	    }
+	    /**
+	     * Update knob position based on pointer position
+	     */
+	    updateKnob(pointerPos) {
+	        const dx = pointerPos.x - this.centerPosition.x;
+	        const dy = pointerPos.y - this.centerPosition.y;
+	        const distance = Math.sqrt(dx * dx + dy * dy);
+	        // Clamp to max distance
+	        const maxDist = this.config.maxDistance;
+	        const clampedDistance = Math.min(distance, maxDist);
+	        // Calculate normalized direction
+	        let normalizedX = 0;
+	        let normalizedY = 0;
+	        if (distance > 0) {
+	            normalizedX = dx / distance;
+	            normalizedY = dy / distance;
+	        }
+	        // Calculate knob position
+	        this.knobPosition = {
+	            x: normalizedX * clampedDistance,
+	            y: normalizedY * clampedDistance,
+	        };
+	        // Update knob graphics position
+	        this.knobGraphics.x = this.knobPosition.x;
+	        this.knobGraphics.y = this.knobPosition.y;
+	        // Calculate magnitude (0-1)
+	        const magnitude = clampedDistance / maxDist;
+	        // Apply dead zone
+	        const effectiveMagnitude = magnitude < this.config.deadZone ? 0 :
+	            (magnitude - this.config.deadZone) / (1 - this.config.deadZone);
+	        // Calculate output vector
+	        const outputX = effectiveMagnitude > 0 ? normalizedX * effectiveMagnitude : 0;
+	        const outputY = effectiveMagnitude > 0 ? normalizedY * effectiveMagnitude : 0;
+	        // Calculate angle (0-360, 0 = right, 90 = down)
+	        let angle = 0;
+	        if (effectiveMagnitude > 0) {
+	            angle = Math.atan2(normalizedY, normalizedX) * (180 / Math.PI);
+	            if (angle < 0)
+	                angle += 360;
+	        }
+	        // Calculate direction
+	        const direction = this.calculateDirection(outputX, outputY, effectiveMagnitude);
+	        // Update current data
+	        this.currentData = {
+	            vector: { x: outputX, y: outputY },
+	            angle,
+	            magnitude: effectiveMagnitude,
+	            direction,
+	            rawPosition: { x: this.knobPosition.x, y: this.knobPosition.y },
+	        };
+	        // Emit move event
+	        this.emit('move', this.currentData);
+	    }
+	    /**
+	     * Calculate 8-way direction from vector
+	     */
+	    calculateDirection(x, y, magnitude) {
+	        if (magnitude < 0.01)
+	            return 'idle';
+	        const angle = Math.atan2(y, x) * (180 / Math.PI);
+	        // 8-way direction based on 45-degree segments
+	        if (angle >= -22.5 && angle < 22.5)
+	            return 'right';
+	        if (angle >= 22.5 && angle < 67.5)
+	            return 'down-right';
+	        if (angle >= 67.5 && angle < 112.5)
+	            return 'down';
+	        if (angle >= 112.5 && angle < 157.5)
+	            return 'down-left';
+	        if (angle >= 157.5 || angle < -157.5)
+	            return 'left';
+	        if (angle >= -157.5 && angle < -112.5)
+	            return 'up-left';
+	        if (angle >= -112.5 && angle < -67.5)
+	            return 'up';
+	        if (angle >= -67.5 && angle < -22.5)
+	            return 'up-right';
+	        return 'idle';
+	    }
+	    /**
+	     * Reset knob to center position
+	     */
+	    resetKnob() {
+	        this.knobPosition = { x: 0, y: 0 };
+	        this.knobGraphics.x = 0;
+	        this.knobGraphics.y = 0;
+	        // Reset data
+	        this.currentData = {
+	            vector: { x: 0, y: 0 },
+	            angle: 0,
+	            magnitude: 0,
+	            direction: 'idle',
+	            rawPosition: { x: 0, y: 0 },
+	        };
+	        // Emit final move with zero values
+	        this.emit('move', this.currentData);
+	    }
+	    /**
+	     * Show joystick with fade animation
+	     */
+	    showJoystick() {
+	        if (this.fadeAnimation !== null) {
+	            cancelAnimationFrame(this.fadeAnimation);
+	        }
+	        this.container.visible = true;
+	        const startAlpha = this.currentAlpha;
+	        const targetAlpha = 1;
+	        const duration = this.config.fadeInDuration;
+	        const startTime = performance.now();
+	        const animate = (currentTime) => {
+	            const elapsed = currentTime - startTime;
+	            const progress = Math.min(elapsed / duration, 1);
+	            this.currentAlpha = startAlpha + (targetAlpha - startAlpha) * progress;
+	            this.container.alpha = this.currentAlpha;
+	            if (progress < 1) {
+	                this.fadeAnimation = requestAnimationFrame(animate);
+	            }
+	            else {
+	                this.fadeAnimation = null;
+	            }
+	        };
+	        this.fadeAnimation = requestAnimationFrame(animate);
+	    }
+	    /**
+	     * Hide joystick with fade animation
+	     */
+	    hideJoystick() {
+	        if (this.fadeAnimation !== null) {
+	            cancelAnimationFrame(this.fadeAnimation);
+	        }
+	        const startAlpha = this.currentAlpha;
+	        const targetAlpha = 0;
+	        const duration = this.config.fadeOutDuration;
+	        const startTime = performance.now();
+	        const animate = (currentTime) => {
+	            const elapsed = currentTime - startTime;
+	            const progress = Math.min(elapsed / duration, 1);
+	            this.currentAlpha = startAlpha + (targetAlpha - startAlpha) * progress;
+	            this.container.alpha = this.currentAlpha;
+	            if (progress < 1) {
+	                this.fadeAnimation = requestAnimationFrame(animate);
+	            }
+	            else {
+	                this.fadeAnimation = null;
+	                this.container.visible = false;
+	            }
+	        };
+	        this.fadeAnimation = requestAnimationFrame(animate);
+	    }
+	    /**
+	     * Handle window resize
+	     */
+	    handleResize() {
+	        this.screenWidth = window.innerWidth;
+	        this.screenHeight = window.innerHeight;
+	    }
+	    // =====================
+	    // Public API
+	    // =====================
+	    /**
+	     * Get the container for adding to scene
+	     */
+	    getContainer() {
+	        return this.container;
+	    }
+	    /**
+	     * Get current joystick data
+	     */
+	    getData() {
+	        return { ...this.currentData };
+	    }
+	    /**
+	     * Get current vector value
+	     */
+	    getVector() {
+	        return { ...this.currentData.vector };
+	    }
+	    /**
+	     * Check if joystick is currently active (being touched)
+	     */
+	    isPressed() {
+	        return this.isActive;
+	    }
+	    /**
+	     * Set joystick position (fixed mode) or center position (dynamic mode)
+	     */
+	    setPosition(x, y) {
+	        this.config.position = { x, y };
+	        if (this.config.mode === 'fixed') {
+	            this.centerPosition = { x, y };
+	            this.updatePosition();
+	        }
+	    }
+	    /**
+	     * Set activation zone (dynamic mode)
+	     */
+	    setActivationZone(zone) {
+	        this.config.activationZone = zone;
+	    }
+	    /**
+	     * Update joystick style
+	     */
+	    setStyle(style) {
+	        this.style = { ...this.style, ...style };
+	        this.render();
+	    }
+	    /**
+	     * Set joystick size
+	     */
+	    setSize(size, knobSize) {
+	        this.config.size = size;
+	        this.config.knobSize = knobSize || size * 0.4;
+	        this.config.maxDistance = size * 0.4;
+	        this.render();
+	    }
+	    /**
+	     * Set dead zone threshold
+	     */
+	    setDeadZone(deadZone) {
+	        this.config.deadZone = Math.max(0, Math.min(1, deadZone));
+	    }
+	    /**
+	     * Show the joystick
+	     */
+	    show() {
+	        this.container.visible = true;
+	        this.container.alpha = 1;
+	        this.currentAlpha = 1;
+	    }
+	    /**
+	     * Hide the joystick
+	     */
+	    hide() {
+	        this.container.visible = false;
+	        this.container.alpha = 0;
+	        this.currentAlpha = 0;
+	    }
+	    /**
+	     * Enable the joystick
+	     */
+	    enable() {
+	        this.setupEventListeners();
+	    }
+	    /**
+	     * Disable the joystick
+	     */
+	    disable() {
+	        this.removeEventListeners();
+	        if (this.isActive) {
+	            this.isActive = false;
+	            this.activePointerId = null;
+	            this.resetKnob();
+	        }
+	    }
+	    /**
+	     * Update joystick (call in game loop if needed for animations)
+	     */
+	    update(_deltaTime) {
+	        // Currently animations are handled via requestAnimationFrame
+	        // This method is provided for future extensions
+	    }
+	    /**
+	     * Destroy the joystick and clean up resources
+	     */
+	    destroy() {
+	        // Cancel any pending animation
+	        if (this.fadeAnimation !== null) {
+	            cancelAnimationFrame(this.fadeAnimation);
+	            this.fadeAnimation = null;
+	        }
+	        // Remove event listeners
+	        this.removeEventListeners();
+	        window.removeEventListener('resize', this.handleResize.bind(this));
+	        // Destroy graphics
+	        this.container.destroy();
+	        // Remove all event listeners
+	        this.removeAllListeners();
+	    }
+	}
+
+	/**
 	 * Safe Area Layout System
 	 *
 	 * Provides a "Safe Area + Letterbox" approach for responsive game layouts.
@@ -49466,6 +50388,19 @@
 	        this.ctx.lineTo(x, y);
 	        return this;
 	    }
+	    // Arc and path methods
+	    arc(cx, cy, radius, startAngle, endAngle, anticlockwise) {
+	        if (!this.pathStarted) {
+	            this.ctx.beginPath();
+	            this.pathStarted = true;
+	        }
+	        this.ctx.arc(cx, cy, radius, startAngle, endAngle, anticlockwise);
+	        return this;
+	    }
+	    closePath() {
+	        this.ctx.closePath();
+	        return this;
+	    }
 	    // Texture support
 	    texture(texture) {
 	        // For Three.js/CSS2D Canvas, we can't directly use Pixi textures
@@ -49848,6 +50783,8 @@
 	exports.GameLoopOptimizer = GameLoopOptimizer;
 	exports.GameModalPanel = GameModalPanel;
 	exports.GamePanel = GamePanel;
+	exports.GameSlider = GameSlider;
+	exports.GameSliderColors = GameSliderColors;
 	exports.GameStyleButton = GameStyleButton;
 	exports.GameStyleColors = GameStyleColors;
 	exports.GameStylePanel = GameStylePanel;
@@ -49929,6 +50866,7 @@
 	exports.UIText = UIText;
 	exports.UIThemeManager = UIThemeManager;
 	exports.VibrantUITheme = VibrantUITheme;
+	exports.VirtualJoystick = VirtualJoystick;
 	exports.createGame = createGame;
 	exports.createGameButtonGradient = createGameButtonGradient;
 	exports.createMergeGame = createMergeGame;
@@ -49939,9 +50877,12 @@
 	exports.darkenColor = darkenColor$1;
 	exports.default = GameByteFramework;
 	exports.drawToTexture = drawToTexture;
+	exports.getFrameworkFontFamily = getFrameworkFontFamily;
 	exports.graphics = graphics;
 	exports.initializeFacades = initializeFacades;
+	exports.isFontReady = isFontReady;
 	exports.lightenColor = lightenColor;
+	exports.loadFrameworkFont = loadFrameworkFont;
 	exports.numberToHex = numberToHex;
 
 	Object.defineProperty(exports, '__esModule', { value: true });

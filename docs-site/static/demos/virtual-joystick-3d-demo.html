@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Virtual Joystick 3D Demo - GameByte Framework</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background: #000;
+      overflow: hidden;
+      touch-action: none;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    #game-container {
+      width: 100vw;
+      height: 100vh;
+    }
+    canvas {
+      display: block;
+    }
+    .info-panel {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 15px;
+      border-radius: 10px;
+      font-size: 14px;
+      min-width: 180px;
+      z-index: 1000;
+    }
+    .info-panel h3 {
+      margin-bottom: 10px;
+      color: #4CAF50;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      margin: 5px 0;
+    }
+    .info-label { color: #aaa; }
+    .info-value { color: #fff; font-family: monospace; }
+    .instructions {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 25px;
+      font-size: 14px;
+      text-align: center;
+      z-index: 1000;
+    }
+    .mode-toggle {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+    }
+    .mode-toggle button {
+      padding: 10px 20px;
+      font-size: 14px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 4px;
+      transition: all 0.2s;
+    }
+    .mode-toggle button.active {
+      background: #4CAF50;
+      color: white;
+    }
+    .mode-toggle button:not(.active) {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container"></div>
+
+  <div class="info-panel">
+    <h3>Joystick Data</h3>
+    <div class="info-row">
+      <span class="info-label">X:</span>
+      <span class="info-value" id="val-x">0.00</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Y:</span>
+      <span class="info-value" id="val-y">0.00</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Direction:</span>
+      <span class="info-value" id="val-dir">idle</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Cube X:</span>
+      <span class="info-value" id="cube-x">0.00</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Cube Z:</span>
+      <span class="info-value" id="cube-z">0.00</span>
+    </div>
+  </div>
+
+  <div class="mode-toggle">
+    <button id="btn-dynamic" class="active">Dynamic</button>
+    <button id="btn-fixed">Fixed</button>
+  </div>
+
+  <div class="instructions">
+    Touch left side of screen to move the cube
+  </div>
+
+  <!-- Three.js -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <!-- Pixi.js (for joystick UI) -->
+  <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+  <!-- GameByte Framework -->
+  <script src="../gamebyte.umd.js"></script>
+
+  <script>
+    const { VirtualJoystick, GraphicsEngine, RenderingMode } = GameByteFramework;
+
+    // Three.js scene
+    let scene, camera, renderer, cube, floor;
+    let joystick = null;
+    let currentMode = 'dynamic';
+
+    // Cube movement
+    const cubeSpeed = 0.1;
+    let cubePosition = { x: 0, z: 0 };
+
+    async function init() {
+      // Initialize Three.js
+      initThreeJS();
+
+      // Initialize GraphicsEngine for 2D (joystick uses Pixi)
+      GraphicsEngine.initialize(RenderingMode.RENDERER_2D);
+
+      // Create joystick
+      createJoystick('dynamic');
+
+      // Setup mode buttons
+      setupModeToggle();
+
+      // Start render loop
+      animate();
+    }
+
+    function initThreeJS() {
+      // Scene
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x1a1a2e);
+
+      // Camera
+      camera = new THREE.PerspectiveCamera(
+        60,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      camera.position.set(0, 8, 10);
+      camera.lookAt(0, 0, 0);
+
+      // Renderer
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      document.getElementById('game-container').appendChild(renderer.domElement);
+
+      // Lighting
+      const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+      scene.add(ambientLight);
+
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+      directionalLight.position.set(5, 10, 5);
+      directionalLight.castShadow = true;
+      directionalLight.shadow.mapSize.width = 2048;
+      directionalLight.shadow.mapSize.height = 2048;
+      scene.add(directionalLight);
+
+      // Floor (grid)
+      const gridHelper = new THREE.GridHelper(20, 20, 0x444444, 0x222222);
+      scene.add(gridHelper);
+
+      // Floor plane for shadows
+      const floorGeometry = new THREE.PlaneGeometry(20, 20);
+      const floorMaterial = new THREE.ShadowMaterial({ opacity: 0.3 });
+      floor = new THREE.Mesh(floorGeometry, floorMaterial);
+      floor.rotation.x = -Math.PI / 2;
+      floor.receiveShadow = true;
+      scene.add(floor);
+
+      // Cube (player)
+      const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
+      const cubeMaterial = new THREE.MeshStandardMaterial({
+        color: 0x4CAF50,
+        metalness: 0.3,
+        roughness: 0.7
+      });
+      cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+      cube.position.y = 0.5;
+      cube.castShadow = true;
+      scene.add(cube);
+
+      // Add some obstacles
+      addObstacles();
+
+      // Handle resize
+      window.addEventListener('resize', onWindowResize);
+    }
+
+    function addObstacles() {
+      const obstaclePositions = [
+        { x: 3, z: 2 },
+        { x: -4, z: -3 },
+        { x: 2, z: -4 },
+        { x: -3, z: 3 },
+        { x: 5, z: -1 },
+      ];
+
+      obstaclePositions.forEach(pos => {
+        const geometry = new THREE.CylinderGeometry(0.3, 0.3, 1.5, 16);
+        const material = new THREE.MeshStandardMaterial({
+          color: 0x2196F3,
+          metalness: 0.5,
+          roughness: 0.5
+        });
+        const obstacle = new THREE.Mesh(geometry, material);
+        obstacle.position.set(pos.x, 0.75, pos.z);
+        obstacle.castShadow = true;
+        scene.add(obstacle);
+      });
+    }
+
+    function createJoystick(mode) {
+      // Cleanup old joystick
+      if (joystick) {
+        joystick.destroy();
+      }
+
+      const config = {
+        mode: mode,
+        size: 120,
+        deadZone: 0.1,
+        style: {
+          baseColor: 0x000000,
+          baseAlpha: 0.5,
+          knobColor: 0x4CAF50,
+          knobAlpha: 0.9,
+          borderColor: 0x4CAF50,
+          borderWidth: 3,
+          borderAlpha: 0.7
+        }
+      };
+
+      if (mode === 'dynamic') {
+        config.activationZone = { x: 0, y: 0, width: 0.5, height: 1 };
+        config.hideWhenIdle = true;
+        document.querySelector('.instructions').textContent = 'Touch left side of screen to move the cube';
+      } else {
+        config.position = { x: 100, y: window.innerHeight - 180 };
+        config.hideWhenIdle = false;
+        document.querySelector('.instructions').textContent = 'Use the joystick to move the cube';
+      }
+
+      joystick = new VirtualJoystick(config);
+
+      // The joystick container is a Pixi container, render it as overlay
+      // For this demo, we'll render joystick graphics directly to a 2D canvas overlay
+      setupJoystickOverlay();
+    }
+
+    function setupJoystickOverlay() {
+      // Create a Pixi app as overlay for the joystick
+      if (!window.pixiApp) {
+        window.pixiApp = new PIXI.Application();
+        window.pixiApp.init({
+          width: window.innerWidth,
+          height: window.innerHeight,
+          backgroundAlpha: 0,
+          resizeTo: window
+        }).then(() => {
+          window.pixiApp.canvas.style.position = 'fixed';
+          window.pixiApp.canvas.style.top = '0';
+          window.pixiApp.canvas.style.left = '0';
+          window.pixiApp.canvas.style.pointerEvents = 'none';
+          window.pixiApp.canvas.style.zIndex = '100';
+          document.body.appendChild(window.pixiApp.canvas);
+
+          // Add joystick to Pixi stage
+          window.pixiApp.stage.addChild(joystick.getContainer());
+        });
+      } else {
+        // Clear and add new joystick
+        window.pixiApp.stage.removeChildren();
+        window.pixiApp.stage.addChild(joystick.getContainer());
+      }
+    }
+
+    function setupModeToggle() {
+      const btnDynamic = document.getElementById('btn-dynamic');
+      const btnFixed = document.getElementById('btn-fixed');
+
+      btnDynamic.addEventListener('click', () => {
+        if (currentMode !== 'dynamic') {
+          currentMode = 'dynamic';
+          btnDynamic.classList.add('active');
+          btnFixed.classList.remove('active');
+          createJoystick('dynamic');
+        }
+      });
+
+      btnFixed.addEventListener('click', () => {
+        if (currentMode !== 'fixed') {
+          currentMode = 'fixed';
+          btnFixed.classList.add('active');
+          btnDynamic.classList.remove('active');
+          createJoystick('fixed');
+        }
+      });
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+
+      if (currentMode === 'fixed' && joystick) {
+        joystick.setPosition(100, window.innerHeight - 180);
+      }
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // Get joystick input
+      if (joystick) {
+        const data = joystick.getData();
+
+        // Update cube position
+        cubePosition.x += data.vector.x * cubeSpeed;
+        cubePosition.z += data.vector.y * cubeSpeed;
+
+        // Clamp to grid bounds
+        cubePosition.x = Math.max(-9, Math.min(9, cubePosition.x));
+        cubePosition.z = Math.max(-9, Math.min(9, cubePosition.z));
+
+        // Apply position to cube
+        cube.position.x = cubePosition.x;
+        cube.position.z = cubePosition.z;
+
+        // Rotate cube based on movement
+        if (data.magnitude > 0.1) {
+          cube.rotation.y = -data.angle * (Math.PI / 180) + Math.PI / 2;
+        }
+
+        // Bounce animation when moving
+        if (data.magnitude > 0.1) {
+          cube.position.y = 0.5 + Math.abs(Math.sin(Date.now() * 0.01)) * 0.1;
+        } else {
+          cube.position.y = 0.5;
+        }
+
+        // Update info panel
+        document.getElementById('val-x').textContent = data.vector.x.toFixed(2);
+        document.getElementById('val-y').textContent = data.vector.y.toFixed(2);
+        document.getElementById('val-dir').textContent = data.direction;
+        document.getElementById('cube-x').textContent = cubePosition.x.toFixed(2);
+        document.getElementById('cube-z').textContent = cubePosition.z.toFixed(2);
+      }
+
+      // Render Three.js scene
+      renderer.render(scene, camera);
+    }
+
+    // Start
+    init();
+  </script>
+</body>
+</html>

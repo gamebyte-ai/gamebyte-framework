@@ -91,6 +91,7 @@ const sidebars: SidebarsConfig = {
         'input/overview',
         'input/keyboard-mouse',
         'input/touch',
+        'input/virtual-joystick',
         'input/gamepad',
       ],
     },
