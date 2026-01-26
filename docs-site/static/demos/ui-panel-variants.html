@@ -188,7 +188,7 @@
             ctx.roundRect(0, 0, 360, 60, 12);
             ctx.fill();
 
-            const gradPanel = gfx.createSprite(PIXI.Texture.from(gradientCanvas));
+            const gradPanel = gfx.createSprite(gfx.createTexture(gradientCanvas));
             gradPanel.x = 20;
             gradPanel.y = 175;
             stage.addChild(gradPanel);

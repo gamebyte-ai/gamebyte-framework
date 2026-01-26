@@ -121,7 +121,7 @@
             gradient.addColorStop(1, colors.gradientBottom);
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
-            bg.texture(PIXI.Texture.from(gradCanvas));
+            bg.texture(gfx.createTexture(gradCanvas));
             bg.rect(0, 0, CONFIG.width, CONFIG.height);
             bg.fill();
             stage.addChild(bg);

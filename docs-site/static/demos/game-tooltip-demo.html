@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameTooltip Demo - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #1a1a2e; transition: background 0.3s ease; }
+        body.light-theme { background: #e8eef5; }
+        canvas { display: block; margin: 0 auto; }
+    </style>
+</head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
+
+    <script>
+        // =====================================================
+        // GameTooltip Demo - Speech Bubble Style Tooltips
+        // =====================================================
+        // This demo showcases:
+        // - GameTooltip component with various tail positions
+        // - Multiple color scheme presets
+        // - Auto-sizing based on text content
+        // - Interactive show/hide functionality
+        // =====================================================
+
+        const {
+            createGame,
+            GameTooltip,
+            GameTooltipColors,
+            GameStyleButton,
+            GameStyleColors,
+            graphics,
+            loadFrameworkFont
+        } = GameByteFramework;
+
+        const CONFIG = { width: 500, height: 700 };
+
+        // ===== THEME DETECTION =====
+        function detectTheme() {
+            try {
+                if (window.parent && window.parent.document) {
+                    const parentTheme = window.parent.document.documentElement.getAttribute('data-theme');
+                    if (parentTheme) return parentTheme;
+                }
+            } catch (e) { /* Cross-origin */ }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const themeParam = urlParams.get('theme');
+            if (themeParam) return themeParam;
+
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                return 'light';
+            }
+            return 'dark';
+        }
+
+        let currentTheme = detectTheme();
+
+        function setupThemeListener() {
+            try {
+                if (window.parent && window.parent.document) {
+                    const observer = new MutationObserver((mutations) => {
+                        mutations.forEach((mutation) => {
+                            if (mutation.attributeName === 'data-theme') {
+                                const newTheme = window.parent.document.documentElement.getAttribute('data-theme');
+                                if (newTheme && newTheme !== currentTheme) {
+                                    currentTheme = newTheme;
+                                    applyTheme();
+                                }
+                            }
+                        });
+                    });
+                    observer.observe(window.parent.document.documentElement, { attributes: true });
+                }
+            } catch (e) {
+                window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
+                    currentTheme = e.matches ? 'light' : 'dark';
+                    applyTheme();
+                });
+            }
+        }
+
+        // ===== THEME COLOR PALETTES =====
+        const THEME_COLORS = {
+            dark: {
+                bgColor: 0x1a1a2e,
+                titleColor: 0xffffff,
+                labelColor: 0x888888
+            },
+            light: {
+                bgColor: 0xe8eef5,
+                titleColor: 0x2d2d44,
+                labelColor: 0x6b7280
+            }
+        };
+
+        function getColors() {
+            return THEME_COLORS[currentTheme] || THEME_COLORS.dark;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.body.appendChild(canvas);
+
+        const game = createGame();
+        let renderer, stage;
+
+        let isRecreating = false;
+        async function applyTheme() {
+            if (isRecreating) return;
+            isRecreating = true;
+
+            document.body.classList.toggle('light-theme', currentTheme === 'light');
+            if (stage && window.createScreen) {
+                await loadFrameworkFont();
+                window.createScreen();
+            }
+            setTimeout(() => { isRecreating = false; }, 100);
+        }
+
+        (async () => {
+            // Load framework font
+            await loadFrameworkFont();
+
+            await game.initialize(canvas, '2d');
+            renderer = game.make('renderer');
+            stage = renderer.getStage();
+
+            setupThemeListener();
+
+            function createScreen() {
+                const colors = getColors();
+                const gfx = graphics();
+
+                // Clear stage
+                while (stage.children.length > 0) {
+                    stage.removeChildAt(0);
+                }
+
+                // ===== BACKGROUND =====
+                const bg = gfx.createGraphics();
+                bg.rect(0, 0, CONFIG.width, CONFIG.height);
+                bg.fill(colors.bgColor);
+                stage.addChild(bg);
+
+                // ===== TITLE =====
+                const title = gfx.createText('GameTooltip', {
+                    fontSize: 24,
+                    fontWeight: 'bold',
+                    fill: colors.titleColor
+                });
+                title.x = (CONFIG.width - title.width) / 2;
+                title.y = 20;
+                stage.addChild(title);
+
+                // ===== SECTION 1: Color Schemes =====
+                const section1Label = gfx.createText('Color Schemes', {
+                    fontSize: 14,
+                    fill: colors.labelColor
+                });
+                section1Label.x = 20;
+                section1Label.y = 65;
+                stage.addChild(section1Label);
+
+                // Row 1: CYAN (default), YELLOW, GREEN
+                const colorSchemes = [
+                    { scheme: GameTooltipColors.CYAN, text: 'Coming Soon', x: 50 },
+                    { scheme: GameTooltipColors.YELLOW, text: 'Warning!', x: 190 },
+                    { scheme: GameTooltipColors.GREEN, text: 'Success', x: 330 },
+                ];
+
+                colorSchemes.forEach((config, i) => {
+                    const tooltip = new GameTooltip({
+                        text: config.text,
+                        colorScheme: config.scheme,
+                        tailPosition: 'bottom-left',
+                        fontSize: 14
+                    });
+                    tooltip.setPosition(config.x, 95);
+                    stage.addChild(tooltip.getContainer());
+                });
+
+                // Row 2: RED, PURPLE, DARK
+                const colorSchemes2 = [
+                    { scheme: GameTooltipColors.RED, text: 'Error', x: 50 },
+                    { scheme: GameTooltipColors.PURPLE, text: 'Pro Tip', x: 190 },
+                    { scheme: GameTooltipColors.DARK, text: 'Hint', x: 330 },
+                ];
+
+                colorSchemes2.forEach((config, i) => {
+                    const tooltip = new GameTooltip({
+                        text: config.text,
+                        colorScheme: config.scheme,
+                        tailPosition: 'bottom-center',
+                        fontSize: 14
+                    });
+                    tooltip.setPosition(config.x, 165);
+                    stage.addChild(tooltip.getContainer());
+                });
+
+                // ===== SECTION 2: Tail Positions =====
+                const section2Label = gfx.createText('Tail Positions', {
+                    fontSize: 14,
+                    fill: colors.labelColor
+                });
+                section2Label.x = 20;
+                section2Label.y = 235;
+                stage.addChild(section2Label);
+
+                // Top tails
+                const topTails = [
+                    { pos: 'top-left', x: 50 },
+                    { pos: 'top-center', x: 190 },
+                    { pos: 'top-right', x: 330 },
+                ];
+
+                topTails.forEach((config) => {
+                    const tooltip = new GameTooltip({
+                        text: config.pos,
+                        tailPosition: config.pos,
+                        fontSize: 12,
+                        padding: 8
+                    });
+                    tooltip.setPosition(config.x, 280);
+                    stage.addChild(tooltip.getContainer());
+                });
+
+                // Bottom tails
+                const bottomTails = [
+                    { pos: 'bottom-left', x: 50 },
+                    { pos: 'bottom-center', x: 190 },
+                    { pos: 'bottom-right', x: 330 },
+                ];
+
+                bottomTails.forEach((config) => {
+                    const tooltip = new GameTooltip({
+                        text: config.pos,
+                        tailPosition: config.pos,
+                        fontSize: 12,
+                        padding: 8
+                    });
+                    tooltip.setPosition(config.x, 340);
+                    stage.addChild(tooltip.getContainer());
+                });
+
+                // Side tails
+                const sideTails = [
+                    { pos: 'left-center', x: 80 },
+                    { pos: 'right-center', x: 280 },
+                    { pos: 'none', x: 400 },
+                ];
+
+                sideTails.forEach((config) => {
+                    const tooltip = new GameTooltip({
+                        text: config.pos,
+                        tailPosition: config.pos,
+                        fontSize: 12,
+                        padding: 8,
+                        colorScheme: GameTooltipColors.PURPLE
+                    });
+                    tooltip.setPosition(config.x, 400);
+                    stage.addChild(tooltip.getContainer());
+                });
+
+                // ===== SECTION 3: Multi-line & Custom =====
+                const section3Label = gfx.createText('Multi-line & Custom', {
+                    fontSize: 14,
+                    fill: colors.labelColor
+                });
+                section3Label.x = 20;
+                section3Label.y = 470;
+                stage.addChild(section3Label);
+
+                // Multi-line tooltip
+                const multiLineTooltip = new GameTooltip({
+                    text: 'This is a longer tooltip\nwith multiple lines',
+                    maxWidth: 180,
+                    tailPosition: 'bottom-left',
+                    fontSize: 14
+                });
+                multiLineTooltip.setPosition(50, 505);
+                stage.addChild(multiLineTooltip.getContainer());
+
+                // Large custom tooltip
+                const customTooltip = new GameTooltip({
+                    text: 'New Feature!',
+                    colorScheme: {
+                        background: 0xFF6B6B,
+                        border: 0x8B0000,
+                        text: 0xFFFFFF,
+                        textStroke: 0x8B0000
+                    },
+                    tailPosition: 'top-center',
+                    fontSize: 18,
+                    borderRadius: 15,
+                    borderWidth: 4,
+                    tailSize: 12
+                });
+                customTooltip.setPosition(280, 530);
+                stage.addChild(customTooltip.getContainer());
+
+                // ===== SECTION 4: Interactive Demo =====
+                const section4Label = gfx.createText('Interactive (Click button)', {
+                    fontSize: 14,
+                    fill: colors.labelColor
+                });
+                section4Label.x = 20;
+                section4Label.y = 600;
+                stage.addChild(section4Label);
+
+                // Interactive tooltip (starts hidden)
+                const interactiveTooltip = new GameTooltip({
+                    text: 'Toggle me!',
+                    tailPosition: 'bottom-center',
+                    colorScheme: GameTooltipColors.GREEN
+                });
+                interactiveTooltip.setPosition(180, 590);
+                interactiveTooltip.hide();
+                stage.addChild(interactiveTooltip.getContainer());
+
+                // Toggle button
+                const toggleBtn = new GameStyleButton({
+                    text: 'Show',
+                    width: 100,
+                    height: 45,
+                    fontSize: 16,
+                    colorScheme: GameStyleColors.BUTTON_GREEN
+                });
+                toggleBtn.setPosition(190, 640);
+                toggleBtn.on('click', () => {
+                    interactiveTooltip.toggle();
+                    toggleBtn.setText(interactiveTooltip.isVisible() ? 'Hide' : 'Show');
+                });
+                stage.addChild(toggleBtn.getContainer());
+            }
+
+            // Expose for theme switching
+            window.createScreen = createScreen;
+
+            // Initial render
+            createScreen();
+            game.start();
+        })();
+    </script>
+</body>
+</html>

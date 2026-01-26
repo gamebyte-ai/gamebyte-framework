@@ -196,6 +196,7 @@ await sceneManager.load('game');
 - `UIText` - Styled text labels
 - `UIProgressBar` - Animated progress bars
 - `UIContainer` - Layout containers
+- `GameTooltip` - Speech bubble tooltips/popovers with customizable tail
 - `ArcheroMenu` - Full-featured bottom navigation (670 lines → 3 lines)
 
 **Example: Button**
@@ -236,6 +237,24 @@ renderer.getStage().addChild(menu.getContainer());
 ```
 
 **Result:** Production-quality menu in 3 lines
+
+**Example: GameTooltip (Speech Bubble)**
+
+```typescript
+import { GameTooltip, GameTooltipColors } from 'gamebyte-framework';
+
+const tooltip = new GameTooltip({
+  text: 'Coming Soon',
+  tailPosition: 'bottom-left', // 12 positions + 'none'
+  colorScheme: GameTooltipColors.CYAN
+});
+
+tooltip.setPosition(100, 50);
+renderer.getStage().addChild(tooltip.getContainer());
+tooltip.show(); // or tooltip.hide(), tooltip.toggle()
+```
+
+**Available Color Schemes:** `CYAN`, `YELLOW`, `GREEN`, `RED`, `PURPLE`, `DARK`, `WHITE`
 
 ---
 
