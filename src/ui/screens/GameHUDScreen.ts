@@ -156,7 +156,7 @@ export class GameHUDScreen extends SimpleScreen {
     // Score
     if (this.hudConfig.showScore) {
       this.scoreText = factory.createText('Score: 0', {
-        fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+        fontFamily: '"Lilita One", "Arial Black", sans-serif',
         fontSize: 22,
         fontWeight: 'bold',
         fill: 0xFFFFFF,
@@ -174,7 +174,7 @@ export class GameHUDScreen extends SimpleScreen {
     // Timer
     if (this.hudConfig.showTimer) {
       this.timerText = factory.createText('0:00', {
-        fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+        fontFamily: '"Lilita One", "Arial Black", sans-serif',
         fontSize: 22,
         fontWeight: 'bold',
         fill: 0xFFFFFF,
@@ -341,7 +341,7 @@ export class GameHUDScreen extends SimpleScreen {
 
     // Paused text
     const pausedText = factory.createText('PAUSED', {
-      fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+      fontFamily: '"Lilita One", "Arial Black", sans-serif',
       fontSize: 48,
       fontWeight: 'bold',
       fill: 0xFFFFFF,

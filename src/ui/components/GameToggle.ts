@@ -164,7 +164,7 @@ export class GameToggle extends EventEmitter {
     }
 
     const alpha = disabled ? 0.5 : 1;
-    const pressOffset = this.isPressed ? 2 : 0;
+    const thumbScale = this.isPressed ? 0.9 : 1.0;
 
     // Determine track colors based on state
     const trackTopColor = this._value ? colorScheme.trackOnTop : colorScheme.trackOffTop;
@@ -175,12 +175,12 @@ export class GameToggle extends EventEmitter {
     this.depthGraphics.fill({ color: colorScheme.borderDepth, alpha });
 
     // Layer 2: Border
-    this.borderGraphics.roundRect(0, pressOffset, width, height, radius);
+    this.borderGraphics.roundRect(0, 0, width, height, radius);
     this.borderGraphics.fill({ color: colorScheme.border, alpha });
 
     // Layer 3: Track fill with gradient
     const trackX = borderWidth;
-    const trackY = borderWidth + pressOffset;
+    const trackY = borderWidth;
     const trackWidth = width - borderWidth * 2;
     const trackHeight = height - borderWidth * 2;
     const trackRadius = radius - borderWidth;
@@ -209,9 +209,10 @@ export class GameToggle extends EventEmitter {
     this.trackGraphics.fill({ color: 0x000000, alpha: 0.15 * alpha });
 
     // Layer 4: Thumb
-    const thumbRadius = (height - 10) / 2;
-    const thumbX = this._value ? width - thumbRadius - 7 : thumbRadius + 7;
-    const thumbY = height / 2 + pressOffset;
+    const thumbBaseRadius = (height - 10) / 2;
+    const thumbRadius = thumbBaseRadius * thumbScale;
+    const thumbX = this._value ? width - thumbBaseRadius - 7 : thumbBaseRadius + 7;
+    const thumbY = height / 2;
 
     // Thumb shadow
     this.thumbGraphics.circle(thumbX + 1, thumbY + 2, thumbRadius);

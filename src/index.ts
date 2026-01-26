@@ -393,6 +393,12 @@ export type { GameStylePanelConfig, GamePanelColorScheme } from './ui/components
 export { GameToggle, GameToggleColors } from './ui/components/GameToggle';
 export type { GameToggleConfig, GameToggleColorScheme } from './ui/components/GameToggle';
 
+export { GameSlider, GameSliderColors } from './ui/components/GameSlider';
+export type { GameSliderConfig, GameSliderColorScheme } from './ui/components/GameSlider';
+
+// Font Loader (auto-loads framework font)
+export { loadFrameworkFont, getFrameworkFontFamily, isFontReady } from './ui/utils/FontLoader';
+
 // Screen & Panel Management (Boilerplate)
 export { ScreenManager } from './ui/app/ScreenManager';
 export type { ScreenManagerConfig, TransitionType, TransitionDirection } from './ui/app/ScreenManager';

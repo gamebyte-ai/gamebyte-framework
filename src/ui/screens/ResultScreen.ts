@@ -5,6 +5,7 @@ import { GameStyleButton } from '../components/GameStyleButton.js';
 import { GameStyleColors } from '../themes/GameStyleUITheme.js';
 import { animate, Easing, lerp } from '../utils/animation.js';
 import { formatNumber, darkenColor } from '../utils/format.js';
+import { getFrameworkFontFamily } from '../utils/FontLoader.js';
 
 /**
  * Result type
@@ -146,7 +147,7 @@ export class ResultScreen extends SimpleScreen {
     // Title
     const titleText = this.resultConfig.title || (isVictory ? 'VICTORY!' : 'DEFEAT');
     const title = factory.createText(titleText, {
-      fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+      fontFamily: '"Lilita One", "Arial Black", sans-serif',
       fontSize: 48,
       fontWeight: 'bold',
       fill: isVictory ? 0x4CAF50 : 0xE84C4C,
@@ -251,7 +252,7 @@ export class ResultScreen extends SimpleScreen {
 
     // Score label
     const scoreLabel = factory.createText('Score', {
-      fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+      fontFamily: '"Lilita One", "Arial Black", sans-serif',
       fontSize: 24,
       fill: 0x888888,
     });
@@ -262,7 +263,7 @@ export class ResultScreen extends SimpleScreen {
 
     // Score value
     const scoreValue = factory.createText(formatNumber(this.resultConfig.score || 0), {
-      fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+      fontFamily: '"Lilita One", "Arial Black", sans-serif',
       fontSize: 56,
       fontWeight: 'bold',
       fill: 0xFFFFFF,
@@ -279,7 +280,7 @@ export class ResultScreen extends SimpleScreen {
       const isNewBest = (this.resultConfig.score || 0) >= this.resultConfig.bestScore;
       const bestText = isNewBest ? 'NEW BEST!' : `Best: ${formatNumber(this.resultConfig.bestScore)}`;
       const bestLabel = factory.createText(bestText, {
-        fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+        fontFamily: '"Lilita One", "Arial Black", sans-serif',
         fontSize: 18,
         fill: isNewBest ? 0xFFD700 : 0x888888,
       });
@@ -307,7 +308,7 @@ export class ResultScreen extends SimpleScreen {
 
     // Rewards label
     const rewardsLabel = factory.createText('Rewards', {
-      fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+      fontFamily: '"Lilita One", "Arial Black", sans-serif',
       fontSize: 20,
       fill: 0x888888,
     });
@@ -331,7 +332,7 @@ export class ResultScreen extends SimpleScreen {
       // Icon
       if (typeof reward.icon === 'string') {
         const iconText = factory.createText(reward.icon, {
-          fontFamily: 'Arial',
+          fontFamily: getFrameworkFontFamily(),
           fontSize: 32,
         });
         if (iconText.anchor) iconText.anchor.set(0.5, 0.5);
@@ -341,7 +342,7 @@ export class ResultScreen extends SimpleScreen {
 
       // Amount
       const amountText = factory.createText(`+${formatNumber(reward.amount)}`, {
-        fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+        fontFamily: '"Lilita One", "Arial Black", sans-serif',
         fontSize: 16,
         fontWeight: 'bold',
         fill: 0xFFFFFF,

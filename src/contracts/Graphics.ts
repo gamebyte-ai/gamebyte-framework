@@ -63,6 +63,10 @@ export interface IGraphics extends IDisplayObject {
   moveTo(x: number, y: number): this;
   lineTo(x: number, y: number): this;
 
+  // Arc and path
+  arc(cx: number, cy: number, radius: number, startAngle: number, endAngle: number, anticlockwise?: boolean): this;
+  closePath(): this;
+
   // Texture support
   texture(texture: ITexture): this;
 }
@@ -79,18 +83,41 @@ export interface IText extends IDisplayObject {
   readonly height: number;
 }
 
+/**
+ * Pixi v8 stroke object format
+ */
+export interface IStrokeStyle {
+  color?: number | string;
+  width?: number;
+}
+
+/**
+ * Pixi v8 drop shadow object format
+ */
+export interface IDropShadowStyle {
+  color?: number | string;
+  alpha?: number;
+  angle?: number;
+  blur?: number;
+  distance?: number;
+}
+
 export interface ITextStyle {
   fontFamily?: string;
   fontSize?: number;
   fontWeight?: string;
+  fontStyle?: 'normal' | 'italic' | 'oblique' | string;
   fill?: number | string | number[];
   align?: 'left' | 'center' | 'right';
   wordWrap?: boolean;
   wordWrapWidth?: number;
   lineHeight?: number;
-  stroke?: number | string;
-  strokeThickness?: number;
-  dropShadow?: boolean;
+  // Supports both legacy (number) and modern Pixi v8 (object) formats
+  stroke?: number | string | IStrokeStyle;
+  strokeThickness?: number; // Legacy format
+  // Supports both legacy (boolean) and modern Pixi v8 (object) formats
+  dropShadow?: boolean | IDropShadowStyle;
+  // Legacy format properties
   dropShadowColor?: number | string;
   dropShadowBlur?: number;
   dropShadowAngle?: number;

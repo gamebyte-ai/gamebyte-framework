@@ -1,6 +1,7 @@
 import { EventEmitter } from 'eventemitter3';
 import { IContainer, IGraphics, IText, ITexture } from '../../contracts/Graphics';
 import { graphics } from '../../graphics/GraphicsEngine';
+import { getFrameworkFontFamily } from '../utils/FontLoader';
 
 /**
  * UIButton configuration
@@ -85,7 +86,7 @@ export class UIButton extends EventEmitter {
       width: config.width || 180,
       height: config.height || 60,
       fontSize: config.fontSize || 24,
-      fontFamily: config.fontFamily || 'Arial Black, Arial, sans-serif',
+      fontFamily: config.fontFamily || getFrameworkFontFamily(),
       fontWeight: config.fontWeight || 'bold',
       textColor: config.textColor !== undefined ? config.textColor : 0xFFFFFF,
       backgroundColor: config.backgroundColor !== undefined ? config.backgroundColor : 0x007AFF,

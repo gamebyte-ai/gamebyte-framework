@@ -195,7 +195,7 @@ export abstract class GamePanel extends EventEmitter {
    */
   protected createTitle(): void {
     this.titleText = graphics().createText(this.config.title, {
-      fontFamily: '"Fredoka One", "Arial Black", sans-serif',
+      fontFamily: '"Lilita One", "Arial Black", sans-serif',
       fontSize: 24,
       fontWeight: 'bold',
       fill: this.theme.title || 0xFFFFFF,

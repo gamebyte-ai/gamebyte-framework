@@ -4,6 +4,7 @@ import { MergeGrid } from '../ui/components/merge/MergeGrid';
 import { MergeItem } from '../ui/components/merge/MergeItem';
 import { graphics } from '../graphics/GraphicsEngine';
 import { IContainer, IText, IGraphics } from '../contracts/Graphics';
+import { getFrameworkFontFamily } from '../ui/utils/FontLoader';
 
 /**
  * MergeGameScene configuration
@@ -294,7 +295,7 @@ export class MergeGameScene extends BaseScene {
 
       if (this.sceneConfig.showScoreUI) {
         this.scoreText = graphics().createText('Score: 0', {
-          fontFamily: 'Arial',
+          fontFamily: getFrameworkFontFamily(),
           fontSize: 24,
           fill: 0xFFFFFF
         });
@@ -305,7 +306,7 @@ export class MergeGameScene extends BaseScene {
 
       if (this.sceneConfig.showTierUI) {
         this.tierText = graphics().createText('Best Tier: 0', {
-          fontFamily: 'Arial',
+          fontFamily: getFrameworkFontFamily(),
           fontSize: 18,
           fill: 0xCCCCCC
         });
