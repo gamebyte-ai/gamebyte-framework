@@ -1,4 +1,4 @@
-import { UITheme, Color } from '../../contracts/UI';
+import { UITheme } from '../../contracts/UI';
 
 /**
  * Game-style UI theme inspired by mobile games like Brawl Stars, Candy Crush, etc.
@@ -185,64 +185,72 @@ export const GameStyleColors = {
 
   // Hexagon level colors
   HEXAGON_BLUE: {
-    fill: 0x3D85C6,
+    fill: 0x4DA6FF,
+    fillBottom: 0x2E7BC9,
     border: 0x1A3A5C,
-    highlight: 0x6DB3F2,
+    highlight: 0x7DBFFF,
     text: 0xFFFFFF,
     textStroke: 0x1A3A5C
   },
 
   HEXAGON_LOCKED: {
-    fill: 0x5C6370,
-    border: 0x3A3F47,
-    highlight: 0x7A8089,
-    text: 0xCCCCCC,
-    textStroke: 0x2A2E35
+    fill: 0x6B7280,
+    fillBottom: 0x4B5563,
+    border: 0x374151,
+    highlight: 0x9CA3AF,
+    text: 0xD1D5DB,
+    textStroke: 0x1F2937
   },
 
   HEXAGON_COMPLETED: {
-    fill: 0x43A047,
-    border: 0x1B5E20,
-    highlight: 0x76D275,
+    fill: 0x4ADE80,
+    fillBottom: 0x22C55E,
+    border: 0x166534,
+    highlight: 0x86EFAC,
     text: 0xFFFFFF,
-    textStroke: 0x1B5E20
+    textStroke: 0x166534
   },
 
   HEXAGON_CURRENT: {
-    fill: 0x5C6BC0,
-    border: 0x283593,
-    highlight: 0x8E99F3,
+    fill: 0x818CF8,
+    fillBottom: 0x6366F1,
+    border: 0x3730A3,
+    highlight: 0xA5B4FC,
     text: 0xFFFFFF,
-    textStroke: 0x283593
+    textStroke: 0x3730A3,
+    glow: 0x818CF8
   },
 
   // Candy Crush style hexagon with golden border
   HEXAGON_CANDY_BLUE: {
-    fill: 0x4A7BB7,
-    border: 0xFFB300,
-    highlight: 0x6B9BD1,
+    fill: 0x5DADE2,
+    fillBottom: 0x3498DB,
+    border: 0xF1C40F,
+    highlight: 0x85C1E9,
     text: 0xFFFFFF,
-    textStroke: 0x2D4A6E,
-    outerBorder: 0xCC8800
+    textStroke: 0x21618C,
+    outerBorder: 0xD4AC0D
   },
 
   HEXAGON_CANDY_CURRENT: {
-    fill: 0x5A9BD4,
-    border: 0xFFB300,
-    highlight: 0x7BB8E8,
+    fill: 0x7FB3D5,
+    fillBottom: 0x5499C7,
+    border: 0xF1C40F,
+    highlight: 0xA9CCE3,
     text: 0xFFFFFF,
-    textStroke: 0x2D5A7E,
-    outerBorder: 0xCC8800,
-    glow: 0x00FFFF
+    textStroke: 0x2471A3,
+    outerBorder: 0xD4AC0D,
+    glow: 0x5DADE2
   },
 
   HEXAGON_CANDY_LOCKED: {
-    fill: 0x4A5568,
-    border: 0x718096,
-    highlight: 0x5A6578,
-    text: 0xA0AEC0,
-    textStroke: 0x2D3748,
-    outerBorder: 0x4A5568
+    fill: 0x7F8C8D,
+    fillBottom: 0x5D6D7E,
+    border: 0x95A5A6,
+    highlight: 0xAEB6BF,
+    text: 0xBDC3C7,
+    textStroke: 0x2C3E50,
+    outerBorder: 0x566573
   },
 
   // Panel color schemes (matches No Ads popup style)

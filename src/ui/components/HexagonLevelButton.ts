@@ -1,7 +1,7 @@
 import { EventEmitter } from 'eventemitter3';
 import { IContainer, IGraphics, IText } from '../../contracts/Graphics';
 import { graphics } from '../../graphics/GraphicsEngine';
-import { GameStyleColors, numberToHex } from '../themes/GameStyleUITheme';
+import { GameStyleColors, numberToHex, darkenColor } from '../themes/GameStyleUITheme';
 
 /**
  * Level button state
@@ -13,6 +13,7 @@ export type LevelState = 'locked' | 'available' | 'current' | 'completed';
  */
 export interface HexagonColorScheme {
   fill: number;
+  fillBottom?: number; // Optional bottom gradient color (defaults to darker fill)
   border: number;
   highlight: number;
   text: number;
@@ -303,7 +304,7 @@ export class HexagonLevelButton extends EventEmitter {
    * Render hexagon graphics
    */
   private render(): void {
-    const { size, colorScheme, state } = this.config;
+    const { size, colorScheme } = this.config;
 
     // Clear graphics
     this.shadowGraphics.clear();
@@ -336,39 +337,71 @@ export class HexagonLevelButton extends EventEmitter {
       this.borderGraphics.fill({ color: colors.border });
     }
 
-    // 3. Main fill (blue hexagon)
-    this.drawHexagon(this.fillGraphics, 0, pressOffset, size - borderWidth * 2);
-    this.fillGraphics.fill({ color: colors.fill });
+    // 3. Main fill with gradient (top lighter, bottom darker)
+    const fillSize = size - borderWidth * 2;
+    const fillTop = colors.fill;
+    const fillBottom = colors.fillBottom || darkenColor(colors.fill, 0.15);
+
+    // Draw hexagon shape
+    this.drawHexagon(this.fillGraphics, 0, pressOffset, fillSize);
+
+    // Create gradient texture for fill
+    const textureSize = Math.ceil(fillSize);
+    const gradientTexture = graphics().createCanvasTexture(
+      textureSize,
+      textureSize,
+      (ctx: CanvasRenderingContext2D) => {
+        const gradient = ctx.createLinearGradient(0, 0, 0, textureSize);
+        gradient.addColorStop(0, numberToHex(fillTop));
+        gradient.addColorStop(0.35, numberToHex(fillTop));
+        gradient.addColorStop(1, numberToHex(fillBottom));
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, textureSize, textureSize);
+      }
+    );
+
+    // Apply texture fill with matrix transform to center it
+    try {
+      const matrix = {
+        a: 1, b: 0, c: 0, d: 1,
+        tx: -fillSize / 2,
+        ty: pressOffset - fillSize / 2
+      };
+      this.fillGraphics.fill({ texture: gradientTexture as any, matrix: matrix as any });
+    } catch {
+      // Fallback to solid color if texture fill not supported
+      this.fillGraphics.fill({ color: colors.fill });
+    }
 
     // 3.5 Inner bevel effect for 3D look
     if (colors.outerBorder) {
-      // Top inner highlight
+      // Top inner highlight (subtle white glow)
       this.drawHexagonBevel(
         this.fillGraphics,
         0,
         pressOffset - 3,
-        size - borderWidth * 2 - 6,
+        fillSize - 6,
         0xFFFFFF,
-        0.2
+        0.25
       );
       // Bottom inner shadow
       this.drawHexagonBevel(
         this.fillGraphics,
         0,
         pressOffset + 3,
-        size - borderWidth * 2 - 6,
+        fillSize - 6,
         0x000000,
-        0.15
+        0.2
       );
     }
 
-    // 4. Inner highlight (top half)
+    // 4. Inner highlight (top shine)
     if (!this.isPressed) {
       this.drawHexagonHighlight(
         this.highlightGraphics,
         0,
         pressOffset - 2,
-        size - borderWidth * 2 - 4,
+        fillSize - 4,
         colors.highlight
       );
     }
@@ -431,7 +464,7 @@ export class HexagonLevelButton extends EventEmitter {
     cx: number,
     cy: number,
     size: number,
-    color: number
+    _color: number
   ): void {
     // Create a highlight that covers top half of hexagon
     const halfSize = size / 2;
