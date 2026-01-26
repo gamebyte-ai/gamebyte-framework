@@ -19,7 +19,7 @@ export interface IDisplayObject extends EventEmitter {
   visible: boolean;
   interactive?: boolean;
   cursor?: string;
-  eventMode?: string | 'none' | 'passive' | 'auto' | 'static' | 'dynamic';
+  eventMode?: 'none' | 'passive' | 'auto' | 'static' | 'dynamic';
 
   destroy(options?: any): void;
 }

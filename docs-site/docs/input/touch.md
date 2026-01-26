@@ -4,7 +4,7 @@ title: Touch Input
 description: Mobile touch and gesture handling
 sidebar_position: 3
 keywords: [touch, mobile, gesture, swipe, pinch]
-llm_summary: "Touch events: tap, doubletap, hold, swipe, pinch. Virtual joystick: Input.createVirtualJoystick(). Multi-touch: on('touch', { touches }). 44px touch targets."
+llm_summary: "Touch events: tap, doubletap, hold, swipe, pinch. VirtualJoystick: mode='dynamic'|'fixed', on('move', data => {vector, angle, magnitude, direction}). Multi-touch: on('touch', { touches }). 44px touch targets."
 ---
 
 <!-- llm-context: touch-input, mobile-input, gestures, swipe, pinch, virtual-joystick -->
@@ -80,27 +80,27 @@ touch.on('pan', (event) => {
 
 ## Virtual Joystick
 
+For mobile games requiring analog movement controls, use the `VirtualJoystick` component:
+
 ```typescript
 import { VirtualJoystick } from '@gamebyte/framework';
 
 const joystick = new VirtualJoystick({
-    position: { x: 100, y: 500 },
-    size: 120,
-    innerSize: 50,
-    backgroundColor: 0x333333,
-    innerColor: 0x666666
+  mode: 'dynamic', // Appears where user touches
+  activationZone: { x: 0, y: 0, width: 0.5, height: 1 } // Left half of screen
 });
 
 scene.addChild(joystick.getContainer());
 
-// Get input
-function update(deltaTime: number) {
-    const input = joystick.getInput();
-    // input = { x: -1 to 1, y: -1 to 1, magnitude: 0 to 1 }
-
-    player.move(input.x * speed * deltaTime, input.y * speed * deltaTime);
-}
+joystick.on('move', (data) => {
+  player.velocity.x = data.vector.x * speed;
+  player.velocity.y = data.vector.y * speed;
+});
 ```
+
+:::tip Full Documentation
+See the **[Virtual Joystick](./virtual-joystick)** page for complete configuration options, events, and examples including dual-joystick setups.
+:::
 
 ## Multi-Touch
 

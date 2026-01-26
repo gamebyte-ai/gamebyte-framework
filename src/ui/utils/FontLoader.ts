@@ -9,7 +9,6 @@
 // Lilita One - Playful, game-style display font
 const FRAMEWORK_FONT = {
   family: 'Lilita One',
-  weights: [400], // Lilita One only has regular weight
   googleFontsUrl: 'https://fonts.googleapis.com/css2?family=Lilita+One&display=swap'
 };
 
@@ -66,7 +65,7 @@ function isFontLoaded(): boolean {
   if (typeof document === 'undefined' || !document.fonts) {
     return true; // SSR or no Font API support
   }
-  return document.fonts.check(`700 24px ${FRAMEWORK_FONT.family}`);
+  return document.fonts.check(`400 24px ${FRAMEWORK_FONT.family}`);
 }
 
 /**
@@ -104,7 +103,7 @@ export async function loadFrameworkFont(): Promise<void> {
     const preload = document.createElement('div');
     preload.style.cssText = `
       font-family: '${FRAMEWORK_FONT.family}', sans-serif;
-      font-weight: 700;
+      font-weight: 400;
       position: absolute;
       left: -9999px;
       visibility: hidden;

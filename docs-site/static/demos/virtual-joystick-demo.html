@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Virtual Joystick Demo - GameByte Framework</title>
+  <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      min-height: 100vh;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      touch-action: none;
+    }
+    #game-container {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    canvas {
+      display: block;
+    }
+    .info-panel {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 15px;
+      border-radius: 10px;
+      font-size: 14px;
+      min-width: 200px;
+      z-index: 1000;
+    }
+    .info-panel h3 {
+      margin-bottom: 10px;
+      color: #4CAF50;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      margin: 5px 0;
+    }
+    .info-label {
+      color: #aaa;
+    }
+    .info-value {
+      color: #fff;
+      font-family: monospace;
+    }
+    .mode-switch {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+    }
+    .mode-switch button {
+      padding: 12px 24px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 5px;
+      transition: all 0.2s;
+    }
+    .mode-switch button.active {
+      background: #4CAF50;
+      color: white;
+    }
+    .mode-switch button:not(.active) {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+    .mode-switch button:hover {
+      transform: scale(1.05);
+    }
+    .instructions {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 14px;
+      text-align: center;
+      z-index: 1000;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container"></div>
+
+  <div class="info-panel">
+    <h3>Joystick Data</h3>
+    <div class="info-row">
+      <span class="info-label">Vector X:</span>
+      <span class="info-value" id="vector-x">0.00</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Vector Y:</span>
+      <span class="info-value" id="vector-y">0.00</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Angle:</span>
+      <span class="info-value" id="angle">0°</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Magnitude:</span>
+      <span class="info-value" id="magnitude">0.00</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Direction:</span>
+      <span class="info-value" id="direction">idle</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Active:</span>
+      <span class="info-value" id="active">No</span>
+    </div>
+  </div>
+
+  <div class="instructions" id="instructions">
+    <span id="instruction-text">Touch left side of screen to control</span>
+  </div>
+
+  <div class="mode-switch">
+    <button id="btn-dynamic" class="active">Dynamic Mode</button>
+    <button id="btn-fixed">Fixed Mode</button>
+  </div>
+
+  <script src="../gamebyte.umd.js"></script>
+  <script>
+    // Get from UMD build
+    const GameByteFramework = window.GameByteFramework;
+
+    // Player state
+    let playerX = window.innerWidth / 2;
+    let playerY = window.innerHeight / 2;
+    const playerSpeed = 5;
+    let playerGraphics = null;
+    let trailGraphics = null;
+
+    // Trail effect
+    const trail = [];
+    const maxTrailLength = 20;
+
+    // Joystick instance
+    let joystick = null;
+    let currentMode = 'dynamic';
+
+    // Initialize Pixi Application
+    const app = new PIXI.Application();
+
+    async function init() {
+      await app.init({
+        width: window.innerWidth,
+        height: window.innerHeight,
+        backgroundColor: 0x1a1a2e,
+        antialias: true,
+        resizeTo: window
+      });
+
+      document.getElementById('game-container').appendChild(app.canvas);
+
+      // Initialize graphics engine for 2D mode
+      GameByteFramework.GraphicsEngine.initialize(GameByteFramework.RenderingMode.RENDERER_2D);
+
+      // Create trail graphics
+      trailGraphics = new PIXI.Graphics();
+      app.stage.addChild(trailGraphics);
+
+      // Create player
+      createPlayer();
+
+      // Create joystick
+      createJoystick('dynamic');
+
+      // Setup mode switch buttons
+      setupModeSwitch();
+
+      // Start game loop
+      app.ticker.add(gameLoop);
+    }
+
+    function createPlayer() {
+      playerGraphics = new PIXI.Graphics();
+      drawPlayer();
+      app.stage.addChild(playerGraphics);
+    }
+
+    function drawPlayer() {
+      playerGraphics.clear();
+
+      // Body
+      playerGraphics.circle(0, 0, 25);
+      playerGraphics.fill({ color: 0x4CAF50 });
+
+      // Inner glow
+      playerGraphics.circle(0, 0, 20);
+      playerGraphics.fill({ color: 0x66BB6A });
+
+      // Eyes
+      playerGraphics.circle(-8, -5, 5);
+      playerGraphics.circle(8, -5, 5);
+      playerGraphics.fill({ color: 0xFFFFFF });
+
+      playerGraphics.circle(-8, -5, 2);
+      playerGraphics.circle(8, -5, 2);
+      playerGraphics.fill({ color: 0x1a1a2e });
+
+      // Smile
+      playerGraphics.moveTo(-10, 5);
+      playerGraphics.quadraticCurveTo(0, 15, 10, 5);
+      playerGraphics.stroke({ color: 0x1a1a2e, width: 2 });
+
+      playerGraphics.x = playerX;
+      playerGraphics.y = playerY;
+    }
+
+    function createJoystick(mode) {
+      // Destroy existing joystick
+      if (joystick) {
+        joystick.destroy();
+        const oldContainer = joystick.getContainer();
+        if (oldContainer.parent) {
+          oldContainer.parent.removeChild(oldContainer);
+        }
+      }
+
+      const config = {
+        mode: mode,
+        size: 120,
+        deadZone: 0.1,
+        style: {
+          baseColor: 0x000000,
+          baseAlpha: 0.4,
+          knobColor: 0x4CAF50,
+          knobAlpha: 0.9,
+          borderColor: 0x4CAF50,
+          borderWidth: 3,
+          borderAlpha: 0.6
+        }
+      };
+
+      if (mode === 'dynamic') {
+        config.activationZone = { x: 0, y: 0, width: 0.5, height: 1 };
+        config.hideWhenIdle = true;
+        document.getElementById('instruction-text').textContent = 'Touch left side of screen to control';
+      } else {
+        config.position = { x: 100, y: window.innerHeight - 180 };
+        config.hideWhenIdle = false;
+        document.getElementById('instruction-text').textContent = 'Use the joystick on the left';
+      }
+
+      joystick = new GameByteFramework.VirtualJoystick(config);
+
+      // Add joystick to stage
+      app.stage.addChild(joystick.getContainer());
+
+      // Listen for joystick events
+      joystick.on('move', (data) => {
+        updateInfoPanel(data);
+      });
+
+      joystick.on('start', () => {
+        document.getElementById('active').textContent = 'Yes';
+        document.getElementById('active').style.color = '#4CAF50';
+      });
+
+      joystick.on('end', () => {
+        document.getElementById('active').textContent = 'No';
+        document.getElementById('active').style.color = '#fff';
+      });
+    }
+
+    function setupModeSwitch() {
+      const btnDynamic = document.getElementById('btn-dynamic');
+      const btnFixed = document.getElementById('btn-fixed');
+
+      btnDynamic.addEventListener('click', () => {
+        if (currentMode !== 'dynamic') {
+          currentMode = 'dynamic';
+          btnDynamic.classList.add('active');
+          btnFixed.classList.remove('active');
+          createJoystick('dynamic');
+        }
+      });
+
+      btnFixed.addEventListener('click', () => {
+        if (currentMode !== 'fixed') {
+          currentMode = 'fixed';
+          btnFixed.classList.add('active');
+          btnDynamic.classList.remove('active');
+          createJoystick('fixed');
+        }
+      });
+    }
+
+    function updateInfoPanel(data) {
+      document.getElementById('vector-x').textContent = data.vector.x.toFixed(2);
+      document.getElementById('vector-y').textContent = data.vector.y.toFixed(2);
+      document.getElementById('angle').textContent = Math.round(data.angle) + '°';
+      document.getElementById('magnitude').textContent = data.magnitude.toFixed(2);
+      document.getElementById('direction').textContent = data.direction;
+    }
+
+    function gameLoop(ticker) {
+      // Get joystick data
+      const data = joystick.getData();
+
+      // Move player
+      playerX += data.vector.x * playerSpeed;
+      playerY += data.vector.y * playerSpeed;
+
+      // Keep player in bounds
+      playerX = Math.max(30, Math.min(window.innerWidth - 30, playerX));
+      playerY = Math.max(30, Math.min(window.innerHeight - 30, playerY));
+
+      // Update player position
+      playerGraphics.x = playerX;
+      playerGraphics.y = playerY;
+
+      // Rotate player based on movement direction
+      if (data.magnitude > 0.1) {
+        playerGraphics.rotation = (data.angle * Math.PI / 180) + Math.PI / 2;
+      }
+
+      // Add to trail
+      if (data.magnitude > 0.1) {
+        trail.push({ x: playerX, y: playerY, alpha: 1 });
+        if (trail.length > maxTrailLength) {
+          trail.shift();
+        }
+      }
+
+      // Draw trail
+      drawTrail();
+    }
+
+    function drawTrail() {
+      trailGraphics.clear();
+
+      for (let i = 0; i < trail.length; i++) {
+        const point = trail[i];
+        const alpha = (i / trail.length) * 0.5;
+        const size = (i / trail.length) * 15;
+
+        trailGraphics.circle(point.x, point.y, size);
+        trailGraphics.fill({ color: 0x4CAF50, alpha: alpha });
+      }
+
+      // Fade out trail
+      for (let i = trail.length - 1; i >= 0; i--) {
+        trail[i].alpha -= 0.05;
+        if (trail[i].alpha <= 0) {
+          trail.splice(i, 1);
+        }
+      }
+    }
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      if (currentMode === 'fixed' && joystick) {
+        joystick.setPosition(100, window.innerHeight - 180);
+      }
+    });
+
+    // Start the app
+    init();
+  </script>
+</body>
+</html>

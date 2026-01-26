@@ -267,16 +267,6 @@ export class GameStylePanel extends EventEmitter {
   }
 
   /**
-   * Convert hex to rgb string
-   */
-  private hexToRgb(hex: number): string {
-    const r = (hex >> 16) & 0xFF;
-    const g = (hex >> 8) & 0xFF;
-    const b = hex & 0xFF;
-    return `rgb(${r}, ${g}, ${b})`;
-  }
-
-  /**
    * Add child to content area
    */
   public addContent(child: IContainer | IGraphics | IText): void {
@@ -389,7 +379,7 @@ export class GameStylePanel extends EventEmitter {
    * Get content area dimensions (usable space)
    */
   public getContentSize(): { width: number; height: number } {
-    const titleHeight = this.config.title ? 50 : 0;
+    const titleHeight = this.config.title ? 52 : 0;
     return {
       width: this.config.width - this.config.borderWidth * 2 - this.config.padding * 2,
       height: this.config.height - this.config.borderWidth * 2 - titleHeight - this.config.padding * 2,
