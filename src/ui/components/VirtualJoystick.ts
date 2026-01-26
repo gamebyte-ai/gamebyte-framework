@@ -143,6 +143,7 @@ export class VirtualJoystick extends EventEmitter {
   private boundPointerDown: (e: PointerEvent) => void;
   private boundPointerMove: (e: PointerEvent) => void;
   private boundPointerUp: (e: PointerEvent) => void;
+  private boundHandleResize: () => void;
 
   // Screen dimensions cache
   private screenWidth: number = window.innerWidth;
@@ -191,6 +192,7 @@ export class VirtualJoystick extends EventEmitter {
     this.boundPointerDown = this.handlePointerDown.bind(this);
     this.boundPointerMove = this.handlePointerMove.bind(this);
     this.boundPointerUp = this.handlePointerUp.bind(this);
+    this.boundHandleResize = this.handleResize.bind(this);
 
     // Initial render
     this.render();
@@ -212,7 +214,7 @@ export class VirtualJoystick extends EventEmitter {
     this.setupEventListeners();
 
     // Listen for resize
-    window.addEventListener('resize', this.handleResize.bind(this));
+    window.addEventListener('resize', this.boundHandleResize);
   }
 
   /**
@@ -669,7 +671,7 @@ export class VirtualJoystick extends EventEmitter {
 
     // Remove event listeners
     this.removeEventListeners();
-    window.removeEventListener('resize', this.handleResize.bind(this));
+    window.removeEventListener('resize', this.boundHandleResize);
 
     // Destroy graphics
     this.container.destroy();
