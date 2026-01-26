@@ -42074,58 +42074,66 @@
 	    },
 	    // Hexagon level colors
 	    HEXAGON_BLUE: {
-	        fill: 0x3D85C6,
+	        fill: 0x4DA6FF,
+	        fillBottom: 0x2E7BC9,
 	        border: 0x1A3A5C,
-	        highlight: 0x6DB3F2,
+	        highlight: 0x7DBFFF,
 	        text: 0xFFFFFF,
 	        textStroke: 0x1A3A5C
 	    },
 	    HEXAGON_LOCKED: {
-	        fill: 0x5C6370,
-	        border: 0x3A3F47,
-	        highlight: 0x7A8089,
-	        text: 0xCCCCCC,
-	        textStroke: 0x2A2E35
+	        fill: 0x6B7280,
+	        fillBottom: 0x4B5563,
+	        border: 0x374151,
+	        highlight: 0x9CA3AF,
+	        text: 0xD1D5DB,
+	        textStroke: 0x1F2937
 	    },
 	    HEXAGON_COMPLETED: {
-	        fill: 0x43A047,
-	        border: 0x1B5E20,
-	        highlight: 0x76D275,
+	        fill: 0x4ADE80,
+	        fillBottom: 0x22C55E,
+	        border: 0x166534,
+	        highlight: 0x86EFAC,
 	        text: 0xFFFFFF,
-	        textStroke: 0x1B5E20
+	        textStroke: 0x166534
 	    },
 	    HEXAGON_CURRENT: {
-	        fill: 0x5C6BC0,
-	        border: 0x283593,
-	        highlight: 0x8E99F3,
+	        fill: 0x818CF8,
+	        fillBottom: 0x6366F1,
+	        border: 0x3730A3,
+	        highlight: 0xA5B4FC,
 	        text: 0xFFFFFF,
-	        textStroke: 0x283593
+	        textStroke: 0x3730A3,
+	        glow: 0x818CF8
 	    },
 	    // Candy Crush style hexagon with golden border
 	    HEXAGON_CANDY_BLUE: {
-	        fill: 0x4A7BB7,
-	        border: 0xFFB300,
-	        highlight: 0x6B9BD1,
+	        fill: 0x5DADE2,
+	        fillBottom: 0x3498DB,
+	        border: 0xF1C40F,
+	        highlight: 0x85C1E9,
 	        text: 0xFFFFFF,
-	        textStroke: 0x2D4A6E,
-	        outerBorder: 0xCC8800
+	        textStroke: 0x21618C,
+	        outerBorder: 0xD4AC0D
 	    },
 	    HEXAGON_CANDY_CURRENT: {
-	        fill: 0x5A9BD4,
-	        border: 0xFFB300,
-	        highlight: 0x7BB8E8,
+	        fill: 0x7FB3D5,
+	        fillBottom: 0x5499C7,
+	        border: 0xF1C40F,
+	        highlight: 0xA9CCE3,
 	        text: 0xFFFFFF,
-	        textStroke: 0x2D5A7E,
-	        outerBorder: 0xCC8800,
-	        glow: 0x00FFFF
+	        textStroke: 0x2471A3,
+	        outerBorder: 0xD4AC0D,
+	        glow: 0x5DADE2
 	    },
 	    HEXAGON_CANDY_LOCKED: {
-	        fill: 0x4A5568,
-	        border: 0x718096,
-	        highlight: 0x5A6578,
-	        text: 0xA0AEC0,
-	        textStroke: 0x2D3748,
-	        outerBorder: 0x4A5568
+	        fill: 0x7F8C8D,
+	        fillBottom: 0x5D6D7E,
+	        border: 0x95A5A6,
+	        highlight: 0xAEB6BF,
+	        text: 0xBDC3C7,
+	        textStroke: 0x2C3E50,
+	        outerBorder: 0x566573
 	    },
 	    // Panel color schemes (matches No Ads popup style)
 	    PANEL_BLUE: {
@@ -44362,7 +44370,7 @@
 	     * Render hexagon graphics
 	     */
 	    render() {
-	        const { size, colorScheme, state } = this.config;
+	        const { size, colorScheme } = this.config;
 	        // Clear graphics
 	        this.shadowGraphics.clear();
 	        this.borderGraphics.clear();
@@ -44389,19 +44397,45 @@
 	            this.drawHexagon(this.borderGraphics, 0, pressOffset, size);
 	            this.borderGraphics.fill({ color: colors.border });
 	        }
-	        // 3. Main fill (blue hexagon)
-	        this.drawHexagon(this.fillGraphics, 0, pressOffset, size - borderWidth * 2);
-	        this.fillGraphics.fill({ color: colors.fill });
+	        // 3. Main fill with gradient (top lighter, bottom darker)
+	        const fillSize = size - borderWidth * 2;
+	        const fillTop = colors.fill;
+	        const fillBottom = colors.fillBottom || darkenColor$1(colors.fill, 0.15);
+	        // Draw hexagon shape
+	        this.drawHexagon(this.fillGraphics, 0, pressOffset, fillSize);
+	        // Create gradient texture for fill
+	        const textureSize = Math.ceil(fillSize);
+	        const gradientTexture = graphics().createCanvasTexture(textureSize, textureSize, (ctx) => {
+	            const gradient = ctx.createLinearGradient(0, 0, 0, textureSize);
+	            gradient.addColorStop(0, numberToHex(fillTop));
+	            gradient.addColorStop(0.35, numberToHex(fillTop));
+	            gradient.addColorStop(1, numberToHex(fillBottom));
+	            ctx.fillStyle = gradient;
+	            ctx.fillRect(0, 0, textureSize, textureSize);
+	        });
+	        // Apply texture fill with matrix transform to center it
+	        try {
+	            const matrix = {
+	                a: 1, b: 0, c: 0, d: 1,
+	                tx: -fillSize / 2,
+	                ty: pressOffset - fillSize / 2
+	            };
+	            this.fillGraphics.fill({ texture: gradientTexture, matrix: matrix });
+	        }
+	        catch {
+	            // Fallback to solid color if texture fill not supported
+	            this.fillGraphics.fill({ color: colors.fill });
+	        }
 	        // 3.5 Inner bevel effect for 3D look
 	        if (colors.outerBorder) {
-	            // Top inner highlight
-	            this.drawHexagonBevel(this.fillGraphics, 0, pressOffset - 3, size - borderWidth * 2 - 6, 0xFFFFFF, 0.2);
+	            // Top inner highlight (subtle white glow)
+	            this.drawHexagonBevel(this.fillGraphics, 0, pressOffset - 3, fillSize - 6, 0xFFFFFF, 0.25);
 	            // Bottom inner shadow
-	            this.drawHexagonBevel(this.fillGraphics, 0, pressOffset + 3, size - borderWidth * 2 - 6, 0x000000, 0.15);
+	            this.drawHexagonBevel(this.fillGraphics, 0, pressOffset + 3, fillSize - 6, 0x000000, 0.2);
 	        }
-	        // 4. Inner highlight (top half)
+	        // 4. Inner highlight (top shine)
 	        if (!this.isPressed) {
-	            this.drawHexagonHighlight(this.highlightGraphics, 0, pressOffset - 2, size - borderWidth * 2 - 4, colors.highlight);
+	            this.drawHexagonHighlight(this.highlightGraphics, 0, pressOffset - 2, fillSize - 4, colors.highlight);
 	        }
 	        // Update text position
 	        this.levelText.y = pressOffset;
@@ -44442,7 +44476,7 @@
 	    /**
 	     * Draw hexagon highlight (top portion only)
 	     */
-	    drawHexagonHighlight(g, cx, cy, size, color) {
+	    drawHexagonHighlight(g, cx, cy, size, _color) {
 	        // Create a highlight that covers top half of hexagon
 	        const halfSize = size / 2;
 	        const angleOffset = Math.PI / 6;
