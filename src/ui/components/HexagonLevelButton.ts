@@ -368,8 +368,9 @@ export class HexagonLevelButton extends EventEmitter {
         ty: pressOffset - fillSize / 2
       };
       this.fillGraphics.fill({ texture: gradientTexture as any, matrix: matrix as any });
-    } catch {
+    } catch (_e) {
       // Fallback to solid color if texture fill not supported
+      // This can happen with older browsers or certain renderer configurations
       this.fillGraphics.fill({ color: colors.fill });
     }
 

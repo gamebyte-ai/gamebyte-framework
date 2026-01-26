@@ -44422,8 +44422,9 @@
 	            };
 	            this.fillGraphics.fill({ texture: gradientTexture, matrix: matrix });
 	        }
-	        catch {
+	        catch (_e) {
 	            // Fallback to solid color if texture fill not supported
+	            // This can happen with older browsers or certain renderer configurations
 	            this.fillGraphics.fill({ color: colors.fill });
 	        }
 	        // 3.5 Inner bevel effect for 3D look
