@@ -6,7 +6,8 @@
     <title>UIPanel Basic Demo - GameByte Framework</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { overflow: hidden; background: #1a1a2e; }
+        body { overflow: hidden; background: #1a1a2e; transition: background 0.3s ease; }
+        body.light-theme { background: #e8eef5; }
         canvas { display: block; margin: 0 auto; }
     </style>
 </head>
@@ -15,9 +16,87 @@
     <script src="/gamebyte.umd.js"></script>
 
     <script>
-        const { createGame } = GameByteFramework;
+        // =====================================================
+        // UIPanel Basic Demo - Using Framework Abstractions
+        // =====================================================
+        // This demo showcases:
+        // - Basic settings panel with toggle buttons
+        // - graphics() abstraction instead of direct PIXI usage
+        // - loadFrameworkFont() for consistent font loading
+        // =====================================================
+
+        const { createGame, graphics, loadFrameworkFont } = GameByteFramework;
 
         const CONFIG = { width: 400, height: 280 };
+
+        // ===== THEME DETECTION =====
+        function detectTheme() {
+            try {
+                if (window.parent && window.parent.document) {
+                    const parentTheme = window.parent.document.documentElement.getAttribute('data-theme');
+                    if (parentTheme) return parentTheme;
+                }
+            } catch (e) { /* Cross-origin */ }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const themeParam = urlParams.get('theme');
+            if (themeParam) return themeParam;
+
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                return 'light';
+            }
+            return 'dark';
+        }
+
+        let currentTheme = detectTheme();
+
+        function setupThemeListener() {
+            try {
+                if (window.parent && window.parent.document) {
+                    const observer = new MutationObserver((mutations) => {
+                        mutations.forEach((mutation) => {
+                            if (mutation.attributeName === 'data-theme') {
+                                const newTheme = window.parent.document.documentElement.getAttribute('data-theme');
+                                if (newTheme && newTheme !== currentTheme) {
+                                    currentTheme = newTheme;
+                                    applyTheme();
+                                }
+                            }
+                        });
+                    });
+                    observer.observe(window.parent.document.documentElement, { attributes: true });
+                }
+            } catch (e) {
+                window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
+                    currentTheme = e.matches ? 'light' : 'dark';
+                    applyTheme();
+                });
+            }
+        }
+
+        // ===== THEME COLOR PALETTES =====
+        const THEME_COLORS = {
+            dark: {
+                background: 0x1a1a2e,
+                panelBg: 0x2d3748,
+                panelShadow: 0x000000,
+                textPrimary: 0xffffff,
+                buttonActive: 0x6366f1,
+                buttonInactive: 0x4b5563
+            },
+            light: {
+                background: 0xe8eef5,
+                panelBg: 0xffffff,
+                panelShadow: 0x94a3b8,
+                textPrimary: 0x2d3748,
+                buttonActive: 0x818cf8,
+                buttonInactive: 0xcbd5e1
+            }
+        };
+
+        function getColors() {
+            return THEME_COLORS[currentTheme] || THEME_COLORS.dark;
+        }
 
         const canvas = document.createElement('canvas');
         canvas.width = CONFIG.width;
@@ -25,67 +104,72 @@
         document.body.appendChild(canvas);
 
         const game = createGame();
+        let renderer, stage;
 
-        (async () => {
-            await game.initialize(canvas, '2d');
-            const renderer = game.make('renderer');
-            const stage = renderer.getStage();
+        // State for toggles
+        let soundOn = true;
+        let musicOn = true;
 
-            // Background
-            const bg = new PIXI.Graphics();
+        function createDemoContent() {
+            const colors = getColors();
+            const gfx = graphics(); // Get graphics factory
+
+            // Clear stage
+            while (stage.children.length > 0) {
+                stage.removeChildAt(0);
+            }
+
+            // ===== BACKGROUND - Using graphics() abstraction =====
+            const bg = gfx.createGraphics();
             bg.rect(0, 0, CONFIG.width, CONFIG.height);
-            bg.fill(0x1a1a2e);
+            bg.fill(colors.background);
             stage.addChild(bg);
 
-            // Panel with shadow
-            const shadowPanel = new PIXI.Graphics();
+            // ===== PANEL SHADOW - Using graphics() abstraction =====
+            const shadowPanel = gfx.createGraphics();
             shadowPanel.roundRect(65, 45, 280, 200, 16);
-            shadowPanel.fill({ color: 0x000000, alpha: 0.3 });
+            shadowPanel.fill({ color: colors.panelShadow, alpha: 0.3 });
             stage.addChild(shadowPanel);
 
-            // Main panel
-            const panel = new PIXI.Graphics();
+            // ===== MAIN PANEL - Using graphics() abstraction =====
+            const panel = gfx.createGraphics();
             panel.roundRect(60, 40, 280, 200, 16);
-            panel.fill(0x2d3748);
+            panel.fill(colors.panelBg);
             stage.addChild(panel);
 
-            // Title
-            const title = new PIXI.Text({
-                text: 'Settings',
-                style: {
-                    fontFamily: 'Arial',
-                    fontSize: 24,
-                    fontWeight: 'bold',
-                    fill: 0xffffff
-                }
+            // ===== TITLE - Using graphics() abstraction =====
+            const title = gfx.createText('Settings', {
+                fontSize: 24,
+                fontWeight: 'bold',
+                fill: colors.textPrimary
             });
             title.x = 160;
             title.y = 60;
             stage.addChild(title);
 
-            // Sound button
-            const soundBtn = new PIXI.Graphics();
+            // ===== SOUND BUTTON - Using graphics() abstraction =====
+            const soundBtn = gfx.createGraphics();
             soundBtn.roundRect(85, 110, 230, 44, 8);
-            soundBtn.fill(0x6366f1);
+            soundBtn.fill(soundOn ? colors.buttonActive : colors.buttonInactive);
             stage.addChild(soundBtn);
 
-            const soundText = new PIXI.Text({
-                text: 'Sound: ON',
-                style: { fontFamily: 'Arial', fontSize: 16, fill: 0xffffff }
+            const soundText = gfx.createText(`Sound: ${soundOn ? 'ON' : 'OFF'}`, {
+                fontSize: 16,
+                fill: 0xffffff
             });
             soundText.x = 160;
             soundText.y = 122;
             stage.addChild(soundText);
 
-            // Music button
-            const musicBtn = new PIXI.Graphics();
+            // ===== MUSIC BUTTON - Using graphics() abstraction =====
+            const musicBtn = gfx.createGraphics();
             musicBtn.roundRect(85, 165, 230, 44, 8);
-            musicBtn.fill(0x4b5563);
+            musicBtn.fill(musicOn ? colors.buttonActive : colors.buttonInactive);
             stage.addChild(musicBtn);
 
-            const musicText = new PIXI.Text({
-                text: 'Music: ON',
-                style: { fontFamily: 'Arial', fontSize: 16, fill: 0xffffff }
+            const musicText = gfx.createText(`Music: ${musicOn ? 'ON' : 'OFF'}`, {
+                fontSize: 16,
+                fill: 0xffffff
             });
             musicText.x = 163;
             musicText.y = 177;
@@ -94,26 +178,49 @@
             // Make buttons interactive
             soundBtn.eventMode = 'static';
             soundBtn.cursor = 'pointer';
-            let soundOn = true;
             soundBtn.on('pointerdown', () => {
                 soundOn = !soundOn;
                 soundText.text = `Sound: ${soundOn ? 'ON' : 'OFF'}`;
                 soundBtn.clear();
                 soundBtn.roundRect(85, 110, 230, 44, 8);
-                soundBtn.fill(soundOn ? 0x6366f1 : 0x4b5563);
+                soundBtn.fill(soundOn ? colors.buttonActive : colors.buttonInactive);
             });
 
             musicBtn.eventMode = 'static';
             musicBtn.cursor = 'pointer';
-            let musicOn = true;
             musicBtn.on('pointerdown', () => {
                 musicOn = !musicOn;
                 musicText.text = `Music: ${musicOn ? 'ON' : 'OFF'}`;
                 musicBtn.clear();
                 musicBtn.roundRect(85, 165, 230, 44, 8);
-                musicBtn.fill(musicOn ? 0x6366f1 : 0x4b5563);
+                musicBtn.fill(musicOn ? colors.buttonActive : colors.buttonInactive);
             });
+        }
 
+        let isRecreating = false;
+        async function applyTheme() {
+            if (isRecreating) return;
+            isRecreating = true;
+
+            document.body.classList.toggle('light-theme', currentTheme === 'light');
+            if (stage) {
+                await loadFrameworkFont();
+                createDemoContent();
+            }
+            setTimeout(() => { isRecreating = false; }, 100);
+        }
+
+        (async () => {
+            // Load framework font
+            await loadFrameworkFont();
+
+            await game.initialize(canvas, '2d');
+            renderer = game.make('renderer');
+            stage = renderer.getStage();
+
+            setupThemeListener();
+            document.body.classList.toggle('light-theme', currentTheme === 'light');
+            createDemoContent();
             game.start();
         })();
     </script>

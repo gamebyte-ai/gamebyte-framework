@@ -6,7 +6,8 @@
     <title>UIProgressBar Demo - GameByte Framework</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { overflow: hidden; background: #1a1a2e; }
+        body { overflow: hidden; background: #1a1a2e; transition: background 0.3s ease; }
+        body.light-theme { background: #e8eef5; }
         canvas { display: block; margin: 0 auto; }
     </style>
 </head>
@@ -15,9 +16,93 @@
     <script src="/gamebyte.umd.js"></script>
 
     <script>
-        const { createGame } = GameByteFramework;
+        // =====================================================
+        // UIProgressBar Demo - Using Framework Abstractions
+        // =====================================================
+        // This demo showcases:
+        // - Various progress bar styles (health, XP, segmented)
+        // - Animated progress updates
+        // - graphics() abstraction instead of direct PIXI usage
+        // =====================================================
+
+        const { createGame, graphics, loadFrameworkFont } = GameByteFramework;
 
         const CONFIG = { width: 400, height: 200 };
+
+        // ===== THEME DETECTION =====
+        function detectTheme() {
+            try {
+                if (window.parent && window.parent.document) {
+                    const parentTheme = window.parent.document.documentElement.getAttribute('data-theme');
+                    if (parentTheme) return parentTheme;
+                }
+            } catch (e) { /* Cross-origin */ }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const themeParam = urlParams.get('theme');
+            if (themeParam) return themeParam;
+
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                return 'light';
+            }
+            return 'dark';
+        }
+
+        let currentTheme = detectTheme();
+
+        function setupThemeListener() {
+            try {
+                if (window.parent && window.parent.document) {
+                    const observer = new MutationObserver((mutations) => {
+                        mutations.forEach((mutation) => {
+                            if (mutation.attributeName === 'data-theme') {
+                                const newTheme = window.parent.document.documentElement.getAttribute('data-theme');
+                                if (newTheme && newTheme !== currentTheme) {
+                                    currentTheme = newTheme;
+                                    applyTheme();
+                                }
+                            }
+                        });
+                    });
+                    observer.observe(window.parent.document.documentElement, { attributes: true });
+                }
+            } catch (e) {
+                window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
+                    currentTheme = e.matches ? 'light' : 'dark';
+                    applyTheme();
+                });
+            }
+        }
+
+        // ===== THEME COLOR PALETTES =====
+        const THEME_COLORS = {
+            dark: {
+                background: 0x1a1a2e,
+                textPrimary: 0xffffff,
+                textSecondary: 0x888888,
+                barBackground: 0x374151,
+                healthFill: 0x22c55e,
+                healthLow: 0xef4444,
+                xpFill: 0x8b5cf6,
+                energyFill: 0xfbbf24,
+                energyEmpty: 0x374151
+            },
+            light: {
+                background: 0xe8eef5,
+                textPrimary: 0x2d3748,
+                textSecondary: 0x718096,
+                barBackground: 0xcbd5e1,
+                healthFill: 0x48bb78,
+                healthLow: 0xf56565,
+                xpFill: 0xa78bfa,
+                energyFill: 0xf6ad55,
+                energyEmpty: 0xcbd5e1
+            }
+        };
+
+        function getColors() {
+            return THEME_COLORS[currentTheme] || THEME_COLORS.dark;
+        }
 
         const canvas = document.createElement('canvas');
         canvas.width = CONFIG.width;
@@ -25,124 +110,142 @@
         document.body.appendChild(canvas);
 
         const game = createGame();
+        let renderer, stage;
 
-        (async () => {
-            await game.initialize(canvas, '2d');
-            const renderer = game.make('renderer');
-            const stage = renderer.getStage();
+        // Animation state
+        let healthValue = 75;
+        let xpValue = 60;
+        let energyValue = 3;
+        let animationInterval = null;
 
-            // Background
-            const bg = new PIXI.Graphics();
+        // Store references for animation updates
+        let healthFill, healthText, xpFill, xpText, energySegments;
+
+        function createDemoContent() {
+            const colors = getColors();
+            const gfx = graphics(); // Get graphics factory
+
+            // Clear stage
+            while (stage.children.length > 0) {
+                stage.removeChildAt(0);
+            }
+
+            // Clear existing animation interval
+            if (animationInterval) {
+                clearInterval(animationInterval);
+            }
+
+            // ===== BACKGROUND - Using graphics() abstraction =====
+            const bg = gfx.createGraphics();
             bg.rect(0, 0, CONFIG.width, CONFIG.height);
-            bg.fill(0x1a1a2e);
+            bg.fill(colors.background);
             stage.addChild(bg);
 
-            // Title
-            const title = new PIXI.Text({
-                text: 'Progress Bars',
-                style: { fontFamily: 'Arial Black', fontSize: 18, fill: 0xffffff }
+            // ===== TITLE - Using graphics() abstraction =====
+            const title = gfx.createText('Progress Bars', {
+                fontSize: 18,
+                fill: colors.textPrimary
             });
             title.x = CONFIG.width / 2 - title.width / 2;
             title.y = 10;
             stage.addChild(title);
 
-            // Health Bar
-            const healthLabel = new PIXI.Text({
-                text: 'Health',
-                style: { fontFamily: 'Arial', fontSize: 12, fill: 0x888888 }
+            // ===== HEALTH BAR SECTION =====
+            const healthLabel = gfx.createText('Health', {
+                fontSize: 12,
+                fill: colors.textSecondary
             });
             healthLabel.x = 30;
             healthLabel.y = 45;
             stage.addChild(healthLabel);
 
             // Health bar background
-            const healthBg = new PIXI.Graphics();
+            const healthBg = gfx.createGraphics();
             healthBg.roundRect(30, 65, 300, 20, 10);
-            healthBg.fill(0x374151);
+            healthBg.fill(colors.barBackground);
             stage.addChild(healthBg);
 
             // Health bar fill
-            let healthValue = 75;
-            const healthFill = new PIXI.Graphics();
+            healthFill = gfx.createGraphics();
             healthFill.roundRect(30, 65, 300 * (healthValue / 100), 20, 10);
-            healthFill.fill(0x22c55e);
+            healthFill.fill(healthValue > 30 ? colors.healthFill : colors.healthLow);
             stage.addChild(healthFill);
 
-            const healthText = new PIXI.Text({
-                text: '75/100',
-                style: { fontFamily: 'Arial', fontSize: 12, fill: 0xffffff }
+            healthText = gfx.createText(`${healthValue}/100`, {
+                fontSize: 12,
+                fill: colors.textPrimary
             });
             healthText.x = 345;
             healthText.y = 68;
             stage.addChild(healthText);
 
-            // XP Bar
-            const xpLabel = new PIXI.Text({
-                text: 'Experience',
-                style: { fontFamily: 'Arial', fontSize: 12, fill: 0x888888 }
+            // ===== XP BAR SECTION =====
+            const xpLabel = gfx.createText('Experience', {
+                fontSize: 12,
+                fill: colors.textSecondary
             });
             xpLabel.x = 30;
             xpLabel.y = 100;
             stage.addChild(xpLabel);
 
-            const xpBg = new PIXI.Graphics();
+            const xpBg = gfx.createGraphics();
             xpBg.roundRect(30, 120, 300, 14, 7);
-            xpBg.fill(0x374151);
+            xpBg.fill(colors.barBackground);
             stage.addChild(xpBg);
 
-            let xpValue = 60;
-            const xpFill = new PIXI.Graphics();
+            xpFill = gfx.createGraphics();
             xpFill.roundRect(30, 120, 300 * (xpValue / 100), 14, 7);
-            xpFill.fill(0x8b5cf6);
+            xpFill.fill(colors.xpFill);
             stage.addChild(xpFill);
 
-            const xpText = new PIXI.Text({
-                text: '60%',
-                style: { fontFamily: 'Arial', fontSize: 12, fill: 0xffffff }
+            xpText = gfx.createText(`${xpValue}%`, {
+                fontSize: 12,
+                fill: colors.textPrimary
             });
             xpText.x = 345;
             xpText.y = 118;
             stage.addChild(xpText);
 
-            // Energy Bar (segmented)
-            const energyLabel = new PIXI.Text({
-                text: 'Energy',
-                style: { fontFamily: 'Arial', fontSize: 12, fill: 0x888888 }
+            // ===== ENERGY BAR (SEGMENTED) =====
+            const energyLabel = gfx.createText('Energy', {
+                fontSize: 12,
+                fill: colors.textSecondary
             });
             energyLabel.x = 30;
             energyLabel.y = 150;
             stage.addChild(energyLabel);
 
-            let energyValue = 3;
             const segmentWidth = 56;
             const segmentGap = 6;
-            const energySegments = [];
+            energySegments = [];
 
             for (let i = 0; i < 5; i++) {
-                const segment = new PIXI.Graphics();
+                const segment = gfx.createGraphics();
                 const x = 30 + i * (segmentWidth + segmentGap);
                 const filled = i < energyValue;
                 segment.roundRect(x, 170, segmentWidth, 18, 4);
-                segment.fill(filled ? 0xfbbf24 : 0x374151);
+                segment.fill(filled ? colors.energyFill : colors.energyEmpty);
                 stage.addChild(segment);
                 energySegments.push(segment);
             }
 
-            const energyText = new PIXI.Text({
-                text: '3/5',
-                style: { fontFamily: 'Arial', fontSize: 12, fill: 0xffffff }
+            const energyText = gfx.createText(`${energyValue}/5`, {
+                fontSize: 12,
+                fill: colors.textPrimary
             });
             energyText.x = 345;
             energyText.y = 170;
             stage.addChild(energyText);
 
             // Animate bars periodically
-            setInterval(() => {
+            animationInterval = setInterval(() => {
+                const colors = getColors();
+
                 // Animate health
                 healthValue = Math.max(10, Math.min(100, healthValue + (Math.random() > 0.5 ? 5 : -5)));
                 healthFill.clear();
                 healthFill.roundRect(30, 65, 300 * (healthValue / 100), 20, 10);
-                healthFill.fill(healthValue > 30 ? 0x22c55e : 0xef4444);
+                healthFill.fill(healthValue > 30 ? colors.healthFill : colors.healthLow);
                 healthText.text = `${healthValue}/100`;
 
                 // Animate XP
@@ -150,10 +253,35 @@
                 if (xpValue >= 100) xpValue = 0;
                 xpFill.clear();
                 xpFill.roundRect(30, 120, 300 * (xpValue / 100), 14, 7);
-                xpFill.fill(0x8b5cf6);
+                xpFill.fill(colors.xpFill);
                 xpText.text = `${xpValue}%`;
             }, 1000);
+        }
 
+        let isRecreating = false;
+        async function applyTheme() {
+            if (isRecreating) return;
+            isRecreating = true;
+
+            document.body.classList.toggle('light-theme', currentTheme === 'light');
+            if (stage) {
+                await loadFrameworkFont();
+                createDemoContent();
+            }
+            setTimeout(() => { isRecreating = false; }, 100);
+        }
+
+        (async () => {
+            // Load framework font
+            await loadFrameworkFont();
+
+            await game.initialize(canvas, '2d');
+            renderer = game.make('renderer');
+            stage = renderer.getStage();
+
+            setupThemeListener();
+            document.body.classList.toggle('light-theme', currentTheme === 'light');
+            createDemoContent();
             game.start();
         })();
     </script>

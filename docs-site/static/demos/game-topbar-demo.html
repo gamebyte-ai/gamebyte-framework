@@ -6,7 +6,8 @@
     <title>GameTopBar Demo - GameByte Framework</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { overflow: hidden; background: #4DA6FF; }
+        body { overflow: hidden; background: #4DA6FF; transition: background 0.3s ease; }
+        body.light-theme { background: #87CEEB; }
         canvas { display: block; margin: 0 auto; }
     </style>
 </head>
@@ -15,9 +16,81 @@
     <script src="/gamebyte.umd.js"></script>
 
     <script>
-        const { createGame, GameTopBar } = GameByteFramework;
+        // =====================================================
+        // GameTopBar Demo - Using Framework Abstractions
+        // =====================================================
+        // This demo showcases:
+        // - GameTopBar component with resources display
+        // - Multiple resource types (lives, coins, gems, energy)
+        // - graphics() abstraction instead of direct PIXI usage
+        // =====================================================
+
+        const { createGame, GameTopBar, graphics, loadFrameworkFont } = GameByteFramework;
 
         const CONFIG = { width: 400, height: 200 };
+
+        // ===== THEME DETECTION =====
+        function detectTheme() {
+            try {
+                if (window.parent && window.parent.document) {
+                    const parentTheme = window.parent.document.documentElement.getAttribute('data-theme');
+                    if (parentTheme) return parentTheme;
+                }
+            } catch (e) { /* Cross-origin */ }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const themeParam = urlParams.get('theme');
+            if (themeParam) return themeParam;
+
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                return 'light';
+            }
+            return 'dark';
+        }
+
+        let currentTheme = detectTheme();
+
+        function setupThemeListener() {
+            try {
+                if (window.parent && window.parent.document) {
+                    const observer = new MutationObserver((mutations) => {
+                        mutations.forEach((mutation) => {
+                            if (mutation.attributeName === 'data-theme') {
+                                const newTheme = window.parent.document.documentElement.getAttribute('data-theme');
+                                if (newTheme && newTheme !== currentTheme) {
+                                    currentTheme = newTheme;
+                                    applyTheme();
+                                }
+                            }
+                        });
+                    });
+                    observer.observe(window.parent.document.documentElement, { attributes: true });
+                }
+            } catch (e) {
+                window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
+                    currentTheme = e.matches ? 'light' : 'dark';
+                    applyTheme();
+                });
+            }
+        }
+
+        // ===== THEME COLOR PALETTES =====
+        const THEME_COLORS = {
+            dark: {
+                gradientTop: '#4DA6FF',
+                gradientBottom: '#7DD3FF',
+                textColor: 0xffffff
+            },
+            light: {
+                gradientTop: '#87CEEB',
+                gradientBottom: '#B0E0E6',
+                textColor: 0x333333
+            }
+        };
+
+        function getColors() {
+            return THEME_COLORS[currentTheme] || THEME_COLORS.dark;
+        }
 
         const canvas = document.createElement('canvas');
         canvas.width = CONFIG.width;
@@ -25,21 +98,27 @@
         document.body.appendChild(canvas);
 
         const game = createGame();
+        let renderer, stage;
+        let topBar = null; // Store reference for resource updates
 
-        (async () => {
-            await game.initialize(canvas, '2d');
-            const renderer = game.make('renderer');
-            const stage = renderer.getStage();
+        function createScreen() {
+            const colors = getColors();
+            const gfx = graphics(); // Get graphics factory
 
-            // Sky gradient background
-            const bg = new PIXI.Graphics();
+            // Clear stage
+            while (stage.children.length > 0) {
+                stage.removeChildAt(0);
+            }
+
+            // ===== SKY GRADIENT BACKGROUND =====
+            const bg = gfx.createGraphics();
             const gradCanvas = document.createElement('canvas');
             gradCanvas.width = CONFIG.width;
             gradCanvas.height = CONFIG.height;
             const ctx = gradCanvas.getContext('2d');
             const gradient = ctx.createLinearGradient(0, 0, 0, CONFIG.height);
-            gradient.addColorStop(0, '#4DA6FF');
-            gradient.addColorStop(1, '#7DD3FF');
+            gradient.addColorStop(0, colors.gradientTop);
+            gradient.addColorStop(1, colors.gradientBottom);
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
             bg.texture(PIXI.Texture.from(gradCanvas));
@@ -47,8 +126,8 @@
             bg.fill();
             stage.addChild(bg);
 
-            // TopBar with all resources
-            const topBar = new GameTopBar({
+            // ===== TOPBAR WITH ALL RESOURCES =====
+            topBar = new GameTopBar({
                 width: CONFIG.width,
                 height: 55,
                 padding: 12,
@@ -62,7 +141,7 @@
             topBar.setPosition(0, 10);
             stage.addChild(topBar.getContainer());
 
-            // Second TopBar variant
+            // ===== SECOND TOPBAR VARIANT =====
             const topBar2 = new GameTopBar({
                 width: CONFIG.width,
                 height: 55,
@@ -76,10 +155,10 @@
             topBar2.setPosition(0, 80);
             stage.addChild(topBar2.getContainer());
 
-            // Instructions
-            const info = new PIXI.Text({
-                text: 'Click + to add resources | Click gear for settings',
-                style: { fontFamily: 'Arial', fontSize: 12, fill: 0xffffff }
+            // ===== INSTRUCTIONS - Using graphics() abstraction =====
+            const info = gfx.createText('Click + to add resources | Click gear for settings', {
+                fontSize: 12,
+                fill: colors.textColor
             });
             info.x = CONFIG.width / 2 - info.width / 2;
             info.y = 160;
@@ -87,11 +166,44 @@
 
             // Update coins periodically
             let coins = 1340;
-            setInterval(() => {
-                coins += Math.floor(Math.random() * 10);
-                topBar.updateResource('coins', coins);
-            }, 3000);
+            if (!window.coinInterval) {
+                window.coinInterval = setInterval(() => {
+                    coins += Math.floor(Math.random() * 10);
+                    if (topBar) {
+                        topBar.updateResource('coins', coins);
+                    }
+                }, 3000);
+            }
+        }
 
+        let isRecreating = false;
+        async function applyTheme() {
+            if (isRecreating) return;
+            isRecreating = true;
+
+            document.body.classList.toggle('light-theme', currentTheme === 'light');
+            if (stage && window.createScreen) {
+                await loadFrameworkFont();
+                window.createScreen();
+            }
+            setTimeout(() => { isRecreating = false; }, 100);
+        }
+
+        (async () => {
+            // Load framework font
+            await loadFrameworkFont();
+
+            await game.initialize(canvas, '2d');
+            renderer = game.make('renderer');
+            stage = renderer.getStage();
+
+            setupThemeListener();
+
+            // Make createScreen globally accessible for theme switching
+            window.createScreen = createScreen;
+
+            document.body.classList.toggle('light-theme', currentTheme === 'light');
+            createScreen();
             game.start();
         })();
     </script>

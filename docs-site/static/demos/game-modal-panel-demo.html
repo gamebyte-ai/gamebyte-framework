@@ -6,7 +6,8 @@
     <title>GameModalPanel Demo - GameByte Framework</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { overflow: hidden; background: #1a1a2e; }
+        body { overflow: hidden; background: #1a1a2e; transition: background 0.3s ease; }
+        body.light-theme { background: #e8ecf4; }
         canvas { display: block; margin: 0 auto; }
     </style>
 </head>
@@ -15,9 +16,130 @@
     <script src="/gamebyte.umd.js"></script>
 
     <script>
-        const { createGame, CelebrationManager } = GameByteFramework;
+        // =====================================================
+        // GameModalPanel Demo - Using Framework Abstractions
+        // =====================================================
+        // This demo showcases:
+        // - Modal panel with scale animation
+        // - Settings toggles with sparkle effects
+        // - CelebrationManager for confetti
+        // - graphics() abstraction instead of direct PIXI usage
+        // =====================================================
+
+        const { createGame, CelebrationManager, graphics, loadFrameworkFont } = GameByteFramework;
 
         const CONFIG = { width: 400, height: 500 };
+
+        // ===== THEME DETECTION =====
+        function detectTheme() {
+            try {
+                if (window.parent && window.parent.document) {
+                    const parentTheme = window.parent.document.documentElement.getAttribute('data-theme');
+                    if (parentTheme) return parentTheme;
+                }
+            } catch (e) { /* Cross-origin */ }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const themeParam = urlParams.get('theme');
+            if (themeParam) return themeParam;
+
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                return 'light';
+            }
+            return 'dark';
+        }
+
+        let currentTheme = detectTheme();
+
+        function setupThemeListener() {
+            try {
+                if (window.parent && window.parent.document) {
+                    const observer = new MutationObserver((mutations) => {
+                        mutations.forEach((mutation) => {
+                            if (mutation.attributeName === 'data-theme') {
+                                const newTheme = window.parent.document.documentElement.getAttribute('data-theme');
+                                if (newTheme && newTheme !== currentTheme) {
+                                    currentTheme = newTheme;
+                                    applyTheme();
+                                }
+                            }
+                        });
+                    });
+                    observer.observe(window.parent.document.documentElement, { attributes: true });
+                }
+            } catch (e) {
+                window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
+                    currentTheme = e.matches ? 'light' : 'dark';
+                    applyTheme();
+                });
+            }
+        }
+
+        // ===== THEME COLOR PALETTES =====
+        const THEME_COLORS = {
+            dark: {
+                mainBg: 0x1a1a2e,
+                dotColor: 0xffffff,
+                dotAlpha: 0.1,
+                btnGlow: 0x6366f1,
+                btnGlowAlpha: 0.3,
+                btnBorder: 0x4F51C5,
+                btnBg: 0x6366f1,
+                dimColor: 0x000000,
+                dimAlpha: 0.6,
+                panelGlow: 0x6366f1,
+                panelGlowAlpha: 0.2,
+                panelBorder: 0x4d4d6c,
+                panelBg: 0x2A3142,
+                titleDecor: 0x6366f1,
+                titleColor: 0xffffff,
+                closeBtnGlow: 0xE84C4C,
+                closeBtnBg: 0xE84C4C,
+                rowBg: 0x3d3d5c,
+                rowBgAlpha: 0.5,
+                labelText: 0xffffff,
+                toggleOnBorder: 0x2E7D32,
+                toggleOffBorder: 0x3d3d5c,
+                toggleOnBg: 0x4CAF50,
+                toggleOffBg: 0x4b5563,
+                textWhite: 0xffffff,
+                instructionText: 0x888888,
+                confettiColors: [0x6366f1, 0x8B5CF6, 0xffffff]
+            },
+            light: {
+                mainBg: 0xe8ecf4,
+                dotColor: 0x5a6a8a,
+                dotAlpha: 0.15,
+                btnGlow: 0x7376f5,
+                btnGlowAlpha: 0.35,
+                btnBorder: 0x5F61D5,
+                btnBg: 0x7376f5,
+                dimColor: 0x1a2a4a,
+                dimAlpha: 0.5,
+                panelGlow: 0x7376f5,
+                panelGlowAlpha: 0.25,
+                panelBorder: 0x8a9abc,
+                panelBg: 0xf0f4fa,
+                titleDecor: 0x7376f5,
+                titleColor: 0x2a3a5a,
+                closeBtnGlow: 0xF05C5C,
+                closeBtnBg: 0xF05C5C,
+                rowBg: 0xd8dce8,
+                rowBgAlpha: 0.7,
+                labelText: 0x2a3a5a,
+                toggleOnBorder: 0x3E8D42,
+                toggleOffBorder: 0xb8c0d0,
+                toggleOnBg: 0x5CBF60,
+                toggleOffBg: 0x9ba5b8,
+                textWhite: 0xffffff,
+                instructionText: 0x6a7a9a,
+                confettiColors: [0x7376f5, 0x9B6CF8, 0xffffff]
+            }
+        };
+
+        function getColors() {
+            return THEME_COLORS[currentTheme] || THEME_COLORS.dark;
+        }
 
         const canvas = document.createElement('canvas');
         canvas.width = CONFIG.width;
@@ -26,318 +148,324 @@
 
         const game = createGame();
         let celebration = null;
+        let renderer, stage;
+
+        let isRecreating = false;
+        async function applyTheme() {
+            if (isRecreating) return;
+            isRecreating = true;
+
+            document.body.classList.toggle('light-theme', currentTheme === 'light');
+            if (stage && window.createModalScreen) {
+                await loadFrameworkFont();
+                window.createModalScreen();
+            }
+            setTimeout(() => { isRecreating = false; }, 100);
+        }
 
         (async () => {
+            await loadFrameworkFont();
             await game.initialize(canvas, '2d');
-            const renderer = game.make('renderer');
-            const stage = renderer.getStage();
+            renderer = game.make('renderer');
+            stage = renderer.getStage();
 
-            // Create celebration manager
             celebration = new CelebrationManager(stage, CONFIG.width, CONFIG.height);
+            setupThemeListener();
 
-            // Background
-            const bg = new PIXI.Graphics();
-            bg.rect(0, 0, CONFIG.width, CONFIG.height);
-            bg.fill(0x1a1a2e);
-            stage.addChild(bg);
+            function createModalScreen() {
+                const colors = getColors();
+                const gfx = graphics();
 
-            // Background pattern (dots)
-            for (let x = 0; x < CONFIG.width; x += 30) {
-                for (let y = 0; y < CONFIG.height; y += 30) {
-                    const dot = new PIXI.Graphics();
-                    dot.circle(x, y, 2);
-                    dot.fill({ color: 0xffffff, alpha: 0.1 });
-                    stage.addChild(dot);
+                while (stage.children.length > 0) {
+                    stage.removeChildAt(0);
                 }
-            }
+                celebration.clear();
 
-            // Show Modal button with glow effect
-            const btnGlow = new PIXI.Graphics();
-            btnGlow.roundRect(CONFIG.width / 2 - 85, CONFIG.height / 2 - 35, 170, 70, 16);
-            btnGlow.fill({ color: 0x6366f1, alpha: 0.3 });
-            stage.addChild(btnGlow);
+                // Background
+                const bg = gfx.createGraphics();
+                bg.rect(0, 0, CONFIG.width, CONFIG.height);
+                bg.fill(colors.mainBg);
+                stage.addChild(bg);
 
-            const showBtnBorder = new PIXI.Graphics();
-            showBtnBorder.roundRect(CONFIG.width / 2 - 83, CONFIG.height / 2 - 33, 166, 66, 14);
-            showBtnBorder.fill(0x4F51C5);
-            stage.addChild(showBtnBorder);
+                // Background dots pattern
+                for (let x = 0; x < CONFIG.width; x += 30) {
+                    for (let y = 0; y < CONFIG.height; y += 30) {
+                        const dot = gfx.createGraphics();
+                        dot.circle(x, y, 2);
+                        dot.fill({ color: colors.dotColor, alpha: colors.dotAlpha });
+                        stage.addChild(dot);
+                    }
+                }
 
-            const showBtn = new PIXI.Graphics();
-            showBtn.roundRect(CONFIG.width / 2 - 80, CONFIG.height / 2 - 30, 160, 60, 12);
-            showBtn.fill(0x6366f1);
-            showBtn.eventMode = 'static';
-            showBtn.cursor = 'pointer';
-            stage.addChild(showBtn);
+                // Show Modal button
+                const btnGlow = gfx.createGraphics();
+                btnGlow.roundRect(CONFIG.width / 2 - 85, CONFIG.height / 2 - 35, 170, 70, 16);
+                btnGlow.fill({ color: colors.btnGlow, alpha: colors.btnGlowAlpha });
+                stage.addChild(btnGlow);
 
-            const showText = new PIXI.Text({
-                text: 'Show Modal',
-                style: { fontFamily: 'Arial', fontSize: 20, fontWeight: 'bold', fill: 0xffffff }
-            });
-            showText.anchor.set(0.5);
-            showText.x = CONFIG.width / 2;
-            showText.y = CONFIG.height / 2;
-            stage.addChild(showText);
+                const showBtnBorder = gfx.createGraphics();
+                showBtnBorder.roundRect(CONFIG.width / 2 - 83, CONFIG.height / 2 - 33, 166, 66, 14);
+                showBtnBorder.fill(colors.btnBorder);
+                stage.addChild(showBtnBorder);
 
-            // Modal overlay
-            const modalOverlay = new PIXI.Container();
-            modalOverlay.visible = false;
-            stage.addChild(modalOverlay);
+                const showBtn = gfx.createGraphics();
+                showBtn.roundRect(CONFIG.width / 2 - 80, CONFIG.height / 2 - 30, 160, 60, 12);
+                showBtn.fill(colors.btnBg);
+                showBtn.eventMode = 'static';
+                showBtn.cursor = 'pointer';
+                stage.addChild(showBtn);
 
-            // Dim background
-            const dim = new PIXI.Graphics();
-            dim.rect(0, 0, CONFIG.width, CONFIG.height);
-            dim.fill({ color: 0x000000, alpha: 0.6 });
-            dim.eventMode = 'static';
-            modalOverlay.addChild(dim);
+                const showText = gfx.createText('Show Modal', {
+                    fontSize: 20,
+                    fontWeight: 'bold',
+                    fill: colors.textWhite
+                });
+                showText.anchor.set(0.5);
+                showText.x = CONFIG.width / 2;
+                showText.y = CONFIG.height / 2;
+                stage.addChild(showText);
 
-            // Modal panel
-            const modal = new PIXI.Container();
-            modal.x = CONFIG.width / 2;
-            modal.y = CONFIG.height / 2;
-            modalOverlay.addChild(modal);
+                // Modal overlay
+                const modalOverlay = gfx.createContainer();
+                modalOverlay.visible = false;
+                stage.addChild(modalOverlay);
 
-            // Panel outer glow
-            const panelGlow = new PIXI.Graphics();
-            panelGlow.roundRect(-165, -185, 330, 370, 24);
-            panelGlow.fill({ color: 0x6366f1, alpha: 0.2 });
-            modal.addChild(panelGlow);
+                const dim = gfx.createGraphics();
+                dim.rect(0, 0, CONFIG.width, CONFIG.height);
+                dim.fill({ color: colors.dimColor, alpha: colors.dimAlpha });
+                dim.eventMode = 'static';
+                modalOverlay.addChild(dim);
 
-            // Panel background with border
-            const panelBorder = new PIXI.Graphics();
-            panelBorder.roundRect(-158, -178, 316, 356, 20);
-            panelBorder.fill(0x4d4d6c);
-            modal.addChild(panelBorder);
+                // Modal panel
+                const modal = gfx.createContainer();
+                modal.x = CONFIG.width / 2;
+                modal.y = CONFIG.height / 2;
+                modalOverlay.addChild(modal);
 
-            const panelBg = new PIXI.Graphics();
-            panelBg.roundRect(-150, -170, 300, 340, 16);
-            panelBg.fill(0x2A3142);
-            modal.addChild(panelBg);
+                const panelGlow = gfx.createGraphics();
+                panelGlow.roundRect(-165, -185, 330, 370, 24);
+                panelGlow.fill({ color: colors.panelGlow, alpha: colors.panelGlowAlpha });
+                modal.addChild(panelGlow);
 
-            // Title with decoration
-            const titleDecorLeft = new PIXI.Graphics();
-            titleDecorLeft.roundRect(-130, -132, 40, 3, 2);
-            titleDecorLeft.fill(0x6366f1);
-            modal.addChild(titleDecorLeft);
+                const panelBorder = gfx.createGraphics();
+                panelBorder.roundRect(-158, -178, 316, 356, 20);
+                panelBorder.fill(colors.panelBorder);
+                modal.addChild(panelBorder);
 
-            const titleDecorRight = new PIXI.Graphics();
-            titleDecorRight.roundRect(90, -132, 40, 3, 2);
-            titleDecorRight.fill(0x6366f1);
-            modal.addChild(titleDecorRight);
+                const panelBg = gfx.createGraphics();
+                panelBg.roundRect(-150, -170, 300, 340, 16);
+                panelBg.fill(colors.panelBg);
+                modal.addChild(panelBg);
 
-            const title = new PIXI.Text({
-                text: 'Settings',
-                style: {
-                    fontFamily: 'Arial',
+                // Title decorations
+                const titleDecorLeft = gfx.createGraphics();
+                titleDecorLeft.roundRect(-130, -132, 40, 3, 2);
+                titleDecorLeft.fill(colors.titleDecor);
+                modal.addChild(titleDecorLeft);
+
+                const titleDecorRight = gfx.createGraphics();
+                titleDecorRight.roundRect(90, -132, 40, 3, 2);
+                titleDecorRight.fill(colors.titleDecor);
+                modal.addChild(titleDecorRight);
+
+                const title = gfx.createText('Settings', {
                     fontSize: 28,
                     fontWeight: 'bold',
-                    fill: 0xffffff,
-                    dropShadow: true,
+                    fill: colors.titleColor,
+                    dropShadow: currentTheme === 'dark',
                     dropShadowDistance: 2
-                }
-            });
-            title.anchor.set(0.5);
-            title.y = -130;
-            modal.addChild(title);
-
-            // Settings icon
-            const settingsIcon = new PIXI.Text({
-                text: '⚙️',
-                style: { fontSize: 24 }
-            });
-            settingsIcon.anchor.set(0.5);
-            settingsIcon.x = -70;
-            settingsIcon.y = -130;
-            modal.addChild(settingsIcon);
-
-            // Close button with glow
-            const closeBtnGlow = new PIXI.Graphics();
-            closeBtnGlow.circle(125, -145, 22);
-            closeBtnGlow.fill({ color: 0xE84C4C, alpha: 0.3 });
-            modal.addChild(closeBtnGlow);
-
-            const closeBtn = new PIXI.Graphics();
-            closeBtn.circle(125, -145, 18);
-            closeBtn.fill(0xE84C4C);
-            closeBtn.eventMode = 'static';
-            closeBtn.cursor = 'pointer';
-            modal.addChild(closeBtn);
-
-            const closeX = new PIXI.Text({
-                text: '✕',
-                style: { fontFamily: 'Arial', fontSize: 18, fontWeight: 'bold', fill: 0xffffff }
-            });
-            closeX.anchor.set(0.5);
-            closeX.x = 125;
-            closeX.y = -145;
-            modal.addChild(closeX);
-
-            // Content - toggles
-            const toggles = [
-                { label: 'Music', icon: '🎵', value: true, y: -60 },
-                { label: 'Sound Effects', icon: '🔊', value: true, y: 10 },
-                { label: 'Vibration', icon: '📳', value: false, y: 80 }
-            ];
-
-            toggles.forEach((toggle) => {
-                // Row background
-                const rowBg = new PIXI.Graphics();
-                rowBg.roundRect(-130, toggle.y - 18, 260, 50, 10);
-                rowBg.fill({ color: 0x3d3d5c, alpha: 0.5 });
-                modal.addChild(rowBg);
-
-                // Icon
-                const icon = new PIXI.Text({
-                    text: toggle.icon,
-                    style: { fontSize: 20 }
                 });
-                icon.x = -110;
-                icon.y = toggle.y - 2;
-                modal.addChild(icon);
+                title.anchor.set(0.5);
+                title.y = -130;
+                modal.addChild(title);
 
-                // Label
-                const label = new PIXI.Text({
-                    text: toggle.label,
-                    style: { fontFamily: 'Arial', fontSize: 18, fill: 0xffffff }
+                const settingsIcon = gfx.createText('\u2699\ufe0f', { fontSize: 24 });
+                settingsIcon.anchor.set(0.5);
+                settingsIcon.x = -70;
+                settingsIcon.y = -130;
+                modal.addChild(settingsIcon);
+
+                // Close button
+                const closeBtnGlow = gfx.createGraphics();
+                closeBtnGlow.circle(125, -145, 22);
+                closeBtnGlow.fill({ color: colors.closeBtnGlow, alpha: 0.3 });
+                modal.addChild(closeBtnGlow);
+
+                const closeBtn = gfx.createGraphics();
+                closeBtn.circle(125, -145, 18);
+                closeBtn.fill(colors.closeBtnBg);
+                closeBtn.eventMode = 'static';
+                closeBtn.cursor = 'pointer';
+                modal.addChild(closeBtn);
+
+                const closeX = gfx.createText('\u2715', {
+                    fontSize: 18,
+                    fontWeight: 'bold',
+                    fill: colors.textWhite
                 });
-                label.x = -80;
-                label.y = toggle.y;
-                modal.addChild(label);
+                closeX.anchor.set(0.5);
+                closeX.x = 125;
+                closeX.y = -145;
+                modal.addChild(closeX);
 
-                // Toggle background with border
-                const toggleBorder = new PIXI.Graphics();
-                toggleBorder.roundRect(68, toggle.y - 7, 64, 34, 17);
-                toggleBorder.fill(toggle.value ? 0x2E7D32 : 0x3d3d5c);
-                modal.addChild(toggleBorder);
+                // Toggle rows
+                const toggles = [
+                    { label: 'Music', icon: '\ud83c\udfb5', value: true, y: -60 },
+                    { label: 'Sound Effects', icon: '\ud83d\udd0a', value: true, y: 10 },
+                    { label: 'Vibration', icon: '\ud83d\udcf3', value: false, y: 80 }
+                ];
 
-                const toggleBg = new PIXI.Graphics();
-                toggleBg.roundRect(70, toggle.y - 5, 60, 30, 15);
-                toggleBg.fill(toggle.value ? 0x4CAF50 : 0x4b5563);
-                toggleBg.eventMode = 'static';
-                toggleBg.cursor = 'pointer';
-                modal.addChild(toggleBg);
+                toggles.forEach((toggle) => {
+                    const rowBg = gfx.createGraphics();
+                    rowBg.roundRect(-130, toggle.y - 18, 260, 50, 10);
+                    rowBg.fill({ color: colors.rowBg, alpha: colors.rowBgAlpha });
+                    modal.addChild(rowBg);
 
-                // Toggle knob with shadow
-                const knobShadow = new PIXI.Graphics();
-                knobShadow.circle(toggle.value ? 116 : 86, toggle.y + 11, 11);
-                knobShadow.fill({ color: 0x000000, alpha: 0.2 });
-                modal.addChild(knobShadow);
+                    const icon = gfx.createText(toggle.icon, { fontSize: 20 });
+                    icon.x = -110;
+                    icon.y = toggle.y - 2;
+                    modal.addChild(icon);
 
-                const knob = new PIXI.Graphics();
-                knob.circle(toggle.value ? 115 : 85, toggle.y + 10, 11);
-                knob.fill(0xffffff);
-                modal.addChild(knob);
+                    const label = gfx.createText(toggle.label, {
+                        fontSize: 18,
+                        fill: colors.labelText
+                    });
+                    label.x = -80;
+                    label.y = toggle.y;
+                    modal.addChild(label);
 
-                toggleBg.on('pointerdown', () => {
-                    toggle.value = !toggle.value;
-
-                    // Update border
-                    toggleBorder.clear();
+                    const toggleBorder = gfx.createGraphics();
                     toggleBorder.roundRect(68, toggle.y - 7, 64, 34, 17);
-                    toggleBorder.fill(toggle.value ? 0x2E7D32 : 0x3d3d5c);
+                    toggleBorder.fill(toggle.value ? colors.toggleOnBorder : colors.toggleOffBorder);
+                    modal.addChild(toggleBorder);
 
-                    // Update background
-                    toggleBg.clear();
+                    const toggleBg = gfx.createGraphics();
                     toggleBg.roundRect(70, toggle.y - 5, 60, 30, 15);
-                    toggleBg.fill(toggle.value ? 0x4CAF50 : 0x4b5563);
+                    toggleBg.fill(toggle.value ? colors.toggleOnBg : colors.toggleOffBg);
+                    toggleBg.eventMode = 'static';
+                    toggleBg.cursor = 'pointer';
+                    modal.addChild(toggleBg);
 
-                    // Update knob
-                    knobShadow.clear();
+                    const knobShadow = gfx.createGraphics();
                     knobShadow.circle(toggle.value ? 116 : 86, toggle.y + 11, 11);
                     knobShadow.fill({ color: 0x000000, alpha: 0.2 });
+                    modal.addChild(knobShadow);
 
-                    knob.clear();
+                    const knob = gfx.createGraphics();
                     knob.circle(toggle.value ? 115 : 85, toggle.y + 10, 11);
                     knob.fill(0xffffff);
+                    modal.addChild(knob);
 
-                    // Sparkle effect when enabled
-                    if (toggle.value) {
-                        const sparkleX = modal.x + 100;
-                        const sparkleY = modal.y + toggle.y + 10;
-                        celebration.rewardReceived(sparkleX, sparkleY);
-                    }
+                    toggleBg.on('pointerdown', () => {
+                        toggle.value = !toggle.value;
+
+                        toggleBorder.clear();
+                        toggleBorder.roundRect(68, toggle.y - 7, 64, 34, 17);
+                        toggleBorder.fill(toggle.value ? colors.toggleOnBorder : colors.toggleOffBorder);
+
+                        toggleBg.clear();
+                        toggleBg.roundRect(70, toggle.y - 5, 60, 30, 15);
+                        toggleBg.fill(toggle.value ? colors.toggleOnBg : colors.toggleOffBg);
+
+                        knobShadow.clear();
+                        knobShadow.circle(toggle.value ? 116 : 86, toggle.y + 11, 11);
+                        knobShadow.fill({ color: 0x000000, alpha: 0.2 });
+
+                        knob.clear();
+                        knob.circle(toggle.value ? 115 : 85, toggle.y + 10, 11);
+                        knob.fill(0xffffff);
+
+                        if (toggle.value) {
+                            const sparkleX = modal.x + 100;
+                            const sparkleY = modal.y + toggle.y + 10;
+                            celebration.rewardReceived(sparkleX, sparkleY);
+                        }
+                    });
                 });
-            });
 
-            // Animation functions
-            function easeOutBack(x) {
-                const c1 = 1.70158;
-                const c3 = c1 + 1;
-                return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
-            }
+                // Animation functions
+                function easeOutBack(x) {
+                    const c1 = 1.70158;
+                    const c3 = c1 + 1;
+                    return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
+                }
 
-            function animate(target, props, duration, easing = (x) => x) {
-                return new Promise(resolve => {
-                    const start = {};
-                    for (const key in props) {
-                        start[key] = target[key];
-                    }
-                    const startTime = Date.now();
-
-                    const tick = () => {
-                        const elapsed = Date.now() - startTime;
-                        const progress = Math.min(elapsed / duration, 1);
-                        const eased = easing(progress);
-
+                function animate(target, props, duration, easing = (x) => x) {
+                    return new Promise(resolve => {
+                        const start = {};
                         for (const key in props) {
-                            target[key] = start[key] + (props[key] - start[key]) * eased;
+                            start[key] = target[key];
                         }
+                        const startTime = Date.now();
 
-                        if (progress < 1) {
-                            requestAnimationFrame(tick);
-                        } else {
-                            resolve();
-                        }
-                    };
-                    tick();
+                        const tick = () => {
+                            const elapsed = Date.now() - startTime;
+                            const progress = Math.min(elapsed / duration, 1);
+                            const eased = easing(progress);
+
+                            for (const key in props) {
+                                target[key] = start[key] + (props[key] - start[key]) * eased;
+                            }
+
+                            if (progress < 1) {
+                                requestAnimationFrame(tick);
+                            } else {
+                                resolve();
+                            }
+                        };
+                        tick();
+                    });
+                }
+
+                async function showModal() {
+                    modalOverlay.visible = true;
+                    dim.alpha = 0;
+                    modal.scale.x = 0;
+                    modal.scale.y = 0;
+
+                    await Promise.all([
+                        animate(dim, { alpha: colors.dimAlpha }, 200),
+                        animate(modal.scale, { x: 1, y: 1 }, 300, easeOutBack)
+                    ]);
+
+                    celebration.confetti.burst(CONFIG.width / 2, CONFIG.height / 2, {
+                        particleCount: 20,
+                        spread: 360,
+                        colors: colors.confettiColors
+                    });
+                }
+
+                async function hideModal() {
+                    await Promise.all([
+                        animate(dim, { alpha: 0 }, 150),
+                        animate(modal.scale, { x: 0, y: 0 }, 200)
+                    ]);
+                    modalOverlay.visible = false;
+                }
+
+                showBtn.on('pointerdown', showModal);
+                closeBtn.on('pointerdown', hideModal);
+                dim.on('pointerdown', hideModal);
+
+                // Instructions
+                const instr = gfx.createText('Tap to show modal with scale animation', {
+                    fontSize: 12,
+                    fill: colors.instructionText
                 });
+                instr.anchor.set(0.5);
+                instr.x = CONFIG.width / 2;
+                instr.y = CONFIG.height - 30;
+                stage.addChild(instr);
             }
 
-            async function showModal() {
-                modalOverlay.visible = true;
-                dim.alpha = 0;
-                modal.scale.x = 0;
-                modal.scale.y = 0;
+            window.createModalScreen = createModalScreen;
 
-                await Promise.all([
-                    animate(dim, { alpha: 0.6 }, 200),
-                    animate(modal.scale, { x: 1, y: 1 }, 300, easeOutBack)
-                ]);
-
-                // Small burst celebration when modal opens
-                celebration.confetti.burst(CONFIG.width / 2, CONFIG.height / 2, {
-                    particleCount: 20,
-                    spread: 360,
-                    colors: [0x6366f1, 0x8B5CF6, 0xffffff]
-                });
-            }
-
-            async function hideModal() {
-                await Promise.all([
-                    animate(dim, { alpha: 0 }, 150),
-                    animate(modal.scale, { x: 0, y: 0 }, 200)
-                ]);
-                modalOverlay.visible = false;
-            }
-
-            showBtn.on('pointerdown', showModal);
-            closeBtn.on('pointerdown', hideModal);
-            dim.on('pointerdown', hideModal);
-
-            // Instructions
-            const instr = new PIXI.Text({
-                text: 'Tap to show modal with scale animation',
-                style: { fontFamily: 'Arial', fontSize: 12, fill: 0x888888 }
-            });
-            instr.anchor.set(0.5);
-            instr.x = CONFIG.width / 2;
-            instr.y = CONFIG.height - 30;
-            stage.addChild(instr);
-
-            // Game loop for celebration updates
             game.on('update', (deltaTime) => {
                 celebration.update(deltaTime);
             });
 
+            document.body.classList.toggle('light-theme', currentTheme === 'light');
+            createModalScreen();
             game.start();
         })();
     </script>

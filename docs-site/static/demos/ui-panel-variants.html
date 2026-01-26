@@ -6,7 +6,8 @@
     <title>UIPanel Variants Demo - GameByte Framework</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { overflow: hidden; background: #0f172a; }
+        body { overflow: hidden; background: #0f172a; transition: background 0.3s ease; }
+        body.light-theme { background: #e8eef5; }
         canvas { display: block; margin: 0 auto; }
     </style>
 </head>
@@ -15,9 +16,98 @@
     <script src="/gamebyte.umd.js"></script>
 
     <script>
-        const { createGame } = GameByteFramework;
+        // =====================================================
+        // UIPanel Variants Demo - Using Framework Abstractions
+        // =====================================================
+        // This demo showcases:
+        // - Different panel styles (card, glass, gradient, bordered)
+        // - graphics() abstraction instead of direct PIXI usage
+        // =====================================================
+
+        const { createGame, graphics, loadFrameworkFont } = GameByteFramework;
 
         const CONFIG = { width: 400, height: 330 };
+
+        // ===== THEME DETECTION =====
+        function detectTheme() {
+            try {
+                if (window.parent && window.parent.document) {
+                    const parentTheme = window.parent.document.documentElement.getAttribute('data-theme');
+                    if (parentTheme) return parentTheme;
+                }
+            } catch (e) { /* Cross-origin */ }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const themeParam = urlParams.get('theme');
+            if (themeParam) return themeParam;
+
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                return 'light';
+            }
+            return 'dark';
+        }
+
+        let currentTheme = detectTheme();
+
+        function setupThemeListener() {
+            try {
+                if (window.parent && window.parent.document) {
+                    const observer = new MutationObserver((mutations) => {
+                        mutations.forEach((mutation) => {
+                            if (mutation.attributeName === 'data-theme') {
+                                const newTheme = window.parent.document.documentElement.getAttribute('data-theme');
+                                if (newTheme && newTheme !== currentTheme) {
+                                    currentTheme = newTheme;
+                                    applyTheme();
+                                }
+                            }
+                        });
+                    });
+                    observer.observe(window.parent.document.documentElement, { attributes: true });
+                }
+            } catch (e) {
+                window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
+                    currentTheme = e.matches ? 'light' : 'dark';
+                    applyTheme();
+                });
+            }
+        }
+
+        // ===== THEME COLOR PALETTES =====
+        const THEME_COLORS = {
+            dark: {
+                background: 0x0f172a,
+                textPrimary: 0xffffff,
+                cardBg: 0x2d3748,
+                cardShadow: 0x000000,
+                glassBg: 0xffffff,
+                glassBgAlpha: 0.1,
+                glassBorder: 0xffffff,
+                glassBorderAlpha: 0.3,
+                borderedBg: 0x1e293b,
+                borderedStroke: 0x6366f1,
+                gradientTop: '#818cf8',
+                gradientBottom: '#4f46e5'
+            },
+            light: {
+                background: 0xe8eef5,
+                textPrimary: 0x2d3748,
+                cardBg: 0xffffff,
+                cardShadow: 0x94a3b8,
+                glassBg: 0x1e293b,
+                glassBgAlpha: 0.08,
+                glassBorder: 0x475569,
+                glassBorderAlpha: 0.2,
+                borderedBg: 0xffffff,
+                borderedStroke: 0x818cf8,
+                gradientTop: '#a5b4fc',
+                gradientBottom: '#6366f1'
+            }
+        };
+
+        function getColors() {
+            return THEME_COLORS[currentTheme] || THEME_COLORS.dark;
+        }
 
         const canvas = document.createElement('canvas');
         canvas.width = CONFIG.width;
@@ -25,102 +115,133 @@
         document.body.appendChild(canvas);
 
         const game = createGame();
+        let renderer, stage;
 
-        (async () => {
-            await game.initialize(canvas, '2d');
-            const renderer = game.make('renderer');
-            const stage = renderer.getStage();
+        function createDemoContent() {
+            const colors = getColors();
+            const gfx = graphics(); // Get graphics factory
 
-            // Background
-            const bg = new PIXI.Graphics();
+            // Clear stage
+            while (stage.children.length > 0) {
+                stage.removeChildAt(0);
+            }
+
+            // ===== BACKGROUND - Using graphics() abstraction =====
+            const bg = gfx.createGraphics();
             bg.rect(0, 0, CONFIG.width, CONFIG.height);
-            bg.fill(0x0f172a);
+            bg.fill(colors.background);
             stage.addChild(bg);
 
-            // Title
-            const title = new PIXI.Text({
-                text: 'Panel Variants',
-                style: { fontFamily: 'Arial Black', fontSize: 18, fill: 0xffffff }
+            // ===== TITLE - Using graphics() abstraction =====
+            const title = gfx.createText('Panel Variants', {
+                fontSize: 18,
+                fill: colors.textPrimary
             });
             title.x = CONFIG.width / 2 - title.width / 2;
             title.y = 15;
             stage.addChild(title);
 
-            // Card Style Panel (with shadow)
-            const cardShadow = new PIXI.Graphics();
+            // ===== CARD STYLE PANEL (WITH SHADOW) =====
+            const cardShadow = gfx.createGraphics();
             cardShadow.roundRect(25, 60, 170, 100, 16);
-            cardShadow.fill({ color: 0x000000, alpha: 0.3 });
+            cardShadow.fill({ color: colors.cardShadow, alpha: 0.3 });
             stage.addChild(cardShadow);
 
-            const card = new PIXI.Graphics();
+            const card = gfx.createGraphics();
             card.roundRect(20, 55, 170, 100, 16);
-            card.fill(0x2d3748);
+            card.fill(colors.cardBg);
             stage.addChild(card);
 
-            const cardLabel = new PIXI.Text({
-                text: 'Card Style',
-                style: { fontFamily: 'Arial', fontSize: 14, fill: 0xffffff }
+            const cardLabel = gfx.createText('Card Style', {
+                fontSize: 14,
+                fill: colors.textPrimary
             });
             cardLabel.x = 65;
             cardLabel.y = 95;
             stage.addChild(cardLabel);
 
-            // Glass Effect Panel
-            const glass = new PIXI.Graphics();
+            // ===== GLASS EFFECT PANEL =====
+            const glass = gfx.createGraphics();
             glass.roundRect(210, 55, 170, 100, 20);
-            glass.fill({ color: 0xffffff, alpha: 0.1 });
-            glass.stroke({ width: 1, color: 0xffffff, alpha: 0.3 });
+            glass.fill({ color: colors.glassBg, alpha: colors.glassBgAlpha });
+            glass.stroke({ width: 1, color: colors.glassBorder, alpha: colors.glassBorderAlpha });
             stage.addChild(glass);
 
-            const glassLabel = new PIXI.Text({
-                text: 'Glass Effect',
-                style: { fontFamily: 'Arial', fontSize: 14, fill: 0xffffff }
+            const glassLabel = gfx.createText('Glass Effect', {
+                fontSize: 14,
+                fill: colors.textPrimary
             });
             glassLabel.x = 250;
             glassLabel.y = 95;
             stage.addChild(glassLabel);
 
-            // Gradient Header Panel
+            // ===== GRADIENT HEADER PANEL =====
             const gradientCanvas = document.createElement('canvas');
             gradientCanvas.width = 360;
             gradientCanvas.height = 60;
             const ctx = gradientCanvas.getContext('2d');
             const gradient = ctx.createLinearGradient(0, 0, 0, 60);
-            gradient.addColorStop(0, '#818cf8');
-            gradient.addColorStop(1, '#4f46e5');
+            gradient.addColorStop(0, colors.gradientTop);
+            gradient.addColorStop(1, colors.gradientBottom);
             ctx.fillStyle = gradient;
             ctx.beginPath();
             ctx.roundRect(0, 0, 360, 60, 12);
             ctx.fill();
 
-            const gradPanel = new PIXI.Sprite(PIXI.Texture.from(gradientCanvas));
+            const gradPanel = gfx.createSprite(PIXI.Texture.from(gradientCanvas));
             gradPanel.x = 20;
             gradPanel.y = 175;
             stage.addChild(gradPanel);
 
-            const gradLabel = new PIXI.Text({
-                text: 'Gradient Header',
-                style: { fontFamily: 'Arial', fontSize: 16, fontWeight: 'bold', fill: 0xffffff }
+            const gradLabel = gfx.createText('Gradient Header', {
+                fontSize: 16,
+                fontWeight: 'bold',
+                fill: 0xffffff
             });
             gradLabel.x = 145;
             gradLabel.y = 195;
             stage.addChild(gradLabel);
 
-            // Bordered Panel
-            const bordered = new PIXI.Graphics();
+            // ===== BORDERED PANEL =====
+            const bordered = gfx.createGraphics();
             bordered.roundRect(20, 255, 360, 60, 8);
-            bordered.fill(0x1e293b);
-            bordered.stroke({ width: 2, color: 0x6366f1 });
+            bordered.fill(colors.borderedBg);
+            bordered.stroke({ width: 2, color: colors.borderedStroke });
             stage.addChild(bordered);
 
-            const borderedLabel = new PIXI.Text({
-                text: 'Bordered Panel',
-                style: { fontFamily: 'Arial', fontSize: 14, fill: 0xffffff }
+            const borderedLabel = gfx.createText('Bordered Panel', {
+                fontSize: 14,
+                fill: colors.textPrimary
             });
             borderedLabel.x = 150;
             borderedLabel.y = 278;
             stage.addChild(borderedLabel);
+        }
 
+        let isRecreating = false;
+        async function applyTheme() {
+            if (isRecreating) return;
+            isRecreating = true;
+
+            document.body.classList.toggle('light-theme', currentTheme === 'light');
+            if (stage) {
+                await loadFrameworkFont();
+                createDemoContent();
+            }
+            setTimeout(() => { isRecreating = false; }, 100);
+        }
+
+        (async () => {
+            // Load framework font
+            await loadFrameworkFont();
+
+            await game.initialize(canvas, '2d');
+            renderer = game.make('renderer');
+            stage = renderer.getStage();
+
+            setupThemeListener();
+            document.body.classList.toggle('light-theme', currentTheme === 'light');
+            createDemoContent();
             game.start();
         })();
     </script>

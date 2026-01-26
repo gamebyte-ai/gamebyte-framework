@@ -6,7 +6,8 @@
     <title>HubScreen Demo - GameByte Framework</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { overflow: hidden; background: #1a1a2e; }
+        body { overflow: hidden; background: #1a1a2e; transition: background 0.3s ease; }
+        body.light-theme { background: #e8eef5; }
         canvas { display: block; margin: 0 auto; }
     </style>
 </head>
@@ -15,9 +16,121 @@
     <script src="/gamebyte.umd.js"></script>
 
     <script>
-        const { createGame, CelebrationManager } = GameByteFramework;
+        // =====================================================
+        // HubScreen Demo - Using Framework Abstractions
+        // =====================================================
+        // This demo showcases:
+        // - Complete hub screen with tabbed navigation
+        // - Shop, Play, Profile tabs
+        // - CelebrationManager for shimmer and confetti effects
+        // - graphics() abstraction instead of direct PIXI usage
+        // =====================================================
+
+        const {
+            createGame,
+            CelebrationManager,
+            graphics,
+            loadFrameworkFont
+        } = GameByteFramework;
 
         const CONFIG = { width: 360, height: 640 };
+
+        // ===== THEME DETECTION =====
+        function detectTheme() {
+            try {
+                if (window.parent && window.parent.document) {
+                    const parentTheme = window.parent.document.documentElement.getAttribute('data-theme');
+                    if (parentTheme) return parentTheme;
+                }
+            } catch (e) { /* Cross-origin */ }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const themeParam = urlParams.get('theme');
+            if (themeParam) return themeParam;
+
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                return 'light';
+            }
+            return 'dark';
+        }
+
+        let currentTheme = detectTheme();
+
+        function setupThemeListener() {
+            try {
+                if (window.parent && window.parent.document) {
+                    const observer = new MutationObserver((mutations) => {
+                        mutations.forEach((mutation) => {
+                            if (mutation.attributeName === 'data-theme') {
+                                const newTheme = window.parent.document.documentElement.getAttribute('data-theme');
+                                if (newTheme && newTheme !== currentTheme) {
+                                    currentTheme = newTheme;
+                                    applyTheme();
+                                }
+                            }
+                        });
+                    });
+                    observer.observe(window.parent.document.documentElement, { attributes: true });
+                }
+            } catch (e) {
+                window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
+                    currentTheme = e.matches ? 'light' : 'dark';
+                    applyTheme();
+                });
+            }
+        }
+
+        // ===== THEME COLOR PALETTES =====
+        const THEME_COLORS = {
+            dark: {
+                bgDark: 0x1a1a2e,
+                topBarBg: 0x2d2d44,
+                topBarShadow: 0x000000,
+                currencyBg: 0x3d3d5c,
+                coinColor: 0xFFD700,
+                gemColor: 0x00BFFF,
+                navBg: 0x2d2d44,
+                navBorder: 0x3d3d5c,
+                navActive: 0x6366f1,
+                navInactive: 0x888888,
+                cardBg: 0x2d2d44,
+                cardShadow: 0x1a1a2e,
+                playBtnGlow: 0x4CAF50,
+                playBtnShadow: 0x2E7D32,
+                playBtn: 0x4CAF50,
+                buyBtn: 0x4CAF50,
+                avatarGlow: 0x6366f1,
+                avatarBg: 0x6366f1,
+                textWhite: 0xffffff,
+                textMuted: 0x888888
+            },
+            light: {
+                bgDark: 0xe8eef5,
+                topBarBg: 0xd0d8e8,
+                topBarShadow: 0x000000,
+                currencyBg: 0xb8c8d8,
+                coinColor: 0xD4A000,
+                gemColor: 0x0090C0,
+                navBg: 0xd0d8e8,
+                navBorder: 0xb8c8d8,
+                navActive: 0x5558e8,
+                navInactive: 0x6a7a8a,
+                cardBg: 0xd0d8e8,
+                cardShadow: 0xc0c8d0,
+                playBtnGlow: 0x3d9d40,
+                playBtnShadow: 0x2d7d30,
+                playBtn: 0x4CAF50,
+                buyBtn: 0x4CAF50,
+                avatarGlow: 0x7376f8,
+                avatarBg: 0x7376f8,
+                textWhite: 0xffffff,
+                textMuted: 0x5a6a7a
+            }
+        };
+
+        function getColors() {
+            return THEME_COLORS[currentTheme] || THEME_COLORS.dark;
+        }
 
         const canvas = document.createElement('canvas');
         canvas.width = CONFIG.width;
@@ -26,429 +139,438 @@
 
         const game = createGame();
 
-        // State
         let coins = 1234;
         let gems = 50;
         let currentTab = 'play';
         let celebration = null;
+        let renderer, stage;
+
+        let isRecreating = false;
+        async function applyTheme() {
+            if (isRecreating) return;
+            isRecreating = true;
+
+            document.body.classList.toggle('light-theme', currentTheme === 'light');
+            if (stage && window.createHubScreen) {
+                await loadFrameworkFont();
+                window.createHubScreen();
+            }
+            setTimeout(() => { isRecreating = false; }, 100);
+        }
 
         (async () => {
+            await loadFrameworkFont();
             await game.initialize(canvas, '2d');
-            const renderer = game.make('renderer');
-            const stage = renderer.getStage();
+            renderer = game.make('renderer');
+            stage = renderer.getStage();
 
-            // Create celebration manager
             celebration = new CelebrationManager(stage, CONFIG.width, CONFIG.height);
 
-            // Background
-            const bg = new PIXI.Graphics();
-            bg.rect(0, 0, CONFIG.width, CONFIG.height);
-            bg.fill(0x1a1a2e);
-            stage.addChild(bg);
+            setupThemeListener();
 
-            // TopBar background with gradient effect
-            const topBarShadow = new PIXI.Graphics();
-            topBarShadow.rect(0, 70, CONFIG.width, 4);
-            topBarShadow.fill({ color: 0x000000, alpha: 0.3 });
-            stage.addChild(topBarShadow);
+            function createHubScreen() {
+                const colors = getColors();
+                const gfx = graphics();
 
-            const topBar = new PIXI.Graphics();
-            topBar.rect(0, 0, CONFIG.width, 70);
-            topBar.fill(0x2d2d44);
-            stage.addChild(topBar);
+                while (stage.children.length > 0) {
+                    stage.removeChildAt(0);
+                }
+                celebration.clear();
 
-            // Coins display with shimmer
-            const coinBg = new PIXI.Graphics();
-            coinBg.roundRect(10, 15, 100, 40, 20);
-            coinBg.fill(0x3d3d5c);
-            stage.addChild(coinBg);
+                // Background
+                const bg = gfx.createGraphics();
+                bg.rect(0, 0, CONFIG.width, CONFIG.height);
+                bg.fill(colors.bgDark);
+                stage.addChild(bg);
 
-            // Coin icon container for shimmer
-            const coinIconContainer = new PIXI.Container();
-            coinIconContainer.x = 30;
-            coinIconContainer.y = 35;
-            stage.addChild(coinIconContainer);
+                // TopBar background
+                const topBarShadow = gfx.createGraphics();
+                topBarShadow.rect(0, 70, CONFIG.width, 4);
+                topBarShadow.fill({ color: colors.topBarShadow, alpha: 0.3 });
+                stage.addChild(topBarShadow);
 
-            const coinIcon = new PIXI.Text({ text: '🪙', style: { fontSize: 22 } });
-            coinIcon.anchor.set(0.5);
-            coinIconContainer.addChild(coinIcon);
+                const topBar = gfx.createGraphics();
+                topBar.rect(0, 0, CONFIG.width, 70);
+                topBar.fill(colors.topBarBg);
+                stage.addChild(topBar);
 
-            // Add shimmer to coin icon
-            celebration.addShimmer(coinIconContainer, 'gold');
+                // Coins display
+                const coinBg = gfx.createGraphics();
+                coinBg.roundRect(10, 15, 100, 40, 20);
+                coinBg.fill(colors.currencyBg);
+                stage.addChild(coinBg);
 
-            const coinText = new PIXI.Text({
-                text: coins.toLocaleString(),
-                style: { fontFamily: 'Arial', fontSize: 16, fontWeight: 'bold', fill: 0xFFD700 }
-            });
-            coinText.x = 50;
-            coinText.y = 28;
-            stage.addChild(coinText);
+                const coinIconContainer = gfx.createContainer();
+                coinIconContainer.x = 30;
+                coinIconContainer.y = 35;
+                stage.addChild(coinIconContainer);
 
-            // Gems display with shimmer
-            const gemBg = new PIXI.Graphics();
-            gemBg.roundRect(120, 15, 90, 40, 20);
-            gemBg.fill(0x3d3d5c);
-            stage.addChild(gemBg);
+                const coinIcon = gfx.createText('\u{1FA99}', { fontSize: 22 });
+                coinIcon.anchor.set(0.5);
+                coinIconContainer.addChild(coinIcon);
 
-            // Gem icon container for shimmer
-            const gemIconContainer = new PIXI.Container();
-            gemIconContainer.x = 140;
-            gemIconContainer.y = 35;
-            stage.addChild(gemIconContainer);
+                celebration.addShimmer(coinIconContainer, 'gold');
 
-            const gemIcon = new PIXI.Text({ text: '💎', style: { fontSize: 20 } });
-            gemIcon.anchor.set(0.5);
-            gemIconContainer.addChild(gemIcon);
-
-            // Add shimmer to gem icon
-            celebration.addShimmer(gemIconContainer, 'gem');
-
-            const gemText = new PIXI.Text({
-                text: gems.toString(),
-                style: { fontFamily: 'Arial', fontSize: 16, fontWeight: 'bold', fill: 0x00BFFF }
-            });
-            gemText.x = 160;
-            gemText.y = 28;
-            stage.addChild(gemText);
-
-            // Settings button
-            const settingsBtn = new PIXI.Graphics();
-            settingsBtn.circle(CONFIG.width - 35, 35, 22);
-            settingsBtn.fill(0x3d3d5c);
-            settingsBtn.eventMode = 'static';
-            settingsBtn.cursor = 'pointer';
-            stage.addChild(settingsBtn);
-
-            const settingsIcon = new PIXI.Text({ text: '⚙️', style: { fontSize: 22 } });
-            settingsIcon.anchor.set(0.5);
-            settingsIcon.x = CONFIG.width - 35;
-            settingsIcon.y = 35;
-            stage.addChild(settingsIcon);
-
-            // Content area
-            const contentArea = new PIXI.Container();
-            contentArea.y = 70;
-            stage.addChild(contentArea);
-
-            // BottomNav background with top border
-            const bottomNavBorder = new PIXI.Graphics();
-            bottomNavBorder.rect(0, CONFIG.height - 84, CONFIG.width, 4);
-            bottomNavBorder.fill(0x3d3d5c);
-            stage.addChild(bottomNavBorder);
-
-            const bottomNav = new PIXI.Graphics();
-            bottomNav.rect(0, CONFIG.height - 80, CONFIG.width, 80);
-            bottomNav.fill(0x2d2d44);
-            stage.addChild(bottomNav);
-
-            // Nav items
-            const navItems = [
-                { id: 'shop', icon: '🛒', label: 'Shop' },
-                { id: 'play', icon: '▶️', label: 'Play' },
-                { id: 'profile', icon: '👤', label: 'Profile' }
-            ];
-
-            const navWidth = CONFIG.width / navItems.length;
-            const navButtons = [];
-
-            navItems.forEach((item, i) => {
-                const btn = new PIXI.Container();
-                btn.x = navWidth * i;
-                btn.y = CONFIG.height - 80;
-
-                const hitArea = new PIXI.Graphics();
-                hitArea.rect(0, 0, navWidth, 80);
-                hitArea.fill({ color: 0xffffff, alpha: 0 });
-                btn.addChild(hitArea);
-
-                const highlight = new PIXI.Graphics();
-                highlight.roundRect(navWidth / 2 - 30, 8, 60, 4, 2);
-                highlight.fill(item.id === currentTab ? 0x6366f1 : 0x2d2d44);
-                btn.addChild(highlight);
-
-                const icon = new PIXI.Text({
-                    text: item.icon,
-                    style: { fontSize: item.id === 'play' ? 32 : 24 }
+                const coinText = gfx.createText(coins.toLocaleString(), {
+                    fontSize: 16,
+                    fontWeight: 'bold',
+                    fill: colors.coinColor
                 });
-                icon.anchor.set(0.5);
-                icon.x = navWidth / 2;
-                icon.y = 35;
-                btn.addChild(icon);
+                coinText.x = 50;
+                coinText.y = 28;
+                stage.addChild(coinText);
 
-                const label = new PIXI.Text({
-                    text: item.label,
-                    style: {
-                        fontFamily: 'Arial',
-                        fontSize: 12,
-                        fill: item.id === currentTab ? 0x6366f1 : 0x888888
-                    }
+                // Gems display
+                const gemBg = gfx.createGraphics();
+                gemBg.roundRect(120, 15, 90, 40, 20);
+                gemBg.fill(colors.currencyBg);
+                stage.addChild(gemBg);
+
+                const gemIconContainer = gfx.createContainer();
+                gemIconContainer.x = 140;
+                gemIconContainer.y = 35;
+                stage.addChild(gemIconContainer);
+
+                const gemIcon = gfx.createText('\u{1F48E}', { fontSize: 20 });
+                gemIcon.anchor.set(0.5);
+                gemIconContainer.addChild(gemIcon);
+
+                celebration.addShimmer(gemIconContainer, 'gem');
+
+                const gemText = gfx.createText(gems.toString(), {
+                    fontSize: 16,
+                    fontWeight: 'bold',
+                    fill: colors.gemColor
                 });
-                label.anchor.set(0.5);
-                label.x = navWidth / 2;
-                label.y = 62;
-                btn.addChild(label);
+                gemText.x = 160;
+                gemText.y = 28;
+                stage.addChild(gemText);
 
-                btn.eventMode = 'static';
-                btn.cursor = 'pointer';
-                btn.on('pointerdown', () => switchTab(item.id));
+                // Settings button
+                const settingsBtn = gfx.createGraphics();
+                settingsBtn.circle(CONFIG.width - 35, 35, 22);
+                settingsBtn.fill(colors.currencyBg);
+                settingsBtn.eventMode = 'static';
+                settingsBtn.cursor = 'pointer';
+                stage.addChild(settingsBtn);
 
-                navButtons.push({ btn, highlight, label, id: item.id });
-                stage.addChild(btn);
-            });
+                const settingsIcon = gfx.createText('\u2699\uFE0F', { fontSize: 22 });
+                settingsIcon.anchor.set(0.5);
+                settingsIcon.x = CONFIG.width - 35;
+                settingsIcon.y = 35;
+                stage.addChild(settingsIcon);
 
-            // Tab content
-            function createTabContent(tabId) {
-                const content = new PIXI.Container();
+                // Content area
+                const contentArea = gfx.createContainer();
+                contentArea.y = 70;
+                stage.addChild(contentArea);
 
-                if (tabId === 'shop') {
-                    const title = new PIXI.Text({
-                        text: '🛒 Shop',
-                        style: { fontFamily: 'Arial', fontSize: 28, fontWeight: 'bold', fill: 0xffffff }
+                // BottomNav
+                const bottomNavBorder = gfx.createGraphics();
+                bottomNavBorder.rect(0, CONFIG.height - 84, CONFIG.width, 4);
+                bottomNavBorder.fill(colors.navBorder);
+                stage.addChild(bottomNavBorder);
+
+                const bottomNav = gfx.createGraphics();
+                bottomNav.rect(0, CONFIG.height - 80, CONFIG.width, 80);
+                bottomNav.fill(colors.navBg);
+                stage.addChild(bottomNav);
+
+                // Nav items
+                const navItems = [
+                    { id: 'shop', icon: '\u{1F6D2}', label: 'Shop' },
+                    { id: 'play', icon: '\u25B6\uFE0F', label: 'Play' },
+                    { id: 'profile', icon: '\u{1F464}', label: 'Profile' }
+                ];
+
+                const navWidth = CONFIG.width / navItems.length;
+                const navButtons = [];
+
+                navItems.forEach((item, i) => {
+                    const btn = gfx.createContainer();
+                    btn.x = navWidth * i;
+                    btn.y = CONFIG.height - 80;
+
+                    const hitArea = gfx.createGraphics();
+                    hitArea.rect(0, 0, navWidth, 80);
+                    hitArea.fill({ color: 0xffffff, alpha: 0 });
+                    btn.addChild(hitArea);
+
+                    const highlight = gfx.createGraphics();
+                    highlight.roundRect(navWidth / 2 - 30, 8, 60, 4, 2);
+                    highlight.fill(item.id === currentTab ? colors.navActive : colors.navBg);
+                    btn.addChild(highlight);
+
+                    const icon = gfx.createText(item.icon, {
+                        fontSize: item.id === 'play' ? 32 : 24
                     });
-                    title.x = 20;
-                    title.y = 20;
-                    content.addChild(title);
+                    icon.anchor.set(0.5);
+                    icon.x = navWidth / 2;
+                    icon.y = 35;
+                    btn.addChild(icon);
 
-                    // Shop items with coin shimmer
-                    const items = [
-                        { name: '100 Coins', price: '💎 10', color: 0xFFD700, type: 'gold' },
-                        { name: '500 Coins', price: '💎 45', color: 0xFFD700, type: 'gold' },
-                        { name: 'No Ads', price: '$2.99', color: 0x4CAF50, type: 'none' }
-                    ];
+                    const label = gfx.createText(item.label, {
+                        fontSize: 12,
+                        fill: item.id === currentTab ? colors.navActive : colors.navInactive
+                    });
+                    label.anchor.set(0.5);
+                    label.x = navWidth / 2;
+                    label.y = 62;
+                    btn.addChild(label);
 
-                    items.forEach((item, i) => {
-                        // Card shadow
-                        const cardShadow = new PIXI.Graphics();
-                        cardShadow.roundRect(20, 75 + i * 100, CONFIG.width - 40, 80, 12);
-                        cardShadow.fill(0x1a1a2e);
-                        content.addChild(cardShadow);
+                    btn.eventMode = 'static';
+                    btn.cursor = 'pointer';
+                    btn.on('pointerdown', () => switchTab(item.id));
 
-                        const card = new PIXI.Graphics();
-                        card.roundRect(20, 70 + i * 100, CONFIG.width - 40, 80, 12);
-                        card.fill(0x2d2d44);
-                        card.eventMode = 'static';
-                        card.cursor = 'pointer';
-                        content.addChild(card);
+                    navButtons.push({ btn, highlight, label, id: item.id });
+                    stage.addChild(btn);
+                });
 
-                        // Item icon with shimmer
-                        if (item.type === 'gold') {
-                            const iconContainer = new PIXI.Container();
-                            iconContainer.x = 55;
-                            iconContainer.y = 110 + i * 100;
-                            content.addChild(iconContainer);
+                // Tab content
+                function createTabContent(tabId) {
+                    const content = gfx.createContainer();
 
-                            const itemIcon = new PIXI.Text({ text: '🪙', style: { fontSize: 28 } });
-                            itemIcon.anchor.set(0.5);
-                            iconContainer.addChild(itemIcon);
+                    if (tabId === 'shop') {
+                        const title = gfx.createText('\u{1F6D2} Shop', {
+                            fontSize: 28,
+                            fontWeight: 'bold',
+                            fill: colors.textWhite
+                        });
+                        title.x = 20;
+                        title.y = 20;
+                        content.addChild(title);
 
-                            celebration.addShimmer(iconContainer, 'gold');
+                        const items = [
+                            { name: '100 Coins', price: '\u{1F48E} 10', color: colors.coinColor, type: 'gold' },
+                            { name: '500 Coins', price: '\u{1F48E} 45', color: colors.coinColor, type: 'gold' },
+                            { name: 'No Ads', price: '$2.99', color: 0x4CAF50, type: 'none' }
+                        ];
+
+                        items.forEach((item, i) => {
+                            const cardShadow = gfx.createGraphics();
+                            cardShadow.roundRect(20, 75 + i * 100, CONFIG.width - 40, 80, 12);
+                            cardShadow.fill(colors.cardShadow);
+                            content.addChild(cardShadow);
+
+                            const card = gfx.createGraphics();
+                            card.roundRect(20, 70 + i * 100, CONFIG.width - 40, 80, 12);
+                            card.fill(colors.cardBg);
+                            card.eventMode = 'static';
+                            card.cursor = 'pointer';
+                            content.addChild(card);
+
+                            if (item.type === 'gold') {
+                                const iconContainer = gfx.createContainer();
+                                iconContainer.x = 55;
+                                iconContainer.y = 110 + i * 100;
+                                content.addChild(iconContainer);
+
+                                const itemIcon = gfx.createText('\u{1FA99}', { fontSize: 28 });
+                                itemIcon.anchor.set(0.5);
+                                iconContainer.addChild(itemIcon);
+
+                                celebration.addShimmer(iconContainer, 'gold');
+                            }
+
+                            const name = gfx.createText(item.name, {
+                                fontSize: 18,
+                                fontWeight: 'bold',
+                                fill: item.color
+                            });
+                            name.x = item.type === 'gold' ? 85 : 40;
+                            name.y = 95 + i * 100;
+                            content.addChild(name);
+
+                            const buyBtn = gfx.createGraphics();
+                            buyBtn.roundRect(CONFIG.width - 100, 85 + i * 100, 60, 30, 8);
+                            buyBtn.fill(colors.buyBtn);
+                            content.addChild(buyBtn);
+
+                            const price = gfx.createText(item.price, {
+                                fontSize: 12,
+                                fill: colors.textWhite
+                            });
+                            price.anchor.set(0.5);
+                            price.x = CONFIG.width - 70;
+                            price.y = 100 + i * 100;
+                            content.addChild(price);
+
+                            card.on('pointerdown', () => {
+                                celebration.sparkle(CONFIG.width / 2, 110 + i * 100);
+                            });
+                        });
+
+                    } else if (tabId === 'play') {
+                        const title = gfx.createText('\u{1F3AE} Ready to Play!', {
+                            fontSize: 24,
+                            fontWeight: 'bold',
+                            fill: colors.textWhite
+                        });
+                        title.anchor.set(0.5);
+                        title.x = CONFIG.width / 2;
+                        title.y = 120;
+                        content.addChild(title);
+
+                        const playBtnGlow = gfx.createGraphics();
+                        playBtnGlow.roundRect(55, 175, CONFIG.width - 110, 90, 20);
+                        playBtnGlow.fill({ color: colors.playBtnGlow, alpha: 0.3 });
+                        content.addChild(playBtnGlow);
+
+                        const playBtnShadow = gfx.createGraphics();
+                        playBtnShadow.roundRect(60, 185, CONFIG.width - 120, 80, 16);
+                        playBtnShadow.fill(colors.playBtnShadow);
+                        content.addChild(playBtnShadow);
+
+                        const playBtn = gfx.createGraphics();
+                        playBtn.roundRect(60, 180, CONFIG.width - 120, 80, 16);
+                        playBtn.fill(colors.playBtn);
+                        playBtn.eventMode = 'static';
+                        playBtn.cursor = 'pointer';
+                        content.addChild(playBtn);
+
+                        const playText = gfx.createText('\u25B6  PLAY', {
+                            fontSize: 28,
+                            fontWeight: 'bold',
+                            fill: colors.textWhite
+                        });
+                        playText.anchor.set(0.5);
+                        playText.x = CONFIG.width / 2;
+                        playText.y = 220;
+                        content.addChild(playText);
+
+                        playBtn.on('pointerdown', () => {
+                            celebration.confettiBurst(CONFIG.width / 2, 220, {
+                                particleCount: 30,
+                                colors: [0x4CAF50, 0x6BCB77, 0xFFD700]
+                            });
+                        });
+
+                        const levelText = gfx.createText('Level 5', {
+                            fontSize: 18,
+                            fill: colors.textMuted
+                        });
+                        levelText.anchor.set(0.5);
+                        levelText.x = CONFIG.width / 2;
+                        levelText.y = 300;
+                        content.addChild(levelText);
+
+                        const starsContainer = gfx.createContainer();
+                        starsContainer.x = CONFIG.width / 2;
+                        starsContainer.y = 340;
+                        content.addChild(starsContainer);
+
+                        for (let i = 0; i < 3; i++) {
+                            const starContainer = gfx.createContainer();
+                            starContainer.x = (i - 1) * 40;
+                            starsContainer.addChild(starContainer);
+
+                            const star = gfx.createText(i < 2 ? '\u2B50' : '\u2606', { fontSize: 28 });
+                            star.anchor.set(0.5);
+                            starContainer.addChild(star);
+
+                            if (i < 2) {
+                                celebration.addShimmer(starContainer, 'star');
+                            }
                         }
 
-                        const name = new PIXI.Text({
-                            text: item.name,
-                            style: { fontFamily: 'Arial', fontSize: 18, fontWeight: 'bold', fill: item.color }
+                    } else if (tabId === 'profile') {
+                        const avatarGlow = gfx.createGraphics();
+                        avatarGlow.circle(CONFIG.width / 2, 100, 55);
+                        avatarGlow.fill({ color: colors.avatarGlow, alpha: 0.3 });
+                        content.addChild(avatarGlow);
+
+                        const avatar = gfx.createGraphics();
+                        avatar.circle(CONFIG.width / 2, 100, 50);
+                        avatar.fill(colors.avatarBg);
+                        content.addChild(avatar);
+
+                        const avatarIcon = gfx.createText('\u{1F464}', { fontSize: 48 });
+                        avatarIcon.anchor.set(0.5);
+                        avatarIcon.x = CONFIG.width / 2;
+                        avatarIcon.y = 100;
+                        content.addChild(avatarIcon);
+
+                        const name = gfx.createText('Player123', {
+                            fontSize: 24,
+                            fontWeight: 'bold',
+                            fill: colors.textWhite
                         });
-                        name.x = item.type === 'gold' ? 85 : 40;
-                        name.y = 95 + i * 100;
+                        name.anchor.set(0.5);
+                        name.x = CONFIG.width / 2;
+                        name.y = 180;
                         content.addChild(name);
 
-                        // Buy button
-                        const buyBtn = new PIXI.Graphics();
-                        buyBtn.roundRect(CONFIG.width - 100, 85 + i * 100, 60, 30, 8);
-                        buyBtn.fill(0x4CAF50);
-                        content.addChild(buyBtn);
-
-                        const price = new PIXI.Text({
-                            text: item.price,
-                            style: { fontFamily: 'Arial', fontSize: 12, fill: 0xffffff }
+                        const stats = gfx.createText('Games: 42  |  Best: 12,450', {
+                            fontSize: 14,
+                            fill: colors.textMuted
                         });
-                        price.anchor.set(0.5);
-                        price.x = CONFIG.width - 70;
-                        price.y = 100 + i * 100;
-                        content.addChild(price);
+                        stats.anchor.set(0.5);
+                        stats.x = CONFIG.width / 2;
+                        stats.y = 220;
+                        content.addChild(stats);
 
-                        // Click effect
-                        card.on('pointerdown', () => {
-                            celebration.sparkle(CONFIG.width / 2, 110 + i * 100);
+                        const achieveTitle = gfx.createText('Achievements', {
+                            fontSize: 18,
+                            fontWeight: 'bold',
+                            fill: colors.textWhite
                         });
-                    });
+                        achieveTitle.x = 20;
+                        achieveTitle.y = 270;
+                        content.addChild(achieveTitle);
 
-                } else if (tabId === 'play') {
-                    const title = new PIXI.Text({
-                        text: '🎮 Ready to Play!',
-                        style: { fontFamily: 'Arial', fontSize: 24, fontWeight: 'bold', fill: 0xffffff }
-                    });
-                    title.anchor.set(0.5);
-                    title.x = CONFIG.width / 2;
-                    title.y = 120;
-                    content.addChild(title);
+                        const badges = ['\u{1F3C6}', '\u{1F3AF}', '\u26A1'];
+                        badges.forEach((badge, i) => {
+                            const badgeContainer = gfx.createContainer();
+                            badgeContainer.x = 50 + i * 60;
+                            badgeContainer.y = 320;
+                            content.addChild(badgeContainer);
 
-                    // Play button with glow
-                    const playBtnGlow = new PIXI.Graphics();
-                    playBtnGlow.roundRect(55, 175, CONFIG.width - 110, 90, 20);
-                    playBtnGlow.fill({ color: 0x4CAF50, alpha: 0.3 });
-                    content.addChild(playBtnGlow);
+                            const badgeBg = gfx.createGraphics();
+                            badgeBg.circle(0, 0, 25);
+                            badgeBg.fill(colors.currencyBg);
+                            badgeContainer.addChild(badgeBg);
 
-                    const playBtnShadow = new PIXI.Graphics();
-                    playBtnShadow.roundRect(60, 185, CONFIG.width - 120, 80, 16);
-                    playBtnShadow.fill(0x2E7D32);
-                    content.addChild(playBtnShadow);
+                            const badgeIcon = gfx.createText(badge, { fontSize: 24 });
+                            badgeIcon.anchor.set(0.5);
+                            badgeContainer.addChild(badgeIcon);
 
-                    const playBtn = new PIXI.Graphics();
-                    playBtn.roundRect(60, 180, CONFIG.width - 120, 80, 16);
-                    playBtn.fill(0x4CAF50);
-                    playBtn.eventMode = 'static';
-                    playBtn.cursor = 'pointer';
-                    content.addChild(playBtn);
-
-                    const playText = new PIXI.Text({
-                        text: '▶  PLAY',
-                        style: { fontFamily: 'Arial', fontSize: 28, fontWeight: 'bold', fill: 0xffffff }
-                    });
-                    playText.anchor.set(0.5);
-                    playText.x = CONFIG.width / 2;
-                    playText.y = 220;
-                    content.addChild(playText);
-
-                    // Click effect - confetti burst
-                    playBtn.on('pointerdown', () => {
-                        celebration.confettiBurst(CONFIG.width / 2, 220, {
-                            particleCount: 30,
-                            colors: [0x4CAF50, 0x6BCB77, 0xFFD700]
+                            celebration.addShimmer(badgeContainer, 'gold');
                         });
-                    });
-
-                    // Level info
-                    const levelText = new PIXI.Text({
-                        text: 'Level 5',
-                        style: { fontFamily: 'Arial', fontSize: 18, fill: 0x888888 }
-                    });
-                    levelText.anchor.set(0.5);
-                    levelText.x = CONFIG.width / 2;
-                    levelText.y = 300;
-                    content.addChild(levelText);
-
-                    // Stars earned
-                    const starsContainer = new PIXI.Container();
-                    starsContainer.x = CONFIG.width / 2;
-                    starsContainer.y = 340;
-                    content.addChild(starsContainer);
-
-                    for (let i = 0; i < 3; i++) {
-                        const starContainer = new PIXI.Container();
-                        starContainer.x = (i - 1) * 40;
-                        starsContainer.addChild(starContainer);
-
-                        const star = new PIXI.Text({
-                            text: i < 2 ? '⭐' : '☆',
-                            style: { fontSize: 28 }
-                        });
-                        star.anchor.set(0.5);
-                        starContainer.addChild(star);
-
-                        if (i < 2) {
-                            celebration.addShimmer(starContainer, 'star');
-                        }
                     }
 
-                } else if (tabId === 'profile') {
-                    // Avatar with glow
-                    const avatarGlow = new PIXI.Graphics();
-                    avatarGlow.circle(CONFIG.width / 2, 100, 55);
-                    avatarGlow.fill({ color: 0x6366f1, alpha: 0.3 });
-                    content.addChild(avatarGlow);
-
-                    const avatar = new PIXI.Graphics();
-                    avatar.circle(CONFIG.width / 2, 100, 50);
-                    avatar.fill(0x6366f1);
-                    content.addChild(avatar);
-
-                    const avatarIcon = new PIXI.Text({ text: '👤', style: { fontSize: 48 } });
-                    avatarIcon.anchor.set(0.5);
-                    avatarIcon.x = CONFIG.width / 2;
-                    avatarIcon.y = 100;
-                    content.addChild(avatarIcon);
-
-                    const name = new PIXI.Text({
-                        text: 'Player123',
-                        style: { fontFamily: 'Arial', fontSize: 24, fontWeight: 'bold', fill: 0xffffff }
-                    });
-                    name.anchor.set(0.5);
-                    name.x = CONFIG.width / 2;
-                    name.y = 180;
-                    content.addChild(name);
-
-                    const stats = new PIXI.Text({
-                        text: 'Games: 42  |  Best: 12,450',
-                        style: { fontFamily: 'Arial', fontSize: 14, fill: 0x888888 }
-                    });
-                    stats.anchor.set(0.5);
-                    stats.x = CONFIG.width / 2;
-                    stats.y = 220;
-                    content.addChild(stats);
-
-                    // Achievements section
-                    const achieveTitle = new PIXI.Text({
-                        text: 'Achievements',
-                        style: { fontFamily: 'Arial', fontSize: 18, fontWeight: 'bold', fill: 0xffffff }
-                    });
-                    achieveTitle.x = 20;
-                    achieveTitle.y = 270;
-                    content.addChild(achieveTitle);
-
-                    // Achievement badges with shimmer
-                    const badges = ['🏆', '🎯', '⚡'];
-                    badges.forEach((badge, i) => {
-                        const badgeContainer = new PIXI.Container();
-                        badgeContainer.x = 50 + i * 60;
-                        badgeContainer.y = 320;
-                        content.addChild(badgeContainer);
-
-                        const badgeBg = new PIXI.Graphics();
-                        badgeBg.circle(0, 0, 25);
-                        badgeBg.fill(0x3d3d5c);
-                        badgeContainer.addChild(badgeBg);
-
-                        const badgeIcon = new PIXI.Text({ text: badge, style: { fontSize: 24 } });
-                        badgeIcon.anchor.set(0.5);
-                        badgeContainer.addChild(badgeIcon);
-
-                        celebration.addShimmer(badgeContainer, 'gold');
-                    });
+                    return content;
                 }
 
-                return content;
-            }
+                let currentContent = null;
 
-            let currentContent = null;
+                function switchTab(tabId) {
+                    currentTab = tabId;
 
-            function switchTab(tabId) {
-                currentTab = tabId;
+                    navButtons.forEach(({ highlight, label, id }) => {
+                        highlight.clear();
+                        highlight.roundRect(CONFIG.width / navItems.length / 2 - 30, 8, 60, 4, 2);
+                        highlight.fill(id === tabId ? colors.navActive : colors.navBg);
+                        label.style.fill = id === tabId ? colors.navActive : colors.navInactive;
+                    });
 
-                // Update nav highlights
-                navButtons.forEach(({ highlight, label, id }) => {
-                    highlight.clear();
-                    highlight.roundRect(CONFIG.width / navItems.length / 2 - 30, 8, 60, 4, 2);
-                    highlight.fill(id === tabId ? 0x6366f1 : 0x2d2d44);
-                    label.style.fill = id === tabId ? 0x6366f1 : 0x888888;
-                });
-
-                // Switch content
-                if (currentContent) {
-                    contentArea.removeChild(currentContent);
+                    if (currentContent) {
+                        contentArea.removeChild(currentContent);
+                    }
+                    currentContent = createTabContent(tabId);
+                    contentArea.addChild(currentContent);
                 }
-                currentContent = createTabContent(tabId);
-                contentArea.addChild(currentContent);
+
+                switchTab('play');
             }
 
-            // Update celebration effects in game loop
+            window.createHubScreen = createHubScreen;
+
             game.on('update', (deltaTime) => {
                 celebration.update(deltaTime);
             });
 
-            // Initialize with play tab
-            switchTab('play');
-
+            document.body.classList.toggle('light-theme', currentTheme === 'light');
+            createHubScreen();
             game.start();
         })();
     </script>

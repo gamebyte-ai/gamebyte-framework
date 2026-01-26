@@ -6,7 +6,8 @@
     <title>ResultScreen Demo - GameByte Framework</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { overflow: hidden; background: #1c2333; }
+        body { overflow: hidden; background: #1c2333; transition: background 0.3s ease; }
+        body.light-theme { background: #e8eef5; }
         canvas { display: block; margin: 0 auto; }
     </style>
 </head>
@@ -15,57 +16,131 @@
     <script src="/gamebyte.umd.js"></script>
 
     <script>
-        const { createGame, CelebrationManager } = GameByteFramework;
+        // =====================================================
+        // ResultScreen Demo - Using Framework Abstractions
+        // =====================================================
+        // This demo showcases:
+        // - Victory/Result screen with trophy and rewards
+        // - Light rays and glow effects
+        // - CelebrationManager for confetti
+        // - graphics() abstraction instead of direct PIXI usage
+        // =====================================================
+
+        const {
+            createGame,
+            CelebrationManager,
+            graphics,
+            loadFrameworkFont
+        } = GameByteFramework;
 
         const CONFIG = { width: 360, height: 700 };
 
-        // Pixel-perfect color palette from reference
-        const COLORS = {
-            // Background
-            darkBg: 0x1c2333,
+        // ===== THEME DETECTION =====
+        function detectTheme() {
+            try {
+                if (window.parent && window.parent.document) {
+                    const parentTheme = window.parent.document.documentElement.getAttribute('data-theme');
+                    if (parentTheme) return parentTheme;
+                }
+            } catch (e) { /* Cross-origin */ }
 
-            // Light rays
-            rayColor: 0x2a3f5f,
-            rayAlpha: 0.35,
+            const urlParams = new URLSearchParams(window.location.search);
+            const themeParam = urlParams.get('theme');
+            if (themeParam) return themeParam;
 
-            // Trophy glow (olive-yellow tones)
-            glowOuter: 0xa5a845,
-            glowMiddle: 0xb8b850,
-            glowInner: 0xd4d870,
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                return 'light';
+            }
+            return 'dark';
+        }
 
-            // Main panel
-            panelBg: 0x4a7ab5,
-            panelBorder: 0x2a4a75,
-            panelGradientTop: 0x5a8ac5,
-            panelGradientBottom: 0x3a6a95,
+        let currentTheme = detectTheme();
 
-            // Banner
-            bannerBlue: 0x5ab0e8,
-            bannerLight: 0x7ac8f8,
-            bannerDark: 0x3a90c8,
+        function setupThemeListener() {
+            try {
+                if (window.parent && window.parent.document) {
+                    const observer = new MutationObserver((mutations) => {
+                        mutations.forEach((mutation) => {
+                            if (mutation.attributeName === 'data-theme') {
+                                const newTheme = window.parent.document.documentElement.getAttribute('data-theme');
+                                if (newTheme && newTheme !== currentTheme) {
+                                    currentTheme = newTheme;
+                                    applyTheme();
+                                }
+                            }
+                        });
+                    });
+                    observer.observe(window.parent.document.documentElement, { attributes: true });
+                }
+            } catch (e) {
+                window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
+                    currentTheme = e.matches ? 'light' : 'dark';
+                    applyTheme();
+                });
+            }
+        }
 
-            // Reward panel
-            rewardPanelBg: 0x5a8ab8,
-            rewardPanelBorder: 0x3a5a85,
-
-            // Buttons
-            greenBtn: 0x6ac46a,
-            greenBtnShadow: 0x3a8a3a,
-            greenBtnHighlight: 0x8ae88a,
-
-            orangeBtn: 0xe8c878,
-            orangeBtnShadow: 0xc8a050,
-            orangeBtnHighlight: 0xf8e0a0,
-
-            // Text
-            textWhite: 0xffffff,
-            textOutline: 0x2a4a6a,
-            textDark: 0x4a5a6a,
-
-            // Coin display
-            coinDisplayBg: 0x3a4a6a,
-            plusButton: 0xe8a040
+        // ===== THEME COLOR PALETTES =====
+        const THEME_COLORS = {
+            dark: {
+                darkBg: 0x1c2333,
+                rayColor: 0x2a3f5f,
+                rayAlpha: 0.35,
+                glowOuter: 0xa5a845,
+                glowMiddle: 0xb8b850,
+                glowInner: 0xd4d870,
+                panelBg: 0x4a7ab5,
+                panelBorder: 0x2a4a75,
+                panelGradientBottom: 0x3a6a95,
+                bannerBlue: 0x5ab0e8,
+                bannerLight: 0x7ac8f8,
+                bannerDark: 0x3a90c8,
+                rewardPanelBg: 0x5a8ab8,
+                rewardPanelBorder: 0x3a5a85,
+                greenBtn: 0x6ac46a,
+                greenBtnShadow: 0x3a8a3a,
+                greenBtnHighlight: 0x8ae88a,
+                orangeBtn: 0xe8c878,
+                orangeBtnShadow: 0xc8a050,
+                orangeBtnHighlight: 0xf8e0a0,
+                textWhite: 0xffffff,
+                textOutline: 0x2a4a6a,
+                textDark: 0x4a5a6a,
+                coinDisplayBg: 0x3a4a6a,
+                plusButton: 0xe8a040
+            },
+            light: {
+                darkBg: 0xe8eef5,
+                rayColor: 0xc5d5e8,
+                rayAlpha: 0.5,
+                glowOuter: 0xf5d060,
+                glowMiddle: 0xffd700,
+                glowInner: 0xffec80,
+                panelBg: 0x6a9fd8,
+                panelBorder: 0x4a7ab5,
+                panelGradientBottom: 0x5a90c8,
+                bannerBlue: 0x60b8f0,
+                bannerLight: 0x90d0ff,
+                bannerDark: 0x4a98d0,
+                rewardPanelBg: 0x7aa8d0,
+                rewardPanelBorder: 0x5a88b8,
+                greenBtn: 0x5cb85c,
+                greenBtnShadow: 0x449d44,
+                greenBtnHighlight: 0x8cd98c,
+                orangeBtn: 0xf5d070,
+                orangeBtnShadow: 0xd4a840,
+                orangeBtnHighlight: 0xffe8a0,
+                textWhite: 0xffffff,
+                textOutline: 0x3a5a7a,
+                textDark: 0x3a4a5a,
+                coinDisplayBg: 0x5a7a9a,
+                plusButton: 0xf0a830
+            }
         };
+
+        function getColors() {
+            return THEME_COLORS[currentTheme] || THEME_COLORS.dark;
+        }
 
         const canvas = document.createElement('canvas');
         canvas.width = CONFIG.width;
@@ -74,27 +149,26 @@
 
         const game = createGame();
         let celebration = null;
+        let renderer, stage;
 
         // ===== LIGHT RAYS HELPER =====
-        // Creates trapezoid-shaped light rays (not triangles!)
-        function createLightRays(config) {
-            const container = new PIXI.Container();
+        function createLightRays(gfx, config) {
+            const colors = getColors();
+            const container = gfx.createContainer();
             const {
                 rayCount = 16,
                 innerRadius = 20,
                 outerRadius = 350,
-                innerWidth = 0.08,  // Angular width at center (radians)
-                outerWidth = 0.12,  // Angular width at edge (radians)
-                color = COLORS.rayColor,
-                alpha = COLORS.rayAlpha
+                innerWidth = 0.08,
+                outerWidth = 0.12,
+                color = colors.rayColor,
+                alpha = colors.rayAlpha
             } = config;
 
             for (let i = 0; i < rayCount; i++) {
                 const angle = (i / rayCount) * Math.PI * 2;
+                const ray = gfx.createGraphics();
 
-                const ray = new PIXI.Graphics();
-
-                // Trapezoid points (clockwise from inner-left)
                 const innerLeft = {
                     x: Math.cos(angle - innerWidth / 2) * innerRadius,
                     y: Math.sin(angle - innerWidth / 2) * innerRadius
@@ -126,51 +200,46 @@
         }
 
         // ===== MULTI-LAYER GLOW HELPER =====
-        function createGlow() {
-            const container = new PIXI.Container();
+        function createGlow(gfx) {
+            const colors = getColors();
+            const container = gfx.createContainer();
 
-            // Outer glow layer
-            const outer = new PIXI.Graphics();
+            const outer = gfx.createGraphics();
             outer.circle(0, 0, 100);
-            outer.fill({ color: COLORS.glowOuter, alpha: 0.25 });
+            outer.fill({ color: colors.glowOuter, alpha: 0.25 });
             container.addChild(outer);
 
-            // Middle glow layer
-            const middle = new PIXI.Graphics();
+            const middle = gfx.createGraphics();
             middle.circle(0, 0, 70);
-            middle.fill({ color: COLORS.glowMiddle, alpha: 0.5 });
+            middle.fill({ color: colors.glowMiddle, alpha: 0.5 });
             container.addChild(middle);
 
-            // Inner glow layer (brightest)
-            const inner = new PIXI.Graphics();
+            const inner = gfx.createGraphics();
             inner.circle(0, 0, 50);
-            inner.fill({ color: COLORS.glowInner, alpha: 0.8 });
+            inner.fill({ color: colors.glowInner, alpha: 0.8 });
             container.addChild(inner);
 
             return container;
         }
 
         // ===== 3D BUTTON HELPER =====
-        function create3DButton(x, y, width, height, config) {
-            const container = new PIXI.Container();
+        function create3DButton(gfx, x, y, width, height, config) {
+            const container = gfx.createContainer();
             const { mainColor, shadowColor, highlightColor } = config;
 
-            // Shadow layer (bottom)
-            const shadow = new PIXI.Graphics();
+            const shadow = gfx.createGraphics();
             shadow.roundRect(x, y + 4, width, height, 12);
             shadow.fill(shadowColor);
             container.addChild(shadow);
 
-            // Main button
-            const btn = new PIXI.Graphics();
+            const btn = gfx.createGraphics();
             btn.roundRect(x, y, width, height, 12);
             btn.fill(mainColor);
             btn.eventMode = 'static';
             btn.cursor = 'pointer';
             container.addChild(btn);
 
-            // Highlight layer (top)
-            const highlight = new PIXI.Graphics();
+            const highlight = gfx.createGraphics();
             highlight.roundRect(x + 5, y + 3, width - 10, 15, 8);
             highlight.fill({ color: highlightColor, alpha: 0.4 });
             container.addChild(highlight);
@@ -179,15 +248,33 @@
             return container;
         }
 
+        let isRecreating = false;
+        async function applyTheme() {
+            if (isRecreating) return;
+            isRecreating = true;
+
+            document.body.classList.toggle('light-theme', currentTheme === 'light');
+            if (stage && window.createVictoryScreen) {
+                await loadFrameworkFont();
+                window.createVictoryScreen();
+            }
+            setTimeout(() => { isRecreating = false; }, 100);
+        }
+
         (async () => {
+            await loadFrameworkFont();
             await game.initialize(canvas, '2d');
-            const renderer = game.make('renderer');
-            const stage = renderer.getStage();
+            renderer = game.make('renderer');
+            stage = renderer.getStage();
 
             celebration = new CelebrationManager(stage, CONFIG.width, CONFIG.height);
 
+            setupThemeListener();
+
             function createVictoryScreen() {
-                // Clear stage
+                const colors = getColors();
+                const gfx = graphics();
+
                 while (stage.children.length > 0) {
                     stage.removeChildAt(0);
                 }
@@ -195,16 +282,15 @@
 
                 const centerX = CONFIG.width / 2;
 
-                // ===== DARK BACKGROUND =====
-                const bg = new PIXI.Graphics();
+                // Background
+                const bg = gfx.createGraphics();
                 bg.rect(0, 0, CONFIG.width, CONFIG.height);
-                bg.fill(COLORS.darkBg);
+                bg.fill(colors.darkBg);
                 stage.addChild(bg);
 
-                // ===== TROPHY LIGHT RAYS (Behind everything, very long!) =====
+                // Trophy light rays
                 const trophyY = 110;
-
-                const trophyRays = createLightRays({
+                const trophyRays = createLightRays(gfx, {
                     rayCount: 16,
                     innerRadius: 15,
                     outerRadius: 350,
@@ -215,218 +301,191 @@
                 trophyRays.y = trophyY + 40;
                 stage.addChild(trophyRays);
 
-                // Animate rays slowly
                 game.on('update', () => {
                     trophyRays.rotation += 0.002;
                 });
 
-                // ===== TROPHY GLOW (3-layer olive-yellow) =====
-                const trophyGlow = createGlow();
+                // Trophy glow
+                const trophyGlow = createGlow(gfx);
                 trophyGlow.x = centerX;
                 trophyGlow.y = trophyY + 40;
                 stage.addChild(trophyGlow);
 
-                // ===== TOP RIGHT COIN DISPLAY =====
-                const coinDisplay = new PIXI.Container();
+                // Top right coin display
+                const coinDisplay = gfx.createContainer();
                 coinDisplay.x = CONFIG.width - 80;
                 coinDisplay.y = 25;
                 stage.addChild(coinDisplay);
 
-                // Pill background
-                const coinBg = new PIXI.Graphics();
+                const coinBg = gfx.createGraphics();
                 coinBg.roundRect(-50, -15, 100, 30, 15);
-                coinBg.fill(COLORS.coinDisplayBg);
+                coinBg.fill(colors.coinDisplayBg);
                 coinDisplay.addChild(coinBg);
 
-                // Coin icon
-                const coinIcon = new PIXI.Text({ text: '🪙', style: { fontSize: 22 } });
+                const coinIcon = gfx.createText('\u{1FA99}', { fontSize: 22 });
                 coinIcon.anchor.set(0.5);
                 coinIcon.x = -32;
                 coinDisplay.addChild(coinIcon);
 
-                // Amount text
-                const coinAmount = new PIXI.Text({
-                    text: '1460',
-                    style: { fontFamily: 'Arial', fontSize: 16, fontWeight: 'bold', fill: COLORS.textWhite }
+                const coinAmount = gfx.createText('1460', {
+                    fontSize: 16,
+                    fontWeight: 'bold',
+                    fill: colors.textWhite
                 });
                 coinAmount.anchor.set(0, 0.5);
                 coinAmount.x = -16;
                 coinDisplay.addChild(coinAmount);
 
-                // Plus button (orange circle)
-                const plusBtn = new PIXI.Graphics();
+                const plusBtn = gfx.createGraphics();
                 plusBtn.circle(35, 0, 12);
-                plusBtn.fill(COLORS.plusButton);
+                plusBtn.fill(colors.plusButton);
                 coinDisplay.addChild(plusBtn);
 
-                const plusText = new PIXI.Text({
-                    text: '+',
-                    style: { fontFamily: 'Arial', fontSize: 18, fontWeight: 'bold', fill: COLORS.textWhite }
+                const plusText = gfx.createText('+', {
+                    fontSize: 18,
+                    fontWeight: 'bold',
+                    fill: colors.textWhite
                 });
                 plusText.anchor.set(0.5);
                 plusText.x = 35;
                 coinDisplay.addChild(plusText);
 
-                // ===== MAIN PANEL (Blue rounded rectangle) =====
+                // Main panel
                 const panelY = 100;
                 const panelWidth = 300;
                 const panelHeight = 480;
                 const panelX = centerX - panelWidth / 2;
 
-                // Panel border (dark outer)
-                const panelBorder = new PIXI.Graphics();
+                const panelBorder = gfx.createGraphics();
                 panelBorder.roundRect(panelX - 4, panelY - 4, panelWidth + 8, panelHeight + 8, 28);
-                panelBorder.fill(COLORS.panelBorder);
+                panelBorder.fill(colors.panelBorder);
                 stage.addChild(panelBorder);
 
-                // Panel main background
-                const panelBg = new PIXI.Graphics();
+                const panelBg = gfx.createGraphics();
                 panelBg.roundRect(panelX, panelY, panelWidth, panelHeight, 25);
-                panelBg.fill(COLORS.panelBg);
+                panelBg.fill(colors.panelBg);
                 stage.addChild(panelBg);
 
-                // Panel gradient overlay (darker at bottom)
-                const panelGradient = new PIXI.Graphics();
+                const panelGradient = gfx.createGraphics();
                 panelGradient.roundRect(panelX, panelY + panelHeight * 0.6, panelWidth, panelHeight * 0.4, 25);
-                panelGradient.fill({ color: COLORS.panelGradientBottom, alpha: 0.4 });
+                panelGradient.fill({ color: colors.panelGradientBottom, alpha: 0.4 });
                 stage.addChild(panelGradient);
 
-                // Panel top highlight line
-                const panelHighlight = new PIXI.Graphics();
+                const panelHighlight = gfx.createGraphics();
                 panelHighlight.roundRect(panelX + 10, panelY + 5, panelWidth - 20, 4, 2);
                 panelHighlight.fill({ color: 0xffffff, alpha: 0.15 });
                 stage.addChild(panelHighlight);
 
-                // ===== TROPHY EMOJI =====
-                const trophy = new PIXI.Text({ text: '🏆', style: { fontSize: 72 } });
+                // Trophy emoji
+                const trophy = gfx.createText('\u{1F3C6}', { fontSize: 72 });
                 trophy.anchor.set(0.5);
                 trophy.x = centerX;
                 trophy.y = trophyY + 40;
                 stage.addChild(trophy);
 
-                // ===== LEVEL COMPLETED BANNER =====
+                // Level completed banner
                 const ribbonY = panelY + 100;
                 const ribbonWidth = 260;
                 const ribbonHeight = 55;
 
-                // Banner shadow (3D bottom)
-                const bannerShadow = new PIXI.Graphics();
+                const bannerShadow = gfx.createGraphics();
                 bannerShadow.roundRect(centerX - ribbonWidth/2, ribbonY + 3, ribbonWidth, ribbonHeight, 8);
-                bannerShadow.fill(COLORS.bannerDark);
+                bannerShadow.fill(colors.bannerDark);
                 stage.addChild(bannerShadow);
 
-                // Banner main body
-                const banner = new PIXI.Graphics();
+                const banner = gfx.createGraphics();
                 banner.roundRect(centerX - ribbonWidth/2, ribbonY, ribbonWidth, ribbonHeight - 3, 8);
-                banner.fill(COLORS.bannerBlue);
+                banner.fill(colors.bannerBlue);
                 stage.addChild(banner);
 
-                // Banner top highlight
-                const bannerHighlight = new PIXI.Graphics();
+                const bannerHighlight = gfx.createGraphics();
                 bannerHighlight.roundRect(centerX - ribbonWidth/2 + 5, ribbonY + 2, ribbonWidth - 10, 3, 2);
-                bannerHighlight.fill(COLORS.bannerLight);
+                bannerHighlight.fill(colors.bannerLight);
                 stage.addChild(bannerHighlight);
 
-                // Left ribbon end (folded trapezoid)
-                const leftRibbon = new PIXI.Graphics();
+                // Ribbon ends
+                const leftRibbon = gfx.createGraphics();
                 leftRibbon.poly([
-                    centerX - ribbonWidth/2 - 10, ribbonY + 8,     // Outer top
-                    centerX - ribbonWidth/2, ribbonY + 8,          // Inner top
-                    centerX - ribbonWidth/2, ribbonY + 47,         // Inner bottom
-                    centerX - ribbonWidth/2 - 10, ribbonY + 47,    // Outer bottom
-                    centerX - ribbonWidth/2, ribbonY + 27          // Fold point (inward)
+                    centerX - ribbonWidth/2 - 10, ribbonY + 8,
+                    centerX - ribbonWidth/2, ribbonY + 8,
+                    centerX - ribbonWidth/2, ribbonY + 47,
+                    centerX - ribbonWidth/2 - 10, ribbonY + 47,
+                    centerX - ribbonWidth/2, ribbonY + 27
                 ]);
-                leftRibbon.fill(COLORS.bannerDark);
+                leftRibbon.fill(colors.bannerDark);
                 stage.addChild(leftRibbon);
 
-                // Right ribbon end (folded trapezoid)
-                const rightRibbon = new PIXI.Graphics();
+                const rightRibbon = gfx.createGraphics();
                 rightRibbon.poly([
-                    centerX + ribbonWidth/2 + 10, ribbonY + 8,     // Outer top
-                    centerX + ribbonWidth/2, ribbonY + 8,          // Inner top
-                    centerX + ribbonWidth/2, ribbonY + 47,         // Inner bottom
-                    centerX + ribbonWidth/2 + 10, ribbonY + 47,    // Outer bottom
-                    centerX + ribbonWidth/2, ribbonY + 27          // Fold point (inward)
+                    centerX + ribbonWidth/2 + 10, ribbonY + 8,
+                    centerX + ribbonWidth/2, ribbonY + 8,
+                    centerX + ribbonWidth/2, ribbonY + 47,
+                    centerX + ribbonWidth/2 + 10, ribbonY + 47,
+                    centerX + ribbonWidth/2, ribbonY + 27
                 ]);
-                rightRibbon.fill(COLORS.bannerDark);
+                rightRibbon.fill(colors.bannerDark);
                 stage.addChild(rightRibbon);
 
-                // "LEVEL 20" text
-                const levelText = new PIXI.Text({
-                    text: 'LEVEL 20',
-                    style: {
-                        fontFamily: 'Arial',
-                        fontSize: 24,
-                        fontWeight: 'bold',
-                        fill: COLORS.textWhite,
-                        dropShadow: true,
-                        dropShadowColor: 0x000000,
-                        dropShadowDistance: 2,
-                        dropShadowBlur: 2
-                    }
+                // Level text
+                const levelText = gfx.createText('LEVEL 20', {
+                    fontSize: 24,
+                    fontWeight: 'bold',
+                    fill: colors.textWhite,
+                    dropShadow: true,
+                    dropShadowColor: 0x000000,
+                    dropShadowDistance: 2,
+                    dropShadowBlur: 2
                 });
                 levelText.anchor.set(0.5);
                 levelText.x = centerX;
                 levelText.y = ribbonY + 18;
                 stage.addChild(levelText);
 
-                // "COMPLETED!" text
-                const completedText = new PIXI.Text({
-                    text: 'COMPLETED!',
-                    style: {
-                        fontFamily: 'Arial',
-                        fontSize: 12,
-                        fontWeight: 'bold',
-                        fill: COLORS.textWhite,
-                        dropShadow: true,
-                        dropShadowColor: 0x000000,
-                        dropShadowDistance: 2,
-                        dropShadowBlur: 2
-                    }
+                const completedText = gfx.createText('COMPLETED!', {
+                    fontSize: 12,
+                    fontWeight: 'bold',
+                    fill: colors.textWhite,
+                    dropShadow: true,
+                    dropShadowColor: 0x000000,
+                    dropShadowDistance: 2,
+                    dropShadowBlur: 2
                 });
                 completedText.anchor.set(0.5);
                 completedText.x = centerX;
                 completedText.y = ribbonY + 38;
                 stage.addChild(completedText);
 
-                // ===== REWARDS TITLE =====
+                // Rewards title
                 const rewardsY = ribbonY + 75;
-
-                const rewardsTitle = new PIXI.Text({
-                    text: 'REWARDS',
-                    style: {
-                        fontFamily: 'Arial',
-                        fontSize: 22,
-                        fontWeight: 'bold',
-                        fill: COLORS.textWhite,
-                        stroke: { color: COLORS.textOutline, width: 5 }
-                    }
+                const rewardsTitle = gfx.createText('REWARDS', {
+                    fontSize: 22,
+                    fontWeight: 'bold',
+                    fill: colors.textWhite,
+                    stroke: { color: colors.textOutline, width: 5 }
                 });
                 rewardsTitle.anchor.set(0.5);
                 rewardsTitle.x = centerX;
                 rewardsTitle.y = rewardsY;
                 stage.addChild(rewardsTitle);
 
-                // ===== REWARD PANEL (Inner panel with coin) =====
+                // Reward panel
                 const rewardPanelY = rewardsY + 25;
                 const rewardPanelWidth = 260;
                 const rewardPanelHeight = 140;
                 const rewardPanelX = centerX - rewardPanelWidth / 2;
 
-                // Reward panel border
-                const rewardBorder = new PIXI.Graphics();
+                const rewardBorder = gfx.createGraphics();
                 rewardBorder.roundRect(rewardPanelX - 3, rewardPanelY - 3, rewardPanelWidth + 6, rewardPanelHeight + 6, 18);
-                rewardBorder.fill(COLORS.rewardPanelBorder);
+                rewardBorder.fill(colors.rewardPanelBorder);
                 stage.addChild(rewardBorder);
 
-                // Reward panel background
-                const rewardPanel = new PIXI.Graphics();
+                const rewardPanel = gfx.createGraphics();
                 rewardPanel.roundRect(rewardPanelX, rewardPanelY, rewardPanelWidth, rewardPanelHeight, 15);
-                rewardPanel.fill(COLORS.rewardPanelBg);
+                rewardPanel.fill(colors.rewardPanelBg);
                 stage.addChild(rewardPanel);
 
-                // Coin light rays (inside reward panel)
-                const coinRays = createLightRays({
+                // Coin rays
+                const coinRays = createLightRays(gfx, {
                     rayCount: 18,
                     innerRadius: 10,
                     outerRadius: 90,
@@ -437,134 +496,103 @@
                 coinRays.y = rewardPanelY + 55;
                 stage.addChild(coinRays);
 
-                // Animate coin rays (opposite direction)
                 game.on('update', () => {
                     coinRays.rotation -= 0.003;
                 });
 
-                // Coin container (for shimmer effect)
-                const rewardCoinContainer = new PIXI.Container();
+                // Reward coin
+                const rewardCoinContainer = gfx.createContainer();
                 rewardCoinContainer.x = centerX;
                 rewardCoinContainer.y = rewardPanelY + 50;
                 stage.addChild(rewardCoinContainer);
 
-                // Large reward coin
-                const rewardCoin = new PIXI.Text({ text: '🪙', style: { fontSize: 56 } });
+                const rewardCoin = gfx.createText('\u{1FA99}', { fontSize: 56 });
                 rewardCoin.anchor.set(0.5);
                 rewardCoinContainer.addChild(rewardCoin);
 
-                // Add shimmer effect
                 setTimeout(() => {
                     celebration.addShimmer(rewardCoinContainer, 'gold');
                 }, 500);
 
-                // Reward amount "40"
-                const rewardAmount = new PIXI.Text({
-                    text: '40',
-                    style: {
-                        fontFamily: 'Arial',
-                        fontSize: 40,
-                        fontWeight: 'bold',
-                        fill: COLORS.textWhite,
-                        stroke: { color: COLORS.textOutline, width: 5 }
-                    }
+                // Reward amount
+                const rewardAmount = gfx.createText('40', {
+                    fontSize: 40,
+                    fontWeight: 'bold',
+                    fill: colors.textWhite,
+                    stroke: { color: colors.textOutline, width: 5 }
                 });
                 rewardAmount.anchor.set(0.5);
                 rewardAmount.x = centerX;
                 rewardAmount.y = rewardPanelY + 112;
                 stage.addChild(rewardAmount);
 
-                // ===== BUTTONS =====
+                // Buttons
                 const btnY = rewardPanelY + rewardPanelHeight + 30;
                 const btnWidth = 120;
                 const btnHeight = 50;
                 const btnGap = 20;
 
-                // Continue button (green, 3D)
-                const continueBtn = create3DButton(
-                    centerX - btnWidth - btnGap/2, btnY, btnWidth, btnHeight,
-                    {
-                        mainColor: COLORS.greenBtn,
-                        shadowColor: COLORS.greenBtnShadow,
-                        highlightColor: COLORS.greenBtnHighlight
-                    }
-                );
+                const continueBtn = create3DButton(gfx, centerX - btnWidth - btnGap/2, btnY, btnWidth, btnHeight, {
+                    mainColor: colors.greenBtn,
+                    shadowColor: colors.greenBtnShadow,
+                    highlightColor: colors.greenBtnHighlight
+                });
                 stage.addChild(continueBtn);
 
-                const continueText = new PIXI.Text({
-                    text: 'Continue',
-                    style: {
-                        fontFamily: 'Arial',
-                        fontSize: 18,
-                        fontWeight: 'bold',
-                        fill: COLORS.textWhite,
-                        dropShadow: true,
-                        dropShadowColor: 0x000000,
-                        dropShadowDistance: 1,
-                        dropShadowBlur: 1
-                    }
+                const continueText = gfx.createText('Continue', {
+                    fontSize: 18,
+                    fontWeight: 'bold',
+                    fill: colors.textWhite,
+                    dropShadow: true,
+                    dropShadowColor: 0x000000,
+                    dropShadowDistance: 1,
+                    dropShadowBlur: 1
                 });
                 continueText.anchor.set(0.5);
                 continueText.x = centerX - btnWidth/2 - btnGap/2;
                 continueText.y = btnY + btnHeight/2;
                 stage.addChild(continueText);
 
-                // Watch Ad button (beige-orange, 3D)
-                const adBtn = create3DButton(
-                    centerX + btnGap/2, btnY, btnWidth, btnHeight,
-                    {
-                        mainColor: COLORS.orangeBtn,
-                        shadowColor: COLORS.orangeBtnShadow,
-                        highlightColor: COLORS.orangeBtnHighlight
-                    }
-                );
+                const adBtn = create3DButton(gfx, centerX + btnGap/2, btnY, btnWidth, btnHeight, {
+                    mainColor: colors.orangeBtn,
+                    shadowColor: colors.orangeBtnShadow,
+                    highlightColor: colors.orangeBtnHighlight
+                });
                 stage.addChild(adBtn);
 
-                // Clapperboard icon
-                const videoIcon = new PIXI.Text({ text: '🎬', style: { fontSize: 18 } });
+                const videoIcon = gfx.createText('\u{1F3AC}', { fontSize: 18 });
                 videoIcon.anchor.set(0.5);
                 videoIcon.x = centerX + btnGap/2 + 20;
                 videoIcon.y = btnY + btnHeight/2;
                 stage.addChild(videoIcon);
 
-                // "80" text (darker color for contrast on beige)
-                const adAmountText = new PIXI.Text({
-                    text: '80',
-                    style: {
-                        fontFamily: 'Arial',
-                        fontSize: 18,
-                        fontWeight: 'bold',
-                        fill: COLORS.textDark
-                    }
+                const adAmountText = gfx.createText('80', {
+                    fontSize: 18,
+                    fontWeight: 'bold',
+                    fill: colors.textDark
                 });
                 adAmountText.anchor.set(0.5);
                 adAmountText.x = centerX + btnGap/2 + 55;
                 adAmountText.y = btnY + btnHeight/2 - 3;
                 stage.addChild(adAmountText);
 
-                // Small coin icon
-                const smallCoin = new PIXI.Text({ text: '🪙', style: { fontSize: 14 } });
+                const smallCoin = gfx.createText('\u{1FA99}', { fontSize: 14 });
                 smallCoin.anchor.set(0.5);
                 smallCoin.x = centerX + btnGap/2 + 82;
                 smallCoin.y = btnY + btnHeight/2 - 3;
                 stage.addChild(smallCoin);
 
-                // x2 badge (red-orange)
-                const x2Badge = new PIXI.Text({
-                    text: 'x2',
-                    style: {
-                        fontFamily: 'Arial',
-                        fontSize: 11,
-                        fontWeight: 'bold',
-                        fill: 0xe85050
-                    }
+                const x2Badge = gfx.createText('x2', {
+                    fontSize: 11,
+                    fontWeight: 'bold',
+                    fill: 0xe85050
                 });
                 x2Badge.anchor.set(0.5);
                 x2Badge.x = centerX + btnGap/2 + 100;
                 x2Badge.y = btnY + btnHeight/2 + 8;
                 stage.addChild(x2Badge);
 
-                // ===== VICTORY CONFETTI =====
+                // Victory confetti
                 setTimeout(() => {
                     celebration.victory();
                 }, 300);
@@ -576,11 +604,13 @@
                 adBtn.mainBtn.on('pointerout', () => adBtn.mainBtn.tint = 0xffffff);
             }
 
-            // Game loop for celebration updates
+            window.createVictoryScreen = createVictoryScreen;
+
             game.on('update', (deltaTime) => {
                 celebration.update(deltaTime);
             });
 
+            document.body.classList.toggle('light-theme', currentTheme === 'light');
             createVictoryScreen();
             game.start();
         })();
