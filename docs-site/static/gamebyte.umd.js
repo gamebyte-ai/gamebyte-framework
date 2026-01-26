@@ -44379,28 +44379,21 @@
 	        const pressOffset = this.isPressed ? 2 : 0;
 	        const shadowOffset = this.isPressed ? 2 : 6;
 	        const borderWidth = colorScheme.outerBorder ? 6 : 4; // Thicker border for candy style
-	        // Get colors
-	        const colors = colorScheme;
 	        // 1. Shadow
 	        this.drawHexagon(this.shadowGraphics, 0, shadowOffset, size - 4);
 	        this.shadowGraphics.fill({ color: 0x000000, alpha: 0.4 });
 	        // 2. Outer border (golden for candy style, dark otherwise)
-	        if (colors.outerBorder) {
+	        if (colorScheme.outerBorder) {
 	            // Draw darker outer ring first (3D effect)
 	            this.drawHexagon(this.borderGraphics, 0, pressOffset + 2, size + 4);
-	            this.borderGraphics.fill({ color: colors.outerBorder });
-	            // Then golden border
-	            this.drawHexagon(this.borderGraphics, 0, pressOffset, size);
-	            this.borderGraphics.fill({ color: colors.border });
+	            this.borderGraphics.fill({ color: colorScheme.outerBorder });
 	        }
-	        else {
-	            this.drawHexagon(this.borderGraphics, 0, pressOffset, size);
-	            this.borderGraphics.fill({ color: colors.border });
-	        }
+	        this.drawHexagon(this.borderGraphics, 0, pressOffset, size);
+	        this.borderGraphics.fill({ color: colorScheme.border });
 	        // 3. Main fill with gradient (top lighter, bottom darker)
 	        const fillSize = size - borderWidth * 2;
-	        const fillTop = colors.fill;
-	        const fillBottom = colors.fillBottom || darkenColor$1(colors.fill, 0.15);
+	        const fillTop = colorScheme.fill;
+	        const fillBottom = colorScheme.fillBottom || darkenColor$1(colorScheme.fill, 0.15);
 	        // Draw hexagon shape
 	        this.drawHexagon(this.fillGraphics, 0, pressOffset, fillSize);
 	        // Create gradient texture for fill
@@ -44425,10 +44418,10 @@
 	        catch (_e) {
 	            // Fallback to solid color if texture fill not supported
 	            // This can happen with older browsers or certain renderer configurations
-	            this.fillGraphics.fill({ color: colors.fill });
+	            this.fillGraphics.fill({ color: colorScheme.fill });
 	        }
 	        // 3.5 Inner bevel effect for 3D look
-	        if (colors.outerBorder) {
+	        if (colorScheme.outerBorder) {
 	            // Top inner highlight (subtle white glow)
 	            this.drawHexagonBevel(this.fillGraphics, 0, pressOffset - 3, fillSize - 6, 0xFFFFFF, 0.25);
 	            // Bottom inner shadow
@@ -44436,7 +44429,7 @@
 	        }
 	        // 4. Inner highlight (top shine)
 	        if (!this.isPressed) {
-	            this.drawHexagonHighlight(this.highlightGraphics, 0, pressOffset - 2, fillSize - 4, colors.highlight);
+	            this.drawHexagonHighlight(this.highlightGraphics, 0, pressOffset - 2, fillSize - 4);
 	        }
 	        // Update text position
 	        this.levelText.y = pressOffset;
@@ -44477,7 +44470,7 @@
 	    /**
 	     * Draw hexagon highlight (top portion only)
 	     */
-	    drawHexagonHighlight(g, cx, cy, size, _color) {
+	    drawHexagonHighlight(g, cx, cy, size) {
 	        // Create a highlight that covers top half of hexagon
 	        const halfSize = size / 2;
 	        const angleOffset = Math.PI / 6;
@@ -44499,27 +44492,29 @@
 	            return;
 	        this.isPressed = true;
 	        this.render();
-	        this.container.scale.x = 0.95;
-	        this.container.scale.y = 0.95;
+	        this.setScale(0.95);
 	        this.emit('press', { level: this.config.level, event });
 	    }
 	    onPointerUp(event) {
 	        if (this.config.state === 'locked')
 	            return;
-	        this.isPressed = false;
-	        this.render();
-	        this.container.scale.x = 1;
-	        this.container.scale.y = 1;
+	        this.resetPressState();
 	        this.emit('click', { level: this.config.level, event });
 	    }
 	    onPointerUpOutside() {
 	        if (this.config.state === 'locked')
 	            return;
+	        this.resetPressState();
+	        this.emit('cancel');
+	    }
+	    resetPressState() {
 	        this.isPressed = false;
 	        this.render();
-	        this.container.scale.x = 1;
-	        this.container.scale.y = 1;
-	        this.emit('cancel');
+	        this.setScale(1);
+	    }
+	    setScale(scale) {
+	        this.container.scale.x = scale;
+	        this.container.scale.y = scale;
 	    }
 	    /**
 	     * Public API
@@ -46131,18 +46126,15 @@
 	            return { side: 'none', position: 'center' };
 	        }
 	        const [side, position] = tailPosition.split('-');
-	        // Normalize position names
-	        let normalizedPosition = 'center';
-	        if (position === 'left' || position === 'top') {
-	            normalizedPosition = 'start';
-	        }
-	        else if (position === 'right' || position === 'bottom') {
-	            normalizedPosition = 'end';
-	        }
-	        else if (position === 'center') {
-	            normalizedPosition = 'center';
-	        }
-	        return { side, position: normalizedPosition };
+	        // Normalize position names: left/top -> start, right/bottom -> end
+	        const positionMap = {
+	            left: 'start',
+	            top: 'start',
+	            right: 'end',
+	            bottom: 'end',
+	            center: 'center',
+	        };
+	        return { side, position: positionMap[position] || 'center' };
 	    }
 	    /**
 	     * Draw the bubble shape with optional tail
@@ -46211,10 +46203,9 @@
 	        switch (position) {
 	            case 'start':
 	                return Math.max(minOffset, dimension * 0.25);
-	            case 'center':
-	                return dimension / 2;
 	            case 'end':
 	                return Math.min(maxOffset, dimension * 0.75);
+	            case 'center':
 	            default:
 	                return dimension / 2;
 	        }
@@ -46288,13 +46279,7 @@
 	     * Toggle visibility
 	     */
 	    toggle() {
-	        if (this.container.visible) {
-	            this.hide();
-	        }
-	        else {
-	            this.show();
-	        }
-	        return this;
+	        return this.container.visible ? this.hide() : this.show();
 	    }
 	    /**
 	     * Check if tooltip is visible

@@ -311,17 +311,16 @@ export class GameTooltip extends EventEmitter {
       'start' | 'center' | 'end' | 'left' | 'right' | 'top' | 'bottom'
     ];
 
-    // Normalize position names
-    let normalizedPosition: 'start' | 'center' | 'end' = 'center';
-    if (position === 'left' || position === 'top') {
-      normalizedPosition = 'start';
-    } else if (position === 'right' || position === 'bottom') {
-      normalizedPosition = 'end';
-    } else if (position === 'center') {
-      normalizedPosition = 'center';
-    }
+    // Normalize position names: left/top -> start, right/bottom -> end
+    const positionMap: Record<string, 'start' | 'center' | 'end'> = {
+      left: 'start',
+      top: 'start',
+      right: 'end',
+      bottom: 'end',
+      center: 'center',
+    };
 
-    return { side, position: normalizedPosition };
+    return { side, position: positionMap[position] || 'center' };
   }
 
   /**
@@ -416,10 +415,9 @@ export class GameTooltip extends EventEmitter {
     switch (position) {
       case 'start':
         return Math.max(minOffset, dimension * 0.25);
-      case 'center':
-        return dimension / 2;
       case 'end':
         return Math.min(maxOffset, dimension * 0.75);
+      case 'center':
       default:
         return dimension / 2;
     }
@@ -504,12 +502,7 @@ export class GameTooltip extends EventEmitter {
    * Toggle visibility
    */
   public toggle(): this {
-    if (this.container.visible) {
-      this.hide();
-    } else {
-      this.show();
-    }
-    return this;
+    return this.container.visible ? this.hide() : this.show();
   }
 
   /**

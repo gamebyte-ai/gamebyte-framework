@@ -316,31 +316,23 @@ export class HexagonLevelButton extends EventEmitter {
     const shadowOffset = this.isPressed ? 2 : 6;
     const borderWidth = colorScheme.outerBorder ? 6 : 4; // Thicker border for candy style
 
-    // Get colors
-    const colors = colorScheme;
-
     // 1. Shadow
     this.drawHexagon(this.shadowGraphics, 0, shadowOffset, size - 4);
     this.shadowGraphics.fill({ color: 0x000000, alpha: 0.4 });
 
     // 2. Outer border (golden for candy style, dark otherwise)
-    if (colors.outerBorder) {
+    if (colorScheme.outerBorder) {
       // Draw darker outer ring first (3D effect)
       this.drawHexagon(this.borderGraphics, 0, pressOffset + 2, size + 4);
-      this.borderGraphics.fill({ color: colors.outerBorder });
-
-      // Then golden border
-      this.drawHexagon(this.borderGraphics, 0, pressOffset, size);
-      this.borderGraphics.fill({ color: colors.border });
-    } else {
-      this.drawHexagon(this.borderGraphics, 0, pressOffset, size);
-      this.borderGraphics.fill({ color: colors.border });
+      this.borderGraphics.fill({ color: colorScheme.outerBorder });
     }
+    this.drawHexagon(this.borderGraphics, 0, pressOffset, size);
+    this.borderGraphics.fill({ color: colorScheme.border });
 
     // 3. Main fill with gradient (top lighter, bottom darker)
     const fillSize = size - borderWidth * 2;
-    const fillTop = colors.fill;
-    const fillBottom = colors.fillBottom || darkenColor(colors.fill, 0.15);
+    const fillTop = colorScheme.fill;
+    const fillBottom = colorScheme.fillBottom || darkenColor(colorScheme.fill, 0.15);
 
     // Draw hexagon shape
     this.drawHexagon(this.fillGraphics, 0, pressOffset, fillSize);
@@ -371,11 +363,11 @@ export class HexagonLevelButton extends EventEmitter {
     } catch (_e) {
       // Fallback to solid color if texture fill not supported
       // This can happen with older browsers or certain renderer configurations
-      this.fillGraphics.fill({ color: colors.fill });
+      this.fillGraphics.fill({ color: colorScheme.fill });
     }
 
     // 3.5 Inner bevel effect for 3D look
-    if (colors.outerBorder) {
+    if (colorScheme.outerBorder) {
       // Top inner highlight (subtle white glow)
       this.drawHexagonBevel(
         this.fillGraphics,
@@ -402,8 +394,7 @@ export class HexagonLevelButton extends EventEmitter {
         this.highlightGraphics,
         0,
         pressOffset - 2,
-        fillSize - 4,
-        colors.highlight
+        fillSize - 4
       );
     }
 
@@ -464,8 +455,7 @@ export class HexagonLevelButton extends EventEmitter {
     g: IGraphics,
     cx: number,
     cy: number,
-    size: number,
-    _color: number
+    size: number
   ): void {
     // Create a highlight that covers top half of hexagon
     const halfSize = size / 2;
@@ -491,32 +481,33 @@ export class HexagonLevelButton extends EventEmitter {
 
     this.isPressed = true;
     this.render();
-    this.container.scale.x = 0.95;
-    this.container.scale.y = 0.95;
-
+    this.setScale(0.95);
     this.emit('press', { level: this.config.level, event });
   }
 
   private onPointerUp(event: any): void {
     if (this.config.state === 'locked') return;
 
-    this.isPressed = false;
-    this.render();
-    this.container.scale.x = 1;
-    this.container.scale.y = 1;
-
+    this.resetPressState();
     this.emit('click', { level: this.config.level, event });
   }
 
   private onPointerUpOutside(): void {
     if (this.config.state === 'locked') return;
 
+    this.resetPressState();
+    this.emit('cancel');
+  }
+
+  private resetPressState(): void {
     this.isPressed = false;
     this.render();
-    this.container.scale.x = 1;
-    this.container.scale.y = 1;
+    this.setScale(1);
+  }
 
-    this.emit('cancel');
+  private setScale(scale: number): void {
+    this.container.scale.x = scale;
+    this.container.scale.y = scale;
   }
 
   /**
