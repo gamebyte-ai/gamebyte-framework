@@ -6,7 +6,8 @@
     <title>GameStylePanel Settings Demo - GameByte Framework</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { overflow: hidden; background: #1A2744; }
+        body { overflow: hidden; background: #1A2744; transition: background 0.3s ease; }
+        body.light-theme { background: #e5eaf4; }
         canvas { display: block; margin: 0 auto; }
     </style>
 </head>
@@ -15,9 +16,94 @@
     <script src="/gamebyte.umd.js"></script>
 
     <script>
-        const { createGame, GameStylePanel, GameToggle, GameStyleButton, GameStyleColors } = GameByteFramework;
+        // =====================================================
+        // GameStylePanel Settings Demo - Using Framework Abstractions
+        // =====================================================
+        // This demo showcases:
+        // - GameStylePanel component with title and close button
+        // - GameToggle and GameSlider components
+        // - GameStyleButton with different color schemes
+        // - graphics() abstraction instead of direct PIXI usage
+        // =====================================================
+
+        const {
+            createGame,
+            GameStylePanel,
+            GameToggle,
+            GameSlider,
+            GameSliderColors,
+            GameStyleButton,
+            GameStyleColors,
+            graphics,
+            loadFrameworkFont
+        } = GameByteFramework;
 
         const CONFIG = { width: 400, height: 550 };
+
+        // ===== THEME DETECTION =====
+        function detectTheme() {
+            try {
+                if (window.parent && window.parent.document) {
+                    const parentTheme = window.parent.document.documentElement.getAttribute('data-theme');
+                    if (parentTheme) return parentTheme;
+                }
+            } catch (e) { /* Cross-origin */ }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const themeParam = urlParams.get('theme');
+            if (themeParam) return themeParam;
+
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                return 'light';
+            }
+            return 'dark';
+        }
+
+        let currentTheme = detectTheme();
+
+        function setupThemeListener() {
+            try {
+                if (window.parent && window.parent.document) {
+                    const observer = new MutationObserver((mutations) => {
+                        mutations.forEach((mutation) => {
+                            if (mutation.attributeName === 'data-theme') {
+                                const newTheme = window.parent.document.documentElement.getAttribute('data-theme');
+                                if (newTheme && newTheme !== currentTheme) {
+                                    currentTheme = newTheme;
+                                    applyTheme();
+                                }
+                            }
+                        });
+                    });
+                    observer.observe(window.parent.document.documentElement, { attributes: true });
+                }
+            } catch (e) {
+                window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
+                    currentTheme = e.matches ? 'light' : 'dark';
+                    applyTheme();
+                });
+            }
+        }
+
+        // ===== THEME COLOR PALETTES =====
+        const THEME_COLORS = {
+            dark: {
+                mainBg: 0x1A2744,
+                labelText: 0xFFFFFF,
+                versionText: 0x6B8CB8,
+                panelScheme: GameStyleColors.PANEL_BLUE
+            },
+            light: {
+                mainBg: 0xe5eaf4,
+                labelText: 0x2a3a5a,
+                versionText: 0x5a7aa0,
+                panelScheme: GameStyleColors.PANEL_BLUE
+            }
+        };
+
+        function getColors() {
+            return THEME_COLORS[currentTheme] || THEME_COLORS.dark;
+        }
 
         const canvas = document.createElement('canvas');
         canvas.width = CONFIG.width;
@@ -25,144 +111,194 @@
         document.body.appendChild(canvas);
 
         const game = createGame();
+        let renderer, stage;
+
+        let isRecreating = false;
+        async function applyTheme() {
+            if (isRecreating) return;
+            isRecreating = true;
+
+            document.body.classList.toggle('light-theme', currentTheme === 'light');
+            if (stage && window.createSettingsScreen) {
+                await loadFrameworkFont();
+                window.createSettingsScreen();
+            }
+            setTimeout(() => { isRecreating = false; }, 100);
+        }
 
         (async () => {
+            await loadFrameworkFont();
             await game.initialize(canvas, '2d');
-            const renderer = game.make('renderer');
-            const stage = renderer.getStage();
+            renderer = game.make('renderer');
+            stage = renderer.getStage();
 
-            // Dark background
-            const bg = new PIXI.Graphics();
-            bg.rect(0, 0, CONFIG.width, CONFIG.height);
-            bg.fill(0x1A2744);
-            stage.addChild(bg);
+            setupThemeListener();
 
-            // Create Settings Panel
-            const settingsPanel = new GameStylePanel({
-                width: 360,
-                height: 480,
-                title: 'SETTINGS',
-                showCloseButton: true,
-                colorScheme: GameStyleColors.PANEL_BLUE,
-                onClose: () => console.log('Panel closed!')
-            });
-            settingsPanel.setPosition(20, 30);
-            stage.addChild(settingsPanel.getContainer());
+            function createSettingsScreen() {
+                const colors = getColors();
+                const gfx = graphics();
 
-            // Get content container reference
-            const content = settingsPanel.getContentContainer();
+                while (stage.children.length > 0) {
+                    stage.removeChildAt(0);
+                }
 
-            // Settings row helper
-            function createSettingRow(iconText, label, y, toggleValue) {
-                const row = new PIXI.Container();
-                row.y = y;
+                // Background
+                const bg = gfx.createGraphics();
+                bg.rect(0, 0, CONFIG.width, CONFIG.height);
+                bg.fill(colors.mainBg);
+                stage.addChild(bg);
 
-                // Icon background
-                const iconBg = new PIXI.Graphics();
-                iconBg.roundRect(0, 0, 44, 44, 10);
-                iconBg.fill(0xFFFFFF);
-                row.addChild(iconBg);
-
-                // Icon (emoji text)
-                const icon = new PIXI.Text({
-                    text: iconText,
-                    style: { fontSize: 24 }
+                // Settings Panel
+                const settingsPanel = new GameStylePanel({
+                    width: 360,
+                    height: 480,
+                    title: 'SETTINGS',
+                    showCloseButton: true,
+                    colorScheme: colors.panelScheme,
+                    onClose: () => console.log('Panel closed!')
                 });
-                icon.x = 10;
-                icon.y = 8;
-                row.addChild(icon);
+                settingsPanel.setPosition(20, 30);
+                stage.addChild(settingsPanel.getContainer());
 
-                // Label
-                const labelText = new PIXI.Text({
-                    text: label,
-                    style: {
-                        fontFamily: 'Arial Black',
+                const content = settingsPanel.getContentContainer();
+
+                // Settings row helper for toggle
+                function createToggleRow(iconText, label, y, toggleValue) {
+                    const row = gfx.createContainer();
+                    row.y = y;
+
+                    const iconBg = gfx.createGraphics();
+                    iconBg.roundRect(0, 0, 44, 44, 10);
+                    iconBg.fill(0xFFFFFF);
+                    row.addChild(iconBg);
+
+                    const icon = gfx.createText(iconText, { fontSize: 24 });
+                    icon.x = 10;
+                    icon.y = 8;
+                    row.addChild(icon);
+
+                    const labelText = gfx.createText(label, {
                         fontSize: 20,
-                        fill: 0xFFFFFF,
+                        fill: colors.labelText,
                         fontWeight: 'bold'
-                    }
-                });
-                labelText.x = 60;
-                labelText.y = 10;
-                row.addChild(labelText);
+                    });
+                    labelText.x = 60;
+                    labelText.y = 10;
+                    row.addChild(labelText);
 
-                // Toggle
-                const toggle = new GameToggle({
-                    width: 70,
-                    height: 36,
-                    value: toggleValue,
-                    onChange: (val) => console.log(`${label}: ${val}`)
-                });
-                toggle.setPosition(230, 4);
-                row.addChild(toggle.getContainer());
+                    const toggle = new GameToggle({
+                        width: 70,
+                        height: 36,
+                        value: toggleValue,
+                        onChange: (val) => console.log(`${label}: ${val}`)
+                    });
+                    toggle.setPosition(230, 4);
+                    row.addChild(toggle.getContainer());
 
-                return row;
+                    return row;
+                }
+
+                // Settings row helper for slider
+                function createSliderRow(iconText, label, y, sliderValue, colorScheme) {
+                    const row = gfx.createContainer();
+                    row.y = y;
+
+                    const iconBg = gfx.createGraphics();
+                    iconBg.roundRect(0, 0, 44, 44, 10);
+                    iconBg.fill(0xFFFFFF);
+                    row.addChild(iconBg);
+
+                    const icon = gfx.createText(iconText, { fontSize: 24 });
+                    icon.x = 10;
+                    icon.y = 8;
+                    row.addChild(icon);
+
+                    const labelText = gfx.createText(label, {
+                        fontSize: 20,
+                        fill: colors.labelText,
+                        fontWeight: 'bold'
+                    });
+                    labelText.x = 60;
+                    labelText.y = 10;
+                    row.addChild(labelText);
+
+                    const slider = new GameSlider({
+                        width: 140,
+                        height: 32,
+                        min: 0,
+                        max: 100,
+                        value: sliderValue,
+                        colorScheme: colorScheme || GameSliderColors.DEFAULT,
+                        onChange: (val) => console.log(`${label}: ${val}%`)
+                    });
+                    slider.setPosition(160, 6);
+                    row.addChild(slider.getContainer());
+
+                    return row;
+                }
+
+                // Add settings rows
+                const musicRow = createSliderRow('\ud83c\udfb5', 'Music', 0, 75, GameSliderColors.GREEN);
+                content.addChild(musicRow);
+
+                const soundsRow = createSliderRow('\ud83d\udd0a', 'Sounds', 60, 100, GameSliderColors.DEFAULT);
+                content.addChild(soundsRow);
+
+                const hapticRow = createToggleRow('\ud83d\udcf3', 'Haptic', 120, false);
+                content.addChild(hapticRow);
+
+                // Action buttons row
+                const buttonsRow1 = gfx.createContainer();
+                buttonsRow1.y = 195;
+                content.addChild(buttonsRow1);
+
+                const privacyBtn = new GameStyleButton({
+                    text: 'Privacy\nSettings',
+                    width: 145,
+                    height: 70,
+                    fontSize: 15,
+                    colorScheme: GameStyleColors.YELLOW_BUTTON
+                });
+                privacyBtn.setPosition(0, 0);
+                privacyBtn.on('click', () => console.log('Privacy Settings'));
+                buttonsRow1.addChild(privacyBtn.getContainer());
+
+                const contactBtn = new GameStyleButton({
+                    text: 'Contact\nUs',
+                    width: 145,
+                    height: 70,
+                    fontSize: 15,
+                    colorScheme: GameStyleColors.GREEN_BUTTON
+                });
+                contactBtn.setPosition(155, 0);
+                contactBtn.on('click', () => console.log('Contact Us'));
+                buttonsRow1.addChild(contactBtn.getContainer());
+
+                const restoreBtn = new GameStyleButton({
+                    text: 'Restore Purchases',
+                    width: 300,
+                    height: 60,
+                    fontSize: 18,
+                    colorScheme: GameStyleColors.PURPLE_BUTTON
+                });
+                restoreBtn.setPosition(0, 280);
+                restoreBtn.on('click', () => console.log('Restore Purchases'));
+                content.addChild(restoreBtn.getContainer());
+
+                // Version text
+                const version = gfx.createText('0.15.0 (2)', {
+                    fontSize: 14,
+                    fill: colors.versionText
+                });
+                version.x = 120;
+                version.y = 365;
+                content.addChild(version);
             }
 
-            // Add setting rows
-            const musicRow = createSettingRow('🎵', 'Music', 0, true);
-            content.addChild(musicRow);
+            window.createSettingsScreen = createSettingsScreen;
 
-            const soundsRow = createSettingRow('🔊', 'Sounds', 60, true);
-            content.addChild(soundsRow);
-
-            const hapticRow = createSettingRow('📳', 'Haptic', 120, false);
-            content.addChild(hapticRow);
-
-            // Action buttons row
-            const buttonsRow1 = new PIXI.Container();
-            buttonsRow1.y = 195;
-            content.addChild(buttonsRow1);
-
-            // Privacy Settings button
-            const privacyBtn = new GameStyleButton({
-                text: 'Privacy\nSettings',
-                width: 145,
-                height: 70,
-                fontSize: 15,
-                colorScheme: GameStyleColors.YELLOW_BUTTON
-            });
-            privacyBtn.setPosition(0, 0);
-            privacyBtn.on('click', () => console.log('Privacy Settings'));
-            buttonsRow1.addChild(privacyBtn.getContainer());
-
-            // Contact Us button
-            const contactBtn = new GameStyleButton({
-                text: 'Contact\nUs',
-                width: 145,
-                height: 70,
-                fontSize: 15,
-                colorScheme: GameStyleColors.GREEN_BUTTON
-            });
-            contactBtn.setPosition(155, 0);
-            contactBtn.on('click', () => console.log('Contact Us'));
-            buttonsRow1.addChild(contactBtn.getContainer());
-
-            // Restore Purchases button
-            const restoreBtn = new GameStyleButton({
-                text: 'Restore Purchases',
-                width: 300,
-                height: 60,
-                fontSize: 18,
-                colorScheme: GameStyleColors.PURPLE_BUTTON
-            });
-            restoreBtn.setPosition(0, 280);
-            restoreBtn.on('click', () => console.log('Restore Purchases'));
-            content.addChild(restoreBtn.getContainer());
-
-            // Version text
-            const version = new PIXI.Text({
-                text: '0.15.0 (2)',
-                style: {
-                    fontFamily: 'Arial',
-                    fontSize: 14,
-                    fill: 0x6B8CB8
-                }
-            });
-            version.x = 120;
-            version.y = 365;
-            content.addChild(version);
-
+            document.body.classList.toggle('light-theme', currentTheme === 'light');
+            createSettingsScreen();
             game.start();
         })();
     </script>

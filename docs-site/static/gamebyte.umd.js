@@ -42074,58 +42074,66 @@
 	    },
 	    // Hexagon level colors
 	    HEXAGON_BLUE: {
-	        fill: 0x3D85C6,
+	        fill: 0x4DA6FF,
+	        fillBottom: 0x2E7BC9,
 	        border: 0x1A3A5C,
-	        highlight: 0x6DB3F2,
+	        highlight: 0x7DBFFF,
 	        text: 0xFFFFFF,
 	        textStroke: 0x1A3A5C
 	    },
 	    HEXAGON_LOCKED: {
-	        fill: 0x5C6370,
-	        border: 0x3A3F47,
-	        highlight: 0x7A8089,
-	        text: 0xCCCCCC,
-	        textStroke: 0x2A2E35
+	        fill: 0x6B7280,
+	        fillBottom: 0x4B5563,
+	        border: 0x374151,
+	        highlight: 0x9CA3AF,
+	        text: 0xD1D5DB,
+	        textStroke: 0x1F2937
 	    },
 	    HEXAGON_COMPLETED: {
-	        fill: 0x43A047,
-	        border: 0x1B5E20,
-	        highlight: 0x76D275,
+	        fill: 0x4ADE80,
+	        fillBottom: 0x22C55E,
+	        border: 0x166534,
+	        highlight: 0x86EFAC,
 	        text: 0xFFFFFF,
-	        textStroke: 0x1B5E20
+	        textStroke: 0x166534
 	    },
 	    HEXAGON_CURRENT: {
-	        fill: 0x5C6BC0,
-	        border: 0x283593,
-	        highlight: 0x8E99F3,
+	        fill: 0x818CF8,
+	        fillBottom: 0x6366F1,
+	        border: 0x3730A3,
+	        highlight: 0xA5B4FC,
 	        text: 0xFFFFFF,
-	        textStroke: 0x283593
+	        textStroke: 0x3730A3,
+	        glow: 0x818CF8
 	    },
 	    // Candy Crush style hexagon with golden border
 	    HEXAGON_CANDY_BLUE: {
-	        fill: 0x4A7BB7,
-	        border: 0xFFB300,
-	        highlight: 0x6B9BD1,
+	        fill: 0x5DADE2,
+	        fillBottom: 0x3498DB,
+	        border: 0xF1C40F,
+	        highlight: 0x85C1E9,
 	        text: 0xFFFFFF,
-	        textStroke: 0x2D4A6E,
-	        outerBorder: 0xCC8800
+	        textStroke: 0x21618C,
+	        outerBorder: 0xD4AC0D
 	    },
 	    HEXAGON_CANDY_CURRENT: {
-	        fill: 0x5A9BD4,
-	        border: 0xFFB300,
-	        highlight: 0x7BB8E8,
+	        fill: 0x7FB3D5,
+	        fillBottom: 0x5499C7,
+	        border: 0xF1C40F,
+	        highlight: 0xA9CCE3,
 	        text: 0xFFFFFF,
-	        textStroke: 0x2D5A7E,
-	        outerBorder: 0xCC8800,
-	        glow: 0x00FFFF
+	        textStroke: 0x2471A3,
+	        outerBorder: 0xD4AC0D,
+	        glow: 0x5DADE2
 	    },
 	    HEXAGON_CANDY_LOCKED: {
-	        fill: 0x4A5568,
-	        border: 0x718096,
-	        highlight: 0x5A6578,
-	        text: 0xA0AEC0,
-	        textStroke: 0x2D3748,
-	        outerBorder: 0x4A5568
+	        fill: 0x7F8C8D,
+	        fillBottom: 0x5D6D7E,
+	        border: 0x95A5A6,
+	        highlight: 0xAEB6BF,
+	        text: 0xBDC3C7,
+	        textStroke: 0x2C3E50,
+	        outerBorder: 0x566573
 	    },
 	    // Panel color schemes (matches No Ads popup style)
 	    PANEL_BLUE: {
@@ -44362,7 +44370,7 @@
 	     * Render hexagon graphics
 	     */
 	    render() {
-	        const { size, colorScheme, state } = this.config;
+	        const { size, colorScheme } = this.config;
 	        // Clear graphics
 	        this.shadowGraphics.clear();
 	        this.borderGraphics.clear();
@@ -44371,37 +44379,57 @@
 	        const pressOffset = this.isPressed ? 2 : 0;
 	        const shadowOffset = this.isPressed ? 2 : 6;
 	        const borderWidth = colorScheme.outerBorder ? 6 : 4; // Thicker border for candy style
-	        // Get colors
-	        const colors = colorScheme;
 	        // 1. Shadow
 	        this.drawHexagon(this.shadowGraphics, 0, shadowOffset, size - 4);
 	        this.shadowGraphics.fill({ color: 0x000000, alpha: 0.4 });
 	        // 2. Outer border (golden for candy style, dark otherwise)
-	        if (colors.outerBorder) {
+	        if (colorScheme.outerBorder) {
 	            // Draw darker outer ring first (3D effect)
 	            this.drawHexagon(this.borderGraphics, 0, pressOffset + 2, size + 4);
-	            this.borderGraphics.fill({ color: colors.outerBorder });
-	            // Then golden border
-	            this.drawHexagon(this.borderGraphics, 0, pressOffset, size);
-	            this.borderGraphics.fill({ color: colors.border });
+	            this.borderGraphics.fill({ color: colorScheme.outerBorder });
 	        }
-	        else {
-	            this.drawHexagon(this.borderGraphics, 0, pressOffset, size);
-	            this.borderGraphics.fill({ color: colors.border });
+	        this.drawHexagon(this.borderGraphics, 0, pressOffset, size);
+	        this.borderGraphics.fill({ color: colorScheme.border });
+	        // 3. Main fill with gradient (top lighter, bottom darker)
+	        const fillSize = size - borderWidth * 2;
+	        const fillTop = colorScheme.fill;
+	        const fillBottom = colorScheme.fillBottom || darkenColor$1(colorScheme.fill, 0.15);
+	        // Draw hexagon shape
+	        this.drawHexagon(this.fillGraphics, 0, pressOffset, fillSize);
+	        // Create gradient texture for fill
+	        const textureSize = Math.ceil(fillSize);
+	        const gradientTexture = graphics().createCanvasTexture(textureSize, textureSize, (ctx) => {
+	            const gradient = ctx.createLinearGradient(0, 0, 0, textureSize);
+	            gradient.addColorStop(0, numberToHex(fillTop));
+	            gradient.addColorStop(0.35, numberToHex(fillTop));
+	            gradient.addColorStop(1, numberToHex(fillBottom));
+	            ctx.fillStyle = gradient;
+	            ctx.fillRect(0, 0, textureSize, textureSize);
+	        });
+	        // Apply texture fill with matrix transform to center it
+	        try {
+	            const matrix = {
+	                a: 1, b: 0, c: 0, d: 1,
+	                tx: -fillSize / 2,
+	                ty: pressOffset - fillSize / 2
+	            };
+	            this.fillGraphics.fill({ texture: gradientTexture, matrix: matrix });
 	        }
-	        // 3. Main fill (blue hexagon)
-	        this.drawHexagon(this.fillGraphics, 0, pressOffset, size - borderWidth * 2);
-	        this.fillGraphics.fill({ color: colors.fill });
+	        catch (_e) {
+	            // Fallback to solid color if texture fill not supported
+	            // This can happen with older browsers or certain renderer configurations
+	            this.fillGraphics.fill({ color: colorScheme.fill });
+	        }
 	        // 3.5 Inner bevel effect for 3D look
-	        if (colors.outerBorder) {
-	            // Top inner highlight
-	            this.drawHexagonBevel(this.fillGraphics, 0, pressOffset - 3, size - borderWidth * 2 - 6, 0xFFFFFF, 0.2);
+	        if (colorScheme.outerBorder) {
+	            // Top inner highlight (subtle white glow)
+	            this.drawHexagonBevel(this.fillGraphics, 0, pressOffset - 3, fillSize - 6, 0xFFFFFF, 0.25);
 	            // Bottom inner shadow
-	            this.drawHexagonBevel(this.fillGraphics, 0, pressOffset + 3, size - borderWidth * 2 - 6, 0x000000, 0.15);
+	            this.drawHexagonBevel(this.fillGraphics, 0, pressOffset + 3, fillSize - 6, 0x000000, 0.2);
 	        }
-	        // 4. Inner highlight (top half)
+	        // 4. Inner highlight (top shine)
 	        if (!this.isPressed) {
-	            this.drawHexagonHighlight(this.highlightGraphics, 0, pressOffset - 2, size - borderWidth * 2 - 4, colors.highlight);
+	            this.drawHexagonHighlight(this.highlightGraphics, 0, pressOffset - 2, fillSize - 4);
 	        }
 	        // Update text position
 	        this.levelText.y = pressOffset;
@@ -44442,7 +44470,7 @@
 	    /**
 	     * Draw hexagon highlight (top portion only)
 	     */
-	    drawHexagonHighlight(g, cx, cy, size, color) {
+	    drawHexagonHighlight(g, cx, cy, size) {
 	        // Create a highlight that covers top half of hexagon
 	        const halfSize = size / 2;
 	        const angleOffset = Math.PI / 6;
@@ -44464,27 +44492,29 @@
 	            return;
 	        this.isPressed = true;
 	        this.render();
-	        this.container.scale.x = 0.95;
-	        this.container.scale.y = 0.95;
+	        this.setScale(0.95);
 	        this.emit('press', { level: this.config.level, event });
 	    }
 	    onPointerUp(event) {
 	        if (this.config.state === 'locked')
 	            return;
-	        this.isPressed = false;
-	        this.render();
-	        this.container.scale.x = 1;
-	        this.container.scale.y = 1;
+	        this.resetPressState();
 	        this.emit('click', { level: this.config.level, event });
 	    }
 	    onPointerUpOutside() {
 	        if (this.config.state === 'locked')
 	            return;
+	        this.resetPressState();
+	        this.emit('cancel');
+	    }
+	    resetPressState() {
 	        this.isPressed = false;
 	        this.render();
-	        this.container.scale.x = 1;
-	        this.container.scale.y = 1;
-	        this.emit('cancel');
+	        this.setScale(1);
+	    }
+	    setScale(scale) {
+	        this.container.scale.x = scale;
+	        this.container.scale.y = scale;
 	    }
 	    /**
 	     * Public API
@@ -45908,6 +45938,410 @@
 	        borderDepth: 0x2A3640,
 	    },
 	};
+
+	/**
+	 * Default color scheme matching the "Coming Soon" tooltip style
+	 */
+	const DEFAULT_TOOLTIP_COLORS = {
+	    background: 0x7DD3FC, // Light cyan/sky blue
+	    border: 0x1E3A5F, // Dark navy blue
+	    text: 0xFFFFFF, // White
+	    textStroke: 0x1E3A5F, // Dark navy for text stroke
+	    shadow: 0x000000, // Black shadow
+	};
+	/**
+	 * Preset color schemes for common tooltip styles
+	 */
+	const GameTooltipColors = {
+	    /** Light blue/cyan (default - matches the "Coming Soon" style) */
+	    CYAN: { ...DEFAULT_TOOLTIP_COLORS },
+	    /** Classic yellow warning tooltip */
+	    YELLOW: {
+	        background: 0xFDE047,
+	        border: 0x92400E,
+	        text: 0x422006,
+	        textStroke: undefined,
+	        shadow: 0x000000,
+	    },
+	    /** Green success tooltip */
+	    GREEN: {
+	        background: 0x86EFAC,
+	        border: 0x166534,
+	        text: 0xFFFFFF,
+	        textStroke: 0x166534,
+	        shadow: 0x000000,
+	    },
+	    /** Red error/warning tooltip */
+	    RED: {
+	        background: 0xFCA5A5,
+	        border: 0x991B1B,
+	        text: 0xFFFFFF,
+	        textStroke: 0x991B1B,
+	        shadow: 0x000000,
+	    },
+	    /** Purple/violet tooltip */
+	    PURPLE: {
+	        background: 0xD8B4FE,
+	        border: 0x6B21A8,
+	        text: 0xFFFFFF,
+	        textStroke: 0x6B21A8,
+	        shadow: 0x000000,
+	    },
+	    /** Dark tooltip (for light backgrounds) */
+	    DARK: {
+	        background: 0x374151,
+	        border: 0x111827,
+	        text: 0xFFFFFF,
+	        textStroke: undefined,
+	        shadow: 0x000000,
+	    },
+	    /** White tooltip (for dark backgrounds) */
+	    WHITE: {
+	        background: 0xFFFFFF,
+	        border: 0xD1D5DB,
+	        text: 0x374151,
+	        textStroke: undefined,
+	        shadow: 0x000000,
+	    },
+	};
+	/**
+	 * GameTooltip - Speech bubble style tooltip/popover component
+	 *
+	 * A versatile tooltip component that can be used for:
+	 * - Informational tooltips on hover
+	 * - Popovers on click/tap
+	 * - Status indicators (Coming Soon, New, etc.)
+	 * - Tutorial hints
+	 *
+	 * Features:
+	 * - Customizable tail/pointer position (12 positions + none)
+	 * - Multiple color scheme presets
+	 * - Auto-sizing based on text content
+	 * - Optional drop shadow
+	 * - Mobile-optimized rendering
+	 *
+	 * @example
+	 * ```typescript
+	 * const tooltip = new GameTooltip({
+	 *   text: 'Coming Soon',
+	 *   tailPosition: 'bottom-left',
+	 *   colorScheme: GameTooltipColors.CYAN
+	 * });
+	 *
+	 * tooltip.setPosition(100, 50);
+	 * stage.addChild(tooltip.getContainer());
+	 * ```
+	 */
+	class GameTooltip extends EventEmitter {
+	    constructor(config = {}) {
+	        super();
+	        this.bubbleWidth = 0;
+	        this.bubbleHeight = 0;
+	        // Trigger font loading (non-blocking)
+	        loadFrameworkFont();
+	        // Default configuration
+	        this.config = {
+	            text: config.text || 'Tooltip',
+	            maxWidth: config.maxWidth || 200,
+	            padding: config.padding || 12,
+	            fontSize: config.fontSize || 16,
+	            fontFamily: config.fontFamily || getFrameworkFontFamily(),
+	            colorScheme: config.colorScheme || DEFAULT_TOOLTIP_COLORS,
+	            borderRadius: config.borderRadius || 10,
+	            borderWidth: config.borderWidth || 3,
+	            tailPosition: config.tailPosition || 'bottom-left',
+	            tailSize: config.tailSize || 10,
+	            showShadow: config.showShadow !== false,
+	            shadowOffset: config.shadowOffset || 4,
+	            shadowAlpha: config.shadowAlpha || 0.3,
+	        };
+	        const factory = graphics();
+	        // Create container hierarchy
+	        this.container = factory.createContainer();
+	        // Create shadow layer
+	        this.shadowGraphics = factory.createGraphics();
+	        this.container.addChild(this.shadowGraphics);
+	        // Create bubble (background + border)
+	        this.bubbleGraphics = factory.createGraphics();
+	        this.container.addChild(this.bubbleGraphics);
+	        // Create text
+	        this.textField = this.createTextField();
+	        this.container.addChild(this.textField);
+	        // Initial render
+	        this.render();
+	    }
+	    /**
+	     * Create the text field
+	     */
+	    createTextField() {
+	        const { colorScheme, fontSize, fontFamily, maxWidth, padding } = this.config;
+	        const hasStroke = colorScheme.textStroke !== undefined;
+	        return graphics().createText(this.config.text, {
+	            fontFamily,
+	            fontSize,
+	            fontWeight: '700',
+	            fill: colorScheme.text,
+	            align: 'center',
+	            wordWrap: true,
+	            wordWrapWidth: maxWidth - padding * 2,
+	            ...(hasStroke && {
+	                stroke: colorScheme.textStroke,
+	                strokeThickness: Math.max(2, fontSize * 0.1),
+	            }),
+	        });
+	    }
+	    /**
+	     * Render the tooltip
+	     */
+	    render() {
+	        const { padding, borderWidth, colorScheme, showShadow, shadowOffset, shadowAlpha, } = this.config;
+	        // Calculate bubble dimensions based on text
+	        const textWidth = this.textField.width || 50;
+	        const textHeight = this.textField.height || 20;
+	        this.bubbleWidth = textWidth + padding * 2;
+	        this.bubbleHeight = textHeight + padding * 2;
+	        // Clear previous graphics
+	        this.shadowGraphics.clear();
+	        this.bubbleGraphics.clear();
+	        // Get tail info
+	        const tailInfo = this.getTailInfo();
+	        // Draw shadow (if enabled)
+	        if (showShadow && colorScheme.shadow !== undefined) {
+	            this.drawBubbleShape(this.shadowGraphics, shadowOffset, shadowOffset, colorScheme.shadow, shadowAlpha, tailInfo);
+	        }
+	        // Draw border (larger bubble behind)
+	        this.drawBubbleShape(this.bubbleGraphics, -borderWidth, -borderWidth, colorScheme.border, 1, tailInfo, borderWidth);
+	        // Draw main background
+	        this.drawBubbleShape(this.bubbleGraphics, 0, 0, colorScheme.background, 1, tailInfo);
+	        // Position text centered in bubble
+	        this.textField.x = padding;
+	        this.textField.y = padding;
+	    }
+	    /**
+	     * Get tail position and direction info
+	     */
+	    getTailInfo() {
+	        const { tailPosition } = this.config;
+	        if (tailPosition === 'none') {
+	            return { side: 'none', position: 'center' };
+	        }
+	        const [side, position] = tailPosition.split('-');
+	        // Normalize position names: left/top -> start, right/bottom -> end
+	        const positionMap = {
+	            left: 'start',
+	            top: 'start',
+	            right: 'end',
+	            bottom: 'end',
+	            center: 'center',
+	        };
+	        return { side, position: positionMap[position] || 'center' };
+	    }
+	    /**
+	     * Draw the bubble shape with optional tail
+	     */
+	    drawBubbleShape(gfx, offsetX, offsetY, color, alpha, tailInfo, extraSize = 0) {
+	        const { borderRadius, tailSize } = this.config;
+	        const w = this.bubbleWidth + extraSize * 2;
+	        const h = this.bubbleHeight + extraSize * 2;
+	        const r = Math.min(borderRadius + extraSize, w / 2, h / 2);
+	        const ts = tailSize + (extraSize > 0 ? extraSize * 0.5 : 0);
+	        const x = offsetX;
+	        const y = offsetY;
+	        // Start path
+	        gfx.moveTo(x + r, y);
+	        // Top edge
+	        if (tailInfo.side === 'top') {
+	            const tailX = this.getTailOffset(w, r, tailInfo.position);
+	            gfx.lineTo(x + tailX - ts, y);
+	            gfx.lineTo(x + tailX, y - ts);
+	            gfx.lineTo(x + tailX + ts, y);
+	        }
+	        gfx.lineTo(x + w - r, y);
+	        // Top-right corner
+	        gfx.arc(x + w - r, y + r, r, -Math.PI / 2, 0);
+	        // Right edge
+	        if (tailInfo.side === 'right') {
+	            const tailY = this.getTailOffset(h, r, tailInfo.position);
+	            gfx.lineTo(x + w, y + tailY - ts);
+	            gfx.lineTo(x + w + ts, y + tailY);
+	            gfx.lineTo(x + w, y + tailY + ts);
+	        }
+	        gfx.lineTo(x + w, y + h - r);
+	        // Bottom-right corner
+	        gfx.arc(x + w - r, y + h - r, r, 0, Math.PI / 2);
+	        // Bottom edge
+	        if (tailInfo.side === 'bottom') {
+	            const tailX = this.getTailOffset(w, r, tailInfo.position);
+	            gfx.lineTo(x + tailX + ts, y + h);
+	            gfx.lineTo(x + tailX, y + h + ts);
+	            gfx.lineTo(x + tailX - ts, y + h);
+	        }
+	        gfx.lineTo(x + r, y + h);
+	        // Bottom-left corner
+	        gfx.arc(x + r, y + h - r, r, Math.PI / 2, Math.PI);
+	        // Left edge
+	        if (tailInfo.side === 'left') {
+	            const tailY = this.getTailOffset(h, r, tailInfo.position);
+	            gfx.lineTo(x, y + tailY + ts);
+	            gfx.lineTo(x - ts, y + tailY);
+	            gfx.lineTo(x, y + tailY - ts);
+	        }
+	        gfx.lineTo(x, y + r);
+	        // Top-left corner
+	        gfx.arc(x + r, y + r, r, Math.PI, -Math.PI / 2);
+	        // Close and fill
+	        gfx.closePath();
+	        gfx.fill({ color, alpha });
+	    }
+	    /**
+	     * Calculate tail offset based on position
+	     */
+	    getTailOffset(dimension, radius, position) {
+	        const { tailSize } = this.config;
+	        const minOffset = radius + tailSize + 5;
+	        const maxOffset = dimension - radius - tailSize - 5;
+	        switch (position) {
+	            case 'start':
+	                return Math.max(minOffset, dimension * 0.25);
+	            case 'end':
+	                return Math.min(maxOffset, dimension * 0.75);
+	            case 'center':
+	            default:
+	                return dimension / 2;
+	        }
+	    }
+	    /**
+	     * Set the tooltip text
+	     */
+	    setText(text) {
+	        this.config.text = text;
+	        this.textField.text = text;
+	        this.render();
+	        return this;
+	    }
+	    /**
+	     * Get the current text
+	     */
+	    getText() {
+	        return this.config.text;
+	    }
+	    /**
+	     * Set the tail position
+	     */
+	    setTailPosition(position) {
+	        this.config.tailPosition = position;
+	        this.render();
+	        return this;
+	    }
+	    /**
+	     * Set the color scheme
+	     */
+	    setColorScheme(scheme) {
+	        this.config.colorScheme = scheme;
+	        // Recreate text with new colors
+	        this.container.removeChild(this.textField);
+	        this.textField = this.createTextField();
+	        this.container.addChild(this.textField);
+	        this.render();
+	        return this;
+	    }
+	    /**
+	     * Set tooltip position
+	     */
+	    setPosition(x, y) {
+	        this.container.x = x;
+	        this.container.y = y;
+	        return this;
+	    }
+	    /**
+	     * Get tooltip position
+	     */
+	    getPosition() {
+	        return { x: this.container.x, y: this.container.y };
+	    }
+	    /**
+	     * Show the tooltip
+	     */
+	    show() {
+	        this.container.visible = true;
+	        this.emit('show');
+	        return this;
+	    }
+	    /**
+	     * Hide the tooltip
+	     */
+	    hide() {
+	        this.container.visible = false;
+	        this.emit('hide');
+	        return this;
+	    }
+	    /**
+	     * Toggle visibility
+	     */
+	    toggle() {
+	        return this.container.visible ? this.hide() : this.show();
+	    }
+	    /**
+	     * Check if tooltip is visible
+	     */
+	    isVisible() {
+	        return this.container.visible;
+	    }
+	    /**
+	     * Set visibility
+	     */
+	    setVisible(visible) {
+	        this.container.visible = visible;
+	        return this;
+	    }
+	    /**
+	     * Get the bubble dimensions
+	     */
+	    getSize() {
+	        return {
+	            width: this.bubbleWidth,
+	            height: this.bubbleHeight,
+	        };
+	    }
+	    /**
+	     * Get the total bounds including tail and shadow
+	     */
+	    getTotalBounds() {
+	        const { tailSize, showShadow, shadowOffset } = this.config;
+	        const tailInfo = this.getTailInfo();
+	        let width = this.bubbleWidth;
+	        let height = this.bubbleHeight;
+	        let tailOffset = 0;
+	        // Add tail size to appropriate dimension
+	        if (tailInfo.side === 'left' || tailInfo.side === 'right') {
+	            width += tailSize;
+	            tailOffset = tailInfo.side === 'left' ? tailSize : 0;
+	        }
+	        else if (tailInfo.side === 'top' || tailInfo.side === 'bottom') {
+	            height += tailSize;
+	            tailOffset = tailInfo.side === 'top' ? tailSize : 0;
+	        }
+	        // Add shadow
+	        if (showShadow) {
+	            width += shadowOffset;
+	            height += shadowOffset;
+	        }
+	        return { width, height, tailOffset };
+	    }
+	    /**
+	     * Get the container
+	     */
+	    getContainer() {
+	        return this.container;
+	    }
+	    /**
+	     * Destroy the tooltip
+	     */
+	    destroy() {
+	        this.container.destroy();
+	        this.removeAllListeners();
+	    }
+	}
 
 	/**
 	 * ScreenManager - Stack-based screen navigation with animated transitions
@@ -49356,6 +49790,7 @@
 	        this.boundPointerDown = this.handlePointerDown.bind(this);
 	        this.boundPointerMove = this.handlePointerMove.bind(this);
 	        this.boundPointerUp = this.handlePointerUp.bind(this);
+	        this.boundHandleResize = this.handleResize.bind(this);
 	        // Initial render
 	        this.render();
 	        // Setup based on mode
@@ -49374,7 +49809,7 @@
 	        // Setup event listeners
 	        this.setupEventListeners();
 	        // Listen for resize
-	        window.addEventListener('resize', this.handleResize.bind(this));
+	        window.addEventListener('resize', this.boundHandleResize);
 	    }
 	    /**
 	     * Render the joystick graphics
@@ -49773,7 +50208,7 @@
 	        }
 	        // Remove event listeners
 	        this.removeEventListeners();
-	        window.removeEventListener('resize', this.handleResize.bind(this));
+	        window.removeEventListener('resize', this.boundHandleResize);
 	        // Destroy graphics
 	        this.container.destroy();
 	        // Remove all event listeners
@@ -50791,6 +51226,8 @@
 	exports.GameStyleUITheme = GameStyleUITheme;
 	exports.GameToggle = GameToggle;
 	exports.GameToggleColors = GameToggleColors;
+	exports.GameTooltip = GameTooltip;
+	exports.GameTooltipColors = GameTooltipColors;
 	exports.GameTopBar = GameTopBar;
 	exports.GraphicsEngine = GraphicsEngine;
 	exports.HexagonLevelButton = HexagonLevelButton;

@@ -6,7 +6,8 @@
     <title>Game UI Showcase - GameByte Framework</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { overflow: hidden; background: #0088EE; touch-action: none; }
+        body { overflow: hidden; background: #0088EE; touch-action: none; transition: background 0.3s ease; }
+        body.light-theme { background: #87CEEB; }
         canvas { display: block; }
     </style>
 </head>
@@ -15,6 +16,15 @@
     <script src="/gamebyte.umd.js"></script>
 
     <script>
+        // =====================================================
+        // Game UI Showcase - Using Framework Abstractions
+        // =====================================================
+        // This demo showcases:
+        // - GameTopBar, GameBottomNav, HexagonLevelButton components
+        // - SafeAreaLayout for responsive design
+        // - graphics() abstraction instead of direct PIXI usage
+        // =====================================================
+
         const {
             createGame,
             GameStyleButton,
@@ -23,7 +33,9 @@
             GameBottomNav,
             GameStyleColors,
             GameButtons,
-            SafeAreaLayout
+            SafeAreaLayout,
+            graphics,
+            loadFrameworkFont
         } = GameByteFramework;
 
         // Design resolution (reference size - content designed for this)
@@ -31,6 +43,75 @@
             width: 390,
             height: 844
         };
+
+        // ===== THEME DETECTION =====
+        function detectTheme() {
+            try {
+                if (window.parent && window.parent.document) {
+                    const parentTheme = window.parent.document.documentElement.getAttribute('data-theme');
+                    if (parentTheme) return parentTheme;
+                }
+            } catch (e) { /* Cross-origin */ }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const themeParam = urlParams.get('theme');
+            if (themeParam) return themeParam;
+
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                return 'light';
+            }
+            return 'dark';
+        }
+
+        let currentTheme = detectTheme();
+
+        function setupThemeListener() {
+            try {
+                if (window.parent && window.parent.document) {
+                    const observer = new MutationObserver((mutations) => {
+                        mutations.forEach((mutation) => {
+                            if (mutation.attributeName === 'data-theme') {
+                                const newTheme = window.parent.document.documentElement.getAttribute('data-theme');
+                                if (newTheme && newTheme !== currentTheme) {
+                                    currentTheme = newTheme;
+                                    applyTheme();
+                                }
+                            }
+                        });
+                    });
+                    observer.observe(window.parent.document.documentElement, { attributes: true });
+                }
+            } catch (e) {
+                window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
+                    currentTheme = e.matches ? 'light' : 'dark';
+                    applyTheme();
+                });
+            }
+        }
+
+        // ===== THEME COLOR PALETTES =====
+        const THEME_COLORS = {
+            dark: {
+                backgroundColor: 0x4DA6FF,
+                bodyBg: '#0088EE',
+                pathShadow: 0x8B5A00,
+                pathMain: 0xFFB300,
+                pathHighlight: 0xFFD54F,
+                bottomNavBg: 0x1A237E
+            },
+            light: {
+                backgroundColor: 0x87CEEB,
+                bodyBg: '#87CEEB',
+                pathShadow: 0xA06800,
+                pathMain: 0xFFC000,
+                pathHighlight: 0xFFE082,
+                bottomNavBg: 0x3949AB
+            }
+        };
+
+        function getColors() {
+            return THEME_COLORS[currentTheme] || THEME_COLORS.dark;
+        }
 
         // Create full-screen canvas
         const canvas = document.createElement('canvas');
@@ -40,174 +121,197 @@
         canvas.style.height = '100%';
         document.body.appendChild(canvas);
 
-        // Create safe area layout
-        const safeArea = new SafeAreaLayout({
-            designWidth: DESIGN.width,
-            designHeight: DESIGN.height,
-            backgroundColor: 0x4DA6FF,
-            showPattern: true,
-            patternOpacity: 0.06
-        });
-
         const game = createGame();
+        let renderer, stage, safeArea;
+
+        let isRecreating = false;
+        async function applyTheme() {
+            if (isRecreating) return;
+            isRecreating = true;
+
+            document.body.classList.toggle('light-theme', currentTheme === 'light');
+            if (stage && window.createScreen) {
+                await loadFrameworkFont();
+                window.createScreen();
+            }
+            setTimeout(() => { isRecreating = false; }, 100);
+        }
 
         (async () => {
+            await loadFrameworkFont();
             await game.initialize(canvas, '2d');
 
-            const renderer = game.make('renderer');
-            const stage = renderer.getStage();
+            renderer = game.make('renderer');
+            stage = renderer.getStage();
 
-            // Initialize safe area layout with PIXI
-            safeArea.initialize(PIXI);
-            stage.addChild(safeArea.getContainer());
+            setupThemeListener();
 
-            // Get the game container (all content goes here)
-            const gameContent = safeArea.getGameContainer();
+            function createScreen() {
+                const colors = getColors();
+                const gfx = graphics();
 
-            // Handle resize
+                while (stage.children.length > 0) {
+                    stage.removeChildAt(0);
+                }
+
+                // Create safe area layout with current theme colors
+                safeArea = new SafeAreaLayout({
+                    designWidth: DESIGN.width,
+                    designHeight: DESIGN.height,
+                    backgroundColor: colors.backgroundColor,
+                    showPattern: true,
+                    patternOpacity: 0.06
+                });
+
+                safeArea.initialize(PIXI);
+                stage.addChild(safeArea.getContainer());
+
+                const gameContent = safeArea.getGameContainer();
+                const CONFIG = DESIGN;
+
+                // === TOP BAR ===
+                const topBar = new GameTopBar({
+                    width: CONFIG.width,
+                    height: 55,
+                    padding: 12,
+                    resources: [
+                        {
+                            type: 'lives',
+                            value: 5,
+                            label: 'MAX',
+                            icon: 'heart',
+                            backgroundColor: 0x1A1A2A,
+                            borderColor: 0x0D0D15
+                        },
+                        {
+                            type: 'coins',
+                            value: 1310,
+                            showAddButton: true,
+                            icon: 'coin',
+                            backgroundColor: 0x4CAF50,
+                            borderColor: 0x2E7D32
+                        }
+                    ],
+                    showSettings: true,
+                    onSettingsClick: () => console.log('Settings clicked!')
+                });
+                topBar.setPosition(0, 8);
+                gameContent.addChild(topBar.getContainer());
+
+                // === LEVEL PATH CONTAINER ===
+                const levelContainer = gfx.createContainer();
+                levelContainer.y = 90;
+                gameContent.addChild(levelContainer);
+
+                // Draw golden path connecting levels
+                const pathGraphics = gfx.createGraphics();
+                levelContainer.addChild(pathGraphics);
+
+                const centerX = CONFIG.width / 2;
+                const levelSpacing = 95;
+                const levels = [
+                    { level: 20, state: 'locked', y: 0 },
+                    { level: 19, state: 'available', y: levelSpacing },
+                    { level: 18, state: 'available', y: levelSpacing * 2 },
+                    { level: 17, state: 'current', y: levelSpacing * 3 }
+                ];
+
+                // Draw path segments
+                for (let i = 0; i < levels.length - 1; i++) {
+                    const y1 = levels[i].y + 40;
+                    const y2 = levels[i + 1].y + 40;
+
+                    pathGraphics.moveTo(centerX, y1);
+                    pathGraphics.lineTo(centerX, y2);
+                    pathGraphics.stroke({ color: colors.pathShadow, width: 22, cap: 'round' });
+
+                    pathGraphics.moveTo(centerX, y1);
+                    pathGraphics.lineTo(centerX, y2);
+                    pathGraphics.stroke({ color: colors.pathMain, width: 16, cap: 'round' });
+
+                    pathGraphics.moveTo(centerX - 3, y1);
+                    pathGraphics.lineTo(centerX - 3, y2);
+                    pathGraphics.stroke({ color: colors.pathHighlight, width: 4, cap: 'round' });
+                }
+
+                // Create hexagon buttons
+                const hexButtons = [];
+                levels.forEach((levelData, index) => {
+                    let colorScheme;
+                    if (levelData.state === 'locked') {
+                        colorScheme = GameStyleColors.HEXAGON_CANDY_LOCKED;
+                    } else if (levelData.state === 'current') {
+                        colorScheme = GameStyleColors.HEXAGON_CANDY_CURRENT;
+                    } else {
+                        colorScheme = GameStyleColors.HEXAGON_CANDY_BLUE;
+                    }
+
+                    const hexButton = new HexagonLevelButton({
+                        level: levelData.level,
+                        size: 75,
+                        state: levelData.state,
+                        colorScheme: colorScheme,
+                        showStars: false
+                    });
+
+                    hexButton.setPosition(centerX, levelData.y + 40);
+                    levelContainer.addChild(hexButton.getContainer());
+                    hexButtons.push(hexButton);
+
+                    hexButton.on('click', ({ level }) => {
+                        console.log(`Level ${level} clicked!`);
+                    });
+                });
+
+                // Animate glow on current level
+                const currentHex = hexButtons.find((h, i) => levels[i].state === 'current');
+                let time = 0;
+                if (currentHex) {
+                    game.off('update');
+                    game.on('update', (dt) => {
+                        time += dt;
+                        currentHex.updateGlow(time);
+                    });
+                }
+
+                // === PLAY BUTTON ===
+                const playButton = GameButtons.cream('Play', 220, 60);
+                playButton.setPosition((CONFIG.width - 220) / 2, CONFIG.height - 175);
+                gameContent.addChild(playButton.getContainer());
+
+                playButton.on('click', () => {
+                    console.log('Play button clicked!');
+                });
+
+                // === BOTTOM NAV ===
+                const bottomNav = new GameBottomNav({
+                    width: CONFIG.width,
+                    height: 85,
+                    items: [
+                        { id: 'shop', type: 'shop', label: '' },
+                        { id: 'play', type: 'play', label: 'Start', highlighted: true },
+                        { id: 'profile', type: 'profile', locked: true }
+                    ],
+                    backgroundColor: colors.bottomNavBg
+                });
+                bottomNav.setPosition(0, CONFIG.height - 85);
+                gameContent.addChild(bottomNav.getContainer());
+
+                bottomNav.on('item-click', (id, item) => {
+                    console.log(`Nav item ${id} clicked!`, item);
+                });
+            }
+
+            window.createScreen = createScreen;
+
             window.addEventListener('resize', () => {
                 renderer.resize(window.innerWidth, window.innerHeight);
                 canvas.width = window.innerWidth;
                 canvas.height = window.innerHeight;
             });
 
-            // Use DESIGN dimensions for all positioning
-            const CONFIG = DESIGN;
-
-            // === TOP BAR ===
-            const topBar = new GameTopBar({
-                width: CONFIG.width,
-                height: 55,
-                padding: 12,
-                resources: [
-                    {
-                        type: 'lives',
-                        value: 5,
-                        label: 'MAX',
-                        icon: 'heart',
-                        backgroundColor: 0x1A1A2A,
-                        borderColor: 0x0D0D15
-                    },
-                    {
-                        type: 'coins',
-                        value: 1310,
-                        showAddButton: true,
-                        icon: 'coin',
-                        backgroundColor: 0x4CAF50,
-                        borderColor: 0x2E7D32
-                    }
-                ],
-                showSettings: true,
-                onSettingsClick: () => console.log('Settings clicked!')
-            });
-            topBar.setPosition(0, 8);
-            gameContent.addChild(topBar.getContainer());
-
-            // === LEVEL PATH CONTAINER ===
-            const levelContainer = new PIXI.Container();
-            levelContainer.y = 90;
-            gameContent.addChild(levelContainer);
-
-            // Draw golden path connecting levels
-            const pathGraphics = new PIXI.Graphics();
-            levelContainer.addChild(pathGraphics);
-
-            const centerX = CONFIG.width / 2;
-            const levelSpacing = 95;
-            const levels = [
-                { level: 20, state: 'locked', y: 0 },
-                { level: 19, state: 'available', y: levelSpacing },
-                { level: 18, state: 'available', y: levelSpacing * 2 },
-                { level: 17, state: 'current', y: levelSpacing * 3 }
-            ];
-
-            // Draw path segments
-            for (let i = 0; i < levels.length - 1; i++) {
-                const y1 = levels[i].y + 40;
-                const y2 = levels[i + 1].y + 40;
-
-                // Shadow
-                pathGraphics.moveTo(centerX, y1);
-                pathGraphics.lineTo(centerX, y2);
-                pathGraphics.stroke({ color: 0x8B5A00, width: 22, cap: 'round' });
-
-                // Main golden path
-                pathGraphics.moveTo(centerX, y1);
-                pathGraphics.lineTo(centerX, y2);
-                pathGraphics.stroke({ color: 0xFFB300, width: 16, cap: 'round' });
-
-                // Highlight
-                pathGraphics.moveTo(centerX - 3, y1);
-                pathGraphics.lineTo(centerX - 3, y2);
-                pathGraphics.stroke({ color: 0xFFD54F, width: 4, cap: 'round' });
-            }
-
-            // Create hexagon buttons
-            const hexButtons = [];
-            levels.forEach((levelData, index) => {
-                let colorScheme;
-                if (levelData.state === 'locked') {
-                    colorScheme = GameStyleColors.HEXAGON_CANDY_LOCKED;
-                } else if (levelData.state === 'current') {
-                    colorScheme = GameStyleColors.HEXAGON_CANDY_CURRENT;
-                } else {
-                    colorScheme = GameStyleColors.HEXAGON_CANDY_BLUE;
-                }
-
-                const hexButton = new HexagonLevelButton({
-                    level: levelData.level,
-                    size: 75,
-                    state: levelData.state,
-                    colorScheme: colorScheme,
-                    showStars: false
-                });
-
-                hexButton.setPosition(centerX, levelData.y + 40);
-                levelContainer.addChild(hexButton.getContainer());
-                hexButtons.push(hexButton);
-
-                hexButton.on('click', ({ level }) => {
-                    console.log(`Level ${level} clicked!`);
-                });
-            });
-
-            // Animate glow on current level
-            const currentHex = hexButtons.find((h, i) => levels[i].state === 'current');
-            let time = 0;
-            if (currentHex) {
-                game.on('update', (dt) => {
-                    time += dt;
-                    currentHex.updateGlow(time);
-                });
-            }
-
-            // === PLAY BUTTON ===
-            const playButton = GameButtons.cream('Play', 220, 60);
-            playButton.setPosition((CONFIG.width - 220) / 2, CONFIG.height - 175);
-            gameContent.addChild(playButton.getContainer());
-
-            playButton.on('click', () => {
-                console.log('Play button clicked!');
-            });
-
-            // === BOTTOM NAV ===
-            const bottomNav = new GameBottomNav({
-                width: CONFIG.width,
-                height: 85,
-                items: [
-                    { id: 'shop', type: 'shop', label: '' },
-                    { id: 'play', type: 'play', label: 'Start', highlighted: true },
-                    { id: 'profile', type: 'profile', locked: true }
-                ],
-                backgroundColor: 0x1A237E
-            });
-            bottomNav.setPosition(0, CONFIG.height - 85);
-            gameContent.addChild(bottomNav.getContainer());
-
-            bottomNav.on('item-click', (id, item) => {
-                console.log(`Nav item ${id} clicked!`, item);
-            });
-
+            document.body.classList.toggle('light-theme', currentTheme === 'light');
+            createScreen();
             game.start();
         })();
     </script>

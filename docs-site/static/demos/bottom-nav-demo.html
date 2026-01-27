@@ -6,7 +6,8 @@
     <title>GameBottomNav Demo - GameByte Framework</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { overflow: hidden; background: #4DA6FF; }
+        body { overflow: hidden; background: #4DA6FF; transition: background 0.3s ease; }
+        body.light-theme { background: #87CEEB; }
         canvas { display: block; margin: 0 auto; }
     </style>
 </head>
@@ -15,9 +16,85 @@
     <script src="/gamebyte.umd.js"></script>
 
     <script>
-        const { createGame, GameBottomNav } = GameByteFramework;
+        // =====================================================
+        // GameBottomNav Demo - Using Framework Abstractions
+        // =====================================================
+        // This demo showcases:
+        // - GameBottomNav component with navigation items
+        // - Badges, highlights, and locked states
+        // - graphics() abstraction instead of direct PIXI usage
+        // =====================================================
+
+        const { createGame, GameBottomNav, graphics, loadFrameworkFont } = GameByteFramework;
 
         const CONFIG = { width: 400, height: 250 };
+
+        // ===== THEME DETECTION =====
+        function detectTheme() {
+            try {
+                if (window.parent && window.parent.document) {
+                    const parentTheme = window.parent.document.documentElement.getAttribute('data-theme');
+                    if (parentTheme) return parentTheme;
+                }
+            } catch (e) { /* Cross-origin */ }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const themeParam = urlParams.get('theme');
+            if (themeParam) return themeParam;
+
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                return 'light';
+            }
+            return 'dark';
+        }
+
+        let currentTheme = detectTheme();
+
+        function setupThemeListener() {
+            try {
+                if (window.parent && window.parent.document) {
+                    const observer = new MutationObserver((mutations) => {
+                        mutations.forEach((mutation) => {
+                            if (mutation.attributeName === 'data-theme') {
+                                const newTheme = window.parent.document.documentElement.getAttribute('data-theme');
+                                if (newTheme && newTheme !== currentTheme) {
+                                    currentTheme = newTheme;
+                                    applyTheme();
+                                }
+                            }
+                        });
+                    });
+                    observer.observe(window.parent.document.documentElement, { attributes: true });
+                }
+            } catch (e) {
+                window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
+                    currentTheme = e.matches ? 'light' : 'dark';
+                    applyTheme();
+                });
+            }
+        }
+
+        // ===== THEME COLOR PALETTES =====
+        const THEME_COLORS = {
+            dark: {
+                gradientTop: '#4DA6FF',
+                gradientBottom: '#7DD3FF',
+                titleColor: 0xffffff,
+                nav1Bg: 0x1A237E,
+                nav2Bg: 0x283593
+            },
+            light: {
+                gradientTop: '#87CEEB',
+                gradientBottom: '#B0E0E6',
+                titleColor: 0x1A237E,
+                nav1Bg: 0x3949AB,
+                nav2Bg: 0x5C6BC0
+            }
+        };
+
+        function getColors() {
+            return THEME_COLORS[currentTheme] || THEME_COLORS.dark;
+        }
 
         const canvas = document.createElement('canvas');
         canvas.width = CONFIG.width;
@@ -25,38 +102,43 @@
         document.body.appendChild(canvas);
 
         const game = createGame();
+        let renderer, stage;
 
-        (async () => {
-            await game.initialize(canvas, '2d');
-            const renderer = game.make('renderer');
-            const stage = renderer.getStage();
+        function createScreen() {
+            const colors = getColors();
+            const gfx = graphics(); // Get graphics factory
 
-            // Sky gradient background
-            const bg = new PIXI.Graphics();
+            // Clear stage
+            while (stage.children.length > 0) {
+                stage.removeChildAt(0);
+            }
+
+            // ===== SKY GRADIENT BACKGROUND =====
+            const bg = gfx.createGraphics();
             const gradCanvas = document.createElement('canvas');
             gradCanvas.width = CONFIG.width;
             gradCanvas.height = CONFIG.height;
             const ctx = gradCanvas.getContext('2d');
             const gradient = ctx.createLinearGradient(0, 0, 0, CONFIG.height);
-            gradient.addColorStop(0, '#4DA6FF');
-            gradient.addColorStop(1, '#7DD3FF');
+            gradient.addColorStop(0, colors.gradientTop);
+            gradient.addColorStop(1, colors.gradientBottom);
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
-            bg.texture(PIXI.Texture.from(gradCanvas));
+            bg.texture(gfx.createTexture(gradCanvas));
             bg.rect(0, 0, CONFIG.width, CONFIG.height);
             bg.fill();
             stage.addChild(bg);
 
-            // Title
-            const title = new PIXI.Text({
-                text: 'GameBottomNav',
-                style: { fontFamily: 'Arial Black', fontSize: 20, fill: 0xffffff }
+            // ===== TITLE - Using graphics() abstraction =====
+            const title = gfx.createText('GameBottomNav', {
+                fontSize: 20,
+                fill: colors.titleColor
             });
             title.x = CONFIG.width / 2 - title.width / 2;
             title.y = 15;
             stage.addChild(title);
 
-            // Bottom Nav - 3 items
+            // ===== BOTTOM NAV - 3 ITEMS =====
             const bottomNav1 = new GameBottomNav({
                 width: CONFIG.width,
                 height: 85,
@@ -65,12 +147,12 @@
                     { id: 'play', type: 'play', label: 'Start', highlighted: true },
                     { id: 'profile', type: 'profile', locked: true }
                 ],
-                backgroundColor: 0x1A237E
+                backgroundColor: colors.nav1Bg
             });
             bottomNav1.setPosition(0, 60);
             stage.addChild(bottomNav1.getContainer());
 
-            // Bottom Nav - 4 items with badge
+            // ===== BOTTOM NAV - 4 ITEMS WITH BADGE =====
             const bottomNav2 = new GameBottomNav({
                 width: CONFIG.width,
                 height: 85,
@@ -80,7 +162,7 @@
                     { id: 'leaderboard', type: 'leaderboard' },
                     { id: 'settings', type: 'settings' }
                 ],
-                backgroundColor: 0x283593
+                backgroundColor: colors.nav2Bg
             });
             bottomNav2.setPosition(0, 160);
             stage.addChild(bottomNav2.getContainer());
@@ -88,7 +170,36 @@
             // Click handlers
             bottomNav1.on('item-click', (id) => console.log(`Nav 1: ${id} clicked`));
             bottomNav2.on('item-click', (id) => console.log(`Nav 2: ${id} clicked`));
+        }
 
+        let isRecreating = false;
+        async function applyTheme() {
+            if (isRecreating) return;
+            isRecreating = true;
+
+            document.body.classList.toggle('light-theme', currentTheme === 'light');
+            if (stage && window.createScreen) {
+                await loadFrameworkFont();
+                window.createScreen();
+            }
+            setTimeout(() => { isRecreating = false; }, 100);
+        }
+
+        (async () => {
+            // Load framework font
+            await loadFrameworkFont();
+
+            await game.initialize(canvas, '2d');
+            renderer = game.make('renderer');
+            stage = renderer.getStage();
+
+            setupThemeListener();
+
+            // Make createScreen globally accessible for theme switching
+            window.createScreen = createScreen;
+
+            document.body.classList.toggle('light-theme', currentTheme === 'light');
+            createScreen();
             game.start();
         })();
     </script>

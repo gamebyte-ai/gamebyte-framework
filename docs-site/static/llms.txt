@@ -30,6 +30,7 @@ GameByte is a comprehensive JavaScript game framework that unifies 2D (Pixi.js v
 - /ui-components/overview - Mobile-first UI system
 - /ui-components/button - GameStyleButton, UIButton
 - /ui-components/panel - GameStylePanel, UIPanel
+- /ui-components/tooltip - GameTooltip (speech bubble popover)
 - /ui-components/text - UIText typography
 - /ui-components/topbar - GameTopBar, TopBar (HUD resources)
 - /ui-components/progress-bar - Health, loading bars
@@ -113,6 +114,19 @@ const btn = new GameStyleButton({
 btn.on('click', () => startGame());
 ```
 
+### Game-Style Tooltip (Speech Bubble)
+```typescript
+import { GameTooltip, GameTooltipColors } from '@gamebyte/framework';
+const tooltip = new GameTooltip({
+    text: 'Coming Soon',
+    tailPosition: 'bottom-left', // 12 positions + 'none'
+    colorScheme: GameTooltipColors.CYAN
+});
+tooltip.setPosition(100, 50);
+stage.addChild(tooltip.getContainer());
+tooltip.show(); tooltip.hide(); tooltip.toggle();
+```
+
 ### Screen Navigation
 ```typescript
 import { ScreenManager, HubScreen } from '@gamebyte/framework';
@@ -145,6 +159,7 @@ Physics.createBody({ x: 100, y: 100, width: 32, height: 48 });
 ### UI Components
 - `GameStyleButton`, `GameButtons` - Game-style buttons
 - `GameStylePanel` - Game-style panel with title/close
+- `GameTooltip`, `GameTooltipColors` - Speech bubble tooltip/popover
 - `GameTopBar` - Resource bar (lives, coins, gems)
 - `GameBottomNav` - Bottom navigation
 - `ArcheroMenu` - Animated bottom menu with particles
@@ -165,6 +180,7 @@ Physics.createBody({ x: 100, y: 100, width: 32, height: 48 });
 ### Color Schemes
 - `GameStyleColors.YELLOW_BUTTON`, `GREEN_BUTTON`, `BLUE_BUTTON`, `RED_BUTTON`, `PURPLE_BUTTON`
 - `GameStyleColors.PANEL_BLUE`, `PANEL_PURPLE`
+- `GameTooltipColors.CYAN`, `.YELLOW`, `.GREEN`, `.RED`, `.PURPLE`, `.DARK`, `.WHITE`
 - `ARCHERO_COLORS.red`, `.blue`, `.purple`, `.green`, `.activeYellow`
 
 ## Service Keys

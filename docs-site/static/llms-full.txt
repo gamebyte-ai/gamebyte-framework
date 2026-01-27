@@ -125,6 +125,74 @@ const bar = new UIProgressBar({
 bar.setValue(50, true);
 ```
 
+### GameTooltip (Speech Bubble / Popover)
+```typescript
+import { GameTooltip, GameTooltipColors } from 'gamebyte-framework';
+
+// Basic tooltip
+const tooltip = new GameTooltip({
+    text: 'Coming Soon',
+    tailPosition: 'bottom-left',
+    colorScheme: GameTooltipColors.CYAN
+});
+tooltip.setPosition(100, 50);
+stage.addChild(tooltip.getContainer());
+
+// Configuration options
+const tooltip = new GameTooltip({
+    text: 'Multi-line\ntooltip text',
+    maxWidth: 200,              // Auto word-wrap width
+    padding: 12,                // Inner padding
+    fontSize: 16,
+    borderRadius: 10,
+    borderWidth: 3,
+    tailPosition: 'bottom-left', // 12 positions + 'none'
+    tailSize: 10,
+    showShadow: true,
+    shadowOffset: 4,
+    shadowAlpha: 0.3,
+    colorScheme: GameTooltipColors.CYAN
+});
+
+// Tail positions (12 options)
+// 'bottom-left' | 'bottom-center' | 'bottom-right'
+// 'top-left'    | 'top-center'    | 'top-right'
+// 'left-top'    | 'left-center'   | 'left-bottom'
+// 'right-top'   | 'right-center'  | 'right-bottom'
+// 'none'
+
+// Color schemes
+GameTooltipColors.CYAN    // Light blue (default, matches "Coming Soon" style)
+GameTooltipColors.YELLOW  // Warning style
+GameTooltipColors.GREEN   // Success style
+GameTooltipColors.RED     // Error style
+GameTooltipColors.PURPLE  // Pro tip style
+GameTooltipColors.DARK    // Dark tooltip (for light backgrounds)
+GameTooltipColors.WHITE   // White tooltip (for dark backgrounds)
+
+// Custom color scheme
+const customScheme = {
+    background: 0xFF6B6B,
+    border: 0x8B0000,
+    text: 0xFFFFFF,
+    textStroke: 0x8B0000, // optional
+    shadow: 0x000000      // optional
+};
+
+// Methods
+tooltip.setText('New text');
+tooltip.setTailPosition('top-center');
+tooltip.setColorScheme(GameTooltipColors.GREEN);
+tooltip.setPosition(x, y);
+tooltip.show();
+tooltip.hide();
+tooltip.toggle();
+tooltip.isVisible();
+tooltip.getSize();        // { width, height }
+tooltip.getTotalBounds(); // includes tail and shadow
+tooltip.destroy();
+```
+
 ## INPUT
 
 ### Keyboard

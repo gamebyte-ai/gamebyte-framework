@@ -57,6 +57,7 @@ const asset = assetManager.get('sprite');
 ```typescript
 const button = new UIButton({ text: 'Play', width: 200, height: 60 });
 const menu = new ArcheroMenu({ sections: [...], activeSection: 0 });
+const tooltip = new GameTooltip({ text: 'Coming Soon', tailPosition: 'bottom-left' });
 ```
 
 ### Audio Playback
@@ -85,6 +86,7 @@ inputManager.on('swipe', (direction) => { /* ... */ });
 | `ArcheroMenu` | `gamebyte-framework` | ~670 |
 | `UIButton` | `gamebyte-framework` | ~120 |
 | `UIPanel` | `gamebyte-framework` | ~80 |
+| `GameTooltip` | `gamebyte-framework` | ~200 |
 | `UIProgressBar` | `gamebyte-framework` | ~100 |
 | `SplashScreen` | `gamebyte-framework` | ~150 |
 
@@ -165,7 +167,7 @@ grep -r "physics" docs/
 grep -r "collision" docs/
 
 # Find UI component documentation
-grep -r "UIButton\|UIPanel\|ArcheroMenu" docs/
+grep -r "UIButton\|UIPanel\|GameTooltip\|ArcheroMenu" docs/
 
 # Find mobile optimization docs
 grep -r "mobile.*optimi\|createMobileGame" docs/

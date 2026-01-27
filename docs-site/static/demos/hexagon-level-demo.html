@@ -6,7 +6,8 @@
     <title>HexagonLevelButton Demo - GameByte Framework</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { overflow: hidden; background: #4DA6FF; }
+        body { overflow: hidden; background: #4DA6FF; transition: background 0.3s ease; }
+        body.light-theme { background: #87CEEB; }
         canvas { display: block; margin: 0 auto; }
     </style>
 </head>
@@ -15,9 +16,87 @@
     <script src="/gamebyte.umd.js"></script>
 
     <script>
-        const { createGame, HexagonLevelButton, GameStyleColors } = GameByteFramework;
+        // =====================================================
+        // HexagonLevelButton Demo - Using Framework Abstractions
+        // =====================================================
+        // This demo showcases:
+        // - HexagonLevelButton with different styles
+        // - Candy style and Classic style level buttons
+        // - graphics() abstraction instead of direct PIXI usage
+        // =====================================================
+
+        const {
+            createGame,
+            HexagonLevelButton,
+            GameStyleColors,
+            graphics,
+            loadFrameworkFont
+        } = GameByteFramework;
 
         const CONFIG = { width: 400, height: 450 };
+
+        // ===== THEME DETECTION =====
+        function detectTheme() {
+            try {
+                if (window.parent && window.parent.document) {
+                    const parentTheme = window.parent.document.documentElement.getAttribute('data-theme');
+                    if (parentTheme) return parentTheme;
+                }
+            } catch (e) { /* Cross-origin */ }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const themeParam = urlParams.get('theme');
+            if (themeParam) return themeParam;
+
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                return 'light';
+            }
+            return 'dark';
+        }
+
+        let currentTheme = detectTheme();
+
+        function setupThemeListener() {
+            try {
+                if (window.parent && window.parent.document) {
+                    const observer = new MutationObserver((mutations) => {
+                        mutations.forEach((mutation) => {
+                            if (mutation.attributeName === 'data-theme') {
+                                const newTheme = window.parent.document.documentElement.getAttribute('data-theme');
+                                if (newTheme && newTheme !== currentTheme) {
+                                    currentTheme = newTheme;
+                                    applyTheme();
+                                }
+                            }
+                        });
+                    });
+                    observer.observe(window.parent.document.documentElement, { attributes: true });
+                }
+            } catch (e) {
+                window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
+                    currentTheme = e.matches ? 'light' : 'dark';
+                    applyTheme();
+                });
+            }
+        }
+
+        // ===== THEME COLOR PALETTES =====
+        const THEME_COLORS = {
+            dark: {
+                gradientTop: '#4DA6FF',
+                gradientBottom: '#7DD3FF',
+                textWhite: 0xffffff
+            },
+            light: {
+                gradientTop: '#87CEEB',
+                gradientBottom: '#B0E0E6',
+                textWhite: 0x333333
+            }
+        };
+
+        function getColors() {
+            return THEME_COLORS[currentTheme] || THEME_COLORS.dark;
+        }
 
         const canvas = document.createElement('canvas');
         canvas.width = CONFIG.width;
@@ -25,139 +104,167 @@
         document.body.appendChild(canvas);
 
         const game = createGame();
+        let renderer, stage;
+
+        let isRecreating = false;
+        async function applyTheme() {
+            if (isRecreating) return;
+            isRecreating = true;
+
+            document.body.classList.toggle('light-theme', currentTheme === 'light');
+            if (stage && window.createScreen) {
+                await loadFrameworkFont();
+                window.createScreen();
+            }
+            setTimeout(() => { isRecreating = false; }, 100);
+        }
 
         (async () => {
+            await loadFrameworkFont();
             await game.initialize(canvas, '2d');
-            const renderer = game.make('renderer');
-            const stage = renderer.getStage();
+            renderer = game.make('renderer');
+            stage = renderer.getStage();
 
-            // Sky gradient background
-            const bg = new PIXI.Graphics();
-            const gradCanvas = document.createElement('canvas');
-            gradCanvas.width = CONFIG.width;
-            gradCanvas.height = CONFIG.height;
-            const ctx = gradCanvas.getContext('2d');
-            const gradient = ctx.createLinearGradient(0, 0, 0, CONFIG.height);
-            gradient.addColorStop(0, '#4DA6FF');
-            gradient.addColorStop(1, '#7DD3FF');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
-            bg.texture(PIXI.Texture.from(gradCanvas));
-            bg.rect(0, 0, CONFIG.width, CONFIG.height);
-            bg.fill();
-            stage.addChild(bg);
+            setupThemeListener();
 
-            // Title
-            const title = new PIXI.Text({
-                text: 'HexagonLevelButton',
-                style: { fontFamily: 'Arial Black', fontSize: 20, fill: 0xffffff }
-            });
-            title.x = CONFIG.width / 2 - title.width / 2;
-            title.y = 15;
-            stage.addChild(title);
+            function createScreen() {
+                const colors = getColors();
+                const gfx = graphics();
 
-            // Row 1: Candy Crush Style (with golden border)
-            const label1 = new PIXI.Text({
-                text: 'Candy Style:',
-                style: { fontFamily: 'Arial', fontSize: 14, fill: 0xffffff }
-            });
-            label1.x = 20;
-            label1.y = 55;
-            stage.addChild(label1);
+                while (stage.children.length > 0) {
+                    stage.removeChildAt(0);
+                }
 
-            const candyCurrent = new HexagonLevelButton({
-                level: 17,
-                size: 70,
-                state: 'current',
-                colorScheme: GameStyleColors.HEXAGON_CANDY_CURRENT,
-                showStars: false
-            });
-            candyCurrent.setPosition(80, 130);
-            stage.addChild(candyCurrent.getContainer());
+                // Sky gradient background using framework abstraction
+                const bg = gfx.createGraphics();
+                const gradTexture = gfx.createCanvasTexture(CONFIG.width, CONFIG.height, (ctx) => {
+                    const gradient = ctx.createLinearGradient(0, 0, 0, CONFIG.height);
+                    gradient.addColorStop(0, colors.gradientTop);
+                    gradient.addColorStop(1, colors.gradientBottom);
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
+                });
+                bg.texture(gradTexture);
+                bg.rect(0, 0, CONFIG.width, CONFIG.height);
+                bg.fill();
+                stage.addChild(bg);
 
-            const candyAvailable = new HexagonLevelButton({
-                level: 18,
-                size: 70,
-                state: 'available',
-                colorScheme: GameStyleColors.HEXAGON_CANDY_BLUE,
-                showStars: false
-            });
-            candyAvailable.setPosition(170, 130);
-            stage.addChild(candyAvailable.getContainer());
+                // Title
+                const title = gfx.createText('HexagonLevelButton', {
+                    fontSize: 20,
+                    fill: colors.textWhite
+                });
+                title.x = CONFIG.width / 2 - title.width / 2;
+                title.y = 15;
+                stage.addChild(title);
 
-            const candyLocked = new HexagonLevelButton({
-                level: 19,
-                size: 70,
-                state: 'locked',
-                colorScheme: GameStyleColors.HEXAGON_CANDY_LOCKED,
-                showStars: false
-            });
-            candyLocked.setPosition(260, 130);
-            stage.addChild(candyLocked.getContainer());
+                // Row 1: Candy Crush Style
+                const label1 = gfx.createText('Candy Style:', {
+                    fontSize: 14,
+                    fill: colors.textWhite
+                });
+                label1.x = 20;
+                label1.y = 55;
+                stage.addChild(label1);
 
-            // Row 2: Classic Style
-            const label2 = new PIXI.Text({
-                text: 'Classic Style:',
-                style: { fontFamily: 'Arial', fontSize: 14, fill: 0xffffff }
-            });
-            label2.x = 20;
-            label2.y = 190;
-            stage.addChild(label2);
+                const candyCurrent = new HexagonLevelButton({
+                    level: 17,
+                    size: 70,
+                    state: 'current',
+                    colorScheme: GameStyleColors.HEXAGON_CANDY_CURRENT,
+                    showStars: false
+                });
+                candyCurrent.setPosition(80, 130);
+                stage.addChild(candyCurrent.getContainer());
 
-            const classicCurrent = new HexagonLevelButton({
-                level: 5,
-                size: 70,
-                state: 'current',
-                showStars: false
-            });
-            classicCurrent.setPosition(80, 265);
-            stage.addChild(classicCurrent.getContainer());
-
-            const classicCompleted = new HexagonLevelButton({
-                level: 4,
-                size: 70,
-                state: 'completed',
-                stars: 3,
-                showStars: true
-            });
-            classicCompleted.setPosition(170, 265);
-            stage.addChild(classicCompleted.getContainer());
-
-            const classicLocked = new HexagonLevelButton({
-                level: 6,
-                size: 70,
-                state: 'locked',
-                showStars: false
-            });
-            classicLocked.setPosition(260, 265);
-            stage.addChild(classicLocked.getContainer());
-
-            // Row 3: Small sizes
-            const label3 = new PIXI.Text({
-                text: 'Small Size:',
-                style: { fontFamily: 'Arial', fontSize: 14, fill: 0xffffff }
-            });
-            label3.x = 20;
-            label3.y = 330;
-            stage.addChild(label3);
-
-            for (let i = 0; i < 5; i++) {
-                const small = new HexagonLevelButton({
-                    level: i + 1,
-                    size: 50,
-                    state: i < 3 ? 'completed' : i === 3 ? 'current' : 'locked',
+                const candyAvailable = new HexagonLevelButton({
+                    level: 18,
+                    size: 70,
+                    state: 'available',
                     colorScheme: GameStyleColors.HEXAGON_CANDY_BLUE,
                     showStars: false
                 });
-                small.setPosition(60 + i * 70, 390);
-                stage.addChild(small.getContainer());
+                candyAvailable.setPosition(170, 130);
+                stage.addChild(candyAvailable.getContainer());
+
+                const candyLocked = new HexagonLevelButton({
+                    level: 19,
+                    size: 70,
+                    state: 'locked',
+                    colorScheme: GameStyleColors.HEXAGON_CANDY_LOCKED,
+                    showStars: false
+                });
+                candyLocked.setPosition(260, 130);
+                stage.addChild(candyLocked.getContainer());
+
+                // Row 2: Classic Style
+                const label2 = gfx.createText('Classic Style:', {
+                    fontSize: 14,
+                    fill: colors.textWhite
+                });
+                label2.x = 20;
+                label2.y = 190;
+                stage.addChild(label2);
+
+                const classicCurrent = new HexagonLevelButton({
+                    level: 5,
+                    size: 70,
+                    state: 'current',
+                    showStars: false
+                });
+                classicCurrent.setPosition(80, 265);
+                stage.addChild(classicCurrent.getContainer());
+
+                const classicCompleted = new HexagonLevelButton({
+                    level: 4,
+                    size: 70,
+                    state: 'completed',
+                    stars: 3,
+                    showStars: true
+                });
+                classicCompleted.setPosition(170, 265);
+                stage.addChild(classicCompleted.getContainer());
+
+                const classicLocked = new HexagonLevelButton({
+                    level: 6,
+                    size: 70,
+                    state: 'locked',
+                    showStars: false
+                });
+                classicLocked.setPosition(260, 265);
+                stage.addChild(classicLocked.getContainer());
+
+                // Row 3: Small sizes
+                const label3 = gfx.createText('Small Size:', {
+                    fontSize: 14,
+                    fill: colors.textWhite
+                });
+                label3.x = 20;
+                label3.y = 330;
+                stage.addChild(label3);
+
+                for (let i = 0; i < 5; i++) {
+                    const small = new HexagonLevelButton({
+                        level: i + 1,
+                        size: 50,
+                        state: i < 3 ? 'completed' : i === 3 ? 'current' : 'locked',
+                        colorScheme: GameStyleColors.HEXAGON_CANDY_BLUE,
+                        showStars: false
+                    });
+                    small.setPosition(60 + i * 70, 390);
+                    stage.addChild(small.getContainer());
+                }
+
+                // Click handlers
+                [candyCurrent, candyAvailable, classicCurrent, classicCompleted].forEach(btn => {
+                    btn.on('click', ({ level }) => console.log(`Level ${level} clicked!`));
+                });
             }
 
-            // Click handlers
-            [candyCurrent, candyAvailable, classicCurrent, classicCompleted].forEach(btn => {
-                btn.on('click', ({ level }) => console.log(`Level ${level} clicked!`));
-            });
+            window.createScreen = createScreen;
 
+            document.body.classList.toggle('light-theme', currentTheme === 'light');
+            createScreen();
             game.start();
         })();
     </script>

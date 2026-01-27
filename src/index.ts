@@ -396,6 +396,9 @@ export type { GameToggleConfig, GameToggleColorScheme } from './ui/components/Ga
 export { GameSlider, GameSliderColors } from './ui/components/GameSlider';
 export type { GameSliderConfig, GameSliderColorScheme } from './ui/components/GameSlider';
 
+export { GameTooltip, GameTooltipColors } from './ui/components/GameTooltip';
+export type { GameTooltipConfig, GameTooltipColorScheme, TooltipTailPosition } from './ui/components/GameTooltip';
+
 // Font Loader (auto-loads framework font)
 export { loadFrameworkFont, getFrameworkFontFamily, isFontReady } from './ui/utils/FontLoader';
 
