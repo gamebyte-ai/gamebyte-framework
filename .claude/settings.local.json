@@ -59,7 +59,9 @@
       "Bash(then)",
       "Bash(node -e:*)",
       "Bash(unalias:*)",
-      "Bash(gh repo view:*)"
+      "Bash(gh repo view:*)",
+      "mcp__plugin_episodic-memory_episodic-memory__search",
+      "mcp__plugin_episodic-memory_episodic-memory__read"
     ],
     "deny": [],
     "ask": []
