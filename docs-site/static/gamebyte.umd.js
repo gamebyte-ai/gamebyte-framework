@@ -1,6 +1,6 @@
 (function (global, factory) {
-	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('pixi.js'), require('three'), require('matter-js'), require('cannon-es'), require('three/examples/jsm/renderers/CSS2DRenderer.js')) :
-	typeof define === 'function' && define.amd ? define(['exports', 'pixi.js', 'three', 'matter-js', 'cannon-es', 'three/examples/jsm/renderers/CSS2DRenderer.js'], factory) :
+	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('pixi.js'), require('three'), require('matter-js'), require('cannon-es'), require('three/examples/jsm/renderers/CSS2DRenderer.js'), require('@pixi/layout')) :
+	typeof define === 'function' && define.amd ? define(['exports', 'pixi.js', 'three', 'matter-js', 'cannon-es', 'three/examples/jsm/renderers/CSS2DRenderer.js', '@pixi/layout'], factory) :
 	(global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.GameByteFramework = {}, global.PIXI, global.THREE, global.Matter, global.CANNON, global.THREE));
 })(this, (function (exports, PIXI, THREE, Matter, CANNON, CSS2DRenderer_js) { 'use strict';
 
@@ -36254,7 +36254,7 @@
 	 * Input facade for convenient static access to input system functionality
 	 * Provides a clean API for game developers to interact with the input system
 	 */
-	class Input extends Facade {
+	let Input$1 = class Input extends Facade {
 	    /**
 	     * Get the service key for the facade
 	     */
@@ -36738,7 +36738,7 @@
 	            profile: this.getCurrentInputProfile()?.name || 'None'
 	        };
 	    }
-	}
+	};
 
 	/**
 	 * Physics facade for easy access to physics functionality
@@ -40559,16 +40559,20 @@
 	        const fontSize = isActive ? this.style.activeIconSize : this.style.iconSize;
 	        const yPosition = isActive ? this.style.activeIconYOffset : this.style.iconYOffset;
 	        // Direct PIXI.Text creation (bypass framework abstraction for predictable sizing)
-	        const icon = new PIXI__namespace.Text(typeof section.icon === 'string' ? section.icon : '', {
-	            fontSize: fontSize,
-	            fontFamily: 'system-ui',
-	            stroke: { color: this.style.iconStrokeColor, width: this.style.iconStrokeWidth },
-	            dropShadow: {
-	                angle: 0.523599,
-	                distance: this.style.iconShadowDistance,
-	                alpha: 0.8,
-	                blur: this.style.iconShadowBlur,
-	                color: this.style.iconStrokeColor
+	        // Pixi v8 format: new PIXI.Text({ text, style })
+	        const icon = new PIXI__namespace.Text({
+	            text: typeof section.icon === 'string' ? section.icon : '',
+	            style: {
+	                fontSize: fontSize,
+	                fontFamily: 'system-ui',
+	                stroke: { color: this.style.iconStrokeColor, width: this.style.iconStrokeWidth },
+	                dropShadow: {
+	                    angle: 0.523599,
+	                    distance: this.style.iconShadowDistance,
+	                    alpha: 0.8,
+	                    blur: this.style.iconShadowBlur,
+	                    color: this.style.iconStrokeColor
+	                }
 	            }
 	        });
 	        icon.anchor.set(0.5);
@@ -40589,17 +40593,21 @@
 	        const labelColor = section.customStyle?.labelColor ?? this.style.labelColor;
 	        const labelStrokeColor = section.customStyle?.labelStrokeColor ?? this.style.labelStrokeColor;
 	        // Direct PIXI.Text creation (bypass framework abstraction for predictable sizing)
-	        const label = new PIXI__namespace.Text(section.name, {
-	            fontSize: this.style.labelSize,
-	            fill: labelColor,
-	            fontWeight: this.style.labelFontWeight,
-	            stroke: { color: labelStrokeColor, width: this.style.labelStrokeWidth },
-	            dropShadow: {
-	                angle: 0.523599,
-	                distance: this.style.labelShadowDistance,
-	                alpha: 0.6,
-	                blur: this.style.labelShadowBlur,
-	                color: 0x000000
+	        // Pixi v8 format: new PIXI.Text({ text, style })
+	        const label = new PIXI__namespace.Text({
+	            text: section.name,
+	            style: {
+	                fontSize: this.style.labelSize,
+	                fill: labelColor,
+	                fontWeight: this.style.labelFontWeight,
+	                stroke: { color: labelStrokeColor, width: this.style.labelStrokeWidth },
+	                dropShadow: {
+	                    angle: 0.523599,
+	                    distance: this.style.labelShadowDistance,
+	                    alpha: 0.6,
+	                    blur: this.style.labelShadowBlur,
+	                    color: 0x000000
+	                }
 	            }
 	        });
 	        label.anchor.set(0.5);
@@ -41240,7 +41248,7 @@
 	/**
 	 * Easing functions
 	 */
-	const Easing = {
+	const Easing$1 = {
 	    linear(t) {
 	        return t;
 	    },
@@ -41260,7 +41268,7 @@
 	 * Run an animation with the given options
 	 */
 	function animate(options) {
-	    const { duration, easing = Easing.linear, onUpdate, onComplete } = options;
+	    const { duration, easing = Easing$1.linear, onUpdate, onComplete } = options;
 	    return new Promise((resolve) => {
 	        const startTime = Date.now();
 	        function tick() {
@@ -41292,7 +41300,7 @@
 	    fadeIn(target, duration = 300) {
 	        return animate({
 	            duration,
-	            easing: Easing.easeOutCubic,
+	            easing: Easing$1.easeOutCubic,
 	            onUpdate: (_, eased) => {
 	                target.alpha = eased;
 	            },
@@ -41301,7 +41309,7 @@
 	    fadeOut(target, duration = 200) {
 	        return animate({
 	            duration,
-	            easing: Easing.easeOutCubic,
+	            easing: Easing$1.easeOutCubic,
 	            onUpdate: (_, eased) => {
 	                target.alpha = 1 - eased;
 	            },
@@ -41311,7 +41319,7 @@
 	        target.x = from;
 	        return animate({
 	            duration,
-	            easing: Easing.easeOutCubic,
+	            easing: Easing$1.easeOutCubic,
 	            onUpdate: (_, eased) => {
 	                target.x = lerp(from, to, eased);
 	            },
@@ -41321,7 +41329,7 @@
 	        target.y = from;
 	        return animate({
 	            duration,
-	            easing: Easing.easeOutCubic,
+	            easing: Easing$1.easeOutCubic,
 	            onUpdate: (_, eased) => {
 	                target.y = lerp(from, to, eased);
 	            },
@@ -41333,7 +41341,7 @@
 	        target.alpha = 0;
 	        return animate({
 	            duration,
-	            easing: Easing.easeOutBack,
+	            easing: Easing$1.easeOutBack,
 	            onUpdate: (progress, eased) => {
 	                const scale = lerp(0.8, 1, eased);
 	                target.scale.x = scale;
@@ -41345,7 +41353,7 @@
 	    scaleOut(target, duration = 200) {
 	        return animate({
 	            duration,
-	            easing: Easing.easeInCubic,
+	            easing: Easing$1.easeInCubic,
 	            onUpdate: (progress, eased) => {
 	                const scale = lerp(1, 0.8, eased);
 	                target.scale.x = scale;
@@ -42235,6 +42243,73 @@
 	        itemActive: 0x5C6BC0,
 	        textColor: 0xFFFFFF,
 	        lockedColor: 0x757575
+	    },
+	    // ═══════════════════════════════════════════════════════════════
+	    // @pixi/ui Wrapper Component Colors (Jellybean Style)
+	    // ═══════════════════════════════════════════════════════════════
+	    // Input field colors
+	    GAME_INPUT: {
+	        background: 0x2A3A4A,
+	        backgroundFocus: 0x3A4A5A,
+	        border: 0x000000,
+	        borderInner: 0x1A2A3A,
+	        shadow: 0x1A2530,
+	        text: 0xFFFFFF,
+	        placeholder: 0x8A9AAA,
+	        cursor: 0xFFFFFF,
+	        selection: 0x4DA6FF,
+	        highlight: 0xFFFFFF
+	    },
+	    // ScrollBox colors
+	    GAME_SCROLLBOX: {
+	        background: 0x2A3A4A,
+	        border: 0x000000,
+	        borderInner: 0x1A2A3A,
+	        shadow: 0x1A2530,
+	        scrollbarTrack: 0x1A2A3A,
+	        scrollbarThumb: 0x5A6A7A,
+	        scrollbarThumbHover: 0x7A8A9A,
+	        highlight: 0xFFFFFF
+	    },
+	    // Select/Dropdown colors
+	    GAME_SELECT: {
+	        triggerBg: 0x4DA6FF,
+	        triggerBorder: 0x000000,
+	        triggerShadow: 0x2E7BC9,
+	        triggerHighlight: 0xFFFFFF,
+	        dropdownBg: 0x2A3A4A,
+	        dropdownBorder: 0x000000,
+	        dropdownShadow: 0x1A2530,
+	        itemHover: 0x3A4A5A,
+	        itemSelected: 0x4DA6FF,
+	        text: 0xFFFFFF,
+	        arrow: 0xFFFFFF
+	    },
+	    // CheckBox colors
+	    GAME_CHECKBOX: {
+	        boxBg: 0x2A3A4A,
+	        boxBorder: 0x000000,
+	        boxShadow: 0x1A2530,
+	        boxChecked: 0x4DA6FF,
+	        checkmark: 0xFFFFFF,
+	        highlight: 0xFFFFFF,
+	        text: 0xFFFFFF
+	    },
+	    // RadioGroup colors
+	    GAME_RADIO: {
+	        circleBg: 0x2A3A4A,
+	        circleBorder: 0x000000,
+	        circleShadow: 0x1A2530,
+	        circleSelected: 0x4DA6FF,
+	        dot: 0xFFFFFF,
+	        highlight: 0xFFFFFF,
+	        text: 0xFFFFFF
+	    },
+	    // List colors (minimal - mostly container)
+	    GAME_LIST: {
+	        background: 0x2A3A4A,
+	        border: 0x000000,
+	        divider: 0x3A4A5A
 	    }
 	};
 	/**
@@ -44134,7 +44209,7 @@
 	        this.contentContainer.alpha = 0;
 	        return animate({
 	            duration: 400,
-	            easing: Easing.easeOutBack,
+	            easing: Easing$1.easeOutBack,
 	            onUpdate: (progress, eased) => {
 	                const scale = lerp(0.8, 1, eased);
 	                this.contentContainer.scale.x = scale;
@@ -44150,6 +44225,295 @@
 	        return false;
 	    }
 	}
+
+	/**
+	 * Gradient Factory
+	 *
+	 * Provides native Pixi.js v8 FillGradient helpers for creating
+	 * linear and radial gradients with ease.
+	 *
+	 * Uses native PIXI.FillGradient API which works correctly with ALL shapes
+	 * including polygons, hexagons, circles, and rectangles.
+	 *
+	 * @example
+	 * ```typescript
+	 * import { Gradients } from 'gamebyte-framework';
+	 *
+	 * // Simple vertical gradient
+	 * const gradient = Gradients.linear.vertical(0x4DA6FF, 0x2E7BC9);
+	 * graphics.roundRect(0, 0, 100, 50, 10).fill(gradient);
+	 *
+	 * // Hexagon with gradient
+	 * graphics.poly(hexagonVertices).fill(Gradients.linear.vertical(0x4DA6FF, 0x2E7BC9));
+	 *
+	 * // Button depth effect
+	 * const buttonGrad = Gradients.presets.buttonDepth(0x2DE45A, 0x28A165);
+	 * graphics.roundRect(0, 0, 200, 60, 12).fill(buttonGrad);
+	 * ```
+	 */
+	/**
+	 * Create a linear gradient
+	 */
+	function createLinearGradient(options) {
+	    return new PIXI__namespace.FillGradient({
+	        type: 'linear',
+	        start: options.start ?? { x: 0, y: 0 },
+	        end: options.end ?? { x: 0, y: 1 },
+	        colorStops: options.colorStops,
+	        textureSpace: options.textureSpace ?? 'local'
+	    });
+	}
+	/**
+	 * Create a radial gradient
+	 */
+	function createRadialGradient(options) {
+	    return new PIXI__namespace.FillGradient({
+	        type: 'radial',
+	        center: options.center ?? { x: 0.5, y: 0.5 },
+	        innerRadius: options.innerRadius ?? 0,
+	        outerCenter: options.outerCenter ?? { x: 0.5, y: 0.5 },
+	        outerRadius: options.outerRadius ?? 0.5,
+	        colorStops: options.colorStops,
+	        textureSpace: options.textureSpace ?? 'local'
+	    });
+	}
+	/**
+	 * Gradient Factory with preset helpers
+	 */
+	const Gradients = {
+	    /**
+	     * Linear gradient helpers
+	     */
+	    linear: {
+	        /**
+	         * Vertical gradient (top to bottom)
+	         * Most common for buttons and UI elements
+	         */
+	        vertical(topColor, bottomColor, textureSpace = 'local') {
+	            return createLinearGradient({
+	                start: { x: 0, y: 0 },
+	                end: { x: 0, y: 1 },
+	                colorStops: [
+	                    { offset: 0, color: topColor },
+	                    { offset: 1, color: bottomColor }
+	                ],
+	                textureSpace
+	            });
+	        },
+	        /**
+	         * Vertical gradient with hard stop (3D button effect)
+	         * Creates a split appearance at the specified position
+	         */
+	        verticalHardStop(topColor, bottomColor, stopPosition = 0.5, textureSpace = 'local') {
+	            return createLinearGradient({
+	                start: { x: 0, y: 0 },
+	                end: { x: 0, y: 1 },
+	                colorStops: [
+	                    { offset: 0, color: topColor },
+	                    { offset: stopPosition, color: topColor },
+	                    { offset: stopPosition, color: bottomColor },
+	                    { offset: 1, color: bottomColor }
+	                ],
+	                textureSpace
+	            });
+	        },
+	        /**
+	         * Vertical gradient with soft transition (game button style)
+	         * Keeps top color longer then fades to bottom
+	         */
+	        verticalSoft(topColor, bottomColor, holdPosition = 0.35, textureSpace = 'local') {
+	            return createLinearGradient({
+	                start: { x: 0, y: 0 },
+	                end: { x: 0, y: 1 },
+	                colorStops: [
+	                    { offset: 0, color: topColor },
+	                    { offset: holdPosition, color: topColor },
+	                    { offset: 1, color: bottomColor }
+	                ],
+	                textureSpace
+	            });
+	        },
+	        /**
+	         * Horizontal gradient (left to right)
+	         */
+	        horizontal(leftColor, rightColor, textureSpace = 'local') {
+	            return createLinearGradient({
+	                start: { x: 0, y: 0 },
+	                end: { x: 1, y: 0 },
+	                colorStops: [
+	                    { offset: 0, color: leftColor },
+	                    { offset: 1, color: rightColor }
+	                ],
+	                textureSpace
+	            });
+	        },
+	        /**
+	         * Diagonal gradient (top-left to bottom-right)
+	         */
+	        diagonal(startColor, endColor, textureSpace = 'local') {
+	            return createLinearGradient({
+	                start: { x: 0, y: 0 },
+	                end: { x: 1, y: 1 },
+	                colorStops: [
+	                    { offset: 0, color: startColor },
+	                    { offset: 1, color: endColor }
+	                ],
+	                textureSpace
+	            });
+	        },
+	        /**
+	         * Multi-stop gradient with custom color stops
+	         */
+	        multiStop(colorStops, direction = 'vertical', textureSpace = 'local') {
+	            return createLinearGradient({
+	                start: { x: 0, y: 0 },
+	                end: direction === 'vertical' ? { x: 0, y: 1 } : { x: 1, y: 0 },
+	                colorStops,
+	                textureSpace
+	            });
+	        }
+	    },
+	    /**
+	     * Radial gradient helpers
+	     */
+	    radial: {
+	        /**
+	         * Centered radial gradient (from center outward)
+	         */
+	        centered(innerColor, outerColor, textureSpace = 'local') {
+	            return createRadialGradient({
+	                center: { x: 0.5, y: 0.5 },
+	                innerRadius: 0,
+	                outerCenter: { x: 0.5, y: 0.5 },
+	                outerRadius: 0.5,
+	                colorStops: [
+	                    { offset: 0, color: innerColor },
+	                    { offset: 1, color: outerColor }
+	                ],
+	                textureSpace
+	            });
+	        },
+	        /**
+	         * Spotlight effect (bright center, dark edges)
+	         */
+	        spotlight(color, fadeColor = 0x000000, textureSpace = 'local') {
+	            return createRadialGradient({
+	                center: { x: 0.5, y: 0.5 },
+	                innerRadius: 0,
+	                outerCenter: { x: 0.5, y: 0.5 },
+	                outerRadius: 0.5,
+	                colorStops: [
+	                    { offset: 0, color: color },
+	                    { offset: 0.3, color: color },
+	                    { offset: 1, color: fadeColor }
+	                ],
+	                textureSpace
+	            });
+	        },
+	        /**
+	         * Glow effect (white/light center fading outward)
+	         */
+	        glow(glowColor = 0xFFFFFF, midColor = 0xFFFAE6, edgeColor = 0x000000, textureSpace = 'local') {
+	            return createRadialGradient({
+	                center: { x: 0.5, y: 0.5 },
+	                innerRadius: 0,
+	                outerCenter: { x: 0.5, y: 0.5 },
+	                outerRadius: 0.5,
+	                colorStops: [
+	                    { offset: 0, color: glowColor },
+	                    { offset: 0.3, color: midColor },
+	                    { offset: 1, color: edgeColor }
+	                ],
+	                textureSpace
+	            });
+	        },
+	        /**
+	         * Multi-stop radial gradient
+	         */
+	        multiStop(colorStops, textureSpace = 'local') {
+	            return createRadialGradient({
+	                center: { x: 0.5, y: 0.5 },
+	                innerRadius: 0,
+	                outerCenter: { x: 0.5, y: 0.5 },
+	                outerRadius: 0.5,
+	                colorStops,
+	                textureSpace
+	            });
+	        }
+	    },
+	    /**
+	     * Preset gradients for common mobile game UI patterns
+	     */
+	    presets: {
+	        /**
+	         * Button depth effect gradient
+	         * Creates 3D appearance with lighter top and darker bottom
+	         */
+	        buttonDepth(topColor, bottomColor) {
+	            return Gradients.linear.vertical(topColor, bottomColor);
+	        },
+	        /**
+	         * Button with soft hold (like HexagonLevelButton style)
+	         * Holds the top color for a bit before transitioning
+	         */
+	        buttonSoft(topColor, bottomColor) {
+	            return Gradients.linear.verticalSoft(topColor, bottomColor, 0.35);
+	        },
+	        /**
+	         * Sky background gradient (blue tones)
+	         */
+	        sky() {
+	            return Gradients.linear.multiStop([
+	                { offset: 0, color: 0x0066CC },
+	                { offset: 0.3, color: 0x0088EE },
+	                { offset: 0.6, color: 0x00AAFF },
+	                { offset: 1, color: 0x66CCFF }
+	            ]);
+	        },
+	        /**
+	         * Sunset background gradient
+	         */
+	        sunset() {
+	            return Gradients.linear.multiStop([
+	                { offset: 0, color: 0x1a0533 },
+	                { offset: 0.3, color: 0x7b2d5b },
+	                { offset: 0.5, color: 0xf0724a },
+	                { offset: 0.7, color: 0xffc35e },
+	                { offset: 1, color: 0xfff8dc }
+	            ]);
+	        },
+	        /**
+	         * Night sky gradient
+	         */
+	        nightSky() {
+	            return Gradients.linear.multiStop([
+	                { offset: 0, color: 0x0f0c29 },
+	                { offset: 0.5, color: 0x302b63 },
+	                { offset: 1, color: 0x24243e }
+	            ]);
+	        },
+	        /**
+	         * Highlight shine effect (semi-transparent white)
+	         * Use alpha in fill options for transparency
+	         */
+	        highlight() {
+	            return Gradients.linear.vertical(0xFFFFFF, 0xFFFFFF);
+	        },
+	        /**
+	         * Track/slider gradient (dark inset look)
+	         */
+	        track(topColor, bottomColor) {
+	            return Gradients.linear.vertical(topColor, bottomColor);
+	        }
+	    },
+	    /**
+	     * Create a custom gradient with full control
+	     */
+	    custom: {
+	        linear: createLinearGradient,
+	        radial: createRadialGradient
+	    }
+	};
 
 	/**
 	 * HexagonLevelButton - Game-style hexagonal level selector
@@ -44394,32 +44758,12 @@
 	        const fillSize = size - borderWidth * 2;
 	        const fillTop = colorScheme.fill;
 	        const fillBottom = colorScheme.fillBottom || darkenColor$1(colorScheme.fill, 0.15);
-	        // Draw hexagon shape
+	        // Draw hexagon shape with native FillGradient
 	        this.drawHexagon(this.fillGraphics, 0, pressOffset, fillSize);
-	        // Create gradient texture for fill
-	        const textureSize = Math.ceil(fillSize);
-	        const gradientTexture = graphics().createCanvasTexture(textureSize, textureSize, (ctx) => {
-	            const gradient = ctx.createLinearGradient(0, 0, 0, textureSize);
-	            gradient.addColorStop(0, numberToHex(fillTop));
-	            gradient.addColorStop(0.35, numberToHex(fillTop));
-	            gradient.addColorStop(1, numberToHex(fillBottom));
-	            ctx.fillStyle = gradient;
-	            ctx.fillRect(0, 0, textureSize, textureSize);
-	        });
-	        // Apply texture fill with matrix transform to center it
-	        try {
-	            const matrix = {
-	                a: 1, b: 0, c: 0, d: 1,
-	                tx: -fillSize / 2,
-	                ty: pressOffset - fillSize / 2
-	            };
-	            this.fillGraphics.fill({ texture: gradientTexture, matrix: matrix });
-	        }
-	        catch (_e) {
-	            // Fallback to solid color if texture fill not supported
-	            // This can happen with older browsers or certain renderer configurations
-	            this.fillGraphics.fill({ color: colorScheme.fill });
-	        }
+	        // Create native FillGradient (Pixi.js v8)
+	        // textureSpace: 'local' ensures gradient fits the hexagon shape bounds
+	        const fillGradient = Gradients.linear.verticalSoft(fillTop, fillBottom, 0.35);
+	        this.fillGraphics.fill(fillGradient);
 	        // 3.5 Inner bevel effect for 3D look
 	        if (colorScheme.outerBorder) {
 	            // Top inner highlight (subtle white glow)
@@ -45228,27 +45572,6 @@
 	};
 
 	/**
-	 * Creates a horizontal gradient texture for toggle track
-	 * @internal
-	 */
-	function createTrackGradient$1(width, height, colorLeft, colorRight, borderRadius) {
-	    const canvas = document.createElement('canvas');
-	    canvas.width = width;
-	    canvas.height = height;
-	    const ctx = canvas.getContext('2d');
-	    const leftHex = '#' + colorLeft.toString(16).padStart(6, '0');
-	    const rightHex = '#' + colorRight.toString(16).padStart(6, '0');
-	    // Vertical gradient (top lighter, bottom darker)
-	    const gradient = ctx.createLinearGradient(0, 0, 0, height);
-	    gradient.addColorStop(0, leftHex);
-	    gradient.addColorStop(1, rightHex);
-	    ctx.beginPath();
-	    ctx.roundRect(0, 0, width, height, borderRadius);
-	    ctx.fillStyle = gradient;
-	    ctx.fill();
-	    return canvas;
-	}
-	/**
 	 * Game-style toggle switch component
 	 * Polished mobile game style with gradients and depth
 	 *
@@ -45311,11 +45634,6 @@
 	        this.borderGraphics.clear();
 	        this.trackGraphics.clear();
 	        this.thumbGraphics.clear();
-	        // Remove old gradient sprite
-	        if (this.trackGradientSprite) {
-	            this.container.removeChild(this.trackGradientSprite);
-	            this.trackGradientSprite = undefined;
-	        }
 	        const alpha = disabled ? 0.5 : 1;
 	        const thumbScale = this.isPressed ? 0.9 : 1.0;
 	        // Determine track colors based on state
@@ -45327,27 +45645,23 @@
 	        // Layer 2: Border
 	        this.borderGraphics.roundRect(0, 0, width, height, radius);
 	        this.borderGraphics.fill({ color: colorScheme.border, alpha });
-	        // Layer 3: Track fill with gradient
+	        // Layer 3: Track fill with native FillGradient
 	        const trackX = borderWidth;
 	        const trackY = borderWidth;
 	        const trackWidth = width - borderWidth * 2;
 	        const trackHeight = height - borderWidth * 2;
 	        const trackRadius = radius - borderWidth;
-	        // Create gradient sprite for track
-	        const gradientCanvas = createTrackGradient$1(trackWidth, trackHeight, trackTopColor, trackBottomColor, trackRadius);
-	        const gradientTexture = graphics().createTexture(gradientCanvas);
-	        this.trackGradientSprite = graphics().createSprite(gradientTexture);
-	        this.trackGradientSprite.x = trackX;
-	        this.trackGradientSprite.y = trackY;
+	        // Use native FillGradient for track background
+	        const trackGradient = Gradients.linear.vertical(trackTopColor, trackBottomColor);
+	        this.trackGraphics.roundRect(trackX, trackY, trackWidth, trackHeight, trackRadius);
+	        this.trackGraphics.fill(trackGradient);
 	        if (disabled)
-	            this.trackGradientSprite.alpha = alpha;
-	        // Insert gradient sprite after trackGraphics
-	        const trackIndex = this.container.getChildIndex(this.trackGraphics);
-	        this.container.addChild(this.trackGradientSprite);
-	        this.container.setChildIndex(this.trackGradientSprite, trackIndex + 1);
-	        // Inner shadow on track (subtle)
-	        this.trackGraphics.roundRect(trackX + 2, trackY + 1, trackWidth - 4, 4, 2);
-	        this.trackGraphics.fill({ color: 0x000000, alpha: 0.15 * alpha });
+	            this.trackGraphics.alpha = alpha;
+	        // Inner shadow on track (subtle) - draw as separate graphics on top
+	        const innerShadow = graphics().createGraphics();
+	        innerShadow.roundRect(trackX + 2, trackY + 1, trackWidth - 4, 4, 2);
+	        innerShadow.fill({ color: 0x000000, alpha: 0.15 * alpha });
+	        this.container.addChild(innerShadow);
 	        // Layer 4: Thumb
 	        const thumbBaseRadius = (height - 10) / 2;
 	        const thumbRadius = thumbBaseRadius * thumbScale;
@@ -45538,26 +45852,224 @@
 	};
 
 	/**
-	 * Creates a horizontal gradient texture for slider track
-	 * @internal
+	 * Game-style checkbox component with jellybean styling
+	 *
+	 * Features:
+	 * - Black outer border with inner shadow
+	 * - Checkmark animation on toggle
+	 * - Optional text label
+	 * - Touch-friendly size (minimum 32px)
+	 *
+	 * @example
+	 * ```typescript
+	 * const checkbox = new GameCheckBox({
+	 *   label: 'Enable Sound',
+	 *   checked: true,
+	 *   onChange: (checked) => setSoundEnabled(checked)
+	 * });
+	 * stage.addChild(checkbox.getContainer());
+	 * ```
 	 */
-	function createTrackGradient(width, height, colorTop, colorBottom, borderRadius) {
-	    const canvas = document.createElement('canvas');
-	    canvas.width = width;
-	    canvas.height = height;
-	    const ctx = canvas.getContext('2d');
-	    const topHex = '#' + colorTop.toString(16).padStart(6, '0');
-	    const bottomHex = '#' + colorBottom.toString(16).padStart(6, '0');
-	    // Vertical gradient (top lighter, bottom darker)
-	    const gradient = ctx.createLinearGradient(0, 0, 0, height);
-	    gradient.addColorStop(0, topHex);
-	    gradient.addColorStop(1, bottomHex);
-	    ctx.beginPath();
-	    ctx.roundRect(0, 0, width, height, borderRadius);
-	    ctx.fillStyle = gradient;
-	    ctx.fill();
-	    return canvas;
+	class GameCheckBox extends EventEmitter {
+	    constructor(config = {}) {
+	        super();
+	        this.isPressed = false;
+	        loadFrameworkFont();
+	        this.config = {
+	            label: config.label || '',
+	            checked: config.checked !== undefined ? config.checked : false,
+	            size: config.size || 32,
+	            fontSize: config.fontSize || 18,
+	            colorScheme: config.colorScheme || GameStyleColors.GAME_CHECKBOX,
+	            disabled: config.disabled || false,
+	            onChange: config.onChange || (() => { })
+	        };
+	        // Ensure minimum touch target
+	        this.config.size = Math.max(this.config.size, 32);
+	        this._checked = this.config.checked;
+	        const factory = graphics();
+	        // Create containers
+	        this.container = factory.createContainer();
+	        this.boxContainer = factory.createContainer();
+	        // Create graphics layers
+	        this.shadowGraphics = factory.createGraphics();
+	        this.borderGraphics = factory.createGraphics();
+	        this.backgroundGraphics = factory.createGraphics();
+	        this.highlightGraphics = factory.createGraphics();
+	        this.checkmarkGraphics = factory.createGraphics();
+	        // Build hierarchy
+	        this.boxContainer.addChild(this.shadowGraphics);
+	        this.boxContainer.addChild(this.borderGraphics);
+	        this.boxContainer.addChild(this.backgroundGraphics);
+	        this.boxContainer.addChild(this.highlightGraphics);
+	        this.boxContainer.addChild(this.checkmarkGraphics);
+	        this.container.addChild(this.boxContainer);
+	        // Create label if provided
+	        if (this.config.label) {
+	            this.createLabel();
+	        }
+	        // Render and setup interaction
+	        this.render();
+	        this.setupInteraction();
+	    }
+	    createLabel() {
+	        const { label, size, fontSize, colorScheme } = this.config;
+	        this.labelText = graphics().createText(label, {
+	            fontFamily: getFrameworkFontFamily(),
+	            fontSize: fontSize,
+	            fontWeight: '600',
+	            fill: colorScheme.text
+	        });
+	        this.labelText.x = size + 12;
+	        this.labelText.y = size / 2;
+	        if (this.labelText.anchor)
+	            this.labelText.anchor.set(0, 0.5);
+	        this.container.addChild(this.labelText);
+	    }
+	    render() {
+	        const { size, colorScheme, disabled } = this.config;
+	        const radius = size * 0.2;
+	        const shadowOffset = 3;
+	        // Clear all graphics
+	        this.shadowGraphics.clear();
+	        this.borderGraphics.clear();
+	        this.backgroundGraphics.clear();
+	        this.highlightGraphics.clear();
+	        this.checkmarkGraphics.clear();
+	        const alpha = disabled ? 0.5 : 1;
+	        const boxY = this.isPressed ? shadowOffset - 1 : 0;
+	        const currentShadow = this.isPressed ? 1 : shadowOffset;
+	        // 1. Shadow (depth)
+	        this.shadowGraphics.roundRect(0, currentShadow, size, size, radius);
+	        this.shadowGraphics.fill({ color: colorScheme.boxShadow, alpha });
+	        // 2. Black border
+	        this.borderGraphics.roundRect(-1, boxY - 1, size + 2, size + currentShadow + 2, radius + 1);
+	        this.borderGraphics.stroke({ color: colorScheme.boxBorder, width: 1, alpha });
+	        // 3. Background
+	        const bgColor = this._checked ? colorScheme.boxChecked : colorScheme.boxBg;
+	        this.backgroundGraphics.roundRect(0, boxY, size, size, radius);
+	        this.backgroundGraphics.fill({ color: bgColor, alpha });
+	        // 4. Top highlight (subtle shine)
+	        if (!this.isPressed) {
+	            this.highlightGraphics.roundRect(2, boxY + 2, size - 4, size * 0.35, radius - 1);
+	            this.highlightGraphics.fill({ color: colorScheme.highlight, alpha: 0.2 * alpha });
+	        }
+	        // 5. Checkmark (if checked)
+	        if (this._checked) {
+	            this.renderCheckmark(size, boxY, colorScheme.checkmark, alpha);
+	        }
+	    }
+	    renderCheckmark(size, boxY, color, alpha) {
+	        const cx = size / 2;
+	        const cy = boxY + size / 2;
+	        const scale = size / 32;
+	        // Draw checkmark path
+	        this.checkmarkGraphics.moveTo(cx - 8 * scale, cy);
+	        this.checkmarkGraphics.lineTo(cx - 2 * scale, cy + 6 * scale);
+	        this.checkmarkGraphics.lineTo(cx + 8 * scale, cy - 6 * scale);
+	        this.checkmarkGraphics.stroke({ color, width: 3 * scale, alpha });
+	    }
+	    setupInteraction() {
+	        this.container.eventMode = 'static';
+	        this.container.cursor = this.config.disabled ? 'default' : 'pointer';
+	        // Hit area covers box and label
+	        const totalWidth = this.config.label
+	            ? this.config.size + 12 + (this.labelText?.width || 0)
+	            : this.config.size;
+	        this.container.hitArea = {
+	            contains: (x, y) => {
+	                return x >= -4 && x <= totalWidth + 4 && y >= -4 && y <= this.config.size + 8;
+	            }
+	        };
+	        this.container.on('pointerdown', this.onPointerDown.bind(this));
+	        this.container.on('pointerup', this.onPointerUp.bind(this));
+	        this.container.on('pointerupoutside', this.onPointerUpOutside.bind(this));
+	    }
+	    onPointerDown() {
+	        if (this.config.disabled)
+	            return;
+	        this.isPressed = true;
+	        this.render();
+	    }
+	    onPointerUp() {
+	        if (this.config.disabled)
+	            return;
+	        this.isPressed = false;
+	        this.toggle();
+	    }
+	    onPointerUpOutside() {
+	        if (this.config.disabled)
+	            return;
+	        this.isPressed = false;
+	        this.render();
+	    }
+	    /** Toggle the checkbox state */
+	    toggle() {
+	        this._checked = !this._checked;
+	        this.render();
+	        this.emit('change', this._checked);
+	        this.config.onChange(this._checked);
+	    }
+	    /** Get current checked state */
+	    isChecked() {
+	        return this._checked;
+	    }
+	    /** Set checked state */
+	    setChecked(checked) {
+	        if (this._checked !== checked) {
+	            this._checked = checked;
+	            this.render();
+	            this.emit('change', this._checked);
+	        }
+	    }
+	    /** Set disabled state */
+	    setDisabled(disabled) {
+	        this.config.disabled = disabled;
+	        this.container.cursor = disabled ? 'default' : 'pointer';
+	        this.render();
+	    }
+	    /** Check if disabled */
+	    isDisabled() {
+	        return this.config.disabled;
+	    }
+	    /** Set position */
+	    setPosition(x, y) {
+	        this.container.x = x;
+	        this.container.y = y;
+	    }
+	    /** Get the container */
+	    getContainer() {
+	        return this.container;
+	    }
+	    /** Destroy the component */
+	    destroy() {
+	        this.container.destroy({ children: true });
+	        this.removeAllListeners();
+	    }
 	}
+	/**
+	 * Pre-defined checkbox color schemes
+	 */
+	const GameCheckBoxColors = {
+	    DEFAULT: GameStyleColors.GAME_CHECKBOX,
+	    GREEN: {
+	        ...GameStyleColors.GAME_CHECKBOX,
+	        boxChecked: 0x4CAF50
+	    },
+	    ORANGE: {
+	        ...GameStyleColors.GAME_CHECKBOX,
+	        boxChecked: 0xF5B041
+	    },
+	    PURPLE: {
+	        ...GameStyleColors.GAME_CHECKBOX,
+	        boxChecked: 0x9C27B0
+	    },
+	    RED: {
+	        ...GameStyleColors.GAME_CHECKBOX,
+	        boxChecked: 0xE74C3C
+	    }
+	};
+
 	/**
 	 * Game-style slider component for volume, progress, etc.
 	 * Polished mobile game style with gradients and depth
@@ -45660,15 +46172,6 @@
 	        this.trackGraphics.clear();
 	        this.fillGraphics.clear();
 	        this.thumbGraphics.clear();
-	        // Remove old gradient sprites
-	        if (this.trackGradientSprite) {
-	            this.container.removeChild(this.trackGradientSprite);
-	            this.trackGradientSprite = undefined;
-	        }
-	        if (this.fillGradientSprite) {
-	            this.container.removeChild(this.fillGradientSprite);
-	            this.fillGradientSprite = undefined;
-	        }
 	        const alpha = disabled ? 0.5 : 1;
 	        const thumbScale = this.isPressed ? 0.9 : 1.0;
 	        // Calculate thumb position
@@ -45690,36 +46193,26 @@
 	        // Layer 2: Border
 	        this.borderGraphics.roundRect(0, 0, width, height, radius);
 	        this.borderGraphics.fill({ color: colorScheme.border, alpha });
-	        // Layer 3: Track background with gradient
-	        const trackBgCanvas = createTrackGradient(trackWidth, trackHeight, colorScheme.trackTop, colorScheme.trackBottom, trackRadius);
-	        const trackBgTexture = graphics().createTexture(trackBgCanvas);
-	        this.trackGradientSprite = graphics().createSprite(trackBgTexture);
-	        this.trackGradientSprite.x = trackX;
-	        this.trackGradientSprite.y = trackY;
+	        // Layer 3: Track background with native FillGradient
+	        const trackGradient = Gradients.linear.vertical(colorScheme.trackTop, colorScheme.trackBottom);
+	        this.trackGraphics.roundRect(trackX, trackY, trackWidth, trackHeight, trackRadius);
+	        this.trackGraphics.fill(trackGradient);
 	        if (disabled)
-	            this.trackGradientSprite.alpha = alpha;
-	        // Insert after trackGraphics
-	        const trackIndex = this.container.getChildIndex(this.trackGraphics);
-	        this.container.addChild(this.trackGradientSprite);
-	        this.container.setChildIndex(this.trackGradientSprite, trackIndex + 1);
-	        // Layer 4: Fill (progress) with gradient
+	            this.trackGraphics.alpha = alpha;
+	        // Layer 4: Fill (progress) with native FillGradient
 	        const fillWidth = Math.max(trackHeight, (thumbX - trackX + thumbRadius));
 	        if (fillWidth > trackHeight) {
-	            const fillCanvas = createTrackGradient(fillWidth, trackHeight, colorScheme.fillTop, colorScheme.fillBottom, trackRadius);
-	            const fillTexture = graphics().createTexture(fillCanvas);
-	            this.fillGradientSprite = graphics().createSprite(fillTexture);
-	            this.fillGradientSprite.x = trackX;
-	            this.fillGradientSprite.y = trackY;
+	            const fillGradient = Gradients.linear.vertical(colorScheme.fillTop, colorScheme.fillBottom);
+	            this.fillGraphics.roundRect(trackX, trackY, fillWidth, trackHeight, trackRadius);
+	            this.fillGraphics.fill(fillGradient);
 	            if (disabled)
-	                this.fillGradientSprite.alpha = alpha;
-	            // Insert after track gradient
-	            const fillIndex = this.container.getChildIndex(this.trackGradientSprite);
-	            this.container.addChild(this.fillGradientSprite);
-	            this.container.setChildIndex(this.fillGradientSprite, fillIndex + 1);
+	                this.fillGraphics.alpha = alpha;
 	        }
-	        // Inner shadow on track (subtle)
-	        this.trackGraphics.roundRect(trackX + 2, trackY + 1, trackWidth - 4, 3, 1.5);
-	        this.trackGraphics.fill({ color: 0x000000, alpha: 0.15 * alpha });
+	        // Inner shadow on track (subtle) - draw on top of track
+	        const innerShadow = graphics().createGraphics();
+	        innerShadow.roundRect(trackX + 2, trackY + 1, trackWidth - 4, 3, 1.5);
+	        innerShadow.fill({ color: 0x000000, alpha: 0.15 * alpha });
+	        this.container.addChild(innerShadow);
 	        // Layer 5: Thumb
 	        // Thumb shadow
 	        this.thumbGraphics.circle(thumbX + 1, thumbY + 2, thumbRadius);
@@ -46343,6 +46836,7195 @@
 	    }
 	}
 
+	var dist = {};
+
+	var Collector$1 = {};
+
+	Object.defineProperty(Collector$1, "__esModule", { value: true });
+	Collector$1.Collector = void 0;
+	/**
+	 * Base class for collectors.
+	 *
+	 * @typeparam THandler The function signature to be implemented by handlers.
+	 */
+	class Collector {
+	    /**
+	     * Create a new collector.
+	     *
+	     * @param signal The signal to emit.
+	     */
+	    constructor(signal) {
+	        // eslint-disable-next-line dot-notation
+	        this.emit = (...args) => {
+	            // eslint-disable-next-line dot-notation
+	            signal["emitCollecting"](this, args);
+	        };
+	    }
+	}
+	Collector$1.Collector = Collector;
+
+	var CollectorArray$1 = {};
+
+	Object.defineProperty(CollectorArray$1, "__esModule", { value: true });
+	CollectorArray$1.CollectorArray = void 0;
+	const Collector_1$3 = Collector$1;
+	/**
+	 * Returns the result of the all signal handlers from a signal emission in an array.
+	 *
+	 * @typeparam THandler The function signature to be implemented by handlers.
+	 */
+	class CollectorArray extends Collector_1$3.Collector {
+	    constructor() {
+	        super(...arguments);
+	        this.result = [];
+	    }
+	    handleResult(result) {
+	        this.result.push(result);
+	        return true;
+	    }
+	    /**
+	     * Get the list of results from the signal handlers.
+	     */
+	    getResult() {
+	        return this.result;
+	    }
+	    /**
+	     * Reset the result
+	     */
+	    reset() {
+	        this.result.length = 0;
+	    }
+	}
+	CollectorArray$1.CollectorArray = CollectorArray;
+
+	var CollectorLast$1 = {};
+
+	Object.defineProperty(CollectorLast$1, "__esModule", { value: true });
+	CollectorLast$1.CollectorLast = void 0;
+	const Collector_1$2 = Collector$1;
+	/**
+	 * Returns the result of the last signal handler from a signal emission.
+	 *
+	 * @typeparam THandler The function signature to be implemented by handlers.
+	 */
+	class CollectorLast extends Collector_1$2.Collector {
+	    handleResult(result) {
+	        this.result = result;
+	        return true;
+	    }
+	    /**
+	     * Get the result of the last signal handler.
+	     */
+	    getResult() {
+	        return this.result;
+	    }
+	    /**
+	     * Reset the result
+	     */
+	    reset() {
+	        delete this.result;
+	    }
+	}
+	CollectorLast$1.CollectorLast = CollectorLast;
+
+	var CollectorUntil0$1 = {};
+
+	Object.defineProperty(CollectorUntil0$1, "__esModule", { value: true });
+	CollectorUntil0$1.CollectorUntil0 = void 0;
+	const Collector_1$1 = Collector$1;
+	/**
+	 * Keep signal emissions going while all handlers return true.
+	 *
+	 * @typeparam THandler The function signature to be implemented by handlers.
+	 */
+	class CollectorUntil0 extends Collector_1$1.Collector {
+	    constructor() {
+	        super(...arguments);
+	        this.result = false;
+	    }
+	    handleResult(result) {
+	        this.result = result;
+	        return this.result;
+	    }
+	    /**
+	     * Get the result of the last signal handler.
+	     */
+	    getResult() {
+	        return this.result;
+	    }
+	    /**
+	     * Reset the result
+	     */
+	    reset() {
+	        this.result = false;
+	    }
+	}
+	CollectorUntil0$1.CollectorUntil0 = CollectorUntil0;
+
+	var CollectorWhile0$1 = {};
+
+	Object.defineProperty(CollectorWhile0$1, "__esModule", { value: true });
+	CollectorWhile0$1.CollectorWhile0 = void 0;
+	const Collector_1 = Collector$1;
+	/**
+	 * Keep signal emissions going while all handlers return false.
+	 *
+	 * @typeparam THandler The function signature to be implemented by handlers.
+	 */
+	class CollectorWhile0 extends Collector_1.Collector {
+	    constructor() {
+	        super(...arguments);
+	        this.result = false;
+	    }
+	    handleResult(result) {
+	        this.result = result;
+	        return !this.result;
+	    }
+	    /**
+	     * Get the result of the last signal handler.
+	     */
+	    getResult() {
+	        return this.result;
+	    }
+	    /**
+	     * Reset the result
+	     */
+	    reset() {
+	        this.result = false;
+	    }
+	}
+	CollectorWhile0$1.CollectorWhile0 = CollectorWhile0;
+
+	var Signal$1 = {};
+
+	var SignalConnection = {};
+
+	Object.defineProperty(SignalConnection, "__esModule", { value: true });
+	SignalConnection.SignalConnectionImpl = void 0;
+	/**
+	 * Implementation of SignalConnection, for internal use only.
+	 * @private
+	 */
+	class SignalConnectionImpl {
+	    /**
+	     * @param link The actual link of the connection.
+	     * @param parentCleanup Callback to cleanup the parent signal when a connection is disconnected
+	     */
+	    constructor(link, parentCleanup) {
+	        this.link = link;
+	        this.parentCleanup = parentCleanup;
+	    }
+	    disconnect() {
+	        if (this.link !== null) {
+	            this.link.unlink();
+	            this.link = null;
+	            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+	            this.parentCleanup();
+	            this.parentCleanup = null;
+	            return true;
+	        }
+	        return false;
+	    }
+	    set enabled(enable) {
+	        if (this.link)
+	            this.link.setEnabled(enable);
+	    }
+	    get enabled() {
+	        // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
+	        return this.link !== null && this.link.isEnabled();
+	    }
+	}
+	SignalConnection.SignalConnectionImpl = SignalConnectionImpl;
+
+	var SignalLink$1 = {};
+
+	Object.defineProperty(SignalLink$1, "__esModule", { value: true });
+	SignalLink$1.SignalLink = void 0;
+	/**
+	 * SignalLink implements a doubly-linked ring with nodes containing the signal handlers.
+	 * @private
+	 */
+	class SignalLink {
+	    constructor(prev = null, next = null, order = 0) {
+	        this.enabled = true;
+	        this.newLink = false;
+	        this.callback = null;
+	        this.prev = prev !== null && prev !== void 0 ? prev : this;
+	        this.next = next !== null && next !== void 0 ? next : this;
+	        this.order = order;
+	    }
+	    isEnabled() {
+	        return this.enabled && !this.newLink;
+	    }
+	    setEnabled(flag) {
+	        this.enabled = flag;
+	    }
+	    unlink() {
+	        this.callback = null;
+	        this.next.prev = this.prev;
+	        this.prev.next = this.next;
+	    }
+	    insert(callback, order) {
+	        let after = this.prev;
+	        while (after !== this) {
+	            if (after.order <= order)
+	                break;
+	            after = after.prev;
+	        }
+	        const link = new SignalLink(after, after.next, order);
+	        link.callback = callback;
+	        after.next = link;
+	        link.next.prev = link;
+	        return link;
+	    }
+	}
+	SignalLink$1.SignalLink = SignalLink;
+
+	Object.defineProperty(Signal$1, "__esModule", { value: true });
+	Signal$1.Signal = void 0;
+	const SignalConnection_1 = SignalConnection;
+	const SignalLink_1 = SignalLink$1;
+	/**
+	 * A signal is a way to publish and subscribe to events.
+	 *
+	 * @typeparam THandler The function signature to be implemented by handlers.
+	 */
+	class Signal {
+	    constructor() {
+	        this.head = new SignalLink_1.SignalLink();
+	        this.hasNewLinks = false;
+	        this.emitDepth = 0;
+	        this.connectionsCount = 0;
+	    }
+	    /**
+	     * @returns The number of connections on this signal.
+	     */
+	    getConnectionsCount() {
+	        return this.connectionsCount;
+	    }
+	    /**
+	     * @returns true if this signal has connections.
+	     */
+	    hasConnections() {
+	        return this.connectionsCount > 0;
+	    }
+	    /**
+	     * Subscribe to this signal.
+	     *
+	     * @param callback This callback will be run when emit() is called.
+	     * @param order Handlers with a higher order value will be called later.
+	     */
+	    connect(callback, order = 0) {
+	        this.connectionsCount++;
+	        const link = this.head.insert(callback, order);
+	        if (this.emitDepth > 0) {
+	            this.hasNewLinks = true;
+	            link.newLink = true;
+	        }
+	        return new SignalConnection_1.SignalConnectionImpl(link, () => this.decrementConnectionCount());
+	    }
+	    decrementConnectionCount() {
+	        this.connectionsCount--;
+	    }
+	    /**
+	     * Unsubscribe from this signal with the original callback instance.
+	     * While you can use this method, the SignalConnection returned by connect() will not be updated!
+	     *
+	     * @param callback The callback you passed to connect().
+	     */
+	    disconnect(callback) {
+	        for (let link = this.head.next; link !== this.head; link = link.next) {
+	            if (link.callback === callback) {
+	                this.decrementConnectionCount();
+	                link.unlink();
+	                return true;
+	            }
+	        }
+	        return false;
+	    }
+	    /**
+	     * Disconnect all handlers from this signal event.
+	     */
+	    disconnectAll() {
+	        while (this.head.next !== this.head) {
+	            this.head.next.unlink();
+	        }
+	        this.connectionsCount = 0;
+	    }
+	    /**
+	     * Publish this signal event (call all handlers).
+	     */
+	    emit(...args) {
+	        this.emitDepth++;
+	        for (let link = this.head.next; link !== this.head; link = link.next) {
+	            if (link.isEnabled() && link.callback)
+	                link.callback.apply(null, args);
+	        }
+	        this.emitDepth--;
+	        this.unsetNewLink();
+	    }
+	    emitCollecting(collector, args) {
+	        this.emitDepth++;
+	        for (let link = this.head.next; link !== this.head; link = link.next) {
+	            if (link.isEnabled() && link.callback) {
+	                const result = link.callback.apply(null, args);
+	                if (!collector.handleResult(result))
+	                    break;
+	            }
+	        }
+	        this.emitDepth--;
+	        this.unsetNewLink();
+	    }
+	    unsetNewLink() {
+	        if (this.hasNewLinks && this.emitDepth === 0) {
+	            for (let link = this.head.next; link !== this.head; link = link.next)
+	                link.newLink = false;
+	            this.hasNewLinks = false;
+	        }
+	    }
+	}
+	Signal$1.Signal = Signal;
+
+	var SignalConnections$1 = {};
+
+	Object.defineProperty(SignalConnections$1, "__esModule", { value: true });
+	SignalConnections$1.SignalConnections = void 0;
+	/**
+	 * Represents a list of connections to a signal for easy disconnect.
+	 */
+	class SignalConnections {
+	    constructor() {
+	        this.list = [];
+	    }
+	    /**
+	     * Add a connection to the list.
+	     * @param connection
+	     */
+	    add(connection) {
+	        this.list.push(connection);
+	    }
+	    /**
+	     * Disconnect all connections in the list and empty the list.
+	     */
+	    disconnectAll() {
+	        for (const connection of this.list) {
+	            connection.disconnect();
+	        }
+	        this.list = [];
+	    }
+	    /**
+	     * @returns The number of connections in this list.
+	     */
+	    getCount() {
+	        return this.list.length;
+	    }
+	    /**
+	     * @returns true if this list is empty.
+	     */
+	    isEmpty() {
+	        return this.list.length === 0;
+	    }
+	}
+	SignalConnections$1.SignalConnections = SignalConnections;
+
+	(function (exports) {
+		Object.defineProperty(exports, "__esModule", { value: true });
+		exports.SignalConnections = exports.Signal = exports.CollectorWhile0 = exports.CollectorUntil0 = exports.CollectorLast = exports.CollectorArray = exports.Collector = void 0;
+		var Collector_1 = Collector$1;
+		Object.defineProperty(exports, "Collector", { enumerable: true, get: function () { return Collector_1.Collector; } });
+		var CollectorArray_1 = CollectorArray$1;
+		Object.defineProperty(exports, "CollectorArray", { enumerable: true, get: function () { return CollectorArray_1.CollectorArray; } });
+		var CollectorLast_1 = CollectorLast$1;
+		Object.defineProperty(exports, "CollectorLast", { enumerable: true, get: function () { return CollectorLast_1.CollectorLast; } });
+		var CollectorUntil0_1 = CollectorUntil0$1;
+		Object.defineProperty(exports, "CollectorUntil0", { enumerable: true, get: function () { return CollectorUntil0_1.CollectorUntil0; } });
+		var CollectorWhile0_1 = CollectorWhile0$1;
+		Object.defineProperty(exports, "CollectorWhile0", { enumerable: true, get: function () { return CollectorWhile0_1.CollectorWhile0; } });
+		var Signal_1 = Signal$1;
+		Object.defineProperty(exports, "Signal", { enumerable: true, get: function () { return Signal_1.Signal; } });
+		var SignalConnections_1 = SignalConnections$1;
+		Object.defineProperty(exports, "SignalConnections", { enumerable: true, get: function () { return SignalConnections_1.SignalConnections; } }); 
+	} (dist));
+
+	var __defProp$k = Object.defineProperty;
+	var __defNormalProp$k = (obj, key, value) => key in obj ? __defProp$k(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+	var __publicField$k = (obj, key, value) => __defNormalProp$k(obj, typeof key !== "symbol" ? key + "" : key, value);
+	class ButtonEvents {
+	  constructor() {
+	    __publicField$k(this, "_isMouseIn", false);
+	    __publicField$k(this, "_isDown", false);
+	    /** Event that is fired when the button is down. */
+	    __publicField$k(this, "onDown");
+	    /**
+	     * Event that fired when a down event happened inside the button
+	     * and up event happened inside or outside of the button
+	     */
+	    __publicField$k(this, "onUp");
+	    /**
+	     * Event that fired when mouse up event happens outside of the button
+	     * after the down event happened inside the button boundaries.
+	     */
+	    __publicField$k(this, "onUpOut");
+	    /** Event that fired when the mouse is out of the view */
+	    __publicField$k(this, "onOut");
+	    /** Event that is fired when the button is pressed. */
+	    __publicField$k(this, "onPress");
+	    /** Event that is fired when the mouse hovers the button. Fired only if device is not mobile.*/
+	    __publicField$k(this, "onHover");
+	    this.onPress = new dist.Signal();
+	    this.onDown = new dist.Signal();
+	    this.onUp = new dist.Signal();
+	    this.onHover = new dist.Signal();
+	    this.onOut = new dist.Signal();
+	    this.onUpOut = new dist.Signal();
+	  }
+	  connectEvents(view) {
+	    if (PIXI.isMobile.any) {
+	      view.on("pointerdown", this.processDown, this);
+	      view.on("pointerup", this.processUp, this);
+	      view.on("pointerupoutside", this.processUpOut, this);
+	      view.on("pointerout", this.processOut, this);
+	      view.on("pointertap", this.processPress, this);
+	      view.on("pointerover", this.processOver, this);
+	    } else {
+	      view.on("mousedown", this.processDown, this);
+	      view.on("mouseup", this.processUp, this);
+	      view.on("mouseupoutside", this.processUpOut, this);
+	      view.on("mouseout", this.processOut, this);
+	      view.on("click", this.processPress, this);
+	      view.on("mouseover", this.processOver, this);
+	    }
+	  }
+	  disconnectEvents(view) {
+	    if (PIXI.isMobile.any) {
+	      view.off("pointerdown", this.processDown, this);
+	      view.off("pointerup", this.processUp, this);
+	      view.off("pointerupoutside", this.processUpOut, this);
+	      view.off("pointerout", this.processOut, this);
+	      view.off("pointertap", this.processPress, this);
+	      view.off("pointerover", this.processOver, this);
+	    } else {
+	      view.off("mousedown", this.processDown, this);
+	      view.off("mouseup", this.processUp, this);
+	      view.off("mouseupoutside", this.processUpOut, this);
+	      view.off("mouseout", this.processOut, this);
+	      view.off("click", this.processPress, this);
+	      view.off("mouseover", this.processOver, this);
+	    }
+	  }
+	  processDown(e) {
+	    this._isDown = true;
+	    this.onDown.emit(this, e);
+	    this.down(e);
+	  }
+	  processUp(e) {
+	    if (this._isDown) {
+	      this.onUp.emit(this, e);
+	      this.up(e);
+	    }
+	    this._isDown = false;
+	  }
+	  processUpOut(e) {
+	    if (this._isDown) {
+	      this.onUp.emit(this, e);
+	      this.onUpOut.emit(this, e);
+	      this.up(e);
+	      this.upOut(e);
+	    }
+	    this._isDown = false;
+	  }
+	  processOut(e) {
+	    if (this._isMouseIn) {
+	      this._isMouseIn = false;
+	      this.onOut.emit(this, e);
+	      this.out(e);
+	    }
+	  }
+	  processPress(e) {
+	    this._isDown = false;
+	    this.onPress.emit(this, e);
+	    this.press(e);
+	  }
+	  processOver(e) {
+	    if (PIXI.isMobile.any) return;
+	    this._isMouseIn = true;
+	    this.onHover.emit(this, e);
+	    this.hover(e);
+	  }
+	  /**
+	   * Method called when the button pressed.
+	   * To be overridden.
+	   * @param {FederatedPointerEvent} _e - event data
+	   */
+	  down(_e) {
+	  }
+	  /**
+	   * Method called when the button is up.
+	   * To be overridden.
+	   * @param {FederatedPointerEvent} _e - event data
+	   */
+	  up(_e) {
+	  }
+	  /**
+	   * Method called when the up event happens outside of the button,
+	   * after the down event happened inside the button boundaries.
+	   * To be overridden.
+	   * @param {FederatedPointerEvent} _e - event data
+	   */
+	  upOut(_e) {
+	  }
+	  /**
+	   * Method called when the mouse leaves the button.
+	   * To be overridden.
+	   * @param {FederatedPointerEvent} _e - event data
+	   */
+	  out(_e) {
+	  }
+	  /**
+	   * Method called when the mouse press down the button.
+	   * To be overridden.
+	   * @param {FederatedPointerEvent} _e - event data
+	   */
+	  press(_e) {
+	  }
+	  /**
+	   * Method called when the mouse hovers the button.
+	   * To be overridden.
+	   * Fired only if device is not mobile.
+	   * @param {FederatedPointerEvent} _e - event data
+	   */
+	  hover(_e) {
+	  }
+	  /** Getter that returns if the button is down. */
+	  get isDown() {
+	    return this._isDown;
+	  }
+	}
+
+	var __defProp$j = Object.defineProperty;
+	var __defNormalProp$j = (obj, key, value) => key in obj ? __defProp$j(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+	var __publicField$j = (obj, key, value) => __defNormalProp$j(obj, typeof key !== "symbol" ? key + "" : key, value);
+	class Button extends ButtonEvents {
+	  /**
+	   * Turns a given container-based view into a button by adding all button events.
+	   * @param {Container} view - instance of container, to be turned into button.
+	   */
+	  constructor(view) {
+	    super();
+	    /** Container, given as a constructor parameter that is a button view. */
+	    __publicField$j(this, "_view");
+	    if (view) {
+	      this.view = view;
+	      this.enabled = true;
+	    }
+	  }
+	  /** Set button view, that all the interaction events are applied to. */
+	  set view(view) {
+	    const wasItInitiated = !!this._view;
+	    if (wasItInitiated && this._view) this.disconnectEvents(this._view);
+	    this._view = view;
+	    this.connectEvents(this._view);
+	  }
+	  /** Get button view, that all the interaction events are applied to. */
+	  get view() {
+	    return this._view;
+	  }
+	  /**
+	   * Switcher, which prevents all button events from firing if off.
+	   * @param {boolean} enabled
+	   */
+	  set enabled(enabled) {
+	    if (!this.view) {
+	      console.error("Button view is not set. Please set it before enabling the button.");
+	      return;
+	    }
+	    this.view.eventMode = enabled ? "static" : "auto";
+	    this.view.cursor = enabled ? "pointer" : "default";
+	    if (!enabled && this.isDown) {
+	      this.processUp();
+	    }
+	  }
+	  /** Getter that returns button state. */
+	  get enabled() {
+	    return this.view?.eventMode === "static";
+	  }
+	}
+	class ButtonContainer extends PIXI.Container {
+	  constructor(view) {
+	    super();
+	    __publicField$j(this, "button");
+	    __publicField$j(this, "onDown");
+	    __publicField$j(this, "onUp");
+	    __publicField$j(this, "onUpOut");
+	    __publicField$j(this, "onOut");
+	    __publicField$j(this, "onPress");
+	    __publicField$j(this, "onHover");
+	    this.button = new Button(this);
+	    this.button.enabled = true;
+	    if (view) {
+	      this.addChild(view);
+	    }
+	    this.onPress = this.button.onPress;
+	    this.onDown = this.button.onDown;
+	    this.onUp = this.button.onUp;
+	    this.onHover = this.button.onHover;
+	    this.onOut = this.button.onOut;
+	    this.onUpOut = this.button.onUpOut;
+	  }
+	  set enabled(enabled) {
+	    this.button.enabled = enabled;
+	  }
+	  get enabled() {
+	    return this.button.enabled;
+	  }
+	}
+
+	function getView(view) {
+	  if (typeof view === "string") {
+	    return PIXI.Sprite.from(view);
+	  }
+	  if (view instanceof PIXI.Texture) {
+	    return new PIXI.Sprite(view);
+	  }
+	  return view;
+	}
+
+	var __defProp$i = Object.defineProperty;
+	var __defNormalProp$i = (obj, key, value) => key in obj ? __defProp$i(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+	var __publicField$i = (obj, key, value) => __defNormalProp$i(obj, typeof key !== "symbol" ? key + "" : key, value);
+	class Switcher extends PIXI.Container {
+	  /**
+	   * @param {Array<Container | string>} views - Array of views or textures that will be switching.
+	   * @param triggerEvents - Button events, to switch views (can be one event or an array of events).
+	   * @param activeViewID - The id of the view, visible by default.
+	   */
+	  constructor(views, triggerEvents, activeViewID) {
+	    super();
+	    __publicField$i(this, "_triggerEvents", /* @__PURE__ */ new Set(["onPress"]));
+	    /** Container that holds all the content of the component. */
+	    __publicField$i(this, "innerView");
+	    /** The id of the visible(active) view. */
+	    __publicField$i(this, "_active");
+	    /** Fired when active view changes. */
+	    __publicField$i(this, "onChange");
+	    this.innerView = new PIXI.Container();
+	    this.addChild(this.innerView);
+	    this.onChange = new dist.Signal();
+	    if (views) this.views = views;
+	    if (triggerEvents) this.triggerEvents = triggerEvents;
+	    if (activeViewID !== void 0 && this.views.length > 0) this.active = activeViewID;
+	    this.setInteractionEvents();
+	  }
+	  setInteractionEvents() {
+	    this.innerView.eventMode = "static";
+	    this.innerView.on("pointerdown", () => this.handleEvents("onDown"));
+	    this.innerView.on("pointerup", () => this.handleEvents("onUp"));
+	    this.innerView.on("pointerupoutside", () => this.handleEvents("onUpOut"));
+	    this.innerView.on("pointerout", () => this.handleEvents("onOut"));
+	    this.innerView.on("pointertap", () => this.handleEvents("onPress"));
+	    this.innerView.on("pointerover", () => this.handleEvents("onHover"));
+	  }
+	  handleEvents(event) {
+	    if (this._triggerEvents.has(event)) {
+	      this.switch();
+	    }
+	  }
+	  /** Returns the active view. */
+	  get activeView() {
+	    if (this.views && this.active !== void 0 && this.views[this.active]) {
+	      return this.views[this.active];
+	    }
+	    return void 0;
+	  }
+	  /** Sets the list of instances for switching. */
+	  set views(views) {
+	    this.innerView.removeChildren();
+	    views.forEach((stateView) => this.add(stateView));
+	  }
+	  /** Returns all the switchable views */
+	  get views() {
+	    return this.innerView.children;
+	  }
+	  /**
+	   * Adds view instance to a switching list.
+	   * @param view
+	   */
+	  add(view) {
+	    const viewInstance = getView(view);
+	    this.innerView.addChild(viewInstance);
+	    viewInstance.visible = false;
+	    if (this.views.length === 1) {
+	      this.active = 0;
+	    }
+	  }
+	  /**
+	   * Removes view instance from a switching list by id.
+	   * @param id - id of the view to remove.
+	   */
+	  remove(id) {
+	    if (this.views[id]) {
+	      this.innerView.removeChild(this.views[id]);
+	    }
+	  }
+	  /**
+	   * Sets a list of events that will make a switcher switch to the next view.
+	   * @param {ButtonEvent | ButtonEvent[]} triggerEvents - Button events,
+	   * to switch views (can be one event or an array of events).
+	   */
+	  set triggerEvents(triggerEvents) {
+	    this._triggerEvents = new Set(
+	      Array.isArray(triggerEvents) ? triggerEvents : [triggerEvents]
+	    );
+	  }
+	  /** Returns a list of events that will make a switcher switch to the next view. */
+	  get triggerEvents() {
+	    return Array.from(this._triggerEvents);
+	  }
+	  /**
+	   * Show a view by id, or to next one by order, if no ID provided.
+	   * @param {number} id - optional id of the view to show. If not set, will switch to the next view.
+	   */
+	  switch(id) {
+	    if (id !== void 0 && id === this.active) return;
+	    const exID = this.active;
+	    this.forceSwitch(id);
+	    if (exID !== this.active) {
+	      const res = this.views.length > 2 ? this.active ?? 0 : this.active === 1;
+	      this.onChange.emit(res);
+	    }
+	  }
+	  /**
+	   * Switches a view to a given one without triggering the onChange event.
+	   * @param {number} id - optional id of the view to show. If not set, will switch to the next view.
+	   */
+	  forceSwitch(id) {
+	    if (id !== void 0 && id === this.active) return;
+	    if (this.activeView) {
+	      this.activeView.visible = false;
+	    }
+	    if (id !== void 0 && !this.views[id]) {
+	      throw new Error(`View with id ${id} does not exist.`);
+	    }
+	    this._active = id === void 0 ? this.nextActive : id;
+	    if (this._active === void 0) {
+	      return;
+	    }
+	    this.views[this._active].visible = true;
+	  }
+	  /** Returns the id of the next view in order. Or undefined, if order is empty. */
+	  get nextActive() {
+	    if (this.views.length === 0) return void 0;
+	    if (this.active === void 0) return 0;
+	    return this.active < this.views.length - 1 ? this.active + 1 : 0;
+	  }
+	  /** Sets the id of the visible(active) view and shows to it. */
+	  set active(id) {
+	    this.switch(id);
+	  }
+	  /** Gets the id of the visible(active) view. */
+	  get active() {
+	    return this._active;
+	  }
+	}
+
+	function cleanup(element) {
+	  if (!element) return;
+	  if (element.parent) {
+	    element.parent.removeChild(element);
+	  }
+	  element.destroy();
+	}
+
+	var __defProp$h = Object.defineProperty;
+	var __defNormalProp$h = (obj, key, value) => key in obj ? __defProp$h(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+	var __publicField$h = (obj, key, value) => __defNormalProp$h(obj, typeof key !== "symbol" ? key + "" : key, value);
+	class CheckBox extends Switcher {
+	  constructor(options) {
+	    super();
+	    //* Text label */
+	    __publicField$h(this, "labelText");
+	    /** Signal emitted when checkbox state changes. */
+	    __publicField$h(this, "onCheck");
+	    __publicField$h(this, "_style");
+	    __publicField$h(this, "_textClass");
+	    this._textClass = options.TextClass ?? PIXI.Text;
+	    this.text = options.text ?? "";
+	    this.style = options.style;
+	    this.checked = options.checked ?? false;
+	    this.triggerEvents = ["onPress"];
+	    this.innerView.cursor = "pointer";
+	    this.onCheck = new dist.Signal();
+	    this.onChange.connect(() => this.onCheck.emit(this.checked));
+	  }
+	  addLabel(text, style) {
+	    if (!text) return;
+	    this.labelText = new this._textClass({
+	      text: text ?? "",
+	      style: style ?? this._style?.text
+	    });
+	    this.addChild(this.labelText);
+	    this.labelText.cursor = "pointer";
+	    this.labelText.eventMode = "static";
+	    this.labelText.on("pointertap", () => this.checked = !this.checked);
+	    this.alignText();
+	  }
+	  /** Setter, which sets a checkbox text. */
+	  set text(text) {
+	    if (!text) {
+	      if (this.labelText) {
+	        cleanup(this.labelText);
+	        this.labelText = void 0;
+	      }
+	      return;
+	    }
+	    if (this.labelText) {
+	      this.labelText.text = text;
+	    } else {
+	      this.addLabel(text);
+	    }
+	    this.alignText();
+	  }
+	  /** Getter, which returns a checkbox text. */
+	  get text() {
+	    return this.labelText?.text ?? "";
+	  }
+	  /** Setter, which sets a checkbox style settings. */
+	  set style(style) {
+	    const wasChecked = this.checked;
+	    this._style = style;
+	    const { unchecked, checked } = style;
+	    const uncheckedView = getView(unchecked);
+	    const checkedView = getView(checked);
+	    this.views = [uncheckedView, checkedView];
+	    if (wasChecked) {
+	      checkedView.visible = true;
+	      uncheckedView.visible = false;
+	      this.active = 1;
+	    } else {
+	      uncheckedView.visible = true;
+	      checkedView.visible = false;
+	      this.active = 0;
+	    }
+	    if (this.labelText && style.text) {
+	      this.labelText.style = style.text;
+	      this.alignText();
+	    }
+	  }
+	  /** Getter, which returns a checkbox style settings. */
+	  get style() {
+	    return this._style;
+	  }
+	  /**
+	   * Aligns the text label based on the checkbox style.
+	   * This method calculates the position of the text label based on the checkbox's unchecked view dimensions
+	   * and applies any specified text offsets.
+	   * It ensures that the text label is centered vertically and positioned to the right of the checkbox
+	   * with an optional offset.
+	   * This method is called after the checkbox style is set or when the text label is updated
+	   * to ensure that the text label is always correctly positioned relative to the checkbox.
+	   * @see {@link CheckBoxStyle.textOffset} for offset options.
+	   * @see {@link getView} for how views are created.
+	   */
+	  alignText() {
+	    if (!this.style) return;
+	    if (!this.labelText) return;
+	    if (!this.views) return;
+	    const uncheckedView = this.views[0];
+	    if (uncheckedView) {
+	      this.labelText.x = uncheckedView.width + 10 + (this._style?.textOffset?.x ?? 0);
+	      this.labelText.y = (uncheckedView.height - this.labelText.height) / 2 + (this._style?.textOffset?.y ?? 0);
+	    }
+	  }
+	  /** Getter, which returns a checkbox state. */
+	  get checked() {
+	    return this.active === 1;
+	  }
+	  /** Setter, which sets a checkbox state. */
+	  set checked(checked) {
+	    this.switch(checked ? 1 : 0);
+	  }
+	  /**
+	   * Setter, that sets a checkbox state without emitting a signal.
+	   * @param checked
+	   */
+	  forceCheck(checked) {
+	    this.forceSwitch(checked ? 1 : 0);
+	  }
+	}
+
+	var __defProp$g = Object.defineProperty;
+	var __defNormalProp$g = (obj, key, value) => key in obj ? __defProp$g(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+	var __publicField$g = (obj, key, value) => __defNormalProp$g(obj, typeof key !== "symbol" ? key + "" : key, value);
+	class CircularProgressBar extends PIXI.Container {
+	  /**
+	   * Creates a Circular ProgressBar.
+	   * @param { MaskedProgressBarOptions } options - Options object to use.
+	   * @param { ColorSource } options.backgroundColor - Background color.
+	   * @param { ColorSource } options.fillColor - Fill color.
+	   * @param { number } options.lineWidth - Line width.
+	   * @param { number } options.radius - Radius.
+	   * @param { number } options.value - Progress value.
+	   * @param { number } options.backgroundAlpha - Background alpha.
+	   * @param { number } options.fillAlpha - Fill alpha.
+	   * @param { 'butt' | 'round' | 'square' } options.cap - Line cap.
+	   */
+	  constructor(options) {
+	    super();
+	    __publicField$g(this, "_progress", 0);
+	    __publicField$g(this, "options", {});
+	    __publicField$g(this, "bgCircle", new PIXI.Graphics());
+	    __publicField$g(this, "fillCircle", new PIXI.Graphics());
+	    /** Container, that holds all inner views. */
+	    __publicField$g(this, "innerView", new PIXI.Container());
+	    this.options = options ?? {};
+	    this.addChild(this.innerView);
+	    this.innerView.addChild(this.bgCircle, this.fillCircle);
+	    this.addBackground();
+	    if (options?.value) {
+	      this.progress = options.value;
+	    }
+	  }
+	  addBackground() {
+	    const { backgroundColor, lineWidth = 5, radius = 50, backgroundAlpha } = this.options;
+	    let alpha = 1;
+	    if (backgroundColor === void 0) {
+	      alpha = 1e-6;
+	    } else if (backgroundAlpha !== void 0 && backgroundAlpha > 0) {
+	      alpha = backgroundAlpha;
+	    }
+	    this.bgCircle.circle(0, 0, radius).stroke({
+	      width: lineWidth,
+	      color: backgroundColor,
+	      alpha
+	    });
+	  }
+	  /**
+	   * Set progress value.
+	   * @param { number } value - Progress value.
+	   */
+	  set progress(value) {
+	    if (value > 100) {
+	      value = 100;
+	    }
+	    if (value < 0) {
+	      value = 0;
+	    }
+	    this._progress = value;
+	    const { lineWidth = 5, radius = 50, fillColor = 16777215, fillAlpha, cap } = this.options;
+	    if (value === 0 && fillAlpha === 0) {
+	      this.fillCircle.clear();
+	      return;
+	    }
+	    const startAngle = 0;
+	    const endAngle = 360 / 100 * value;
+	    this.fillCircle.clear().arc(
+	      0,
+	      0,
+	      radius,
+	      (0 - 90 + startAngle) * PIXI.DEG_TO_RAD,
+	      (0 - 90 + startAngle + endAngle) * PIXI.DEG_TO_RAD
+	    ).stroke({
+	      width: lineWidth,
+	      color: fillColor,
+	      cap,
+	      alpha: fillAlpha
+	    });
+	  }
+	  /**
+	   * Current progress value.
+	   * @returns { number } - Progress value.
+	   */
+	  get progress() {
+	    return this._progress;
+	  }
+	}
+
+	/* eslint-disable */
+	 
+	/*!
+	 * tweedle.js - v2.1.0
+	 * Compiled Wed, 05 Apr 2023 15:21:25 UTC
+	 *
+	 * tweedle.js is licensed under the MIT License.
+	 * http://www.opensource.org/licenses/mit-license
+	 * 
+	 * Copyright 2019-2021, Milton Candelero <miltoncandelero@gmail.com>, All Rights Reserved
+	 */
+	/**
+	 * Polyfilled function to get the current time in miliseconds.
+	 * It tries to use `process.hrtime()`, `performance.now()`, `Date.now()` or `new Date().getTime()` in that order.
+	 */
+	let NOW;
+
+	// Include a performance.now polyfill.
+	// In node.js, use process.hrtime.
+
+	// @ts-ignore
+	if (typeof self == "undefined" && typeof process !== "undefined" && process.hrtime) {
+		NOW = function () {
+			// @ts-ignore
+			const time = process.hrtime();
+
+			// Convert [seconds, nanoseconds] to milliseconds.
+			return time[0] * 1000 + time[1] / 1000000;
+		};
+	}
+	// In a browser, use self.performance.now if it is available.
+	else if (typeof self !== "undefined" && self.performance !== undefined && self.performance.now !== undefined) {
+		// This must be bound, because directly assigning this function
+		// leads to an invocation exception in Chrome.
+		NOW = self.performance.now.bind(self.performance);
+	}
+	// Use Date.now if it is available.
+	else if (Date.now !== undefined) {
+		NOW = Date.now;
+	}
+	// Otherwise, use 'new Date().getTime()'.
+	else {
+		NOW = function () {
+			return new Date().getTime();
+		};
+	}
+
+	/**
+	 * A group is a class that allows you to manage many tweens from one place.
+	 *
+	 * A tween will ALWAYS belong to a group. If no group is assigned it will default to the static shared group: `Group.shared`.
+	 */
+	class Group {constructor() { Group.prototype.__init.call(this);Group.prototype.__init2.call(this);Group.prototype.__init3.call(this);Group.prototype.__init4.call(this); }
+		 __init() {this._tweens
+
+	 = {};}
+
+		
+
+		/**
+		 * A tween without an explicit group will default to this shared static one.
+		 */
+		 static get shared() {
+			if (!Group._shared) {
+				Group._shared = new Group();
+			}
+			return Group._shared;
+		}
+
+		 __init2() {this._paused = false;}
+
+		/**
+		 * A paused group will skip updating all the asociated tweens.
+		 * _To control all tweens, use {@link Group.getAll} to get an array with all tweens._
+		 * @returns returns true if this group is paused.
+		 */
+		 isPaused() {
+			return this._paused;
+		}
+
+		/**
+		 * Pauses this group. If a group was already paused, this has no effect.
+		 * A paused group will skip updating all the asociated tweens.
+		 * _To control all tweens, use {@link Group.getAll} to get an array with all tweens._
+		 */
+		 pause() {
+			this._paused = true;
+		}
+
+		/**
+		 * Resumes this group. If a group was not paused, this has no effect.
+		 * A paused group will skip updating all the asociated tweens.
+		 * _To control all tweens, use {@link Group.getAll} to get an array with all tweens._
+		 */
+		 resume() {
+			this._paused = false;
+		}
+
+		 __init3() {this._lastUpdateTime = undefined;}
+
+		/**
+		 * Function used by the group to know what time is it.
+		 * Used to calculate the deltaTime in case you call update without the parameter.
+		 */
+		 __init4() {this.now = NOW;} // used to calculate deltatime in case you stop providing one
+
+		/**
+		 * Returns all the tweens in this group.
+		 *
+		 * _note: only **running** tweens are in a group._
+		 * @returns all the running tweens.
+		 */
+		 getAll() {
+			return Object.keys(this._tweens).map((tweenId) => this._tweens[tweenId]);
+		}
+
+		/**
+		 * Removes all the tweens in this group.
+		 *
+		 * _note: this will not modify the group reference inside the tween object_
+		 */
+		 removeAll() {
+			this._tweens = {};
+		}
+
+		/**
+		 * Adds a tween to this group.
+		 *
+		 * _note: this will not modify the group reference inside the tween object_
+		 * @param tween Tween to add.
+		 */
+		 add(tween) {
+			this._tweens[tween.getId()] = tween;
+		}
+
+		/**
+		 * Removes a tween from this group.
+		 *
+		 * _note: this will not modify the group reference inside the tween object_
+		 * @param tween
+		 */
+		 remove(tween) {
+			delete this._tweens[tween.getId()];
+		}
+
+		/**
+		 * Updates all the tweens in this group.
+		 *
+		 * If a tween is stopped, paused, finished or non started it will be removed from the group.
+		 *
+		 *  Tweens are updated in "batches". If you add a new tween during an
+		 *  update, then the new tween will be updated in the next batch.
+		 *  If you remove a tween during an update, it may or may not be updated.
+		 *  However, if the removed tween was added during the current batch,
+		 *  then it will not be updated.
+		 * @param deltaTime - Amount of **miliseconds** that have passed since last excecution. If not provided it will be calculated using the {@link Group.now} function
+		 * @param preserve - Prevent the removal of stopped, paused, finished or non started tweens.
+		 * @returns returns true if the group is not empty and it is not paused.
+		 */
+		 update(deltaTime, preserve = false) {
+			// move forward the automatic dt if needed
+			if (deltaTime == undefined) {
+				// now varies from line to line, that's why I manually use 0 as dt
+				if (this._lastUpdateTime == undefined) {
+					this._lastUpdateTime = this.now();
+					deltaTime = 0;
+				} else {
+					deltaTime = this.now() - this._lastUpdateTime;
+				}
+			}
+			this._lastUpdateTime = this.now();
+
+			// exit early if the entire group is paused
+			if (this._paused) {
+				return false;
+			}
+
+			const tweenIds = Object.keys(this._tweens);
+			if (tweenIds.length == 0) {
+				return false;
+			}
+
+			for (let i = 0; i < tweenIds.length; i++) {
+				const tween = this._tweens[tweenIds[i]];
+
+				// groups call the preserve with true because they like to delete themselves in a different way.
+				if (tween && tween.update(deltaTime, true) == false && !preserve) {
+					delete this._tweens[tweenIds[i]];
+				}
+			}
+
+			return true;
+		}
+	}
+
+	/**
+	 * The type for a function that takes a number between 0 and 1 and returns another number between 0 and 1
+	 */
+
+
+	/**
+	 * The Ease class provides a collection of easing functions.
+	 *
+	 * These functions take in a parameter between 0 and 1 as the ratio and give out a new ratio.
+	 *
+	 * These are [Robert Penner](http://www.robertpenner.com/easing_terms_of_use.html)'s optimized formulas.
+	 *
+	 * Need help picking one? [Check this out!](https://easings.net/)
+	 */
+	const Easing = {
+		Linear: {
+			None(amount) {
+				return amount;
+			},
+		}};
+
+	/**
+	 * The type for a function that picks a value by interpolating the elements of the array given.
+	 */
+
+
+	/**
+	 * Object containing common interpolation functions.
+	 * These functions can be passed in the {@link Tween.interpolation} argument and **will only affect fields where you gave an array as target value**
+	 */
+	const Interpolation = {
+		/**
+		 * Geometric interpolation functions. Good for interpolating positions in space.
+		 */
+		Geom: {
+			/**
+			 * Linear interpolation is like drawing straight lines between the points.
+			 */
+			Linear(v, k) {
+				const m = v.length - 1;
+				const f = m * k;
+				const i = Math.floor(f);
+				const fn = Interpolation.Utils.Linear;
+
+				if (k < 0) {
+					return fn(v[0], v[1], f);
+				}
+
+				if (k > 1) {
+					return fn(v[m], v[m - 1], m - f);
+				}
+
+				return fn(v[i], v[i + 1 > m ? m : i + 1], f - i);
+			}},
+		/**
+		 * Helper functions used to calculate the different interpolations
+		 */
+		Utils: {
+			Linear(p0, p1, t) {
+				return (p1 - p0) * t + p0;
+			}},
+	};
+
+	/**
+	 * ARGB color format
+	 * Alpha, Red, Green, Blue.
+	 */
+
+	/**
+	 * Silly class to have a shared number that goes up.
+	 */
+	class Sequence {
+		 static __initStatic() {this._nextId = 0;}
+
+		 static nextId() {
+			return Sequence._nextId++;
+		}
+	} Sequence.__initStatic();
+
+	/**
+	 * Default values used **during tween creation**.
+	 * Allows to change the default values for all tweens.
+	 */
+	const DEFAULTS = {
+		safetyCheckFunction: (_) => true,
+		easingFunction: Easing.Linear.None,
+		yoyoEasingFunction: undefined,
+		interpolationFunction: Interpolation.Geom.Linear,
+	};
+
+	/**
+	 * A Tween is basically an animation command.
+	 * For example: _Go from here to there in this amount of time._
+	 *
+	 * Tweens won't start by themselves. **Remeber to call {@link Tween.start} when you want your tweens to start!**
+	 *
+	 * Most methods will return the same object to allow for daisy chaining.
+	 * @template Target of the tween
+	 */
+	class Tween {
+		 __init() {this._isPaused = false;}
+		 __init2() {this._valuesStart = {};}
+		 __init3() {this._valuesEnd = {};}
+		 __init4() {this._valuesStartRepeat = {};}
+		 __init5() {this._duration = 0;}
+		 __init6() {this._repeatCount = 0;}
+		 __init7() {this._repeat = 0;}
+		
+		 __init8() {this._yoyo = false;}
+		 __init9() {this._isPlaying = false;}
+		 get _reversed() {
+			return this.yoyo && this._repeatCount % 2 !== 0;
+		}
+		 __init10() {this._delayTime = 0;}
+		 __init11() {this._startTime = 0;}
+		 __init12() {this._elapsedTime = 0;}
+		 __init13() {this._timescale = 1;}
+		 __init14() {this._safetyCheckFunction = DEFAULTS.safetyCheckFunction;}
+		 __init15() {this._easingFunction = DEFAULTS.easingFunction;}
+		 __init16() {this._yoyoEasingFunction = DEFAULTS.yoyoEasingFunction;}
+		 __init17() {this._interpolationFunction = DEFAULTS.interpolationFunction;}
+		 __init18() {this._chainedTweens = [];}
+		
+		 __init19() {this._onStartCallbackFired = false;}
+		
+		 __init20() {this._onAfterDelayCallbackFired = false;}
+		
+		
+		
+		
+		 __init21() {this._id = Sequence.nextId();}
+		 __init22() {this._isChainStopped = false;}
+		
+		
+		 get _group() {
+			if (this._groupRef) {
+				return this._groupRef;
+			} else {
+				return Group.shared;
+			}
+		}
+		 set _group(value) {
+			this._groupRef = value;
+		}
+
+		/**
+		 * Creates an instance of tween.
+		 * @param object - The target object which properties you want to animate
+		 * @param group - The {@link Group} this new Tween will belong to. If none is provided it will default to the static {@link Group.shared}
+		 */
+		constructor(object, group) {Tween.prototype.__init.call(this);Tween.prototype.__init2.call(this);Tween.prototype.__init3.call(this);Tween.prototype.__init4.call(this);Tween.prototype.__init5.call(this);Tween.prototype.__init6.call(this);Tween.prototype.__init7.call(this);Tween.prototype.__init8.call(this);Tween.prototype.__init9.call(this);Tween.prototype.__init10.call(this);Tween.prototype.__init11.call(this);Tween.prototype.__init12.call(this);Tween.prototype.__init13.call(this);Tween.prototype.__init14.call(this);Tween.prototype.__init15.call(this);Tween.prototype.__init16.call(this);Tween.prototype.__init17.call(this);Tween.prototype.__init18.call(this);Tween.prototype.__init19.call(this);Tween.prototype.__init20.call(this);Tween.prototype.__init21.call(this);Tween.prototype.__init22.call(this);
+			this._object = object;
+			this._group = group;
+		}
+
+		/**
+		 * Gets the id for this tween. A tween id is a number that increases perpetually with each tween created. It is used inside {@link Group} to keep track of tweens
+		 * @returns returns the id for this tween.
+		 */
+		 getId() {
+			return this._id;
+		}
+
+		/**
+		 * Gets {@link Group} that this tween belongs to.
+		 * @returns returns the {@link Group} for this tween.
+		 */
+		 getGroup() {
+			return this._group;
+		}
+
+		/**
+		 * Gets the timescale for this tween. The timescale is a factor by which each deltatime is multiplied, allowing to speed up or slow down the tween.
+		 * @returns returns the timescale for this tween.
+		 */
+		 getTimescale() {
+			return this._timescale;
+		}
+
+		/**
+		 * A tween is playing when it has been started but hasn't ended yet. This has nothing to do with pausing. For that see {@link Tween.isPaused}.
+		 * @returns returns true if this tween is playing.
+		 */
+		 isPlaying() {
+			return this._isPlaying;
+		}
+
+		/**
+		 * A tween can only be paused if it was playing.
+		 * @returns returns true if this tween is paused.
+		 */
+		 isPaused() {
+			return this._isPaused;
+		}
+
+		/**
+		 * Writes the starting values of the tween.
+		 *
+		 * **Starting values generated from {@link Tween.start} will be overwritten.**
+		 * @param properties - Starting values for this tween.
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		
+
+		 from(properties) {
+			try {
+				JSON.stringify(properties);
+			} catch (e) {
+				throw new Error("The object you provided to the from() method has a circular reference!");
+			}
+			this._setupProperties(properties, this._valuesStart, properties, this._valuesStartRepeat, true);
+			return this;
+		}
+
+		/**
+		 * Set the final values for the target object's properties by copy.
+		 * This will try to create a deep copy of the `properties` parameter.
+		 * If you want the tween to keep a reference to the final values use {@link Tween.dynamicTo}.
+		 *
+		 * If an array value is provided for a value that originally wasn't an array, it will be interpreted as an interpolable curve and the values inside the array will be interpolated using the function provided in {@link Tween.interpolation}
+		 *
+		 * If a string value that starts with either `+` or `-`is provided it will be taken as a _relative value_ to the start value.
+		 * @param properties - final values for the target object.
+		 * @param duration - if given it will be used as the duration in **miliseconds**. if not, a call to {@link Tween.duration} will be needed.
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		
+
+		 to(properties, duration) {
+			try {
+				this._valuesEnd = JSON.parse(JSON.stringify(properties));
+			} catch (e) {
+				// recursive object. this gonna crash!
+				console.warn("The object you provided to the to() method has a circular reference!. It can't be cloned. Falling back to dynamic targeting");
+				return this.dynamicTo(properties, duration);
+			}
+
+			if (duration !== undefined) {
+				this._duration = duration;
+			}
+
+			return this;
+		}
+
+		/**
+		 * Set the final values for the target object's properties by reference.
+		 * This will store a reference to the properties object allowing you to change the final values while the tween is running.
+		 * If you want the tween to make a copy of the final values use {@link Tween.to}.
+		 * @param properties - final values for the target object.
+		 * @param duration - if given it will be used as the duration in **miliseconds**. if not, a call to {@link Tween.duration} will be needed.
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		
+
+		 dynamicTo(properties, duration) {
+			this._valuesEnd = properties; // JSON.parse(JSON.stringify(properties));
+
+			if (duration !== undefined) {
+				this._duration = duration;
+			}
+
+			return this;
+		}
+
+		/**
+		 * Sets the duration for this tween in **miliseconds**.
+		 * @param d - The duration for this tween in **miliseconds**.
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		 duration(d) {
+			this._duration = d;
+
+			return this;
+		}
+
+		/**
+		 * Tweens won't start by themselves when created. Call this to start the tween.
+		 * Starting values for the animation will be stored at this moment.
+		 *
+		 * **This function can't overwrite the starting values set by {@link Tween.from}**
+		 *
+		 * You can call this method on a finished tween to restart it without changing the starting values.
+		 * To restart a tween and reset the starting values use {@link Tween.restart}
+		 * @param delay - if given it will be used as the delay in **miliseconds**.
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		 start(delay) {
+			if (this._isPlaying) {
+				return this;
+			}
+
+			if (delay != undefined) {
+				this._delayTime = delay;
+			}
+
+			this._group.add(this);
+
+			if (this._reversed) {
+				this._swapEndStartRepeatValues(this._valuesStartRepeat, this._valuesEnd);
+				this._valuesStart = JSON.parse(JSON.stringify(this._valuesStartRepeat));
+			}
+
+			this._repeatCount = 0; // This must be after we check for the _reversed flag!!.
+
+			this._isPlaying = true;
+
+			this._isPaused = false;
+
+			this._onStartCallbackFired = false;
+
+			this._onAfterDelayCallbackFired = false;
+
+			this._isChainStopped = false;
+
+			this._startTime = -this._delayTime;
+
+			this._elapsedTime = 0;
+
+			this._setupProperties(this._object, this._valuesStart, this._valuesEnd, this._valuesStartRepeat, false);
+
+			return this;
+		}
+
+		/**
+		 * @experimental
+		 * Forces a tween to restart.
+		 * Starting values for the animation will be stored at this moment.
+		 * This literally calls {@link Tween.reset} and then {@link Tween.start}.
+		 *
+		 * **Starting values will be cleared!. This function will erase all values created from {@link Tween.from} and/or {@link Tween.start}**
+		 * @param delay - if given it will be used as the delay in **miliseconds**.
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		 restart(delay) {
+			this.reset();
+			return this.start(delay);
+		}
+
+		/**
+		 * @experimental
+		 * Clears the starting and loop starting values.
+		 *
+		 * **Starting values will be cleared!. This function will erase all values created from {@link Tween.from} and/or {@link Tween.start}**
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		 reset() {
+			if (this._isPlaying) {
+				this.stop();
+			}
+			this._valuesStart = {};
+			this._valuesStartRepeat = {};
+			return this;
+		}
+
+		/**
+		 * @experimental
+		 * Stops the tween and sets the values to the starting ones.
+		 *
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		 rewind() {
+			if (this._isPlaying) {
+				this.stop();
+			}
+
+			if (this._reversed) {
+				// if you rewind from a reversed position, we unreverse.
+				this._swapEndStartRepeatValues(this._valuesStartRepeat, this._valuesEnd);
+			}
+
+			const value = this._easingFunction(0);
+
+			// properties transformations
+			this._updateProperties(this._object, this._valuesStart, this._valuesEnd, value);
+
+			return this;
+		}
+
+		 _setupProperties(_object, _valuesStart, _valuesEnd, _valuesStartRepeat, overwrite) {
+			for (const property in _valuesEnd) {
+				const startValue = _object[property];
+				const startValueIsArray = Array.isArray(startValue);
+				const startValueIsNumber = !Number.isNaN(Number(startValue));
+				const propType = startValueIsArray ? "array" : typeof startValue;
+				const startValueIsObject = propType == "object";
+				const endValueIsObject = typeof _valuesEnd[property] == "object";
+				const isInterpolationList = !startValueIsArray && Array.isArray(_valuesEnd[property]);
+
+				// If to() specifies a property that doesn't exist in the source object,
+				// we should not set that property in the object
+				if (propType == "undefined" || propType == "function" || _valuesEnd[property] == undefined || (!startValueIsArray && !startValueIsNumber && !startValueIsObject)) {
+					continue;
+				}
+
+				// handle the deepness of the values
+				if ((startValueIsObject || startValueIsArray || endValueIsObject) && startValue && !isInterpolationList) {
+					if (typeof _valuesStart[property] == "undefined") {
+						_valuesStart[property] = startValueIsArray ? [] : {};
+					}
+					if (typeof _valuesStartRepeat[property] == "undefined") {
+						_valuesStartRepeat[property] = startValueIsArray ? [] : {};
+					}
+
+					this._setupProperties(startValue, _valuesStart[property], _valuesEnd[property], _valuesStartRepeat[property], overwrite);
+				} else {
+					// Save the starting value, but only once.
+					if (typeof _valuesStart[property] == "undefined" || overwrite) {
+						_valuesStart[property] = startValue;
+					}
+
+					if (typeof _valuesStartRepeat[property] == "undefined" || overwrite) {
+						if (isInterpolationList) {
+							_valuesStartRepeat[property] = _valuesEnd[property].slice().reverse()[0];
+						} else {
+							_valuesStartRepeat[property] = _valuesStart[property] || 0;
+						}
+					}
+				}
+			}
+		}
+
+		/**
+		 * Stops this tween
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		 stop() {
+			if (!this._isChainStopped) {
+				this._isChainStopped = true;
+				this.stopChainedTweens();
+			}
+
+			if (!this._isPlaying) {
+				return this;
+			}
+
+			this._group.remove(this);
+
+			this._isPlaying = false;
+
+			this._isPaused = false;
+
+			if (this._onStopCallback) {
+				this._onStopCallback(this._object, this);
+			}
+
+			return this;
+		}
+
+		/**
+		 * Fastforwards this tween to the end by triggering an update with an infinite value.
+		 * This will work even on paused tweens.
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		 end(endChainedTweens = false) {
+			let protectedChainedTweens = [];
+
+			if (!endChainedTweens) {
+				protectedChainedTweens = this._chainedTweens;
+				this._chainedTweens = [];
+			}
+
+			this.resume();
+			this.update(Infinity);
+
+			if (!endChainedTweens) {
+				this._chainedTweens = protectedChainedTweens;
+				for (let i = 0, numChainedTweens = this._chainedTweens.length; i < numChainedTweens; i++) {
+					this._chainedTweens[i].start();
+				}
+			}
+
+			return this;
+		}
+
+		/**
+		 * @experimental
+		 * Skips forward the in the repeats of this tween by triggering a biiiiig update.
+		 * Think of this as a less agressive {@link Tween.end}.
+		 *
+		 * @param amount - The amount of repeats to skip.
+		 * @param resetCurrentLoop - If true, the time will become zero and the object will return to the initial value in the next update.
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		 skip(amount, resetCurrentLoop = false) {
+			this.resume();
+
+			this.update(amount * this._duration - (resetCurrentLoop ? this._elapsedTime : 0));
+
+			return this;
+		}
+
+		/**
+		 * Pauses this tween. Does nothing is if the tween was already paused or wasn't playing.
+		 * Paused tweens ignore all update calls.
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		 pause() {
+			if (this._isPaused || !this._isPlaying) {
+				return this;
+			}
+
+			this._isPaused = true;
+
+			this._group.remove(this);
+
+			return this;
+		}
+
+		/**
+		 * Resumes this tween. Does nothing if the tween wasn't paused nor running.
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		 resume() {
+			if (!this._isPaused || !this._isPlaying) {
+				return this;
+			}
+
+			this._isPaused = false;
+
+			this._group.add(this);
+
+			return this;
+		}
+
+		/**
+		 * @experimental
+		 * Stops tweens chained to this tween. To chain a tween see {@link Tween.chain}.
+		 *
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		 stopChainedTweens() {
+			for (let i = 0, numChainedTweens = this._chainedTweens.length; i < numChainedTweens; i++) {
+				this._chainedTweens[i].stop();
+			}
+
+			return this;
+		}
+
+		/**
+		 * @experimental
+		 * Starts all tweens chained to this tween. To chain a tween see {@link Tween.chain}.
+		 *
+		 * @param stopThis - If true, this tween will be stopped before it starts the chained tweens.
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		 startChainedTweens(stopThis = false) {
+			if (stopThis) {
+				this.stop();
+			}
+
+			for (let i = 0, numChainedTweens = this._chainedTweens.length; i < numChainedTweens; i++) {
+				this._chainedTweens[i].start();
+			}
+
+			return this;
+		}
+
+		/**
+		 * Sets the {@link Group} for this tween.
+		 * @param group - the group for this tween. If undefined or null is given, the group will default to {@link Group.shared}.
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		 group(group) {
+			this._group = group;
+
+			return this;
+		}
+
+		/**
+		 * Sets the delay for this tween.
+		 *
+		 * This will only be applied at the start of the tween. For delaying the repeating of a tween, see {@link Tween.repeatDelay}
+		 *
+		 * **This will only work before calling {@link Tween.start}.**
+		 * @param amount - the delay for this tween.
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		 delay(amount) {
+			this._delayTime = amount;
+
+			return this;
+		}
+
+		/**
+		 * Sets the timescale for this tween.
+		 * The deltaTime inside the update will be multiplied by this value allowing to speed up or slow down the flow of time.
+		 * @param multiplier - the timescale value for this tween.
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		 timescale(multiplier) {
+			this._timescale = multiplier;
+
+			return this;
+		}
+
+		/**
+		 * Sets the number of times this tween will loop
+		 * @param times - the number of loops. For endless loops use `Infinity`
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		 repeat(times = Infinity) {
+			this._repeat = times;
+
+			return this;
+		}
+
+		/**
+		 * Sets the repeat delay for this tween.
+		 *
+		 * This will only be applied at the start of every repeat. For delaying only the start, see {@link Tween.delay}
+		 * @param amount - the repeat delay for this tween.
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		 repeatDelay(amount) {
+			this._repeatDelayTime = amount;
+
+			return this;
+		}
+
+		/**
+		 * Sets if this tween should yoyo (reflect) itself when repeating.
+		 * @param yoyo - the yoyo value for this tween.
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		 yoyo(yoyo = true) {
+			this._yoyo = yoyo;
+
+			return this;
+		}
+
+		/**
+		 * Sets the easing function to interpolate the starting values with the final values.
+		 *
+		 * You can use the functions inside the {@link Easing} object.
+		 * @param easingFunction - a function that takes a number between 0 and 1 and returns another number between 0 and 1
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		 easing(easingFunction) {
+			this._easingFunction = easingFunction;
+
+			return this;
+		}
+
+		/**
+		 * @experimental
+		 * Sets the safety check function to test if the tweening object is still valid.
+		 * If the function returns a non-truthy value, the tween will skip the update loop.
+		 * @param safetyCheckFunction - a function that takes the target object for this tween and returns true if the object is still valid.
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		 safetyCheck(safetyCheckFunction) {
+			this._safetyCheckFunction = safetyCheckFunction;
+
+			return this;
+		}
+
+		/**
+		 * @experimental
+		 * Sets the easing function to interpolate the starting values with the final values on the way back due to a yoyo tween.
+		 *
+		 * You can use the functions inside the {@link Easing} object.
+		 * @param easingFunction - a function that takes a number between 0 and 1 and returns another number between 0 and 1
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		 yoyoEasing(easingFunction) {
+			this._yoyoEasingFunction = easingFunction;
+
+			return this;
+		}
+
+		/**
+		 * Sets the easing function to interpolate the starting values with the final values when the final value is an array of objects.
+		 * Use this to create bezier curves or interpolate colors.
+		 *
+		 * You can use the functions inside the {@link Interpolation} object.
+		 * @param interpolationFunction
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		 interpolation(interpolationFunction) {
+			this._interpolationFunction = interpolationFunction;
+
+			return this;
+		}
+
+		/**
+		 * Adds tweens to be called when this tween ends.
+		 * The tweens here will be called all at the same time.
+		 * @param tweens - tweens to be started when this tween ends
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		 chain(...tweens) {
+			this._chainedTweens = tweens;
+
+			return this;
+		}
+
+		/**
+		 * Sets the onStart callback. This will be called as soon as you call {@link Tween.start}.
+		 * @param callback - the function to call on start. It will recieve the target object and this tween as a parameter.
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		 onStart(callback) {
+			this._onStartCallback = callback;
+
+			return this;
+		}
+
+		/**
+		 * Sets the onAfterDelay callback. This will be called when the delay is over.
+		 * @param callback - the function to call on start. It will recieve the target object and this tween as a parameter.
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		 onAfterDelay(callback) {
+			this._onAfterDelayCallback = callback;
+
+			return this;
+		}
+
+		/**
+		 * Sets the onStart callback
+		 * @param callback - the function to call on start. It will recieve the target object, this tween, and a number between 0 and 1 determining the progress as a parameter.
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		 onUpdate(callback) {
+			this._onUpdateCallback = callback;
+
+			return this;
+		}
+
+		/**
+		 * Sets the onRepeat callback
+		 * @param callback - the function to call on repeat. It will recieve the target object and this tween as a parameter.
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		 onRepeat(callback) {
+			this._onRepeatCallback = callback;
+
+			return this;
+		}
+
+		/**
+		 * Sets the onComplete callback
+		 * @param callback - the function to call on complete. It will recieve the target object and this tween as a parameter.
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		 onComplete(callback) {
+			this._onCompleteCallback = callback;
+
+			return this;
+		}
+
+		/**
+		 * Sets the onStop callback
+		 * @param callback - the function to call on stop. It will recieve the target object and this tween as a parameter.
+		 * @returns returns this tween for daisy chaining methods.
+		 */
+		 onStop(callback) {
+			this._onStopCallback = callback;
+
+			return this;
+		}
+
+		/**
+		 * Updates this tween
+		 * @param deltaTime - the amount of time that passed since last update in **miliseconds**
+		 * @param preserve - Prevent the removal of stopped, paused, finished or non started tweens from their group.
+		 * @returns returns true if the tween hasn't finished yet.
+		 */
+		 update(deltaTime, preserve = false) {
+			const retval = this._internalUpdate(deltaTime);
+			if (!retval && !preserve) {
+				this._group.remove(this);
+			}
+			return retval;
+		}
+
+		 _internalUpdate(deltaTime) {
+			if (!this._safetyCheckFunction(this._object)) {
+				return false;
+			}
+
+			if (this._isPaused) {
+				return false;
+			}
+
+			deltaTime *= this._timescale;
+
+			let elapsed;
+
+			this._elapsedTime += deltaTime;
+
+			const endTime = this._duration;
+			const currentTime = this._startTime + this._elapsedTime;
+
+			if (currentTime > endTime && !this._isPlaying) {
+				return false;
+			}
+
+			// If the tween was already finished,
+			if (!this.isPlaying) {
+				this.start();
+			}
+
+			if (this._onStartCallbackFired == false) {
+				if (this._onStartCallback) {
+					this._onStartCallback(this._object, this);
+				}
+
+				this._onStartCallbackFired = true;
+			}
+
+			if (this._onAfterDelayCallbackFired == false && currentTime >= 0) {
+				if (this._onAfterDelayCallback) {
+					this._onAfterDelayCallback(this._object, this);
+				}
+
+				this._onAfterDelayCallbackFired = true;
+			}
+
+			elapsed = currentTime / this._duration;
+			// zero duration makes elapsed a NaN. We need to fix this!
+			if (this._duration == 0) {
+				// positive currentTime means we have no delay to wait for!
+				if (currentTime >= 0) {
+					elapsed = 1;
+				} else {
+					elapsed = 0;
+				}
+			}
+			// otherwise, clamp the result
+			elapsed = Math.min(1, elapsed);
+			elapsed = Math.max(0, elapsed);
+
+			let leftOverTime = Number.isFinite(currentTime) ? currentTime % this._duration : currentTime; // leftover time
+			if (Number.isNaN(leftOverTime)) {
+				leftOverTime = 0;
+			}
+			const loopsMade = Math.floor(currentTime / this._duration); // if we overloop, how many loops did we eat?
+
+			// check which easing to use...
+			let value;
+			if (this._reversed && this._yoyoEasingFunction) {
+				value = this._yoyoEasingFunction(elapsed);
+			} else {
+				value = this._easingFunction(elapsed);
+			}
+
+			// properties transformations
+			this._updateProperties(this._object, this._valuesStart, this._valuesEnd, value);
+
+			// if there is absolutely no chance to loop, call update. we will be done.
+			if (this._onUpdateCallback && (elapsed != 1 || this._repeat - this._repeatCount <= 0)) {
+				this._onUpdateCallback(this._object, elapsed, this);
+			}
+
+			if (elapsed == 1) {
+				if (this._repeat - this._repeatCount > 0) {
+					// increase loops
+					const oldCount = this._repeatCount;
+					this._repeatCount = Math.min(this._repeat + 1, this._repeatCount + loopsMade);
+
+					if (this._onUpdateCallback && (this._repeat - this._repeatCount < 0 || leftOverTime <= 0)) {
+						this._onUpdateCallback(this._object, elapsed, this);
+					}
+
+					// fix starting values for yoyo or relative
+					if (this._yoyo) {
+						this._swapEndStartRepeatValues(this._valuesStartRepeat, this._valuesEnd);
+					} else {
+						this._moveForwardStartRepeatValues(this._valuesStartRepeat, this._valuesEnd);
+					}
+
+					// Reassign starting values
+					this._valuesStart = JSON.parse(JSON.stringify(this._valuesStartRepeat));
+
+					// restart start time
+					if (this._repeatDelayTime !== undefined) {
+						this._startTime = -this._repeatDelayTime;
+					} else {
+						this._startTime = 0;
+					}
+
+					if (this._onRepeatCallback) {
+						// We fallback to only one call.
+						let callbackCount = 1;
+
+						if (Number.isFinite(loopsMade)) {
+							// if we have a logical number of loops, we trigger the callback that many times
+							callbackCount = this._repeatCount - oldCount;
+						} else if (Number.isFinite(this._repeat)) {
+							// if the amount of loops is infinite, we trigger the callback the amount of loops remaining
+							callbackCount = this._repeat - oldCount;
+						}
+
+						for (let i = 0; i < callbackCount; i++) {
+							this._onRepeatCallback(this._object, oldCount + 1 + i, this);
+						}
+					}
+
+					this._elapsedTime = 0; // reset the elapsed time
+
+					// if we have more loops to go, then go
+					if (this._repeat - this._repeatCount >= 0) {
+						// update with the leftover time
+						if (leftOverTime > 0 && Number.isFinite(this._repeat)) {
+							// only if it is greater than 0 and do not emit onupdate events...
+							this._internalUpdate(leftOverTime);
+						}
+						return true;
+					}
+				}
+
+				// If we are here, either we are not a looping boi or we are a finished looping boi
+				if (this._onCompleteCallback) {
+					this._onCompleteCallback(this._object, this);
+				}
+
+				for (let i = 0, numChainedTweens = this._chainedTweens.length; i < numChainedTweens; i++) {
+					// Make the chained tweens start exactly at the time they should,
+					// even if the update method was called way past the duration of the tween
+					this._chainedTweens[i].start();
+					if (leftOverTime > 0) {
+						this._chainedTweens[i].update(leftOverTime);
+					}
+				}
+
+				this._isPlaying = false;
+
+				return false;
+			}
+
+			return true;
+		}
+
+		 _updateProperties(_object, _valuesStart, _valuesEnd, value) {
+			for (const property in _valuesEnd) {
+				// Don't update properties that do not exist in the source object
+				if (_valuesStart[property] == undefined) {
+					continue;
+				}
+
+				const start = _valuesStart[property];
+				let end = _valuesEnd[property];
+				const startIsArray = Array.isArray(_object[property]);
+				const endIsArray = Array.isArray(end);
+				const isInterpolationList = !startIsArray && endIsArray;
+
+				if (isInterpolationList) {
+					if (this._reversed) {
+						_object[property] = this._interpolationFunction(end.concat([start]) , value);
+					} else {
+						_object[property] = this._interpolationFunction([start].concat(end) , value);
+					}
+				} else if (typeof end == "object" && end) {
+					this._updateProperties(_object[property], start, end, value);
+				} else {
+					// Parses relative end values with start as base (e.g.: +10, -3)
+					end = this._handleRelativeValue(start , end );
+
+					// Protect against non numeric properties.
+					if (typeof end == "number" && (typeof start == "number" || typeof start == "string")) {
+						// I am certain that start here won't anser NaN or it would have been filtrated on the setupProperties
+						_object[property] = Number(start) + (end - Number(start)) * value;
+
+						// if it was originally a string, we make it back to string. keep it tidy
+						if (typeof start == "string") {
+							_object[property] = String(_object[property]);
+						}
+					}
+				}
+			}
+		}
+
+		 _handleRelativeValue(start, end) {
+			if (typeof end !== "string") {
+				return end;
+			}
+
+			if (end.charAt(0) == "+" || end.charAt(0) == "-") {
+				return start + Number(end);
+			}
+
+			return Number(end);
+		}
+
+		 _swapEndStartRepeatValues(_valuesStartRepeat, _valuesEnd) {
+			for (const property in _valuesStartRepeat) {
+				const isInterpolationList = !Array.isArray(_valuesStartRepeat[property]) && Array.isArray(_valuesEnd[property]);
+
+				if (typeof _valuesStartRepeat[property] == "object") {
+					this._swapEndStartRepeatValues(_valuesStartRepeat[property], _valuesEnd[property]);
+				} else {
+					const tmp = _valuesStartRepeat[property];
+					if (typeof _valuesEnd[property] == "string") {
+						_valuesStartRepeat[property] = Number(_valuesStartRepeat[property]) + Number(_valuesEnd[property]);
+						_valuesEnd[property] = tmp;
+					} else if (isInterpolationList) {
+						const aux = _valuesEnd[property].slice().reverse();
+						_valuesStartRepeat[property] = aux[0];
+						_valuesEnd[property] = aux;
+					} else {
+						_valuesStartRepeat[property] = _valuesEnd[property];
+						_valuesEnd[property] = tmp;
+					}
+				}
+			}
+		}
+
+		 _moveForwardStartRepeatValues(_valuesStartRepeat, _valuesEnd) {
+			for (const property in _valuesStartRepeat) {
+				if (typeof _valuesEnd[property] == "object") {
+					this._moveForwardStartRepeatValues(_valuesStartRepeat[property], _valuesEnd[property]);
+				} else {
+					if (typeof _valuesEnd[property] == "string") {
+						_valuesStartRepeat[property] = Number(_valuesStartRepeat[property]) + Number(_valuesEnd[property]);
+					}
+				}
+			}
+		}
+	}
+
+	function fitToView(parent, child, padding = 0, uniformScaling = true) {
+	  let scaleX = child.scale.x;
+	  let scaleY = child.scale.y;
+	  if (!parent) {
+	    throw new Error("Parent is not defined");
+	  }
+	  const maxWidth = parent.width - padding * 2;
+	  const maxHeight = parent.height - padding * 2;
+	  const widthOverflow = maxWidth - Math.round(child.width);
+	  const heightOverflow = maxHeight - Math.round(child.height);
+	  if (widthOverflow < 0) {
+	    scaleX = maxWidth / (child.width / scaleX);
+	  }
+	  if (heightOverflow < 0) {
+	    scaleY = maxHeight / (child.height / scaleY);
+	  }
+	  if (scaleX <= 0 || scaleY <= 0) {
+	    child.scale.set(0);
+	    return;
+	  }
+	  if (uniformScaling || child.scale.x === child.scale.y) {
+	    const scale = Math.min(scaleX, scaleY);
+	    child.scale.set(scale, scale);
+	  } else {
+	    const ratio = child.scale.x / child.scale.y;
+	    if (widthOverflow < heightOverflow) {
+	      child.scale.set(scaleX, scaleX / ratio);
+	    } else {
+	      child.scale.set(scaleY * ratio, scaleY);
+	    }
+	  }
+	}
+
+	function getTextView(text) {
+	  if (typeof text === "string" || typeof text === "number") {
+	    return new PIXI.Text({ text: String(text) });
+	  }
+	  return text;
+	}
+
+	var __defProp$f = Object.defineProperty;
+	var __defNormalProp$f = (obj, key, value) => key in obj ? __defProp$f(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+	var __publicField$f = (obj, key, value) => __defNormalProp$f(obj, typeof key !== "symbol" ? key + "" : key, value);
+	class FancyButton extends ButtonContainer {
+	  /**
+	   * Creates a button with a lot of tweaks.
+	   * @param {object} options - Button options.
+	   * @param { string | Texture | Container | Sprite | Graphics } options.defaultView - Container-based view that is shown when non of the button events are active.
+	   *                                                                                   <br> Can be a string (name of texture) or an instance of Texture, Container, Sprite or Graphics.
+	   *                                                                                   <br> If you want to use NineSliceSprite, you have to pass a text (name of texture) or an instance of Texture as a parameter here.
+	   * @param { string | Texture | Container | Sprite | Graphics } options.hoverView - Container-based view that is shown when the mouse hovers over the button.
+	   *                                                                                   <br> Can be a string (name of texture) or an instance of Texture, Container, Sprite or Graphics.
+	   *                                                                                   <br> If you want to use NineSliceSprite, you have to pass a text (name of texture) or an instance of Texture as a parameter here.
+	   * @param { string | Texture | Container | Sprite | Graphics } options.pressedView - Container-based view, shown when the mouse press on the component.
+	   *                                                                                   <br> Can be a string (name of texture) or an instance of Texture, Container, Sprite or Graphics.
+	   *                                                                                   <br> If you want to use NineSliceSprite, you have to pass a text (name of texture) or an instance of Texture as a parameter here.
+	   * @param { string | Texture | Container | Sprite | Graphics } options.disabledView - Container-based view shown when the button is disabled.
+	   *                                                                                   <br> Can be a string (name of texture) or an instance of Texture, Container, Sprite or Graphics.
+	   *                                                                                   <br> If you want to use NineSliceSprite, you have to pass a text (name of texture) or an instance of Texture as a parameter here.
+	   * @param { string | Texture | Container | Sprite | Graphics } options.icon - Container-based view for the button icon.
+	   * @param {Text} options.text - Text-based view for the button text.
+	   * @param {number} options.padding - Padding of the button text and icon views.
+	   * If button text or icon does not fit active view + padding it will scale down to fit.
+	   * @param {Point} options.offset - Offset of the button state views.
+	   * @param {Point} options.textOffset - Offset of the text view.
+	   * @param {Point} options.iconOffset - Offset of the icon view.
+	   * @param {number} options.scale - Scale of the button. Scale will be applied to a main container,
+	   * when all animations scales will be applied to the inner view.
+	   * @param {number} options.defaultTextScale - Base text scaling to take into account when fitting inside the button.
+	   * @param {number} options.defaultIconScale - Base icon scaling to take into account when fitting inside the button.
+	   * @param {number} options.defaultTextAnchor - Base text anchor to take into account when fitting and placing inside the button.
+	   * @param {number} options.defaultIconAnchor - Base icon anchor to take into account when fitting and placing inside the button.
+	   * @param {number} options.anchor - Anchor point of the button.
+	   * @param {number} options.anchorX - Horizontal anchor point of the button.
+	   * @param {number} options.anchorY - Vertical anchor point of the button.
+	   * @param { Array } options.nineSliceSprite - NineSliceSprite values for views ([number, number, number, number]).
+	   *                                      <br> <b>!!! IMPORTANT:</b> To make it work, you have to pass a views (defaultView, hoverView, pressedView, disabledView) parameters as texture name or texture instance.
+	   * @param options.animations - Animations that will be played when the button state changes.
+	   */
+	  constructor(options) {
+	    super();
+	    __publicField$f(this, "animations");
+	    __publicField$f(this, "originalInnerViewState");
+	    __publicField$f(this, "defaultDuration", 100);
+	    /** FancyButton options. */
+	    __publicField$f(this, "options");
+	    /** Padding of the button text view. If button text does not fit active view + padding it will scale down to fit. */
+	    __publicField$f(this, "_padding", 0);
+	    /** Offset of the button state views. If state views have different sizes, this option can help adjust them. */
+	    __publicField$f(this, "_offset", {});
+	    /** Offset of the text view. Can be set to any state of the button. */
+	    __publicField$f(this, "_textOffset", {});
+	    /** Offset of the icon view. Can be set to any state of the button. */
+	    __publicField$f(this, "iconOffset", {});
+	    //* View that holds all button inner views */
+	    __publicField$f(this, "innerView", new PIXI.Container());
+	    __publicField$f(this, "_views", {});
+	    /** State of the button. Possible valuers are: 'default', 'hover', 'pressed', 'disabled' */
+	    __publicField$f(this, "state", "default");
+	    /** Anchor point of the button. */
+	    __publicField$f(this, "anchor");
+	    /** Base text scaling to take into account when fitting inside the button */
+	    __publicField$f(this, "_defaultTextScale", { x: 1, y: 1 });
+	    /** Base icon scaling to take into account when fitting inside the button */
+	    __publicField$f(this, "_defaultIconScale", { x: 1, y: 1 });
+	    /** Base text anchor to take into account when fitting and placing inside the button */
+	    __publicField$f(this, "_defaultTextAnchor", { x: 0.5, y: 0.5 });
+	    /** Base icon anchor to take into account when fitting and placing inside the button */
+	    __publicField$f(this, "_defaultIconAnchor", { x: 0.5, y: 0.5 });
+	    this.options = options ?? {};
+	    const {
+	      defaultView,
+	      hoverView,
+	      pressedView,
+	      disabledView,
+	      text,
+	      padding,
+	      offset,
+	      textOffset,
+	      iconOffset,
+	      defaultTextScale: textScale,
+	      defaultIconScale: iconScale,
+	      defaultTextAnchor: textAnchor,
+	      defaultIconAnchor: iconAnchor,
+	      scale,
+	      anchor,
+	      anchorX,
+	      anchorY,
+	      icon,
+	      animations
+	    } = options ?? {};
+	    this.addChild(this.innerView);
+	    this.anchor = new PIXI.ObservablePoint({
+	      _onUpdate: () => this.updateAnchor()
+	    });
+	    this.anchor.set(anchorX ?? anchor ?? 0, anchorY ?? anchor ?? 0);
+	    this.padding = padding ?? 0;
+	    this.offset = offset ?? {};
+	    this.textOffset = textOffset ?? {};
+	    this.iconOffset = iconOffset ?? {};
+	    this.defaultTextScale = textScale ?? { x: 1, y: 1 };
+	    this.defaultIconScale = iconScale ?? { x: 1, y: 1 };
+	    this.defaultTextAnchor = textAnchor ?? { x: 0.5, y: 0.5 };
+	    this.defaultIconAnchor = iconAnchor ?? { x: 0.5, y: 0.5 };
+	    this.scale.set(scale ?? 1);
+	    if (animations) {
+	      this.animations = animations;
+	      this.setOriginalInnerViewState();
+	      PIXI.Ticker.shared.add(() => Group.shared.update());
+	    }
+	    this.setState("default");
+	    this.defaultView = defaultView;
+	    this.hoverView = hoverView;
+	    this.pressedView = pressedView;
+	    this.disabledView = disabledView;
+	    this.text = text ?? "";
+	    if (icon !== void 0) {
+	      this.iconView = icon;
+	    }
+	    this.initStateControl();
+	  }
+	  /**
+	   * Updates the text of the button and updates its scaling basing on the new size.
+	   * @param {string | number} text
+	   */
+	  set text(text) {
+	    if (!text || text === 0) {
+	      this.removeView("textView");
+	      return;
+	    }
+	    if (!this._views.textView) {
+	      this.createTextView(text);
+	      return;
+	    }
+	    this._views.textView.text = text.toString();
+	  }
+	  /** Returns the text string of the button text element. */
+	  get text() {
+	    return this._views.textView?.text;
+	  }
+	  /**
+	   * Setter, that prevents all button events from firing.
+	   * @param {boolean} enabled
+	   */
+	  set enabled(enabled) {
+	    this.button.enabled = enabled;
+	    this.setState(enabled ? "default" : "disabled");
+	  }
+	  get enabled() {
+	    return this.button.enabled;
+	  }
+	  /**
+	   * Updates button state and shows the according views.
+	   *
+	   * Updates positions and offsets of the views.
+	   *
+	   * Plays animations if they are set.
+	   * @param {State} newState
+	   * @param force
+	   */
+	  setState(newState, force = false) {
+	    if (!force && this.state === newState) {
+	      return;
+	    }
+	    const currentView = this.getStateView(this.state);
+	    if (currentView) currentView.visible = false;
+	    this.state = newState;
+	    const activeView = this.getStateView(newState);
+	    if (activeView) {
+	      this.setOffset(activeView, newState, this.offset);
+	      activeView.visible = true;
+	    }
+	    this.updateAnchor();
+	    this.playAnimations(newState);
+	  }
+	  /**
+	   *
+	   * Manage button text view.
+	   * @param {string | Text} text - can be a string, Text, BitmapText ot HTMLText (Container-based element).
+	   */
+	  createTextView(text) {
+	    this._views.textView = getTextView(text);
+	    if (this.options?.defaultTextScale === void 0) {
+	      const { x, y } = this._views.textView.scale;
+	      this._defaultTextScale = { x, y };
+	    }
+	    this.innerView.addChild(this._views.textView);
+	    this.adjustTextView(this.state);
+	  }
+	  /**
+	   * Manages views offsets if it's set.
+	   * @param view
+	   * @param state
+	   * @param offset
+	   */
+	  setOffset(view, state, offset) {
+	    const stateOffset = offset ? offset[state] : {
+	      x: 0,
+	      y: 0
+	    };
+	    const defaultStateOffset = offset?.default;
+	    if (stateOffset) {
+	      view.x += stateOffset.x ?? 0;
+	      view.y += stateOffset.y ?? 0;
+	    } else if (defaultStateOffset) {
+	      view.x += defaultStateOffset.x ?? 0;
+	      view.y += defaultStateOffset.y ?? 0;
+	    } else if (offset.x || offset.y) {
+	      view.x += offset.x ?? 0;
+	      view.y += offset.y ?? 0;
+	    }
+	  }
+	  /**
+	   * Returns active view for the state.
+	   * @param state
+	   */
+	  getStateView(state) {
+	    if (!this._views) return void 0;
+	    switch (state) {
+	      case "hover":
+	        return this._views.hoverView ?? this._views.defaultView ?? void 0;
+	      case "pressed":
+	        return this._views.pressedView ?? this._views.hoverView ?? this._views.defaultView ?? void 0;
+	      case "disabled":
+	        return this._views.disabledView ?? this._views.defaultView ?? void 0;
+	      case "default":
+	        return this._views.defaultView ?? void 0;
+	      default:
+	        return void 0;
+	    }
+	  }
+	  /**
+	   * Adjusts text view position and scale.
+	   * @param {State} state
+	   */
+	  adjustTextView(state) {
+	    if (!this.text) return;
+	    if (!this._views.textView) return;
+	    const activeView = this.getStateView(this.state);
+	    const anchorX = this._defaultTextAnchor.x ?? 0.5;
+	    const anchorY = this._defaultTextAnchor.y ?? 0.5;
+	    if (activeView) {
+	      if (!this.options?.ignoreRefitting) {
+	        this._views.textView.scale.set(this._defaultTextScale.x, this._defaultTextScale.y);
+	      }
+	      if (this.contentFittingMode === "default") {
+	        fitToView(activeView, this._views.textView, this.padding, false);
+	      }
+	      if (this.contentFittingMode === "fill") {
+	        this._views.textView.scale.set(1);
+	        const availableWidth = activeView.width - this.padding * 2;
+	        const availableHeight = activeView.height - this.padding * 2;
+	        const targetScaleX = availableWidth / this._views.textView.width;
+	        const targetScaleY = availableHeight / this._views.textView.height;
+	        const scale = Math.min(targetScaleX, targetScaleY);
+	        this._views.textView.scale.set(
+	          scale * (this._defaultTextScale.x ?? 1),
+	          scale * (this._defaultTextScale.y ?? 1)
+	        );
+	      }
+	      this._views.textView.x = activeView.x + activeView.width / 2;
+	      this._views.textView.y = activeView.y + activeView.height / 2;
+	    }
+	    this._views.textView.anchor.set(anchorX, anchorY);
+	    this.setOffset(this._views.textView, state, this.textOffset);
+	  }
+	  /**
+	   * Adjusts icon view position and scale.
+	   * @param {State} state
+	   */
+	  adjustIconView(state) {
+	    if (!this._views.iconView) {
+	      return;
+	    }
+	    const activeView = this.getStateView(state);
+	    if (!activeView) {
+	      return;
+	    }
+	    if (!this.options?.ignoreRefitting) {
+	      this._views.iconView.scale.set(this._defaultIconScale.x, this._defaultIconScale.y);
+	    }
+	    if (this.contentFittingMode === "default") {
+	      fitToView(activeView, this._views.iconView, this.padding, false);
+	    }
+	    if (this.contentFittingMode === "fill") {
+	      this._views.iconView.scale.set(1);
+	      const availableWidth = activeView.width - this.padding * 2;
+	      const availableHeight = activeView.height - this.padding * 2;
+	      const targetScaleX = availableWidth / this._views.iconView.width;
+	      const targetScaleY = availableHeight / this._views.iconView.height;
+	      const scale = Math.min(targetScaleX, targetScaleY);
+	      this._views.iconView.scale.set(
+	        scale * (this._defaultIconScale.x ?? 1),
+	        scale * (this._defaultIconScale.y ?? 1)
+	      );
+	    }
+	    const anchorX = this._defaultIconAnchor.x ?? 0.5;
+	    const anchorY = this._defaultIconAnchor.y ?? 0.5;
+	    if ("anchor" in this._views.iconView) {
+	      this._views.iconView.anchor.set(anchorX, anchorY);
+	    } else {
+	      this._views.iconView.pivot.set(
+	        anchorX * (this._views.iconView.width / this._views.iconView.scale.x),
+	        anchorY * (this._views.iconView.height / this._views.iconView.scale.y)
+	      );
+	    }
+	    this._views.iconView.x = activeView.x + activeView.width / 2;
+	    this._views.iconView.y = activeView.y + activeView.height / 2;
+	    this.setOffset(this._views.iconView, state, this.iconOffset);
+	  }
+	  /**
+	   * Reset views positions according to the button anchor setting.
+	   * We have to set the anchor position for each view individually, as each of them
+	   * can be a different type of view (container without anchor, sprite with anchor, etc)
+	   * we have to reset all anchors to 0,0 and then set the positions manually.
+	   */
+	  updateAnchor() {
+	    if (!this._views) return;
+	    const anchorX = this.anchor.x ?? 0;
+	    const anchorY = this.anchor.y ?? 0;
+	    const views = [
+	      this._views.defaultView,
+	      this._views.hoverView,
+	      this._views.pressedView,
+	      this._views.disabledView
+	    ];
+	    views.forEach((view) => {
+	      if (!view) return;
+	      view.anchor?.set(0);
+	      view.x = -view.width * anchorX;
+	      view.y = -view.height * anchorY;
+	    });
+	    if (this._views.defaultView) {
+	      const { x, y, width, height } = this._views.defaultView;
+	      this.hitArea = new PIXI.Rectangle(x, y, width, height);
+	    }
+	    this.adjustIconView(this.state);
+	    this.adjustTextView(this.state);
+	  }
+	  /**
+	   * Sets the fitting mode for the button's content.
+	   * @param {ContentFittingMode} mode - fitting mode type.
+	   */
+	  set contentFittingMode(mode) {
+	    this.options.contentFittingMode = mode;
+	  }
+	  /** Returns the fitting mode for the button's content, defaulting to 'default'. */
+	  get contentFittingMode() {
+	    return this.options.contentFittingMode ?? "default";
+	  }
+	  /**
+	   * Sets the default view of the button.
+	   * @param { string | Container } view - string (path to the image) or a Container-based view
+	   */
+	  set defaultView(view) {
+	    this.updateView("defaultView", view);
+	    if (this._views.disabledView && this.state !== "default") {
+	      this._views.disabledView.visible = false;
+	    }
+	  }
+	  /** Returns the default view of the button. */
+	  get defaultView() {
+	    return this._views.defaultView;
+	  }
+	  /**
+	   * Sets the hover view of the button.
+	   * @param { string | Container } view - string (path to the image) or a Container-based view
+	   */
+	  set hoverView(view) {
+	    this.updateView("hoverView", view);
+	    if (this._views.hoverView && this.state !== "hover") {
+	      this._views.hoverView.visible = false;
+	    }
+	  }
+	  /** Returns the hover view of the button. */
+	  get hoverView() {
+	    return this._views.hoverView;
+	  }
+	  /** Sets the pressed view of the button. */
+	  set pressedView(view) {
+	    this.updateView("pressedView", view);
+	    if (this._views.pressedView && this.state !== "pressed") {
+	      this._views.pressedView.visible = false;
+	    }
+	  }
+	  /** Returns the pressed view of the button. */
+	  get pressedView() {
+	    return this._views.pressedView;
+	  }
+	  /** Sets the disabled view of the button. */
+	  set disabledView(view) {
+	    this.updateView("disabledView", view);
+	    if (this._views.disabledView && this.state !== "disabled") {
+	      this._views.disabledView.visible = false;
+	    }
+	  }
+	  /** Returns the disabled view of the button. */
+	  get disabledView() {
+	    return this._views.disabledView;
+	  }
+	  /**
+	   * Helper method to update or cleanup button views.
+	   * @param { 'defaultView' | 'hoverView' | 'pressedView' | 'disabledView' } viewType - type of the view to update
+	   * @param { string | Texture | Container | null } view - new view
+	   */
+	  updateView(viewType, view) {
+	    if (view === void 0) return;
+	    this.removeView(viewType);
+	    if (this.options?.nineSliceSprite) {
+	      if (typeof view === "string") {
+	        this._views[viewType] = new PIXI.NineSliceSprite({
+	          texture: PIXI.Texture.from(view),
+	          leftWidth: this.options.nineSliceSprite[0],
+	          topHeight: this.options.nineSliceSprite[1],
+	          rightWidth: this.options.nineSliceSprite[2],
+	          bottomHeight: this.options.nineSliceSprite[3]
+	        });
+	      } else if (view instanceof PIXI.Texture) {
+	        this._views[viewType] = new PIXI.NineSliceSprite({
+	          texture: view,
+	          leftWidth: this.options.nineSliceSprite[0],
+	          topHeight: this.options.nineSliceSprite[1],
+	          rightWidth: this.options.nineSliceSprite[2],
+	          bottomHeight: this.options.nineSliceSprite[3]
+	        });
+	      } else {
+	        console.warn("NineSliceSprite can not be used with views set as Container. Pass the texture or texture name as instead of the Container extended instance.");
+	      }
+	    }
+	    if (!this._views[viewType]) {
+	      this._views[viewType] = getView(view);
+	    }
+	    this.setOffset(this._views[viewType], this.state, this.offset);
+	    if (!this._views[viewType].parent) {
+	      this.innerView.addChild(this._views[viewType]);
+	    }
+	    this.updateAnchor();
+	    if (this._views.iconView) {
+	      this.innerView.addChild(this._views.iconView);
+	    }
+	    if (this._views.textView) {
+	      this.innerView.addChild(this._views.textView);
+	    }
+	    this.setState(this.state, true);
+	  }
+	  /**
+	   * Removes button view by type
+	   * @param {'defaultView' | 'hoverView' | 'pressedView' | 'disabledView'} viewType - type of the view to remove
+	   */
+	  removeView(viewType) {
+	    if (this._views[viewType]) {
+	      this.innerView.removeChild(this._views[viewType]);
+	      this._views[viewType] = void 0;
+	    }
+	  }
+	  /**
+	   * Sets the textView of the button.
+	   * @param { string | number | PixiText | Text | BitmapText | HTMLText } textView - string, text or pixi text instance.
+	   */
+	  set textView(textView) {
+	    if (textView === void 0) return;
+	    this.removeView("textView");
+	    if (textView === null) {
+	      return;
+	    }
+	    this.createTextView(textView);
+	  }
+	  /**
+	   * Returns the text view of the button.
+	   * @returns pixi text instance or undefined.
+	   */
+	  get textView() {
+	    return this._views.textView;
+	  }
+	  /**
+	   * Sets the iconView of the button.
+	   * @param { string | Texture | Container } view - string (path to the image), texture instance or a Container-based view
+	   */
+	  set iconView(view) {
+	    if (view === void 0) return;
+	    this.removeView("iconView");
+	    if (view === null) {
+	      return;
+	    }
+	    this._views.iconView = getView(view);
+	    if (this.options?.defaultIconScale === void 0) {
+	      const { x, y } = this._views.iconView.scale;
+	      this._defaultIconScale = { x, y };
+	    }
+	    if (!this._views.iconView.parent) {
+	      this.innerView.addChild(this._views.iconView);
+	    }
+	    this.setState(this.state, true);
+	  }
+	  /** Returns the icon view of the button. */
+	  get iconView() {
+	    return this._views.iconView;
+	  }
+	  /**
+	   * Starts animation for the current button state if configured.
+	   * @param {State} state
+	   */
+	  playAnimations(state) {
+	    if (!this.animations) return;
+	    const stateAnimation = this.animations[state] ?? this.animations.default;
+	    if (stateAnimation) {
+	      const data = stateAnimation;
+	      this.defaultDuration = data.duration ?? this.defaultDuration;
+	      new Tween(this.innerView).to(data.props, data.duration).start();
+	      return;
+	    }
+	    new Tween(this.innerView).to(this.originalInnerViewState, this.defaultDuration).start();
+	  }
+	  setOriginalInnerViewState() {
+	    this.originalInnerViewState = {
+	      x: this.innerView.x,
+	      y: this.innerView.y,
+	      width: this.innerView.width,
+	      height: this.innerView.height,
+	      scale: {
+	        x: this.innerView.scale.x,
+	        y: this.innerView.scale.y
+	      }
+	    };
+	    const defaultStateAnimation = this.animations?.default;
+	    if (defaultStateAnimation) {
+	      this.innerView.x = defaultStateAnimation.props.x ?? this.originalInnerViewState.x ?? 0;
+	      this.innerView.y = defaultStateAnimation.props.y ?? this.originalInnerViewState.y ?? 0;
+	      this.innerView.width = defaultStateAnimation.props.width ?? this.originalInnerViewState.width ?? 0;
+	      this.innerView.height = defaultStateAnimation.props.height ?? this.originalInnerViewState.height ?? 0;
+	      this.innerView.scale.x = defaultStateAnimation.props.scale?.x ?? this.originalInnerViewState.scale?.x ?? 1;
+	      this.innerView.scale.y = defaultStateAnimation.props.scale?.y ?? this.originalInnerViewState.scale?.y ?? 1;
+	    }
+	  }
+	  initStateControl() {
+	    this.onDown.connect(() => {
+	      this.setState("pressed");
+	    });
+	    this.onUp.connect(() => {
+	      this.setState(PIXI.isMobile.any ? "default" : "hover");
+	    });
+	    this.onUpOut.connect(() => {
+	      this.setState("default");
+	    });
+	    this.onOut.connect(() => {
+	      if (!this.button.isDown) {
+	        this.setState("default");
+	      }
+	    });
+	    this.onPress.connect(() => {
+	      this.setState(PIXI.isMobile.any ? "default" : "hover");
+	    });
+	    this.onHover.connect(() => {
+	      if (!this.button.isDown) {
+	        this.setState(PIXI.isMobile.any ? "default" : "hover");
+	      }
+	    });
+	  }
+	  /**
+	   * Sets the button padding.
+	   * @param {number} padding - padding of the button text and icon views.
+	   */
+	  set padding(padding) {
+	    this._padding = padding;
+	    this.adjustTextView(this.state);
+	    this.adjustIconView(this.state);
+	  }
+	  /** Returns the button padding. */
+	  get padding() {
+	    return this._padding;
+	  }
+	  /**
+	   * Sets the button offset.
+	   * @param { { x?: number; y?: number } } offset - offset of the button.
+	   * Can be set for each state of the button.
+	   */
+	  set offset(offset) {
+	    this._offset = offset;
+	    this.updateAnchor();
+	  }
+	  /** Returns the button offset. */
+	  get offset() {
+	    return this._offset;
+	  }
+	  /**
+	   * Sets the button text offset.
+	   * @param { { x?: number; y?: number } } textOffset - offsets of the button text view.
+	   * can be set for each state of the button.
+	   */
+	  set textOffset(textOffset) {
+	    this._textOffset = textOffset;
+	    this.adjustTextView(this.state);
+	  }
+	  /** Returns the button text offset. */
+	  get textOffset() {
+	    return this._textOffset;
+	  }
+	  /**
+	   * Sets the base scale for the text view to take into account when fitting inside the button.
+	   * @param {Pos | number} scale - base scale of the text view.
+	   */
+	  set defaultTextScale(scale) {
+	    if (scale === void 0) return;
+	    this.options.defaultTextScale = scale;
+	    const isNumber = typeof scale === "number";
+	    this._defaultTextScale.x = isNumber ? scale : scale.x ?? 1;
+	    this._defaultTextScale.y = isNumber ? scale : scale.y ?? 1;
+	    this.adjustTextView(this.state);
+	  }
+	  /** Returns the text view base scale. */
+	  get defaultTextScale() {
+	    return this.defaultTextScale;
+	  }
+	  /**
+	   * Sets the base scale for the icon view to take into account when fitting inside the button.
+	   * @param {Pos | number} scale - base scale of the icon view.
+	   */
+	  set defaultIconScale(scale) {
+	    if (scale === void 0) return;
+	    this.options.defaultIconScale = scale;
+	    const isNumber = typeof scale === "number";
+	    this._defaultIconScale.x = isNumber ? scale : scale.x ?? 1;
+	    this._defaultIconScale.y = isNumber ? scale : scale.y ?? 1;
+	    this.adjustIconView(this.state);
+	  }
+	  /** Returns the icon view base scale. */
+	  get defaultIconScale() {
+	    return this.defaultIconScale;
+	  }
+	  /**
+	   * Sets the base anchor for the text view to take into account when fitting and placing inside the button.
+	   * @param {Pos | number} anchor - base anchor of the text view.
+	   */
+	  set defaultTextAnchor(anchor) {
+	    if (anchor === void 0) return;
+	    this.options.defaultTextAnchor = anchor;
+	    const isNumber = typeof anchor === "number";
+	    this._defaultTextAnchor.x = isNumber ? anchor : anchor.x ?? 1;
+	    this._defaultTextAnchor.y = isNumber ? anchor : anchor.y ?? 1;
+	    this.adjustTextView(this.state);
+	  }
+	  /** Returns the text view base anchor. */
+	  get defaultTextAnchor() {
+	    return this.defaultTextAnchor;
+	  }
+	  /**
+	   * Sets the base anchor for the icon view to take into account when fitting and placing inside the button.
+	   * @param {Pos | number} anchor - base anchor of the icon view.
+	   */
+	  set defaultIconAnchor(anchor) {
+	    if (anchor === void 0) return;
+	    this.options.defaultIconAnchor = anchor;
+	    const isNumber = typeof anchor === "number";
+	    this._defaultIconAnchor.x = isNumber ? anchor : anchor.x ?? 1;
+	    this._defaultIconAnchor.y = isNumber ? anchor : anchor.y ?? 1;
+	    this.adjustIconView(this.state);
+	  }
+	  /** Returns the icon view base anchor. */
+	  get defaultIconAnchor() {
+	    return this.defaultIconAnchor;
+	  }
+	  /**
+	   * Sets width of a FancyButtons state views.
+	   * If nineSliceSprite is set, then width will be set to nineSliceSprites of a views.
+	   * If nineSliceSprite is not set, then width will control components width as Container.
+	   * @param width - Width value.
+	   */
+	  set width(width) {
+	    if (this.options?.nineSliceSprite) {
+	      if (this._views.defaultView) {
+	        this._views.defaultView.width = width;
+	      }
+	      if (this._views.hoverView) {
+	        this._views.hoverView.width = width;
+	      }
+	      if (this._views.pressedView) {
+	        this._views.pressedView.width = width;
+	      }
+	      if (this._views.disabledView) {
+	        this._views.disabledView.width = width;
+	      }
+	      this.adjustTextView(this.state);
+	      this.adjustIconView(this.state);
+	      this.updateAnchor();
+	    } else {
+	      super.width = width;
+	    }
+	  }
+	  /** Gets width of a FancyButton. */
+	  get width() {
+	    return super.width;
+	  }
+	  /**
+	   * Sets height of a FancyButtons state views.
+	   * If nineSliceSprite is set, then height will be set to nineSliceSprites of a views.
+	   * If nineSliceSprite is not set, then height will control components height as Container.
+	   * @param height - Height value.
+	   */
+	  set height(height) {
+	    if (this.options?.nineSliceSprite) {
+	      if (this._views.defaultView) {
+	        this._views.defaultView.height = height;
+	      }
+	      if (this._views.hoverView) {
+	        this._views.hoverView.height = height;
+	      }
+	      if (this._views.pressedView) {
+	        this._views.pressedView.height = height;
+	      }
+	      if (this._views.disabledView) {
+	        this._views.disabledView.height = height;
+	      }
+	      this.adjustTextView(this.state);
+	      this.adjustIconView(this.state);
+	      this.updateAnchor();
+	    } else {
+	      super.height = height;
+	    }
+	  }
+	  /** Gets height of a FancyButton. */
+	  get height() {
+	    return super.height;
+	  }
+	  setSize(value, height) {
+	    if (this.options?.nineSliceSprite) {
+	      if (this._views.defaultView) {
+	        this._views.defaultView.setSize(value, height);
+	      }
+	      if (this._views.hoverView) {
+	        this._views.hoverView.setSize(value, height);
+	      }
+	      if (this._views.pressedView) {
+	        this._views.pressedView.setSize(value, height);
+	      }
+	      if (this._views.disabledView) {
+	        this._views.disabledView.setSize(value, height);
+	      }
+	      this.adjustTextView(this.state);
+	      this.adjustIconView(this.state);
+	      this.updateAnchor();
+	    } else {
+	      super.setSize(value, height);
+	    }
+	  }
+	}
+
+	var __defProp$e = Object.defineProperty;
+	var __defNormalProp$e = (obj, key, value) => key in obj ? __defProp$e(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+	var __publicField$e = (obj, key, value) => __defNormalProp$e(obj, typeof key !== "symbol" ? key + "" : key, value);
+	class List extends PIXI.Container {
+	  constructor(options) {
+	    super();
+	    __publicField$e(this, "options");
+	    /** Arrange direction. Defaults to 'bidirectional' for multi-column layout when type is not specified. */
+	    __publicField$e(this, "_type", "bidirectional");
+	    /** Width of area to fit elements when arrange. (If not set parent width will be used). */
+	    __publicField$e(this, "_maxWidth", 0);
+	    /** Returns all arranged elements. */
+	    __publicField$e(this, "children", []);
+	    if (options) {
+	      if (options.maxWidth) {
+	        this._maxWidth = options.maxWidth;
+	      }
+	      this.init(options);
+	    }
+	    options?.items?.forEach((item) => this.addChild(item));
+	    this.on("added", () => this.arrangeChildren());
+	    this.on("childAdded", () => this.arrangeChildren());
+	  }
+	  /**
+	   * Initiates list component.
+	   * @param options
+	   */
+	  init(options) {
+	    this.options = options;
+	    if (options?.type) {
+	      this.type = options.type;
+	    }
+	    if (options?.children) {
+	      options.children.forEach((child) => this.addChild(child));
+	    }
+	  }
+	  /**
+	   * Set items arrange direction.
+	   * @param type - Arrange direction.
+	   */
+	  set type(type) {
+	    this._type = type;
+	    this.arrangeChildren();
+	  }
+	  /**
+	   * Get items arrange direction.
+	   * @returns Arrange direction.
+	   */
+	  get type() {
+	    return this._type;
+	  }
+	  /**
+	   * Set element margin.
+	   * @param margin - Margin between elements.
+	   */
+	  set elementsMargin(margin) {
+	    if (!this.options) throw new Error("List has not been initiated!");
+	    this.options.elementsMargin = margin;
+	    this.arrangeChildren();
+	  }
+	  /**
+	   * Get element margin.
+	   * @returns Margin between elements.
+	   */
+	  get elementsMargin() {
+	    return this.options?.elementsMargin ?? 0;
+	  }
+	  /**
+	   * Set padding, overriding all padding options.
+	   * @param padding - Padding surrounding list elements and its border.
+	   */
+	  set padding(padding) {
+	    if (!this.options) throw new Error("List has not been initiated!");
+	    this.options.padding = padding;
+	    this.options.vertPadding = padding;
+	    this.options.horPadding = padding;
+	    this.options.leftPadding = padding;
+	    this.options.rightPadding = padding;
+	    this.options.topPadding = padding;
+	    this.options.bottomPadding = padding;
+	    this.arrangeChildren();
+	  }
+	  /**
+	   * Get padding.
+	   * @returns Padding surrounding list elements and its border.
+	   */
+	  get padding() {
+	    return this.options?.padding ?? 0;
+	  }
+	  /**
+	   * Set vertical padding, overriding all top and bottom padding options.
+	   * @param padding - Vertical padding between list border and its elements.
+	   */
+	  set vertPadding(padding) {
+	    if (!this.options) throw new Error("List has not been initiated!");
+	    this.options.vertPadding = padding;
+	    this.options.topPadding = padding;
+	    this.options.bottomPadding = padding;
+	    this.arrangeChildren();
+	  }
+	  /**
+	   * Get vertical padding.
+	   * @returns Vertical padding between list border and its elements.
+	   */
+	  get vertPadding() {
+	    return this.options?.vertPadding ?? this.padding ?? 0;
+	  }
+	  /**
+	   * Set horizontal padding, overriding all left and right padding options.
+	   * @param padding - Horizontal padding between list border and its elements.
+	   */
+	  set horPadding(padding) {
+	    if (!this.options) throw new Error("List has not been initiated!");
+	    this.options.horPadding = padding;
+	    this.options.leftPadding = padding;
+	    this.options.rightPadding = padding;
+	    this.arrangeChildren();
+	  }
+	  /**
+	   * Get horizontal padding.
+	   * @returns Horizontal padding between list border and its elements.
+	   */
+	  get horPadding() {
+	    return this.options?.horPadding ?? this.padding ?? 0;
+	  }
+	  /**
+	   * Set left padding.
+	   * @param padding - Left padding between list border and its elements.
+	   */
+	  set leftPadding(padding) {
+	    if (!this.options) throw new Error("List has not been initiated!");
+	    this.options.leftPadding = padding;
+	    this.arrangeChildren();
+	  }
+	  /**
+	   * Get left padding.
+	   * @returns Left padding between list border and its elements.
+	   */
+	  get leftPadding() {
+	    return this.options?.leftPadding ?? this.horPadding;
+	  }
+	  /**
+	   * Set right padding.
+	   * @param padding - Right padding between list border and its elements.
+	   */
+	  set rightPadding(padding) {
+	    if (!this.options) throw new Error("List has not been initiated!");
+	    this.options.rightPadding = padding;
+	    this.arrangeChildren();
+	  }
+	  /**
+	   * Get right padding.
+	   * @returns Right padding between list border and its elements.
+	   */
+	  get rightPadding() {
+	    return this.options?.rightPadding ?? this.horPadding;
+	  }
+	  /**
+	   * Set top padding.
+	   * @param padding - Top padding between list border and its elements.
+	   */
+	  set topPadding(padding) {
+	    if (!this.options) throw new Error("List has not been initiated!");
+	    this.options.topPadding = padding;
+	    this.arrangeChildren();
+	  }
+	  /**
+	   * Get top padding.
+	   * @returns Top padding between list border and its elements.
+	   */
+	  get topPadding() {
+	    return this.options?.topPadding ?? this.vertPadding;
+	  }
+	  /**
+	   * Set bottom padding.
+	   * @param padding - Bottom padding between list border and its elements.
+	   */
+	  set bottomPadding(padding) {
+	    if (!this.options) throw new Error("List has not been initiated!");
+	    this.options.bottomPadding = padding;
+	    this.arrangeChildren();
+	  }
+	  /**
+	   * Get bottom padding.
+	   * @returns Bottom padding between list border and its elements.
+	   */
+	  get bottomPadding() {
+	    return this.options?.bottomPadding ?? this.vertPadding;
+	  }
+	  /**
+	   * Arrange all elements basing in their sizes and component options.
+	   * Can be arranged vertically, horizontally or bidirectional.
+	   */
+	  arrangeChildren() {
+	    let maxHeight = 0;
+	    let x = this.leftPadding;
+	    let y = this.topPadding;
+	    const elementsMargin = this.options?.elementsMargin ?? 0;
+	    let maxWidth = this.maxWidth || this.parent?.width;
+	    if (this.rightPadding) {
+	      maxWidth -= this.rightPadding;
+	    }
+	    this.children.forEach((child, id) => {
+	      switch (this.type) {
+	        case "vertical":
+	          child.y = y;
+	          child.x = x;
+	          y += elementsMargin + child.height;
+	          break;
+	        case "horizontal":
+	          child.x = x;
+	          child.y = y;
+	          x += elementsMargin + child.width;
+	          break;
+	        case "bidirectional":
+	        default:
+	          child.x = x;
+	          child.y = y;
+	          if (child.x + child.width > maxWidth && id > 0) {
+	            y += elementsMargin + maxHeight;
+	            x = this.leftPadding;
+	            child.x = x;
+	            child.y = y;
+	            maxHeight = 0;
+	          }
+	          maxHeight = Math.max(maxHeight, child.height);
+	          x += elementsMargin + child.width;
+	          break;
+	      }
+	    });
+	  }
+	  /**
+	   * Removes items from the list. (Does not destroy them)
+	   * @param itemID - Item to remove (starting from 0).
+	   */
+	  removeItem(itemID) {
+	    const child = this.children[itemID];
+	    if (!child) {
+	      return;
+	    }
+	    this.removeChild(child);
+	    this.arrangeChildren();
+	  }
+	  /** Set width of area to fit elements when arrange. (If not set parent width will be used). */
+	  set maxWidth(width) {
+	    this._maxWidth = width;
+	    this.arrangeChildren();
+	  }
+	  /** Get width of area to fit elements when arrange. (If not set parent width will be used). */
+	  get maxWidth() {
+	    return this._maxWidth;
+	  }
+	}
+
+	var __defProp$d = Object.defineProperty;
+	var __defNormalProp$d = (obj, key, value) => key in obj ? __defProp$d(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+	var __publicField$d = (obj, key, value) => __defNormalProp$d(obj, typeof key !== "symbol" ? key + "" : key, value);
+	class Spring {
+	  constructor(options = {}) {
+	    __publicField$d(this, "x");
+	    __publicField$d(this, "ax");
+	    __publicField$d(this, "dx");
+	    __publicField$d(this, "tx");
+	    __publicField$d(this, "_options");
+	    this.x = 0;
+	    this.ax = 0;
+	    this.dx = 0;
+	    this.tx = 0;
+	    this._options = {
+	      max: options.max ?? 160,
+	      damp: options.damp ?? 0.8,
+	      springiness: options.springiness ?? 0.1
+	    };
+	  }
+	  update() {
+	    this.ax = (this.tx - this.x) * this._options.springiness;
+	    this.dx += this.ax;
+	    this.dx *= this._options.damp;
+	    if (this.dx < -this._options.max) this.dx = -this._options.max;
+	    else if (this.dx > this._options.max) this.dx = this._options.max;
+	    this.x += this.dx;
+	  }
+	  reset() {
+	    this.x = 0;
+	    this.ax = 0;
+	    this.dx = 0;
+	    this.tx = 0;
+	  }
+	  get max() {
+	    return this._options.max;
+	  }
+	  set max(value) {
+	    this._options.max = value;
+	  }
+	  get damp() {
+	    return this._options.damp;
+	  }
+	  set damp(value) {
+	    this._options.damp = value;
+	  }
+	  get springiness() {
+	    return this._options.springiness;
+	  }
+	  set springiness(value) {
+	    this._options.springiness = value;
+	  }
+	}
+
+	var __defProp$c = Object.defineProperty;
+	var __defNormalProp$c = (obj, key, value) => key in obj ? __defProp$c(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+	var __publicField$c = (obj, key, value) => __defNormalProp$c(obj, typeof key !== "symbol" ? key + "" : key, value);
+	class ScrollSpring {
+	  constructor() {
+	    __publicField$c(this, "done", false);
+	    __publicField$c(this, "to", 0);
+	    __publicField$c(this, "_spring");
+	    __publicField$c(this, "_pos", 0);
+	    __publicField$c(this, "_speed", 0);
+	    __publicField$c(this, "_correctSpeed", false);
+	    this._spring = new Spring();
+	    this._pos = 0;
+	    this.to = 0;
+	  }
+	  start(speed, pos, to) {
+	    this._speed = speed;
+	    this._pos = pos;
+	    this.to = to;
+	    this.done = false;
+	    this._spring.x = this._pos;
+	    this._spring.tx = this.to;
+	    const diff = this.to - this._pos;
+	    const toDirection = Math.abs(diff) / diff;
+	    const currentDirection = Math.abs(this._speed) / this._speed;
+	    if (toDirection !== currentDirection) {
+	      this._correctSpeed = true;
+	    } else {
+	      this._correctSpeed = false;
+	    }
+	  }
+	  update() {
+	    if (this._correctSpeed) {
+	      this._speed *= 0.6;
+	      if (Math.abs(this._speed) < 2) {
+	        this._correctSpeed = false;
+	      }
+	      this._pos += this._speed;
+	      this._spring.x = this._pos;
+	    } else {
+	      const diff = this.to - this._pos;
+	      if (Math.abs(diff) < 0.05) {
+	        this._pos = this.to;
+	        this.done = true;
+	      } else {
+	        this._spring.tx = this.to;
+	        this._spring.update();
+	        this._pos = this._spring.x;
+	      }
+	    }
+	    return this._pos;
+	  }
+	  cancel() {
+	  }
+	}
+
+	var __defProp$b = Object.defineProperty;
+	var __defNormalProp$b = (obj, key, value) => key in obj ? __defProp$b(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+	var __publicField$b = (obj, key, value) => __defNormalProp$b(obj, typeof key !== "symbol" ? key + "" : key, value);
+	class SlidingNumber {
+	  constructor(options = {}) {
+	    __publicField$b(this, "position", 0);
+	    __publicField$b(this, "constrain", true);
+	    __publicField$b(this, "min", 0);
+	    // the window width of the drag
+	    __publicField$b(this, "max", 0);
+	    // the window width of the drag
+	    __publicField$b(this, "maxSpeed", 400);
+	    __publicField$b(this, "_ease");
+	    __publicField$b(this, "_offset", 0);
+	    __publicField$b(this, "_prev", 0);
+	    __publicField$b(this, "_speed", 0);
+	    __publicField$b(this, "_hasStopped", false);
+	    __publicField$b(this, "_targetSpeed", 0);
+	    __publicField$b(this, "_speedChecker", 0);
+	    __publicField$b(this, "_grab", 0);
+	    __publicField$b(this, "_activeEase");
+	    this.constrain = options.constrain ?? true;
+	    this.maxSpeed = options.maxSpeed ?? 400;
+	    this._ease = options.ease ?? new ScrollSpring();
+	  }
+	  set value(n) {
+	    this._speed = 0;
+	    this.position = n;
+	  }
+	  get value() {
+	    return this.position;
+	  }
+	  grab(offset) {
+	    this._grab = offset;
+	    this._offset = this.position - offset;
+	    this._speedChecker = 0;
+	    this._targetSpeed = this._speed = 0;
+	    this._hasStopped = false;
+	  }
+	  hold(newPosition) {
+	    this._speedChecker++;
+	    this.position = newPosition + this._offset;
+	    if (this._speedChecker > 1) {
+	      this._targetSpeed = this.position - this._prev;
+	    }
+	    this._speed += (this._targetSpeed - this._speed) / 2;
+	    if (this._speed > this.maxSpeed) this._speed = this.maxSpeed;
+	    else if (this._speed < -this.maxSpeed) this._speed = -this.maxSpeed;
+	    this._prev = this.position;
+	    if (this.constrain) {
+	      this._activeEase = void 0;
+	      if (this.position > this.min) {
+	        this.position -= (this.position - this.min) / 1.5;
+	      } else if (this.position < this.max) {
+	        this.position += (this.max - this.position) / 1.5;
+	      }
+	    }
+	  }
+	  slide(instant = false) {
+	    if (this._hasStopped) return;
+	    if (this.constrain) {
+	      this._updateConstrain(instant);
+	    } else {
+	      this._updateDefault();
+	    }
+	  }
+	  get moveAmount() {
+	    return -(this.position - this._offset - this._grab);
+	  }
+	  _updateDefault() {
+	    this._speed *= 0.9;
+	    this.position += this._speed;
+	    if ((this._speed < 0 ? this._speed * -1 : this._speed) < 0.01) {
+	      this._hasStopped = true;
+	    }
+	  }
+	  _updateConstrain(instant = false) {
+	    const max = this.max;
+	    if (instant) {
+	      if (this.value > 0) {
+	        this.value = 0;
+	      }
+	      if (this.value > 0) {
+	        this.value = 0;
+	      }
+	      if (this.value < this.max) {
+	        this.value = this.max;
+	      }
+	      if (this.value < this.max) {
+	        this.value = this.max;
+	      }
+	    } else if (this.position > this.min || this.position < max || this._activeEase) {
+	      if (!this._activeEase) {
+	        this._activeEase = this._ease;
+	        if (this.position > this.min) {
+	          this._activeEase.start(this._speed, this.position, this.min);
+	        } else {
+	          this._activeEase.start(this._speed, this.position, max);
+	        }
+	      }
+	      this.position = this._activeEase.update();
+	      if (this._activeEase.done) {
+	        this.position = this._activeEase.to;
+	        this._speed = 0;
+	        this._activeEase = void 0;
+	      }
+	    } else {
+	      this._updateDefault();
+	    }
+	  }
+	}
+
+	var __defProp$a = Object.defineProperty;
+	var __defNormalProp$a = (obj, key, value) => key in obj ? __defProp$a(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+	var __publicField$a = (obj, key, value) => __defNormalProp$a(obj, typeof key !== "symbol" ? key + "" : key, value);
+	class Trackpad {
+	  constructor(options) {
+	    __publicField$a(this, "xAxis");
+	    __publicField$a(this, "yAxis");
+	    __publicField$a(this, "_isDown", false);
+	    __publicField$a(this, "_globalPosition");
+	    __publicField$a(this, "_frame");
+	    __publicField$a(this, "_bounds");
+	    __publicField$a(this, "_dirty", false);
+	    __publicField$a(this, "disableEasing", false);
+	    this.xAxis = new SlidingNumber({
+	      ease: options.xEase,
+	      maxSpeed: options.maxSpeed,
+	      constrain: options.constrain
+	    });
+	    this.yAxis = new SlidingNumber({
+	      ease: options.yEase,
+	      maxSpeed: options.maxSpeed,
+	      constrain: options.constrain
+	    });
+	    this.disableEasing = options.disableEasing ?? false;
+	    this._frame = new PIXI.Rectangle();
+	    this._bounds = new PIXI.Rectangle();
+	    this._globalPosition = new PIXI.Point();
+	  }
+	  pointerDown(pos) {
+	    this._globalPosition = pos;
+	    this.xAxis.grab(pos.x);
+	    this.yAxis.grab(pos.y);
+	    this._isDown = true;
+	  }
+	  pointerUp() {
+	    this._isDown = false;
+	  }
+	  pointerMove(pos) {
+	    this._globalPosition = pos;
+	  }
+	  update() {
+	    if (this._dirty && this._bounds && this._frame) {
+	      this._dirty = false;
+	      this.xAxis.min = this._bounds.left;
+	      this.xAxis.min = this._bounds.right - this._frame.width;
+	      this.xAxis.min = this._bounds.top;
+	      this.xAxis.min = this._bounds.bottom - this._frame.height;
+	    }
+	    if (this._isDown && this._globalPosition) {
+	      this.xAxis.hold(this._globalPosition.x);
+	      this.yAxis.hold(this._globalPosition.y);
+	    } else {
+	      this.xAxis.slide(this.disableEasing);
+	      this.yAxis.slide(this.disableEasing);
+	    }
+	  }
+	  resize(w, h) {
+	    if (!this._frame) return;
+	    this._frame.x = 0;
+	    this._frame.width = w;
+	    this._frame.y = 0;
+	    this._frame.height = h;
+	    this._dirty = true;
+	  }
+	  setBounds(minX, maxX, minY, maxY) {
+	    if (!this._bounds) return;
+	    this._bounds.x = minX;
+	    this._bounds.width = maxX - minX;
+	    this._bounds.y = minY;
+	    this._bounds.height = maxY - minY;
+	    this._dirty = true;
+	  }
+	  get x() {
+	    return this.xAxis.value;
+	  }
+	  get y() {
+	    return this.yAxis.value;
+	  }
+	}
+
+	var __defProp$9 = Object.defineProperty;
+	var __defNormalProp$9 = (obj, key, value) => key in obj ? __defProp$9(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+	var __publicField$9 = (obj, key, value) => __defNormalProp$9(obj, typeof key !== "symbol" ? key + "" : key, value);
+	class ScrollBox extends PIXI.Container {
+	  /**
+	   * @param options
+	   * @param {number} options.background - background color of the ScrollBox.
+	   * @param {number} options.width - width of the ScrollBox.
+	   * @param {number} options.height - height of the ScrollBox.
+	   * @param {number} options.radius - radius of the ScrollBox and its masks corners.
+	   * @param {number} options.elementsMargin - margin between elements.
+	   * @param {number} options.vertPadding - vertical padding of the ScrollBox.
+	   * @param {number} options.horPadding - horizontal padding of the ScrollBox.
+	   * @param {number} options.padding - padding of the ScrollBox (same horizontal and vertical).
+	   * @param {boolean} options.disableDynamicRendering - disables dynamic rendering of the ScrollBox,
+	   * so even elements the are not visible will be rendered. Be careful with this options as it can impact performance.
+	   * @param {boolean} [options.globalScroll=true] - if true, the ScrollBox will scroll even if the mouse is not over it.
+	   * @param {boolean} [options.shiftScroll=false] - if true, the ScrollBox will only scroll horizontally if the shift key
+	   * is pressed, and the type is set to 'horizontal'.
+	   */
+	  constructor(options) {
+	    super();
+	    __publicField$9(this, "background");
+	    __publicField$9(this, "borderMask");
+	    __publicField$9(this, "lastWidth", 0);
+	    __publicField$9(this, "lastHeight", 0);
+	    __publicField$9(this, "_width", 0);
+	    __publicField$9(this, "_height", 0);
+	    __publicField$9(this, "_dimensionChanged", false);
+	    /**
+	     * Arrange container, that holds all inner elements.
+	     * Use this control inner arrange container size in case of bidirectional scroll type.
+	     */
+	    __publicField$9(this, "list");
+	    __publicField$9(this, "_trackpad");
+	    __publicField$9(this, "isDragging", 0);
+	    __publicField$9(this, "interactiveStorage", []);
+	    __publicField$9(this, "visibleItems", []);
+	    __publicField$9(this, "pressedChild");
+	    __publicField$9(this, "ticker", PIXI.Ticker.shared);
+	    __publicField$9(this, "options", {});
+	    __publicField$9(this, "stopRenderHiddenItemsTimeout");
+	    __publicField$9(this, "onMouseScrollBinding", this.onMouseScroll.bind(this));
+	    __publicField$9(this, "dragStarTouchPoint");
+	    __publicField$9(this, "isOver", false);
+	    __publicField$9(this, "proximityRange", 0);
+	    __publicField$9(this, "proximityStatusCache", []);
+	    __publicField$9(this, "lastScrollX");
+	    __publicField$9(this, "lastScrollY");
+	    __publicField$9(this, "proximityCheckFrameCounter", 0);
+	    __publicField$9(this, "onProximityChange", new dist.Signal());
+	    __publicField$9(this, "onScroll", new dist.Signal());
+	    if (options) {
+	      this.init(options);
+	    }
+	    this.ticker.add(this.update, this);
+	  }
+	  /**
+	   * Initiates ScrollBox.
+	   * @param options
+	   * @param {number} options.background - background color of the ScrollBox.
+	   * @param {number} options.width - width of the ScrollBox.
+	   * @param {number} options.height - height of the ScrollBox.
+	   * @param {number} options.radius - radius of the ScrollBox and its masks corners.
+	   * @param {number} options.elementsMargin - margin between elements.
+	   * @param {number} options.vertPadding - vertical padding of the ScrollBox.
+	   * @param {number} options.horPadding - horizontal padding of the ScrollBox.
+	   * @param {number} options.padding - padding of the ScrollBox (same horizontal and vertical).
+	   * @param {boolean} options.disableDynamicRendering - disables dynamic rendering of the ScrollBox,
+	   * so even elements the are not visible will be rendered. Be careful with this options as it can impact performance.
+	   * @param {boolean} [options.globalScroll=true] - if true, the ScrollBox will scroll even if the mouse is not over it.
+	   * @param {boolean} [options.shiftScroll=false] - if true, the ScrollBox will only scroll horizontally if the shift key
+	   */
+	  init(options) {
+	    this.options = options;
+	    this.setBackground(options.background);
+	    this._width = options.width ?? this.background?.width ?? 100;
+	    this._height = options.height ?? this.background?.height ?? 100;
+	    this.proximityRange = options.proximityRange ?? 0;
+	    if (!this.list) {
+	      this.list = new List();
+	      super.addChild(this.list);
+	    }
+	    this.list?.init({
+	      type: options.type,
+	      elementsMargin: options.elementsMargin,
+	      padding: options.padding,
+	      vertPadding: options.vertPadding,
+	      horPadding: options.horPadding,
+	      topPadding: options.topPadding,
+	      bottomPadding: options.bottomPadding,
+	      leftPadding: options.leftPadding,
+	      rightPadding: options.rightPadding,
+	      // For bidirectional type (including when options.type is null/undefined since List defaults to bidirectional),
+	      // use ScrollBox width as maxWidth to enable multi-column layout. Other types get 0 to disable width constraints.
+	      maxWidth: options.maxWidth || (options.type !== "horizontal" && options.type !== "vertical" ? this._width : 0)
+	    });
+	    if (options.items) {
+	      this.addItems(options.items);
+	    }
+	    if (this.hasBounds) {
+	      this.addMask();
+	      this.makeScrollable();
+	    }
+	    if (this._trackpad) {
+	      this._trackpad.xAxis.value = 0;
+	      this._trackpad.yAxis.value = 0;
+	    }
+	    this.options.globalScroll = options.globalScroll ?? true;
+	    this.options.shiftScroll = options.shiftScroll ?? false;
+	    this.resize();
+	  }
+	  get hasBounds() {
+	    return !!this._width || !!this._height;
+	  }
+	  /**
+	   *  Adds array of items to a scrollable list.
+	   * @param {Container[]} items - items to add.
+	   */
+	  addItems(items) {
+	    if (!items?.length) return;
+	    items.forEach((item) => this.addItem(item));
+	  }
+	  /** Remove all items from a scrollable list. */
+	  removeItems() {
+	    this.proximityStatusCache.length = 0;
+	    this.list?.removeChildren();
+	  }
+	  /**
+	   * Adds one or more items to a scrollable list.
+	   * @param {Container} items - one or more items to add.
+	   */
+	  addItem(...items) {
+	    if (items.length > 1) {
+	      items.forEach((item) => this.addItem(item));
+	    } else {
+	      const child = items[0];
+	      if (!child.width || !child.height) {
+	        console.error("ScrollBox item should have size");
+	      }
+	      child.eventMode = "static";
+	      this.list?.addChild(child);
+	      this.proximityStatusCache.push(false);
+	      if (!this.options.disableDynamicRendering) {
+	        child.renderable = this.isItemVisible(child);
+	      }
+	    }
+	    this.resize();
+	    return items[0];
+	  }
+	  /**
+	   * Removes an item from a scrollable list.
+	   * @param {number} itemID - id of the item to remove.
+	   */
+	  removeItem(itemID) {
+	    this.list?.removeItem(itemID);
+	    this.proximityStatusCache.splice(itemID, 1);
+	    this.resize();
+	  }
+	  /**
+	   * Checks if the item is visible or scrolled out of the visible part of the view.* Adds an item to a scrollable list.
+	   * @param {Container} item - item to check.
+	   * @param padding - proximity padding to consider the item visible.
+	   */
+	  isItemVisible(item, padding = 0) {
+	    let isVisible = false;
+	    const list = this.list;
+	    if (!list) return false;
+	    if (this.isVertical || this.isBidirectional) {
+	      const posY = item.y + list.y;
+	      if (posY + item.height >= -padding && posY <= (this.options.height ?? this._height) + padding) {
+	        isVisible = true;
+	      }
+	    }
+	    if (this.isHorizontal || this.isBidirectional) {
+	      const posX = item.x + list.x;
+	      if (posX + item.width >= -padding && posX <= (this.options.width ?? this._width) + padding) {
+	        isVisible = true;
+	      }
+	    }
+	    return isVisible;
+	  }
+	  /**
+	   * Returns all inner items in a list.
+	   * @returns {Array<Container> | Array} - list of items.
+	   */
+	  get items() {
+	    return this.list?.children ?? [];
+	  }
+	  /**
+	   * Set ScrollBox background.
+	   * @param {number | string} background - background color or texture.
+	   */
+	  setBackground(background) {
+	    if (this.background) {
+	      this.removeChild(this.background);
+	    }
+	    this.options.background = background;
+	    this.background = new PIXI.Graphics();
+	    this.addChildAt(this.background, 0);
+	    this.resize();
+	  }
+	  addMask() {
+	    if (!this.borderMask) {
+	      this.borderMask = new PIXI.Graphics();
+	      super.addChild(this.borderMask);
+	      this.mask = this.borderMask;
+	    }
+	    this.resize();
+	  }
+	  makeScrollable() {
+	    if (!this._trackpad) {
+	      this._trackpad = new Trackpad({
+	        disableEasing: this.options.disableEasing
+	      });
+	    }
+	    this.on("pointerdown", (e) => {
+	      this.renderAllItems();
+	      this.isDragging = 1;
+	      this.dragStarTouchPoint = this.worldTransform.applyInverse(e.global);
+	      if (this._trackpad && this.dragStarTouchPoint) {
+	        this._trackpad.pointerDown(new PIXI.Point(this.dragStarTouchPoint.x, this.dragStarTouchPoint.y));
+	      }
+	      const listTouchPoint = this.list?.worldTransform.applyInverse(e.global);
+	      if (listTouchPoint) {
+	        this.visibleItems.forEach((item) => {
+	          if (item.x < listTouchPoint.x && item.x + item.width > listTouchPoint.x && item.y < listTouchPoint.y && item.y + item.height > listTouchPoint.y) {
+	            this.pressedChild = item;
+	          }
+	        });
+	      }
+	    });
+	    this.on("pointerup", () => {
+	      this.isDragging = 0;
+	      this._trackpad?.pointerUp();
+	      this.restoreItemsInteractivity();
+	      this.pressedChild = void 0;
+	      this.stopRenderHiddenItems();
+	    });
+	    this.on("pointerover", () => {
+	      this.isOver = true;
+	    });
+	    this.on("pointerout", () => {
+	      this.isOver = false;
+	    });
+	    this.on("pointerupoutside", () => {
+	      this.isDragging = 0;
+	      this._trackpad?.pointerUp();
+	      this.restoreItemsInteractivity();
+	      this.pressedChild = void 0;
+	      this.stopRenderHiddenItems();
+	    });
+	    this.on("globalpointermove", (e) => {
+	      if (!this.isDragging) return;
+	      const touchPoint = this.worldTransform.applyInverse(e.global);
+	      if (this.dragStarTouchPoint) {
+	        const dragTrashHold = this.options.dragTrashHold ?? 10;
+	        if (this.isHorizontal || this.isBidirectional) {
+	          const xDist = touchPoint.x - this.dragStarTouchPoint.x;
+	          if (Math.abs(xDist) > dragTrashHold) {
+	            this.isDragging = 2;
+	          }
+	        }
+	        if (this.isVertical || this.isBidirectional) {
+	          const yDist = touchPoint.y - this.dragStarTouchPoint.y;
+	          if (Math.abs(yDist) > dragTrashHold) {
+	            this.isDragging = 2;
+	          }
+	        }
+	      }
+	      if (this.dragStarTouchPoint && this.isDragging !== 2) return;
+	      this._trackpad?.pointerMove(new PIXI.Point(touchPoint.x, touchPoint.y));
+	      if (this.pressedChild) {
+	        this.revertClick(this.pressedChild);
+	        this.pressedChild = void 0;
+	      }
+	      if (this.isBidirectional) {
+	        this.onScroll?.emit({ x: this.scrollX, y: this.scrollY });
+	      } else {
+	        this.onScroll?.emit(this.isVertical ? this.scrollY : this.scrollX);
+	      }
+	    });
+	    document.addEventListener("wheel", this.onMouseScrollBinding, true);
+	  }
+	  setInteractive(interactive) {
+	    this.eventMode = interactive ? "static" : "auto";
+	  }
+	  get listHeight() {
+	    return (this.list?.height ?? 0) + (this.list?.topPadding ?? 0) + (this.list?.bottomPadding ?? 0);
+	  }
+	  get listWidth() {
+	    return (this.list?.width ?? 0) + (this.list?.leftPadding ?? 0) + (this.list?.rightPadding ?? 0);
+	  }
+	  /**
+	   * Controls item positions and visibility.
+	   * @param force
+	   */
+	  resize(force = false) {
+	    if (!this.hasBounds) return;
+	    this.renderAllItems();
+	    if (this.borderMask && (force || this._dimensionChanged || this.lastWidth !== this.listWidth || this.lastHeight !== this.listHeight)) {
+	      if (!this.options.width) {
+	        this._width += this.listWidth;
+	      }
+	      if (!this.options.height) {
+	        this._height += this.listHeight;
+	      }
+	      this.borderMask?.clear().roundRect(0, 0, this._width, this._height, (this.options.radius ?? 0) | 0).fill(16711935).stroke(0);
+	      if (this.borderMask) this.borderMask.eventMode = "none";
+	      const color = this.options.background;
+	      this.background?.clear().roundRect(0, 0, this._width, this._height, (this.options.radius ?? 0) | 0).fill({
+	        color: color ?? 0,
+	        alpha: color ? 1 : 1e-7
+	        // if color is not set, set alpha to 0 to be able to drag by click on bg
+	      });
+	      if (this.isBidirectional) {
+	        this.setInteractive(this.listWidth > this._width || this.listHeight > this._height);
+	      } else if (this.isHorizontal) {
+	        this.setInteractive(this.listWidth > this._width);
+	      } else {
+	        this.setInteractive(this.listHeight > this._height);
+	      }
+	      this.lastWidth = this.listWidth;
+	      this.lastHeight = this.listHeight;
+	    }
+	    if (this._trackpad && this.borderMask) {
+	      const maxWidth = this.borderMask.width - (this.list?.width ?? 0) - (this.list?.leftPadding ?? 0) - (this.list?.rightPadding ?? 0);
+	      const maxHeight = this.borderMask.height - (this.list?.height ?? 0) - (this.list?.topPadding ?? 0) - (this.list?.bottomPadding ?? 0);
+	      if (this.isBidirectional) {
+	        this._trackpad.yAxis.max = -Math.abs(maxHeight);
+	        this._trackpad.xAxis.max = -Math.abs(maxWidth);
+	      } else if (this.isVertical) {
+	        this._trackpad.yAxis.max = -Math.abs(maxHeight);
+	      } else if (this.isHorizontal) {
+	        this._trackpad.xAxis.max = -Math.abs(maxWidth);
+	      }
+	    }
+	    if (this._dimensionChanged) {
+	      this.list?.arrangeChildren();
+	      this.stopRenderHiddenItems();
+	      this._dimensionChanged = false;
+	    } else {
+	      if (force) this.list?.arrangeChildren();
+	      this.updateVisibleItems();
+	    }
+	    this.lastScrollX = void 0;
+	    this.lastScrollY = void 0;
+	  }
+	  onMouseScroll(event) {
+	    if (!this.isOver && !this.options.globalScroll) return;
+	    this.renderAllItems();
+	    const shiftScroll = !!this.options.shiftScroll;
+	    const scrollOnX = shiftScroll ? typeof event.deltaX !== "undefined" || typeof event.deltaY !== "undefined" : typeof event.deltaX !== "undefined";
+	    const scrollOnY = typeof event.deltaY !== "undefined";
+	    if ((this.isHorizontal || this.isBidirectional) && scrollOnX) {
+	      const delta = shiftScroll || this.isBidirectional ? event.deltaX : event.deltaY;
+	      const targetPos = (this.list?.x ?? 0) - delta;
+	      if (this.listWidth < this._width) {
+	        this._trackpad && (this._trackpad.xAxis.value = 0);
+	      } else {
+	        const min = this._width - this.listWidth;
+	        const max = 0;
+	        this._trackpad && (this._trackpad.xAxis.value = Math.min(max, Math.max(min, targetPos)));
+	      }
+	    }
+	    if ((this.isVertical || this.isBidirectional) && scrollOnY) {
+	      const targetPos = (this.list?.y ?? 0) - event.deltaY;
+	      if (this.listHeight < this._height) {
+	        this._trackpad && (this._trackpad.yAxis.value = 0);
+	      } else {
+	        const min = this._height - this.listHeight;
+	        const max = 0;
+	        this._trackpad && (this._trackpad.yAxis.value = Math.min(max, Math.max(min, targetPos)));
+	      }
+	    }
+	    if (this.isBidirectional && (scrollOnX || scrollOnY)) {
+	      this.onScroll?.emit({ x: this._trackpad?.xAxis.value ?? 0, y: this._trackpad?.yAxis.value ?? 0 });
+	    } else if (this.isHorizontal && scrollOnX) {
+	      this.onScroll?.emit(this._trackpad?.xAxis.value ?? 0);
+	    } else if (this.isVertical && scrollOnY) {
+	      this.onScroll?.emit(this._trackpad?.yAxis.value ?? 0);
+	    }
+	    this.stopRenderHiddenItems();
+	  }
+	  /** Makes it scroll down to the last element. */
+	  scrollBottom() {
+	    if (!this.interactive) {
+	      this.scrollTop();
+	    } else {
+	      this.scrollTo((this.list?.children.length ?? 1) - 1);
+	    }
+	  }
+	  /** Makes it scroll up to the first element. */
+	  scrollTop() {
+	    this.renderAllItems();
+	    if (this._trackpad) {
+	      this._trackpad.xAxis.value = 0;
+	      this._trackpad.yAxis.value = 0;
+	    }
+	    this.stopRenderHiddenItems();
+	  }
+	  renderAllItems() {
+	    clearTimeout(this.stopRenderHiddenItemsTimeout);
+	    this.stopRenderHiddenItemsTimeout = void 0;
+	    if (this.options.disableDynamicRendering) {
+	      return;
+	    }
+	    this.items.forEach((child) => {
+	      child.renderable = true;
+	    });
+	  }
+	  stopRenderHiddenItems() {
+	    if (this.options.disableDynamicRendering) {
+	      return;
+	    }
+	    if (this.stopRenderHiddenItemsTimeout) {
+	      clearTimeout(this.stopRenderHiddenItemsTimeout);
+	      this.stopRenderHiddenItemsTimeout = void 0;
+	    }
+	    this.stopRenderHiddenItemsTimeout = setTimeout(() => this.updateVisibleItems(), 2e3);
+	  }
+	  updateVisibleItems() {
+	    this.visibleItems.length = 0;
+	    this.items.forEach((child) => {
+	      child.renderable = this.isItemVisible(child);
+	      this.visibleItems.push(child);
+	    });
+	  }
+	  /**
+	   * Scrolls to the element with the given ID.
+	   * @param elementID
+	   */
+	  scrollTo(elementID) {
+	    if (!this.interactive || !this._trackpad || !this.list) {
+	      return;
+	    }
+	    const target = this.list.children[elementID];
+	    if (!target) {
+	      return;
+	    }
+	    this.renderAllItems();
+	    this._trackpad.xAxis.value = this.isHorizontal || this.isBidirectional ? this._width - target.x - target.width - this.list.rightPadding : 0;
+	    this._trackpad.yAxis.value = this.isVertical || this.isBidirectional ? this._height - target.y - target.height - this.list.bottomPadding : 0;
+	    this.stopRenderHiddenItems();
+	  }
+	  /**
+	   * Scrolls to the given position.
+	   * @param position - x and y position object.
+	   * @param position.x - x position.
+	   * @param position.y - y position.
+	   */
+	  scrollToPosition({ x, y }) {
+	    if (x === void 0 && y === void 0) return;
+	    this.renderAllItems();
+	    if (x !== void 0) this.scrollX = -x;
+	    if (y !== void 0) this.scrollY = -y;
+	    this.stopRenderHiddenItems();
+	  }
+	  /** Gets component height. */
+	  get height() {
+	    return this._height;
+	  }
+	  set height(value) {
+	    this._height = value;
+	    this._dimensionChanged = true;
+	    this.resize();
+	    this.scrollTop();
+	  }
+	  /** Gets component width. */
+	  get width() {
+	    return this._width;
+	  }
+	  set width(value) {
+	    this._width = value;
+	    this._dimensionChanged = true;
+	    this.resize();
+	    this.scrollTop();
+	  }
+	  setSize(value, height) {
+	    if (typeof value === "object") {
+	      height = value.height ?? value.width;
+	      value = value.width;
+	    } else {
+	      height = height ?? value;
+	    }
+	    this._width = value;
+	    this._height = height;
+	    this._dimensionChanged = true;
+	    this.resize();
+	    this.scrollTop();
+	  }
+	  getSize(out) {
+	    out = out || { width: 0, height: 0 };
+	    out.width = this._width;
+	    out.height = this._height;
+	    return out;
+	  }
+	  /** Gets the current raw scroll position on the x-axis (Negated Value). */
+	  get scrollX() {
+	    return this._trackpad?.xAxis.value ?? 0;
+	  }
+	  /** Sets the current raw scroll position on the x-axis (Negated Value). */
+	  set scrollX(value) {
+	    if (this._trackpad) this._trackpad.xAxis.value = value;
+	  }
+	  /** Gets the current raw scroll position on the y-axis (Negated Value). */
+	  get scrollY() {
+	    return this._trackpad?.yAxis.value ?? 0;
+	  }
+	  /** Sets the current raw scroll position on the y-axis (Negated Value). */
+	  set scrollY(value) {
+	    if (this._trackpad) this._trackpad.yAxis.value = value;
+	  }
+	  update() {
+	    if (!this.list || !this._trackpad) return;
+	    this._trackpad.update();
+	    if (this.isHorizontal || this.isBidirectional) {
+	      if (this.list.x !== this._trackpad.x) {
+	        this.list.x = this._trackpad.x;
+	      }
+	    }
+	    if (this.isVertical || this.isBidirectional) {
+	      if (this.list.y !== this._trackpad.y) {
+	        this.list.y = this._trackpad.y;
+	      }
+	    }
+	    if (!this.options.disableProximityCheck && (this._trackpad.x !== this.lastScrollX || this._trackpad.y !== this.lastScrollY)) {
+	      this.proximityCheckFrameCounter++;
+	      if (this.proximityCheckFrameCounter >= (this.options.proximityDebounce ?? 10)) {
+	        this.items.forEach((item, index) => {
+	          const inRange = this.isItemVisible(item, this.proximityRange);
+	          const wasInRange = this.proximityStatusCache[index];
+	          if (inRange !== wasInRange) {
+	            this.proximityStatusCache[index] = inRange;
+	            this.onProximityChange.emit({ item, index, inRange });
+	          }
+	        });
+	        this.lastScrollX = this._trackpad.x;
+	        this.lastScrollY = this._trackpad.y;
+	        this.proximityCheckFrameCounter = 0;
+	      }
+	    }
+	  }
+	  /**
+	   * Destroys the component.
+	   * @param {boolean | DestroyOptions} [options] - Options parameter.
+	   * A boolean will act as if all options have been set to that value
+	   */
+	  destroy(options) {
+	    this.ticker.remove(this.update, this);
+	    document.removeEventListener("wheel", this.onMouseScrollBinding, true);
+	    this.background?.destroy();
+	    this.list?.destroy();
+	    super.destroy(options);
+	  }
+	  restoreItemsInteractivity() {
+	    this.interactiveStorage.forEach((element) => {
+	      element.item.eventMode = element.eventMode;
+	    });
+	    this.interactiveStorage.length = 0;
+	  }
+	  revertClick(item) {
+	    if (item.eventMode !== "auto") {
+	      if (PIXI.isMobile.any) {
+	        item.emit("pointerupoutside", { target: item });
+	      } else {
+	        item.emit("mouseupoutside", { target: item });
+	      }
+	      this.interactiveStorage.push({
+	        item,
+	        eventMode: item.eventMode ?? "auto"
+	      });
+	      item.eventMode = "auto";
+	    }
+	    if (item instanceof PIXI.Container && item.children) {
+	      item.children.forEach((child) => this.revertClick(child));
+	    }
+	  }
+	  get scrollHeight() {
+	    return this.list?.height ?? 0;
+	  }
+	  get scrollWidth() {
+	    return this.list?.width ?? 0;
+	  }
+	  get isVertical() {
+	    const type = this.options.type ?? "vertical";
+	    return type === "vertical";
+	  }
+	  get isHorizontal() {
+	    return this.options.type === "horizontal";
+	  }
+	  get isBidirectional() {
+	    return this.options.type === "bidirectional";
+	  }
+	}
+
+	var __defProp$8 = Object.defineProperty;
+	var __defNormalProp$8 = (obj, key, value) => key in obj ? __defProp$8(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+	var __publicField$8 = (obj, key, value) => __defNormalProp$8(obj, typeof key !== "symbol" ? key + "" : key, value);
+	class Dialog extends PIXI.Container {
+	  /**
+	   * Modal dialog component for asking users questions.
+	   * @param {DialogOptions} options - Configuration options for the dialog.
+	   * @param {string | Texture | Container | Sprite | Graphics} options.backdrop - Backdrop view or settings.
+	   * @param {number} options.backdropColor - Color of the backdrop (if backdrop is not provided).
+	   * @param {number} options.backdropAlpha - Alpha of the backdrop (if backdrop is not provided).
+	   * @param {string | Texture | Container | Sprite | Graphics} options.background -
+	   * Background view or settings for the dialog.
+	   * @param {string | Texture | Container | Sprite | Graphics} options.title -
+	   * Title text or settings for the dialog.
+	   * @param {string | Texture | Container | Sprite | Graphics | Container[]} options.content -
+	   * Content text, view, or array of views for the dialog.
+	   * @param {number} options.width - Width of the dialog.
+	   * @param {number} options.height - Height of the dialog.
+	   * @param {number} options.padding - Padding around the dialog content.
+	   * @param {(ButtonOptions | FancyButton | Button)[]} options.buttons - Array of button configurations or instances.
+	   * @param {ListOptions<Container>} options.buttonList - Configuration options for the button list layout.
+	   * @param {ScrollBoxOptions} options.scrollBox - Configuration options for the scroll box containing the content.
+	   * @param {object} options.animations - Animation settings for opening and closing the dialog.
+	   * @param {Animation} options.animations.open - Animation settings for opening the dialog.
+	   * @param {Animation} options.animations.close - Animation settings for closing the dialog.
+	   * @param {boolean} options.closeOnBackdropClick - Whether to close the dialog when clicking on the backdrop.
+	   * @param {[number, number, number, number]} options.nineSliceSprite - Nine-slice scaling settings for the background.
+	   */
+	  constructor(options) {
+	    super();
+	    __publicField$8(this, "backdrop");
+	    __publicField$8(this, "innerView");
+	    __publicField$8(this, "contentView");
+	    __publicField$8(this, "titleText");
+	    __publicField$8(this, "contentBody");
+	    __publicField$8(this, "scrollBox");
+	    __publicField$8(this, "buttonContainer");
+	    __publicField$8(this, "options");
+	    __publicField$8(this, "_isOpen", false);
+	    /** Signal emitted when a button is selected. */
+	    __publicField$8(this, "onSelect");
+	    /** Signal emitted when the dialog is closed. */
+	    __publicField$8(this, "onClose");
+	    this.options = options;
+	    this.onSelect = new dist.Signal();
+	    this.onClose = new dist.Signal();
+	    this.backdrop = new PIXI.Container();
+	    this.contentView = new PIXI.Container();
+	    this.buttonContainer = new List({
+	      type: "horizontal",
+	      elementsMargin: 10,
+	      ...options.buttonList
+	    });
+	    this.initBackdrop();
+	    this.initInnerView();
+	    this.initTitle();
+	    this.initButtons();
+	    const offset = this.dialogPadding;
+	    const { width } = this.options;
+	    let { height } = this.options;
+	    if (height) {
+	      height = height - offset * 2 - this.buttonContainer.height;
+	      if (this.titleText?.height) {
+	        height -= this.titleText.height;
+	      }
+	    }
+	    this.scrollBox = new ScrollBox({
+	      background: 0,
+	      elementsMargin: 10,
+	      radius: 0,
+	      type: "bidirectional",
+	      padding: 10,
+	      ...this.options.scrollBox,
+	      width: width ? width - offset * 2 : 0,
+	      height
+	    });
+	    this.innerView?.addChild(this.scrollBox);
+	    this.visible = false;
+	    this.initContent();
+	    PIXI.Ticker.shared.add(() => Group.shared.update());
+	  }
+	  /** Gets the dialog width from options or innerView. */
+	  get dialogWidth() {
+	    return this.options.width ?? this.innerView?.width ?? 0;
+	  }
+	  /** Gets the dialog height from options or innerView. */
+	  get dialogHeight() {
+	    return this.options.height ?? this.innerView?.height ?? 0;
+	  }
+	  /** Gets the dialog padding from options. */
+	  get dialogPadding() {
+	    return this.options.padding ?? 20;
+	  }
+	  /** Gets the open state of the dialog. */
+	  get isOpen() {
+	    return this._isOpen;
+	  }
+	  /** Initializes the backdrop (semi-transparent background). */
+	  initBackdrop() {
+	    if (this.options.backdrop) {
+	      this.backdrop = getView(this.options.backdrop);
+	    } else {
+	      const backdropSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
+	      backdropSprite.tint = this.options.backdropColor ?? 0;
+	      backdropSprite.alpha = this.options.backdropAlpha ?? 0.5;
+	      backdropSprite.width = 1e4;
+	      backdropSprite.height = 1e4;
+	      this.backdrop = backdropSprite;
+	    }
+	    this.backdrop.eventMode = "static";
+	    this.backdrop.x = -5e3;
+	    this.backdrop.y = -5e3;
+	    if (this.options.closeOnBackdropClick) {
+	      this.backdrop.on("pointertap", () => this.close());
+	    }
+	    this.addChild(this.backdrop);
+	  }
+	  /** Initializes the inner view (background panel). */
+	  initInnerView() {
+	    const { background, nineSliceSprite } = this.options;
+	    if (nineSliceSprite) {
+	      if (typeof background === "string") {
+	        this.innerView = new PIXI.NineSliceSprite({
+	          texture: PIXI.Texture.from(background),
+	          leftWidth: nineSliceSprite[0],
+	          topHeight: nineSliceSprite[1],
+	          rightWidth: nineSliceSprite[2],
+	          bottomHeight: nineSliceSprite[3]
+	        });
+	      } else if (background instanceof PIXI.Texture) {
+	        this.innerView = new PIXI.NineSliceSprite({
+	          texture: background,
+	          leftWidth: nineSliceSprite[0],
+	          topHeight: nineSliceSprite[1],
+	          rightWidth: nineSliceSprite[2],
+	          bottomHeight: nineSliceSprite[3]
+	        });
+	      } else {
+	        console.warn(
+	          "NineSliceSprite can not be used with views set as Container. Pass the texture or texture name as instead of the Container extended instance."
+	        );
+	        this.innerView = getView(background);
+	      }
+	    } else {
+	      this.innerView = getView(background);
+	    }
+	    if (this.options.width && this.options.height) {
+	      if (this.innerView instanceof PIXI.NineSliceSprite) {
+	        this.innerView.width = this.options.width;
+	        this.innerView.height = this.options.height;
+	      } else if (this.innerView instanceof PIXI.Graphics) {
+	        this.innerView.width = this.options.width;
+	        this.innerView.height = this.options.height;
+	      }
+	    }
+	    if ("anchor" in this.innerView) {
+	      this.innerView.anchor.set(0.5, 0.5);
+	    } else {
+	      this.innerView.pivot.set(this.dialogWidth / 2, this.dialogHeight / 2);
+	    }
+	    this.innerView.eventMode = "static";
+	    this.addChild(this.innerView);
+	    this.innerView.addChild(this.contentView);
+	  }
+	  /** Initializes the title text if provided. */
+	  initTitle() {
+	    if (!this.options.title) return;
+	    this.titleText = getTextView(this.options.title);
+	    if ("anchor" in this.titleText) {
+	      this.titleText.anchor.set(0.5, 0);
+	    }
+	    this.titleText.x = this.dialogWidth / 2;
+	    this.titleText.y = this.dialogPadding;
+	    this.contentView.addChild(this.titleText);
+	  }
+	  /** Initializes the content area, optionally wrapped in ScrollBox. */
+	  initContent() {
+	    if (!this.options.content) return;
+	    let yOffset = this.dialogPadding;
+	    if (this.titleText) {
+	      yOffset += this.titleText.height;
+	    }
+	    if (typeof this.options.content === "string" || typeof this.options.content === "number") {
+	      const textView = getTextView(this.options.content);
+	      this.scrollBox.addItem(textView);
+	    } else if (Array.isArray(this.options.content)) {
+	      this.options.content.forEach((item) => this.scrollBox.addItem(item));
+	    } else {
+	      this.scrollBox.addItem(this.options.content);
+	    }
+	    this.scrollBox.x = this.dialogPadding;
+	    this.scrollBox.y = yOffset;
+	    this.contentView.addChild(this.scrollBox);
+	  }
+	  /** Initializes the buttons at the bottom of the dialog. */
+	  initButtons() {
+	    if (!this.options.buttons || this.options.buttons.length === 0) {
+	      return;
+	    }
+	    const buttonConfigs = this.options.buttons;
+	    buttonConfigs.forEach((btn, index) => {
+	      let button;
+	      switch (true) {
+	        case btn instanceof Button:
+	          btn.onPress.connect(() => {
+	            this.onSelect.emit(index, "");
+	          });
+	          if (btn.view) {
+	            this.buttonContainer.addChild(btn.view);
+	          }
+	          break;
+	        case btn instanceof FancyButton:
+	          btn.onPress.connect(() => {
+	            this.onSelect.emit(index, btn.text ?? "");
+	          });
+	          this.buttonContainer.addChild(btn);
+	          break;
+	        default:
+	          button = new FancyButton(btn);
+	          button.onPress.connect(() => {
+	            this.onSelect.emit(index, button.text ?? "");
+	          });
+	          this.buttonContainer.addChild(button);
+	          break;
+	      }
+	    });
+	    this.buttonContainer.x = this.dialogWidth / 2 - this.buttonContainer.width / 2;
+	    this.buttonContainer.y = this.dialogHeight - this.dialogPadding - this.buttonContainer.height;
+	    this.contentView.addChild(this.buttonContainer);
+	  }
+	  /** Opens the dialog with animation. */
+	  open() {
+	    if (!this.innerView) return;
+	    this.visible = true;
+	    this._isOpen = true;
+	    const openAnimation = this.options.animations?.open;
+	    if (!openAnimation) {
+	      this.backdrop.alpha = this.options.backdropAlpha ?? 0.5;
+	      this.innerView.scale.set(1);
+	      return;
+	    }
+	    this.backdrop.alpha = 0;
+	    this.innerView.scale.set(0.8);
+	    const duration = openAnimation.duration ?? 300;
+	    new Tween(this.backdrop).to({ alpha: this.options.backdropAlpha ?? 0.5 }, duration).start();
+	    new Tween(this.innerView.scale).to({ x: 1, y: 1 }, duration).start();
+	  }
+	  /** Closes the dialog with animation. */
+	  close() {
+	    if (!this.innerView) return;
+	    const closeAnimation = this.options.animations?.close;
+	    if (!closeAnimation) {
+	      this.visible = false;
+	      this._isOpen = false;
+	      this.onClose.emit();
+	      return;
+	    }
+	    const duration = closeAnimation.duration ?? 300;
+	    new Tween(this.backdrop).to({ alpha: 0 }, duration).start();
+	    new Tween(this.innerView.scale).to({ x: 0.8, y: 0.8 }, duration).onComplete(() => {
+	      this.visible = false;
+	      this._isOpen = false;
+	      this.onClose.emit();
+	    }).start();
+	  }
+	  /** Shows the dialog (alias for open). */
+	  show() {
+	    this.open();
+	  }
+	  /** Hides the dialog (alias for close). */
+	  hide() {
+	    this.close();
+	  }
+	}
+
+	var __defProp$7 = Object.defineProperty;
+	var __defNormalProp$7 = (obj, key, value) => key in obj ? __defProp$7(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+	var __publicField$7 = (obj, key, value) => __defNormalProp$7(obj, typeof key !== "symbol" ? key + "" : key, value);
+	class ProgressBar extends PIXI.Container {
+	  /**
+	   * Creates a ProgressBar.
+	   * @param options - Options.
+	   * @param { Sprite | Graphics | Texture | string } options.bg - Background of the ProgressBar.
+	   * <br> If you pass a string, it will be used as a texture name.
+	   * <br> If you want to use NineSliceSprite, you have to pass a text
+	   * (name of texture) or an instance of Texture as a parameter here.
+	   * @param { Sprite | Graphics | Texture | string } options.fill - Fill of the ProgressBar.
+	   * <br> If you pass a string, it will be used as a texture name.
+	   * <br> If you want to use NineSliceSprite, you have to pass a text
+	   * (name of texture) or an instance of Texture as a parameter here.
+	   * @param { FillPaddings } options.fillPaddings - Fill offsets.
+	   * @param { number } options.fillPaddings.top - Fill top offset.
+	   * @param { number } options.fillPaddings.right - Fill right offset.
+	   * @param { number } options.fillPaddings.bottom - Fill bottom offset.
+	   * @param { number } options.fillPaddings.left - Fill left offset.
+	   * @param { NineSliceSprite } options.nineSliceSprite - NineSliceSprite values for bg and fill.
+	   * @param { Array } options.nineSliceSprite.bg - NineSliceSprite config for bg ([number, number, number, number]).
+	   * <br> <b>!!! IMPORTANT:</b> To make it work, you have to pass a bg parameter as texture name or texture instance.
+	   * @param { Array } options.nineSliceSprite.fill - NineSliceSprite config fill ([number, number, number, number]).
+	   * <br> <b>!!! IMPORTANT:</b> To make it work, you have to pass a fill parameter as texture name or texture instance.
+	   * @param { number } options.progress - Initial progress value.
+	   */
+	  constructor(options) {
+	    super();
+	    __publicField$7(this, "bg");
+	    __publicField$7(this, "fill");
+	    __publicField$7(this, "fillMask");
+	    __publicField$7(this, "progressStart", 0);
+	    __publicField$7(this, "_progress", 0);
+	    __publicField$7(this, "options");
+	    /** Container, that holds all inner views. */
+	    __publicField$7(this, "innerView");
+	    const defaultOptions = {
+	      bg: PIXI.Texture.WHITE,
+	      fill: PIXI.Texture.WHITE,
+	      fillPaddings: {
+	        top: 0,
+	        right: 0,
+	        bottom: 0,
+	        left: 0
+	      },
+	      progress: 0
+	    };
+	    this.options = { ...defaultOptions, ...options };
+	    this.innerView = new PIXI.Container();
+	    this.addChild(this.innerView);
+	    this.init(this.options);
+	  }
+	  /**
+	   * Initialize ProgressBar.
+	   * @param root0
+	   * @param root0.bg - Background texture.
+	   * @param root0.fill - Fill texture.
+	   * @param root0.fillPaddings - Fill offset.
+	   * @param root0.progress - Initial progress value.
+	   */
+	  init({ bg, fill, fillPaddings, progress }) {
+	    this.setBackground(bg);
+	    this.setFill(fill, fillPaddings);
+	    this.progress = progress ?? 0;
+	  }
+	  /**
+	   * Set bg.
+	   * @param bg
+	   */
+	  setBackground(bg) {
+	    if (this.bg) {
+	      this.bg.destroy();
+	    }
+	    if (this.options?.nineSliceSprite) {
+	      if (typeof bg === "string") {
+	        this.bg = new PIXI.NineSliceSprite({
+	          texture: PIXI.Texture.from(bg),
+	          leftWidth: this.options.nineSliceSprite.bg[0],
+	          topHeight: this.options.nineSliceSprite.bg[1],
+	          rightWidth: this.options.nineSliceSprite.bg[2],
+	          bottomHeight: this.options.nineSliceSprite.bg[3]
+	        });
+	      } else if (bg instanceof PIXI.Texture) {
+	        this.bg = new PIXI.NineSliceSprite({
+	          texture: bg,
+	          leftWidth: this.options.nineSliceSprite.bg[0],
+	          topHeight: this.options.nineSliceSprite.bg[1],
+	          rightWidth: this.options.nineSliceSprite.bg[2],
+	          bottomHeight: this.options.nineSliceSprite.bg[3]
+	        });
+	      } else {
+	        console.warn(`NineSliceSprite can not be used with views set as Container.
+                    Pass the texture or texture name as instead of the Container extended instance.`);
+	      }
+	    }
+	    if (!this.bg) {
+	      this.bg = getView(bg);
+	    }
+	    this.innerView.addChildAt(this.bg, 0);
+	  }
+	  /**
+	   * Set fill.
+	   * @param fill
+	   * @param fillPadding
+	   */
+	  setFill(fill, fillPadding) {
+	    if (this.fill) {
+	      this.fill.destroy();
+	    }
+	    if (this.bg instanceof PIXI.Sprite && fill === this.bg) {
+	      console.warn("Can not use same Sprite instance for bg and fill.");
+	      return;
+	    }
+	    if (this.options?.nineSliceSprite) {
+	      if (typeof fill === "string" || fill instanceof PIXI.Texture) {
+	        this.fill = new PIXI.NineSliceSprite({
+	          texture: typeof fill === "string" ? PIXI.Texture.from(fill) : fill,
+	          leftWidth: this.options.nineSliceSprite.fill[0],
+	          topHeight: this.options.nineSliceSprite.fill[1],
+	          rightWidth: this.options.nineSliceSprite.fill[2],
+	          bottomHeight: this.options.nineSliceSprite.fill[3]
+	        });
+	      } else {
+	        console.warn(`NineSliceSprite can not be used with views set as Container.
+                    Pass the texture or texture name as instead of the Container extended instance.`);
+	        this.fill = getView(fill);
+	      }
+	    } else {
+	      this.fill = getView(fill);
+	    }
+	    this.innerView.addChildAt(this.fill, 1);
+	    const offsetX = fillPadding?.left ?? 0;
+	    const offsetY = fillPadding?.top ?? 0;
+	    this.fill.x = offsetX;
+	    this.fill.y = offsetY;
+	    if (this.fillMask) {
+	      this.fill.mask = null;
+	      this.fillMask.destroy();
+	    }
+	    const leftWidth = this.fill.width / 2;
+	    const rightWidth = this.fill.width / 2;
+	    const topHeight = this.fill.height / 2;
+	    const bottomHeight = this.fill.height / 2;
+	    let texture = PIXI.Texture.WHITE;
+	    if (this.fill instanceof PIXI.Sprite && this.fill.texture) {
+	      texture = this.fill.texture;
+	    }
+	    this.fillMask = new PIXI.NineSliceSprite({
+	      texture,
+	      leftWidth,
+	      topHeight,
+	      rightWidth,
+	      bottomHeight
+	    });
+	    this.fillMask.position.copyFrom(this.fill);
+	    this.addChild(this.fillMask);
+	    this.fill.mask = this.fillMask;
+	  }
+	  validate(progress) {
+	    progress = Math.round(progress);
+	    if (progress < 0) {
+	      return 0;
+	    }
+	    if (progress > 100) {
+	      return 100;
+	    }
+	    return progress;
+	  }
+	  /** Set current progress percentage value. */
+	  set progress(progress) {
+	    this._progress = this.validate(progress);
+	    if (!this.fill) return;
+	    if (this.fillMask) {
+	      this.fill.mask = null;
+	      this.fillMask.width = this.fill.width / 100 * (this._progress - this.progressStart);
+	      this.fillMask.x = this.progressStart / 100 * this.fill.width + this.fill.x;
+	      this.fillMask.height = this.fill.height;
+	      this.fill.mask = this.fillMask;
+	    }
+	  }
+	  /** Return current progress percentage value. */
+	  get progress() {
+	    return this._progress;
+	  }
+	  /**
+	   * Sets width of a ProgressBars background and fill.
+	   * If nineSliceSprite is set, then width will be set to nineSliceSprite.
+	   * If nineSliceSprite is not set, then width will control components width as Container.
+	   * @param width - Width value.
+	   */
+	  set width(width) {
+	    if (this.options?.nineSliceSprite) {
+	      if (this.bg) {
+	        this.bg.width = width;
+	      }
+	      if (this.fill) {
+	        const leftPadding = this.options.fillPaddings?.left ?? 0;
+	        const rightPadding = this.options.fillPaddings?.right ?? 0;
+	        this.fill.width = width - leftPadding - rightPadding;
+	        this.fillMask.width = width - leftPadding - rightPadding;
+	      }
+	      this.progress = this._progress;
+	    } else {
+	      super.width = width;
+	    }
+	  }
+	  /** Gets width of a ProgressBar. */
+	  get width() {
+	    return super.width;
+	  }
+	  /**
+	   * Sets height of a ProgressBars background and fill.
+	   * If nineSliceSprite is set, then height will be set to nineSliceSprite.
+	   * If nineSliceSprite is not set, then height will control components height as Container.
+	   * @param height - Height value.
+	   */
+	  set height(height) {
+	    if (this.options?.nineSliceSprite) {
+	      if (this.bg) {
+	        this.bg.height = height;
+	      }
+	      if (this.fill) {
+	        const topPadding = this.options.fillPaddings?.top ?? 0;
+	        const bottomPadding = this.options.fillPaddings?.bottom ?? 0;
+	        this.fill.height = height - topPadding - bottomPadding;
+	        this.fillMask.height = height - topPadding - bottomPadding;
+	      }
+	      this.progress = this._progress;
+	    } else {
+	      super.height = height;
+	    }
+	  }
+	  /** Gets height of a ProgressBar. */
+	  get height() {
+	    return super.height;
+	  }
+	  setSize(value, height) {
+	    if (this.options?.nineSliceSprite) {
+	      if (this.bg) {
+	        this.bg.setSize(value, height);
+	      }
+	      if (this.fill) {
+	        if (typeof value === "object") {
+	          height = value.height ?? value.width;
+	          value = value.width;
+	        } else {
+	          height = height ?? value;
+	        }
+	        const topPadding = this.options.fillPaddings?.top ?? 0;
+	        const bottomPadding = this.options.fillPaddings?.bottom ?? 0;
+	        const leftPadding = this.options.fillPaddings?.left ?? 0;
+	        const rightPadding = this.options.fillPaddings?.right ?? 0;
+	        this.fill.setSize(
+	          value - leftPadding - rightPadding,
+	          height - topPadding - bottomPadding
+	        );
+	        this.fillMask.setSize(
+	          value - leftPadding - rightPadding,
+	          height - topPadding - bottomPadding
+	        );
+	      }
+	      this.progress = this._progress;
+	    } else {
+	      super.setSize(value, height);
+	    }
+	  }
+	}
+
+	var __defProp$6 = Object.defineProperty;
+	var __defNormalProp$6 = (obj, key, value) => key in obj ? __defProp$6(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+	var __publicField$6 = (obj, key, value) => __defNormalProp$6(obj, typeof key !== "symbol" ? key + "" : key, value);
+	class SliderBase extends ProgressBar {
+	  constructor(options) {
+	    super(options);
+	    __publicField$6(this, "_slider1");
+	    __publicField$6(this, "_slider2");
+	    __publicField$6(this, "value1Text");
+	    __publicField$6(this, "value2Text");
+	    __publicField$6(this, "_value1", 0);
+	    __publicField$6(this, "_value2", 0);
+	    __publicField$6(this, "dragging", 0);
+	    /** Minimal value. */
+	    __publicField$6(this, "_min", 0);
+	    /** Maximal value. */
+	    __publicField$6(this, "_max", 100);
+	    /** Progress value step */
+	    __publicField$6(this, "_step", 1);
+	    __publicField$6(this, "startX");
+	    __publicField$6(this, "startUpdateValue1");
+	    __publicField$6(this, "startUpdateValue2");
+	    __publicField$6(this, "settings");
+	    this.settings = options;
+	    if (options.slider1) {
+	      this.slider1 = options.slider1;
+	    }
+	    if (options.slider2) {
+	      this.slider2 = options.slider2;
+	    }
+	    this.min = options.min ?? 0;
+	    this.max = options.max ?? 100;
+	  }
+	  init(progressBarOptions) {
+	    super.init(progressBarOptions);
+	    if (this.fill) {
+	      this.fill.eventMode = "none";
+	    }
+	  }
+	  /**
+	   * Sets Slider1 instance.
+	   * @param value - Container or string with texture name.
+	   */
+	  set slider1(value) {
+	    if (!value) return;
+	    if (this._slider1) {
+	      this._slider1.removeAllListeners();
+	      this._slider1.destroy();
+	    }
+	    this._slider1 = this.createSlider(value);
+	    if (this.settings.showValue && !this.value1Text) {
+	      const TextClass = this.settings.valueTextClass ?? PIXI.Text;
+	      this.value1Text = new TextClass({
+	        text: "",
+	        style: this.settings.valueTextStyle || { fill: 16777215 }
+	      });
+	      this.value1Text.anchor.set(0.5);
+	      this.addChild(this.value1Text);
+	    }
+	  }
+	  /** Get Slider1 instance. */
+	  get slider1() {
+	    return this._slider1;
+	  }
+	  /**
+	   * Sets Slider2 instance.
+	   * @param value - Container or string with texture name.
+	   */
+	  set slider2(value) {
+	    if (!value) return;
+	    if (this._slider2) {
+	      this._slider2.removeAllListeners();
+	      this._slider2.destroy();
+	    }
+	    this._slider2 = this.createSlider(value);
+	    if (this.settings.showValue && !this.value2Text) {
+	      const TextClass = this.settings.valueTextClass ?? PIXI.Text;
+	      this.value2Text = new TextClass({
+	        text: "",
+	        style: this.settings.valueTextStyle || { fill: 16777215 }
+	      });
+	      this.value2Text.anchor.set(0.5);
+	      this.addChild(this.value2Text);
+	    }
+	  }
+	  /** Get Slider2 instance. */
+	  get slider2() {
+	    return this._slider2;
+	  }
+	  /**
+	   * Set bg.
+	   * @param bg
+	   */
+	  setBackground(bg) {
+	    if (this.bg) {
+	      this.bg.removeAllListeners();
+	    }
+	    super.setBackground(bg);
+	    this.activateBG();
+	  }
+	  activateBG() {
+	    this.bg.eventMode = "static";
+	    this.bg.on("pointerdown", this.startUpdate, this).on("globalpointermove", this.update, this).on("pointerup", this.endUpdate, this).on("pointerupoutside", this.endUpdate, this);
+	  }
+	  createSlider(sliderData) {
+	    const slider = getView(sliderData);
+	    const onPointerDown = (event) => {
+	      if (this.bg) {
+	        event.currentTarget = this.bg;
+	      }
+	      this.startUpdate(event);
+	    };
+	    slider.eventMode = "static";
+	    slider.on("pointerdown", onPointerDown).on("pointerup", this.endUpdate, this).on("pointerupoutside", this.endUpdate, this);
+	    slider.x = slider.width / 2;
+	    const container = new PIXI.Container();
+	    container.addChild(slider);
+	    if (slider instanceof PIXI.Sprite) {
+	      slider.anchor.set(0.5);
+	    }
+	    container.y = this.bg?.height ? this.bg?.height / 2 : 0;
+	    this.addChild(container);
+	    return container;
+	  }
+	  startUpdate(event) {
+	    this.dragging = 1;
+	    const obj = event.currentTarget;
+	    this.startX = obj.parent.worldTransform.applyInverse(event.global).x;
+	    this.startUpdateValue1 = this._value1;
+	    this.startUpdateValue2 = this._value2;
+	    this.update(event);
+	  }
+	  endUpdate() {
+	    if (!this.dragging) return;
+	    this.dragging = 0;
+	    if (!!this.startX || this.startUpdateValue1 !== this._value1 || this.startUpdateValue2 !== this._value2) {
+	      this.change();
+	    }
+	    this.startUpdateValue1 = 0;
+	    this.startUpdateValue2 = 0;
+	  }
+	  onClick() {
+	    this.change();
+	  }
+	  /* Called when dragging started and on every move. */
+	  update(_event) {
+	    const obj = _event.currentTarget;
+	    const { x } = obj.parent.worldTransform.applyInverse(_event.global);
+	    if (x !== this.startX) {
+	      this.startX = 0;
+	    }
+	  }
+	  /** Called when dragging stopped. */
+	  change() {
+	  }
+	  /**
+	   * Set max value.
+	   * @param value
+	   */
+	  set max(value) {
+	    this._max = value;
+	  }
+	  /** Get max value. */
+	  get max() {
+	    return this._max;
+	  }
+	  /**
+	   * Set min value.
+	   * @param value
+	   */
+	  set min(value) {
+	    this._min = value;
+	  }
+	  /** Get min value. */
+	  get min() {
+	    return this._min;
+	  }
+	  /**
+	   * Set step value.
+	   * @param value
+	   */
+	  set step(value) {
+	    this._step = value;
+	  }
+	  /** Get step value. */
+	  get step() {
+	    return this._step;
+	  }
+	}
+
+	var __defProp$5 = Object.defineProperty;
+	var __defNormalProp$5 = (obj, key, value) => key in obj ? __defProp$5(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+	var __publicField$5 = (obj, key, value) => __defNormalProp$5(obj, typeof key !== "symbol" ? key + "" : key, value);
+	class DoubleSlider extends SliderBase {
+	  constructor(options) {
+	    super(options);
+	    __publicField$5(this, "sliderOptions");
+	    __publicField$5(this, "activeValue");
+	    /** Signal that fires when value have changed. */
+	    __publicField$5(this, "onChange", new dist.Signal());
+	    /** Signal that fires when value is changing. */
+	    __publicField$5(this, "onUpdate", new dist.Signal());
+	    this.sliderOptions = options;
+	    this.setInitialState();
+	  }
+	  setInitialState() {
+	    this.validateValues();
+	    const { value1, value2 } = this.sliderOptions;
+	    this.updateProgress(value1, value2);
+	    this.value2 = value2 ?? 0;
+	    this.value1 = value1 ?? 0;
+	  }
+	  updateProgress(value1 = this.value1, value2 = this.value2) {
+	    this.progressStart = (value1 - this.min) / (this.max - this.min) * 100;
+	    this.progress = (value2 - this.min) / (this.max - this.min) * 100;
+	  }
+	  validateValues() {
+	    const min = this.sliderOptions.min ?? this.min;
+	    const max = this.sliderOptions.max ?? this.max;
+	    if (!this.sliderOptions.value1) {
+	      this.sliderOptions.value1 = min;
+	    }
+	    if (!this.sliderOptions.value2) {
+	      this.sliderOptions.value2 = max;
+	    }
+	    let value1 = this.sliderOptions.value1 ?? min;
+	    let value2 = this.sliderOptions.value2 ?? max;
+	    if (value2 < value1) {
+	      value2 = value1;
+	    }
+	    if (value1 < min) {
+	      value1 = min;
+	    }
+	    if (value1 > max) {
+	      value1 = max;
+	    }
+	    if (value2 > max) {
+	      value2 = max;
+	    }
+	    this.sliderOptions.value1 = value1;
+	    this.sliderOptions.value2 = value2;
+	  }
+	  /** Returns left value. */
+	  get value1() {
+	    return this._value1;
+	  }
+	  /** Sets left value. */
+	  set value1(value1) {
+	    if (value1 === this._value1) return;
+	    if (value1 < this.min) value1 = this.min;
+	    if (value1 > this._value2) value1 = this._value2;
+	    this._value1 = value1;
+	    this.updateSlider1();
+	    this.onUpdate?.emit(this.value1, this.value2);
+	  }
+	  /** Returns right value. */
+	  get value2() {
+	    return this._value2;
+	  }
+	  /** Sets right value. */
+	  set value2(value2) {
+	    if (value2 === this._value2) return;
+	    if (value2 < this._value1) value2 = this._value1;
+	    if (value2 > this.max) value2 = this.max;
+	    this._value2 = value2;
+	    this.updateSlider2();
+	    this.onUpdate?.emit(this.value1, this.value2);
+	  }
+	  update(event) {
+	    super.update(event);
+	    if (!this.dragging) return;
+	    const obj = event.currentTarget;
+	    const { x } = obj.parent.worldTransform.applyInverse(event.global);
+	    const slider1Dist = this._slider1 ? Math.abs(x - this._slider1.x - this._slider1.width) : Infinity;
+	    const slider2Dist = this._slider2 ? Math.abs(x - this._slider2.x) : Infinity;
+	    if (!this.activeValue) {
+	      if (this.slider1 && x < this.slider1.x) {
+	        this.activeValue = "value1";
+	      } else if (this.slider2 && x > this.slider2.x) {
+	        this.activeValue = "value2";
+	      } else {
+	        this.activeValue = slider1Dist < slider2Dist ? "value1" : "value2";
+	      }
+	    }
+	    const progress = this.validate(x / this.bg?.width * 100);
+	    if (this.activeValue === "value1") {
+	      this.progressStart = progress;
+	      this.value1 = this.min + (this.max - this.min) / 100 * progress;
+	      this.updateProgress(this.value1, this.value2);
+	    } else {
+	      this.progress = progress;
+	      this.value2 = this.min + (this.max - this.min) / 100 * progress;
+	      this.updateProgress(this.value1, this.value2);
+	    }
+	  }
+	  endUpdate() {
+	    super.endUpdate();
+	    this.activeValue = void 0;
+	  }
+	  change() {
+	    this.onChange?.emit(this.value1, this.value2);
+	  }
+	  /**
+	   * Set Slider1 instance.
+	   * @param value - Container or string with texture name.
+	   */
+	  set slider1(value) {
+	    super.slider1 = value;
+	    this.updateSlider1();
+	  }
+	  /** Get Slider1 instance. */
+	  get slider1() {
+	    return this._slider1;
+	  }
+	  /**
+	   * Sets Slider instance.
+	   * @param value - Container or string with texture name.
+	   */
+	  set slider2(value) {
+	    super.slider2 = value;
+	    this.updateSlider2();
+	  }
+	  /** Get Slider2 instance. */
+	  get slider2() {
+	    return this._slider2;
+	  }
+	  updateSlider1() {
+	    if (!this._slider1) return;
+	    this.updateProgress(this.value1, this.value2);
+	    this._slider1.x = (this.bg?.width ?? 0) / 100 * this.progressStart - this._slider1.width / 2;
+	    this._slider1.y = (this.bg?.height ?? 0) / 2;
+	    if (this._slider2 && this._slider1.x > this._slider2.x) {
+	      this._slider1.x = this._slider2.x;
+	    }
+	    if (this.sliderOptions?.showValue && this.value1Text && this._slider1) {
+	      this.value1Text.text = `${Math.round(this.value1)}`;
+	      const sliderPosX = this._slider1.x + this._slider1.width / 2;
+	      const sliderPosY = this._slider1.y;
+	      this.value1Text.x = sliderPosX + (this.sliderOptions.valueTextOffset?.x ?? 0);
+	      this.value1Text.y = sliderPosY + (this.sliderOptions.valueTextOffset?.y ?? 0);
+	    }
+	  }
+	  updateSlider2() {
+	    if (!this._slider2) return;
+	    this.updateProgress(this.value1, this.value2);
+	    this._slider2.x = (this.bg?.width ?? 0) / 100 * this.progress - this._slider2.width / 2;
+	    this._slider2.y = (this.bg?.height ?? 0) / 2;
+	    if (this._slider1 && this._slider2.x < this._slider1.x) {
+	      this._slider2.x = this._slider1.x;
+	    }
+	    if (this.sliderOptions?.showValue && this.value2Text && this._slider2) {
+	      this.value2Text.text = `${Math.round(this.value2)}`;
+	      const sliderPosX = this._slider2.x + this._slider2.width / 2;
+	      const sliderPosY = this._slider2.y;
+	      this.value2Text.x = sliderPosX + (this.sliderOptions.valueTextOffset?.x ?? 0);
+	      this.value2Text.y = sliderPosY + (this.sliderOptions.valueTextOffset?.y ?? 0);
+	    }
+	  }
+	  /**
+	   * Sets width of a Sliders background and fill.
+	   * If nineSliceSprite is set, then width will be set to nineSliceSprite.
+	   * If nineSliceSprite is not set, then width will control components width as Container.
+	   * @param value - Width value.
+	   */
+	  set width(value) {
+	    super.width = value;
+	    this.updateSlider1();
+	    this.updateSlider2();
+	  }
+	  /** Gets width of a Slider. */
+	  get width() {
+	    return super.width;
+	  }
+	  /**
+	   * Sets height of a Sliders background and fill.
+	   * If nineSliceSprite is set, then height will be set to nineSliceSprite.
+	   * If nineSliceSprite is not set, then height will control components height as Container.
+	   * @param value - Height value.
+	   */
+	  set height(value) {
+	    super.height = value;
+	    this.updateSlider1();
+	    this.updateSlider2();
+	  }
+	  /** Gets height of a Slider. */
+	  get height() {
+	    return super.height;
+	  }
+	  setSize(value, height) {
+	    super.setSize(value, height);
+	    this.updateSlider1();
+	    this.updateSlider2();
+	  }
+	}
+
+	var __defProp$4 = Object.defineProperty;
+	var __defNormalProp$4 = (obj, key, value) => key in obj ? __defProp$4(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+	var __publicField$4 = (obj, key, value) => __defNormalProp$4(obj, typeof key !== "symbol" ? key + "" : key, value);
+	const SECURE_CHARACTER = "*";
+	class Input extends PIXI.Container {
+	  /**
+	   * Creates an input.
+	   * @param { number } options - Options object to use.
+	   * @param { Sprite | Graphics | Texture | string } options.bg - Background of the Input.
+	   * <br> Can be a string (name of texture) or an instance of Texture, Sprite or Graphics.
+	   * <br> If you want to use NineSliceSprite, you have to pass a text (name of texture)
+	   * or an instance of Texture as a parameter.
+	   * @param { PixiTextStyle } options.textStyle - Text style of the Input.
+	   * @param { string } options.placeholder - Placeholder of the Input.
+	   * @param { string } options.value - Value of the Input.
+	   * @param { number } options.maxLength - Max length of the Input.
+	   * @param { 'left' | 'center' | 'right' } options.align - Align of the Input.
+	   * @param { Padding } options.padding - Padding of the Input.
+	   * @param { number } options.padding.top - Top padding of the Input.
+	   * @param { number } options.padding.right - Right padding of the Input.
+	   * @param { number } options.padding.bottom - Bottom padding of the Input.
+	   * @param { number } options.padding.left - Left padding of the Input.
+	   * @param { boolean } options.cleanOnFocus - Clean Input on focus.
+	   * @param { boolean } options.addMask - Add mask to the Input text, so it is cut off when it does not fit.
+	   * @param { Array } options.nineSliceSprite - NineSliceSprite values for bg and fill ([number, number, number, number]).
+	   * <br> <b>!!! IMPORTANT:</b> To make it work, you have to pass a texture name or texture instance as a bg parameter.
+	   */
+	  constructor(options) {
+	    super();
+	    __publicField$4(this, "_bg");
+	    __publicField$4(this, "inputMask");
+	    __publicField$4(this, "_cursor");
+	    __publicField$4(this, "_value", "");
+	    __publicField$4(this, "_secure", false);
+	    __publicField$4(this, "inputField");
+	    __publicField$4(this, "placeholder");
+	    __publicField$4(this, "editing", false);
+	    __publicField$4(this, "tick", 0);
+	    __publicField$4(this, "lastInputData", "");
+	    __publicField$4(this, "activation", false);
+	    __publicField$4(this, "options");
+	    __publicField$4(this, "input");
+	    __publicField$4(this, "handleActivationBinding", this.handleActivation.bind(this));
+	    __publicField$4(this, "onKeyUpBinding", this.onKeyUp.bind(this));
+	    __publicField$4(this, "stopEditingBinding", this.stopEditing.bind(this));
+	    __publicField$4(this, "onInputBinding", this.onInput.bind(this));
+	    __publicField$4(this, "onPasteBinding", this.onPaste.bind(this));
+	    /** Fires when input loses focus. */
+	    __publicField$4(this, "onEnter");
+	    /** Fires every time input string is changed. */
+	    __publicField$4(this, "onChange");
+	    /** Top side padding */
+	    __publicField$4(this, "paddingTop", 0);
+	    /** Right side padding */
+	    __publicField$4(this, "paddingRight", 0);
+	    /** Bottom side padding */
+	    __publicField$4(this, "paddingBottom", 0);
+	    /** Left side padding */
+	    __publicField$4(this, "paddingLeft", 0);
+	    const defaultOptions = {
+	      bg: PIXI.Texture.WHITE,
+	      textStyle: {
+	        fill: 0,
+	        align: "center"
+	      },
+	      TextClass: PIXI.Text,
+	      placeholder: "",
+	      value: "",
+	      maxLength: void 0,
+	      secure: false,
+	      align: "left",
+	      padding: 0,
+	      cleanOnFocus: false,
+	      addMask: false
+	    };
+	    this.options = { ...defaultOptions, ...options };
+	    const { padding = 0, secure = false } = this.options;
+	    this.padding = padding;
+	    this._secure = secure;
+	    this.cursor = "text";
+	    this.interactive = true;
+	    this.on("pointertap", () => {
+	      this.activation = true;
+	      PIXI.isMobile.any && this.handleActivation();
+	    });
+	    window.addEventListener(PIXI.isMobile.any ? "touchstart" : "click", this.handleActivationBinding);
+	    this.onEnter = new dist.Signal();
+	    this.onChange = new dist.Signal();
+	    PIXI.Ticker.shared.add((ticker) => this.update(ticker.deltaTime));
+	    if (options.bg) {
+	      this.bg = options.bg;
+	    } else {
+	      console.error("Input: bg is not defined, please define it.");
+	    }
+	  }
+	  onInput(e) {
+	    this.lastInputData = e.data ?? "";
+	  }
+	  onKeyUp(e) {
+	    const key = e.key;
+	    const keysToSkip = [
+	      "Shift",
+	      "Control",
+	      "Alt",
+	      "Meta",
+	      "ArrowLeft",
+	      "ArrowRight",
+	      "ArrowUp",
+	      "ArrowDown",
+	      "CapsLock",
+	      "AltGraph",
+	      "Tab",
+	      "ContextMenu",
+	      "F1",
+	      "F2",
+	      "F3",
+	      "F4",
+	      "F5",
+	      "F6",
+	      "F7",
+	      "F8",
+	      "F9",
+	      "F10",
+	      "F11",
+	      "F12",
+	      "ScrollLock",
+	      "Pause",
+	      "Insert",
+	      "Delete",
+	      "Home",
+	      "End",
+	      "PageUp",
+	      "PageDown",
+	      "NumLock",
+	      "Dead"
+	    ];
+	    if (keysToSkip.includes(key)) return;
+	    if (e.metaKey) return;
+	    if (e.ctrlKey) return;
+	    if (key === "Backspace") {
+	      this._delete();
+	    } else if (key === "Escape" || key === "Enter") {
+	      this.stopEditing();
+	    } else if (key.length === 1) {
+	      this._add(key);
+	    } else if (this.lastInputData && this.lastInputData.length === 1) {
+	      this._add(this.lastInputData);
+	    }
+	    if (this.input) {
+	      this.input.value = "";
+	    }
+	  }
+	  init() {
+	    const {
+	      textStyle = { fill: 0, align: "center" },
+	      TextClass = PIXI.Text,
+	      placeholder = ""
+	    } = this.options;
+	    const colorSource = textStyle.fill && PIXI.Color.isColorLike(textStyle.fill) ? textStyle.fill : 0;
+	    this.inputField = new TextClass({
+	      text: "",
+	      style: textStyle
+	    });
+	    this._cursor = new PIXI.Sprite(PIXI.Texture.WHITE);
+	    this._cursor.tint = colorSource;
+	    this._cursor.anchor.set(0.5);
+	    this._cursor.width = 2;
+	    this._cursor.height = this.inputField.height * 0.8;
+	    this._cursor.alpha = 0;
+	    this.placeholder = new TextClass({
+	      text: placeholder,
+	      style: textStyle
+	    });
+	    this.placeholder.visible = !!placeholder;
+	    this.addChild(this.inputField, this.placeholder, this._cursor);
+	    this.value = this.options.value ?? "";
+	    this.align();
+	  }
+	  set bg(bg) {
+	    if (this._bg) {
+	      this._bg.destroy();
+	    }
+	    const bgValue = bg ?? PIXI.Texture.WHITE;
+	    if (this.options?.nineSliceSprite) {
+	      if (typeof bgValue === "string") {
+	        this._bg = new PIXI.NineSliceSprite({
+	          texture: PIXI.Texture.from(bgValue),
+	          leftWidth: this.options.nineSliceSprite[0],
+	          topHeight: this.options.nineSliceSprite[1],
+	          rightWidth: this.options.nineSliceSprite[2],
+	          bottomHeight: this.options.nineSliceSprite[3]
+	        });
+	      } else if (bgValue instanceof PIXI.Texture) {
+	        this._bg = new PIXI.NineSliceSprite({
+	          texture: bgValue,
+	          leftWidth: this.options.nineSliceSprite[0],
+	          topHeight: this.options.nineSliceSprite[1],
+	          rightWidth: this.options.nineSliceSprite[2],
+	          bottomHeight: this.options.nineSliceSprite[3]
+	        });
+	      } else {
+	        console.warn(`NineSliceSprite can not be used with views set as Container.
+                    Pass the texture or texture name as instead of the Container extended instance.`);
+	      }
+	    }
+	    if (!this._bg) {
+	      this._bg = getView(bgValue);
+	    }
+	    this._bg.cursor = "text";
+	    this._bg.interactive = true;
+	    this.addChildAt(this._bg, 0);
+	    if (!this.inputField) {
+	      this.init();
+	    }
+	    if (this.options.addMask) {
+	      this.createInputMask(bg);
+	    }
+	  }
+	  get bg() {
+	    return this._bg;
+	  }
+	  _add(key) {
+	    if (!this.editing) {
+	      return;
+	    }
+	    if (this.options.maxLength && this.value.length >= this.options.maxLength) {
+	      return;
+	    }
+	    this.value = this.value + key;
+	    this.onChange.emit(this.value);
+	  }
+	  _delete() {
+	    const length = this.value.length;
+	    if (!this.editing || length === 0) return;
+	    this.value = this.value.substring(0, length - 1);
+	    this.onChange.emit(this.value);
+	  }
+	  _startEditing() {
+	    if (this.options.cleanOnFocus) {
+	      this.value = "";
+	    }
+	    this.tick = 0;
+	    this.editing = true;
+	    if (this.placeholder) {
+	      this.placeholder.visible = false;
+	    }
+	    if (this._cursor) {
+	      this._cursor.alpha = 1;
+	    }
+	    this.createInputField();
+	    this.align();
+	  }
+	  createInputField() {
+	    if (this.input) {
+	      this.input.removeEventListener("blur", this.stopEditingBinding);
+	      this.input.removeEventListener("keydown", this.onKeyUpBinding);
+	      this.input.removeEventListener("input", this.onInputBinding);
+	      this.input.removeEventListener("paste", this.onPasteBinding);
+	      this.input?.blur();
+	      this.input?.remove();
+	      this.input = void 0;
+	    }
+	    const input = document.createElement("input");
+	    document.body.appendChild(input);
+	    input.style.position = "fixed";
+	    input.style.left = `${this.getGlobalPosition().x}px`;
+	    input.style.top = `${this.getGlobalPosition().y}px`;
+	    input.style.opacity = "0.0000001";
+	    input.style.width = `${this._bg?.width ?? 100}px`;
+	    input.style.height = `${this._bg?.height ?? 30}px`;
+	    input.style.border = "none";
+	    input.style.outline = "none";
+	    input.style.background = "white";
+	    if (PIXI.isMobile.android.device) {
+	      setTimeout(() => {
+	        input.focus();
+	        input.click();
+	      }, 100);
+	    } else {
+	      input.focus();
+	      input.click();
+	    }
+	    input.addEventListener("blur", this.stopEditingBinding);
+	    input.addEventListener("keydown", this.onKeyUpBinding);
+	    input.addEventListener("input", this.onInputBinding);
+	    input.addEventListener("paste", this.onPasteBinding);
+	    this.input = input;
+	    this.align();
+	  }
+	  handleActivation() {
+	    if (this.editing) return;
+	    this.stopEditing();
+	    if (this.activation) {
+	      this._startEditing();
+	      this.activation = false;
+	    }
+	  }
+	  stopEditing() {
+	    if (!this.editing) return;
+	    if (this._cursor) {
+	      this._cursor.alpha = 0;
+	    }
+	    this.editing = false;
+	    if (this.placeholder && this.value.length === 0) {
+	      this.placeholder.visible = true;
+	    }
+	    this.input?.blur();
+	    this.input?.remove();
+	    this.input = void 0;
+	    this.align();
+	    this.onEnter.emit(this.value);
+	  }
+	  update(dt) {
+	    if (!this.editing) return;
+	    this.tick += dt * 0.1;
+	    if (this._cursor) {
+	      this._cursor.alpha = Math.round(Math.sin(this.tick) * 0.5 + 0.5);
+	    }
+	  }
+	  align() {
+	    if (!this._bg) return;
+	    const align = this.getAlign();
+	    if (this.inputField) {
+	      this.inputField.anchor.set(align, 0.5);
+	      this.inputField.x = this._bg.width * align + (align === 1 ? -this.paddingRight : this.paddingLeft);
+	      this.inputField.y = this._bg.height / 2 + this.paddingTop - this.paddingBottom;
+	    }
+	    if (this.placeholder) {
+	      this.placeholder.anchor.set(align, 0.5);
+	      this.placeholder.x = this._bg.width * align + (align === 1 ? -this.paddingRight : this.paddingLeft);
+	      this.placeholder.y = this._bg.height / 2;
+	    }
+	    if (this._cursor && this.inputField) {
+	      this._cursor.x = this.getCursorPosX();
+	      this._cursor.y = this.inputField.y;
+	    }
+	  }
+	  getAlign() {
+	    if (!(this._bg && this.inputField)) return 0;
+	    const maxWidth = this._bg.width * 0.95;
+	    const paddings = this.paddingLeft + this.paddingRight - 10;
+	    const isOverflowed = this.inputField.width + paddings > maxWidth;
+	    if (isOverflowed) {
+	      return this.editing ? 1 : 0;
+	    }
+	    switch (this.options.align) {
+	      case "left":
+	        return 0;
+	      case "center":
+	        return 0.5;
+	      case "right":
+	        return 1;
+	      default:
+	        return 0;
+	    }
+	  }
+	  getCursorPosX() {
+	    if (!this.inputField) return 0;
+	    const align = this.getAlign();
+	    switch (align) {
+	      case 0:
+	        return this.inputField.x + this.inputField.width;
+	      case 0.5:
+	        return this.inputField.x + this.inputField.width * 0.5;
+	      case 1:
+	        return this.inputField.x;
+	      default:
+	        return 0;
+	    }
+	  }
+	  /** Sets the input text. */
+	  set value(text) {
+	    const textLength = text.length;
+	    this._value = text;
+	    if (this.inputField) {
+	      this.inputField.text = this.secure ? SECURE_CHARACTER.repeat(textLength) : text;
+	    }
+	    if (this.placeholder) {
+	      this.placeholder.visible = textLength === 0 && !this.editing;
+	    }
+	    this.align();
+	  }
+	  /** Return text of the input. */
+	  get value() {
+	    return this._value;
+	  }
+	  set secure(val) {
+	    this._secure = val;
+	    this.value = this._value;
+	  }
+	  get secure() {
+	    return this._secure;
+	  }
+	  /**
+	   * Set paddings
+	   * @param value - number, array of 4 numbers or object with keys: top, right, bottom, left
+	   * or: [top, right, bottom, left]
+	   * or: [top&bottom, right&left]
+	   * or: {
+	   *  left: 10,
+	   *  right: 10,
+	   *  top: 10,
+	   *  bottom: 10,
+	   * }
+	   */
+	  set padding(value) {
+	    if (typeof value === "number") {
+	      this.paddingTop = value;
+	      this.paddingRight = value;
+	      this.paddingBottom = value;
+	      this.paddingLeft = value;
+	    }
+	    if (Array.isArray(value)) {
+	      this.paddingTop = value[0] ?? 0;
+	      this.paddingRight = value[1] ?? value[0] ?? 0;
+	      this.paddingBottom = value[2] ?? value[0] ?? 0;
+	      this.paddingLeft = value[3] ?? value[1] ?? value[0] ?? 0;
+	    } else if (typeof value === "object") {
+	      this.paddingTop = value.top ?? 0;
+	      this.paddingRight = value.right ?? 0;
+	      this.paddingBottom = value.bottom ?? 0;
+	      this.paddingLeft = value.left ?? 0;
+	    }
+	  }
+	  // Return array of paddings [top, right, bottom, left]
+	  get padding() {
+	    return [this.paddingTop, this.paddingRight, this.paddingBottom, this.paddingLeft];
+	  }
+	  destroy(options) {
+	    this.off("pointertap");
+	    window.removeEventListener(PIXI.isMobile.any ? "touchstart" : "click", this.handleActivationBinding);
+	    super.destroy(options);
+	  }
+	  /**
+	   * Sets width of a Input.
+	   * If nineSliceSprite is set, then width will be set to nineSliceSprite.
+	   * If nineSliceSprite is not set, then width will control components width as Container.
+	   * @param width - Width value.
+	   */
+	  set width(width) {
+	    if (this.options?.nineSliceSprite) {
+	      if (this._bg) {
+	        this._bg.width = width;
+	      }
+	      this.updateInputMaskSize();
+	      this.align();
+	    } else {
+	      super.width = width;
+	    }
+	  }
+	  /** Gets width of Input. */
+	  get width() {
+	    return super.width;
+	  }
+	  /**
+	   * Sets height of a Input.
+	   * If nineSliceSprite is set, then height will be set to nineSliceSprite.
+	   * If nineSliceSprite is not set, then height will control components height as Container.
+	   * @param height - Height value.
+	   */
+	  set height(height) {
+	    if (this.options?.nineSliceSprite) {
+	      if (this._bg) {
+	        this._bg.height = height;
+	      }
+	      this.updateInputMaskSize();
+	      this.align();
+	    } else {
+	      super.height = height;
+	    }
+	  }
+	  /** Gets height of Input. */
+	  get height() {
+	    return super.height;
+	  }
+	  setSize(value, height) {
+	    if (this.options?.nineSliceSprite) {
+	      if (this._bg) {
+	        this._bg.setSize(value, height);
+	      }
+	      this.updateInputMaskSize();
+	      this.align();
+	    } else {
+	      super.setSize(value, height);
+	    }
+	  }
+	  createInputMask(bg) {
+	    if (this.inputMask) {
+	      if (this.inputField) {
+	        this.inputField.mask = null;
+	      }
+	      if (this._cursor) {
+	        this._cursor.mask = null;
+	      }
+	      this.inputMask.destroy();
+	    }
+	    if (this.options?.nineSliceSprite && typeof bg === "string") {
+	      this.inputMask = new PIXI.NineSliceSprite({
+	        texture: PIXI.Texture.from(bg),
+	        leftWidth: this.options.nineSliceSprite[0],
+	        topHeight: this.options.nineSliceSprite[1],
+	        rightWidth: this.options.nineSliceSprite[2],
+	        bottomHeight: this.options.nineSliceSprite[3]
+	      });
+	    } else if (bg instanceof PIXI.Sprite) {
+	      this.inputMask = new PIXI.Sprite(bg.texture);
+	    } else if (bg instanceof PIXI.Graphics) {
+	      this.inputMask = bg.clone(true);
+	    } else {
+	      this.inputMask = getView(bg);
+	    }
+	    if (this.inputField) {
+	      this.inputField.mask = this.inputMask;
+	    }
+	    if (this._cursor) {
+	      this._cursor.mask = this.inputMask;
+	    }
+	    this.updateInputMaskSize();
+	    this.addChildAt(this.inputMask, 0);
+	  }
+	  updateInputMaskSize() {
+	    if (!this.inputMask || !this._bg) return;
+	    this.inputMask.setSize(
+	      this._bg.width - this.paddingLeft - this.paddingRight,
+	      this._bg.height - this.paddingTop - this.paddingBottom
+	    );
+	    this.inputMask.position.set(this.paddingLeft, this.paddingTop);
+	  }
+	  onPaste(e) {
+	    e.preventDefault();
+	    const text = (e.clipboardData || window.clipboardData).getData("text");
+	    if (!text) return;
+	    this._add(text);
+	  }
+	}
+
+	var __defProp$3 = Object.defineProperty;
+	var __defNormalProp$3 = (obj, key, value) => key in obj ? __defProp$3(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+	var __publicField$3 = (obj, key, value) => __defNormalProp$3(obj, typeof key !== "symbol" ? key + "" : key, value);
+	class MaskedFrame extends PIXI.Container {
+	  constructor(options) {
+	    super();
+	    /** Target container. */
+	    __publicField$3(this, "target");
+	    __publicField$3(this, "border", new PIXI.Graphics());
+	    __publicField$3(this, "_targetMask");
+	    __publicField$3(this, "maskData");
+	    __publicField$3(this, "borderWidth", 0);
+	    __publicField$3(this, "borderColor", 0);
+	    if (options?.target) {
+	      this.init(options);
+	    }
+	  }
+	  /**
+	   * Initializes a component.
+	   * @param root0
+	   * @param root0.target - Container to apply a mask or a border.
+	   * @param root0.mask - Mask.
+	   * @param root0.borderWidth - Border width.
+	   * @param root0.borderColor - Border color.
+	   */
+	  init({ target, mask, borderWidth, borderColor }) {
+	    if (this.target) {
+	      this.removeChild(this.target);
+	    }
+	    if (target) {
+	      this.target = getView(target);
+	    }
+	    this.addChild(this.border);
+	    if (this.target) {
+	      this.addChild(this.target);
+	    }
+	    if (mask) this.applyMask(mask);
+	    if (borderWidth) this.setBorder(borderWidth, borderColor ?? 0);
+	  }
+	  /**
+	   * Applies a mask to a target container.
+	   * @param mask
+	   */
+	  applyMask(mask) {
+	    this.maskData = mask;
+	    this._targetMask = getView(mask);
+	    this.addChild(this._targetMask);
+	    if (this.target) {
+	      this.target.mask = this._targetMask;
+	    }
+	  }
+	  /**
+	   * Shows a border around the target Container, same shape as the mask.
+	   * @param borderWidth
+	   * @param borderColor
+	   */
+	  setBorder(borderWidth, borderColor) {
+	    this.borderWidth = borderWidth;
+	    this.borderColor = borderColor;
+	    this.showBorder();
+	    if (this.maskData && this._targetMask) {
+	      const borderMask = typeof this.maskData === "string" ? PIXI.Sprite.from(this.maskData) : this.maskData.clone(true);
+	      borderMask.width += borderWidth * 2;
+	      borderMask.height += borderWidth * 2;
+	      this.mask = borderMask;
+	      this.addChild(borderMask);
+	      this._targetMask.position.set(borderWidth);
+	    }
+	  }
+	  /** Hides a border. */
+	  showBorder() {
+	    if (!this.target) return;
+	    const width = this.borderWidth * 2;
+	    this.border.clear().rect(0, 0, this.target.width + width, this.target.height + width).fill(this.borderColor);
+	    this.target.x = this.borderWidth;
+	    this.target.y = this.borderWidth;
+	  }
+	  /** Hides a border. */
+	  hideBorder() {
+	    this.border.clear();
+	  }
+	}
+
+	var __defProp$2 = Object.defineProperty;
+	var __defNormalProp$2 = (obj, key, value) => key in obj ? __defProp$2(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+	var __publicField$2 = (obj, key, value) => __defNormalProp$2(obj, typeof key !== "symbol" ? key + "" : key, value);
+	class RadioGroup extends PIXI.Container {
+	  constructor(options) {
+	    super();
+	    __publicField$2(this, "items", []);
+	    /** {@link List}, that holds and control all inned checkboxes.  */
+	    __publicField$2(this, "innerView");
+	    /** Text value of the selected item. */
+	    __publicField$2(this, "value", "");
+	    /** ID of the selected item. */
+	    __publicField$2(this, "selected", 0);
+	    /** Fires, when new item is selected. */
+	    __publicField$2(this, "onChange");
+	    __publicField$2(this, "options");
+	    const defaultOptions = {
+	      items: [],
+	      type: "vertical",
+	      elementsMargin: 0,
+	      selectedItem: 0
+	    };
+	    this.options = { ...defaultOptions, ...options };
+	    this.onChange = new dist.Signal();
+	    this.init(this.options);
+	  }
+	  /**
+	   * Initiates a group.
+	   * @param options
+	   */
+	  init(options) {
+	    this.options = options;
+	    this.selected = options.selectedItem ?? 0;
+	    this.value = options.items[this.selected]?.labelText?.text ?? "";
+	    if (this.innerView) {
+	      this.innerView.type = options.type;
+	      this.innerView.elementsMargin = options.elementsMargin;
+	    } else {
+	      this.innerView = new List({
+	        type: options.type,
+	        elementsMargin: options.elementsMargin
+	      });
+	    }
+	    this.addItems(options.items);
+	    this.addChild(this.innerView);
+	    this.selectItem(this.selected);
+	  }
+	  /**
+	   * Add items to a group.
+	   * @param {CheckBox[]} items - array of {@link CheckBox} instances.
+	   */
+	  addItems(items) {
+	    items.forEach((checkBox, id) => {
+	      checkBox.onChange.connect(() => this.selectItem(id));
+	      this.items.push(checkBox);
+	      this.innerView?.addChild(checkBox);
+	    });
+	  }
+	  /**
+	   * Remove items from a group.
+	   * @param ids
+	   */
+	  removeItems(ids) {
+	    ids.forEach((id) => {
+	      const item = this.items[id];
+	      if (!item) return;
+	      item.onChange.disconnectAll();
+	      this.innerView?.removeChild(item);
+	      this.items.splice(id, 1);
+	    });
+	  }
+	  /**
+	   * Select item by ID.
+	   * @param id
+	   */
+	  selectItem(id) {
+	    this.items.forEach((item, key) => {
+	      item.forceCheck(key === id);
+	    });
+	    if (this.selected !== id) {
+	      this.onChange.emit(id, this.items[id].labelText?.text ?? "");
+	    }
+	    this.value = this.options.items[id].labelText?.text ?? "";
+	    this.selected = id;
+	  }
+	}
+
+	var __defProp$1 = Object.defineProperty;
+	var __defNormalProp$1 = (obj, key, value) => key in obj ? __defProp$1(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+	var __publicField$1 = (obj, key, value) => __defNormalProp$1(obj, typeof key !== "symbol" ? key + "" : key, value);
+	const defaultVisibleItems = 5;
+	class Select extends PIXI.Container {
+	  constructor(options) {
+	    super();
+	    __publicField$1(this, "view", new PIXI.Container());
+	    __publicField$1(this, "openButton");
+	    __publicField$1(this, "closeButton");
+	    __publicField$1(this, "openView");
+	    __publicField$1(this, "scrollBox");
+	    /** Selected value ID. */
+	    __publicField$1(this, "value", -1);
+	    /** Fires when selected value is changed. */
+	    __publicField$1(this, "onSelect");
+	    this.addChild(this.view);
+	    this.onSelect = new dist.Signal();
+	    if (options) {
+	      this.init(options);
+	    }
+	  }
+	  /**
+	   * Initiates Select.
+	   * @param root0
+	   * @param root0.closedBG
+	   * @param root0.textStyle
+	   * @param root0.items
+	   * @param root0.openBG
+	   * @param root0.selected
+	   * @param root0.selectedTextOffset
+	   * @param root0.scrollBox
+	   * @param root0.visibleItems
+	   * @param root0.TextClass
+	   */
+	  init({
+	    closedBG,
+	    textStyle,
+	    TextClass,
+	    items,
+	    openBG,
+	    selected,
+	    selectedTextOffset,
+	    scrollBox,
+	    visibleItems
+	  }) {
+	    TextClass = TextClass ?? PIXI.Text;
+	    if (this.openView && this.openView !== openBG) {
+	      this.view.removeChild(this.openView);
+	    }
+	    if (!this.openButton) {
+	      this.openButton = new FancyButton({
+	        defaultView: closedBG,
+	        text: new TextClass({
+	          text: items?.items ? items.items[0] : "",
+	          style: textStyle
+	        }),
+	        textOffset: selectedTextOffset
+	      });
+	      this.openButton.onPress.connect(() => this.toggle());
+	      this.addChild(this.openButton);
+	    } else {
+	      this.openButton.defaultView = getView(closedBG);
+	      this.openButton.textView = new TextClass({
+	        text: items?.items ? items.items[0] : "",
+	        style: textStyle
+	      });
+	      this.openButton.textOffset = selectedTextOffset ?? {};
+	    }
+	    if (this.openView !== openBG) {
+	      this.openView = getView(openBG);
+	      this.view.visible = false;
+	      this.view.addChild(this.openView);
+	    }
+	    if (!this.closeButton) {
+	      this.closeButton = new FancyButton({
+	        defaultView: new PIXI.Graphics().rect(0, 0, this.openButton.width, this.openButton.height).fill({ color: 0, alpha: 1e-5 }),
+	        text: new TextClass({
+	          text: items?.items ? items.items[0] : "",
+	          style: textStyle
+	        }),
+	        textOffset: selectedTextOffset
+	      });
+	      this.closeButton.onPress.connect(() => this.toggle());
+	      this.view.addChild(this.closeButton);
+	    } else {
+	      this.closeButton.defaultView = new PIXI.Graphics().rect(0, 0, this.openButton.width, this.openButton.height).fill({ color: 0, alpha: 1e-5 });
+	      this.closeButton.textView = new TextClass({
+	        text: items?.items ? items.items[0] : "",
+	        style: textStyle
+	      });
+	      this.openButton.textOffset = selectedTextOffset ?? {};
+	    }
+	    if (!this.scrollBox) {
+	      this.scrollBox = new ScrollBox();
+	      this.view.addChild(this.scrollBox);
+	    } else {
+	      this.scrollBox.removeItems();
+	    }
+	    this.scrollBox.init({
+	      type: "vertical",
+	      elementsMargin: 0,
+	      width: this.openButton.width,
+	      height: this.openButton.height * (visibleItems ?? defaultVisibleItems),
+	      radius: 0,
+	      padding: 0,
+	      ...scrollBox
+	    });
+	    this.scrollBox.y = this.openButton.height;
+	    if (scrollBox?.offset) {
+	      this.scrollBox.x = scrollBox.offset.x ?? 0;
+	      this.scrollBox.y += scrollBox.offset.y ?? 0;
+	    }
+	    this.addItems(items, selected);
+	  }
+	  /**
+	   * Adds items to the dropdown.
+	   * @param items
+	   * @param selected
+	   */
+	  addItems(items, selected = 0) {
+	    this.convertItemsToButtons(items).forEach((button, id) => {
+	      const text = button.text;
+	      if (id === selected) {
+	        this.openButton.text = text ?? "";
+	        this.closeButton.text = text ?? "";
+	      }
+	      button.onPress.connect(() => {
+	        this.value = id;
+	        this.onSelect.emit(id, text ?? "");
+	        this.openButton.text = text ?? "";
+	        this.closeButton.text = text ?? "";
+	        this.close();
+	      });
+	      this.scrollBox?.addItem(button);
+	    });
+	  }
+	  /**
+	   * Remove items from the dropdown.
+	   * @param itemID - Item to remove (starting from 0).
+	   */
+	  removeItem(itemID) {
+	    if (!this.scrollBox) return;
+	    this.scrollBox.removeItem(itemID);
+	  }
+	  /** Toggle the select state (open if closed, closes - id open). */
+	  toggle() {
+	    this.view.visible = !this.view.visible;
+	    this.openButton.visible = !this.openButton.visible;
+	  }
+	  /** Show dropdown. */
+	  open() {
+	    this.view.visible = true;
+	    this.openButton.visible = false;
+	  }
+	  /** Hide dropdown. */
+	  close() {
+	    this.view.visible = false;
+	    this.openButton.visible = true;
+	  }
+	  convertItemsToButtons({
+	    items,
+	    backgroundColor,
+	    hoverColor,
+	    width,
+	    height,
+	    textStyle,
+	    TextClass,
+	    radius
+	  }) {
+	    TextClass = TextClass ?? PIXI.Text;
+	    const buttons = [];
+	    items.forEach((item) => {
+	      const defaultView = new PIXI.Graphics().roundRect(0, 0, width, height, radius).fill(backgroundColor);
+	      const color = hoverColor ?? backgroundColor;
+	      const hoverView = new PIXI.Graphics().roundRect(0, 0, width, height, radius).fill(color);
+	      const text = new TextClass({ text: item, style: textStyle });
+	      const button = new FancyButton({ defaultView, hoverView, text });
+	      buttons.push(button);
+	    });
+	    return buttons;
+	  }
+	}
+
+	var __defProp = Object.defineProperty;
+	var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+	var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+	class Slider extends SliderBase {
+	  constructor(options) {
+	    super({
+	      slider1: options.slider,
+	      value1: options.value,
+	      ...options
+	    });
+	    __publicField(this, "sliderOptions");
+	    /** Fires when value is changing, on every move of slider. */
+	    __publicField(this, "onUpdate", new dist.Signal());
+	    /** Fires when value changed, only when slider is released. */
+	    __publicField(this, "onChange", new dist.Signal());
+	    this.sliderOptions = options;
+	    this.step = options.step || 1;
+	    this.value = options.value ?? this.min;
+	    this.updateSlider();
+	  }
+	  /** Return selected value. */
+	  get value() {
+	    return this._value1;
+	  }
+	  /** Set selected value. */
+	  set value(value) {
+	    if (value === this._value1) return;
+	    if (value < this.min) value = this.min;
+	    if (value > this.max) value = this.max;
+	    this._value1 = value;
+	    this.updateSlider();
+	    this.onUpdate?.emit(this.value);
+	  }
+	  set max(value) {
+	    super.max = value;
+	    this.updateSlider();
+	  }
+	  get max() {
+	    return super.max;
+	  }
+	  set min(value) {
+	    super.min = value;
+	    this.updateSlider();
+	  }
+	  get min() {
+	    return super.min;
+	  }
+	  set step(value) {
+	    super.step = value;
+	    this.updateSlider();
+	  }
+	  get step() {
+	    return super.step;
+	  }
+	  /** Set slider instance ot texture. */
+	  // eslint-disable-next-line accessor-pairs
+	  set slider(value) {
+	    this.slider1 = value;
+	    this.updateSlider();
+	  }
+	  update(event) {
+	    super.update(event);
+	    if (!this.dragging) return;
+	    const obj = event.currentTarget;
+	    const { x } = obj.parent.worldTransform.applyInverse(event.global);
+	    const positionRatio = x / (this.bg?.width || 1);
+	    const rawValue = this.min + positionRatio * (this.max - this.min);
+	    this.value = Math.round(rawValue / this.step) * this.step;
+	  }
+	  change() {
+	    this.onChange?.emit(this.value);
+	  }
+	  updateSlider() {
+	    if (!this._slider1) return;
+	    this.progress = ((this.value ?? this.min) - this.min) / (this.max - this.min) * 100;
+	    this._slider1.x = (this.bg?.width ?? 0) / 100 * this.progress - this._slider1.width / 2;
+	    this._slider1.y = (this.bg?.height ?? 0) / 2;
+	    if (this.sliderOptions?.showValue && this.value1Text) {
+	      this.value1Text.text = `${Math.round(this.value)}`;
+	      const sliderPosX = this._slider1.x + this._slider1.width / 2;
+	      const sliderPosY = this._slider1.y;
+	      this.value1Text.x = sliderPosX + (this.sliderOptions.valueTextOffset?.x ?? 0);
+	      this.value1Text.y = sliderPosY + (this.sliderOptions.valueTextOffset?.y ?? 0);
+	    }
+	  }
+	  /**
+	   * Sets width of a Sliders background and fill.
+	   * If nineSliceSprite is set, then width will be set to nineSliceSprite.
+	   * If nineSliceSprite is not set, then width will control components width as Container.
+	   * @param value - Width value.
+	   */
+	  set width(value) {
+	    super.width = value;
+	    this.updateSlider();
+	  }
+	  /** Gets width of a Slider. */
+	  get width() {
+	    return super.width;
+	  }
+	  /**
+	   * Sets height of a Sliders background and fill.
+	   * If nineSliceSprite is set, then height will be set to nineSliceSprite.
+	   * If nineSliceSprite is not set, then height will control components height as Container.
+	   * @param value - Height value.
+	   */
+	  set height(value) {
+	    super.height = value;
+	    this.updateSlider();
+	  }
+	  /** Gets height of a Slider. */
+	  get height() {
+	    return super.height;
+	  }
+	  setSize(value, height) {
+	    super.setSize(value, height);
+	    this.updateSlider();
+	  }
+	}
+
+	var index = /*#__PURE__*/Object.freeze({
+		__proto__: null,
+		Button: Button,
+		ButtonContainer: ButtonContainer,
+		CheckBox: CheckBox,
+		CircularProgressBar: CircularProgressBar,
+		Dialog: Dialog,
+		DoubleSlider: DoubleSlider,
+		FancyButton: FancyButton,
+		Input: Input,
+		List: List,
+		MaskedFrame: MaskedFrame,
+		ProgressBar: ProgressBar,
+		RadioGroup: RadioGroup,
+		ScrollBox: ScrollBox,
+		Select: Select,
+		Slider: Slider,
+		Switcher: Switcher
+	});
+
+	/**
+	 * Game-style scrollable container with jellybean styling
+	 *
+	 * Features:
+	 * - Black outer border with inner shadow
+	 * - Custom styled scrollbar
+	 * - Smooth scroll behavior
+	 * - Content masking
+	 *
+	 * @example
+	 * ```typescript
+	 * const scrollBox = new GameScrollBox({ width: 300, height: 400 });
+	 * scrollBox.addItem(item1);
+	 * scrollBox.addItem(item2);
+	 * scrollBox.addItem(item3);
+	 * stage.addChild(scrollBox.getContainer());
+	 * ```
+	 */
+	class GameScrollBox extends EventEmitter {
+	    constructor(config = {}) {
+	        super();
+	        this.items = [];
+	        this.config = {
+	            width: config.width || 300,
+	            height: config.height || 200,
+	            padding: config.padding || 8,
+	            scrollDirection: config.scrollDirection || 'vertical',
+	            colorScheme: config.colorScheme || GameStyleColors.GAME_SCROLLBOX,
+	            showScrollbar: config.showScrollbar !== false
+	        };
+	        const factory = graphics();
+	        // Create container and graphics
+	        this.container = factory.createContainer();
+	        this.shadowGraphics = factory.createGraphics();
+	        this.borderGraphics = factory.createGraphics();
+	        this.backgroundGraphics = factory.createGraphics();
+	        // Build hierarchy
+	        this.container.addChild(this.shadowGraphics);
+	        this.container.addChild(this.borderGraphics);
+	        this.container.addChild(this.backgroundGraphics);
+	        // Create @pixi/ui ScrollBox
+	        this.createPixiScrollBox();
+	        // Initial render
+	        this.render();
+	    }
+	    createPixiScrollBox() {
+	        const { width, height, padding, scrollDirection } = this.config;
+	        const borderWidth = 3;
+	        const contentWidth = width - borderWidth * 2 - padding * 2;
+	        const contentHeight = height - borderWidth * 2 - padding * 2;
+	        this.pixiScrollBox = new ScrollBox({
+	            width: contentWidth,
+	            height: contentHeight,
+	            type: scrollDirection === 'both' ? undefined : scrollDirection,
+	            padding: padding,
+	            globalScroll: true,
+	            shiftScroll: scrollDirection === 'horizontal',
+	            disableEasing: false,
+	            dragTrashHold: 10
+	        });
+	        // Position inside our styled frame
+	        this.pixiScrollBox.x = borderWidth + padding;
+	        this.pixiScrollBox.y = borderWidth + padding;
+	        // Forward scroll events
+	        this.pixiScrollBox.onScroll.connect((value) => {
+	            const scrollY = typeof value === 'number' ? value : value.y ?? 0;
+	            this.emit('scroll', { y: scrollY, x: 0 });
+	        });
+	        this.container.addChild(this.pixiScrollBox);
+	    }
+	    render() {
+	        const { width, height, colorScheme } = this.config;
+	        const radius = 8;
+	        const shadowOffset = 3;
+	        // Clear all
+	        this.shadowGraphics.clear();
+	        this.borderGraphics.clear();
+	        this.backgroundGraphics.clear();
+	        // 1. Inner shadow (inset effect)
+	        this.shadowGraphics.roundRect(shadowOffset, shadowOffset, width, height, radius);
+	        this.shadowGraphics.fill({ color: colorScheme.shadow, alpha: 0.5 });
+	        // 2. Black border
+	        this.borderGraphics.roundRect(-1, -1, width + 2, height + 2, radius + 1);
+	        this.borderGraphics.stroke({ color: colorScheme.border, width: 1 });
+	        // 3. Background
+	        this.backgroundGraphics.roundRect(0, 0, width, height, radius);
+	        this.backgroundGraphics.fill({ color: colorScheme.background });
+	        // 4. Inner border
+	        this.backgroundGraphics.roundRect(1, 1, width - 2, height - 2, radius - 1);
+	        this.backgroundGraphics.stroke({ color: colorScheme.borderInner, width: 1, alpha: 0.5 });
+	    }
+	    /** Add an item to the scroll box */
+	    addItem(item) {
+	        this.items.push(item);
+	        this.pixiScrollBox.addItem(item);
+	        this.emit('itemAdded', item);
+	    }
+	    /** Remove an item from the scroll box */
+	    removeItem(item) {
+	        const index = this.items.indexOf(item);
+	        if (index !== -1) {
+	            this.items.splice(index, 1);
+	            this.pixiScrollBox.removeItem(index);
+	            this.emit('itemRemoved', item);
+	        }
+	    }
+	    /** Get all items */
+	    getItems() {
+	        return [...this.items];
+	    }
+	    /** Scroll to a specific position */
+	    scrollToPosition(x, y) {
+	        this.pixiScrollBox.scrollToPosition({ x, y });
+	    }
+	    /** Scroll to an item by index */
+	    scrollToItem(index) {
+	        if (index >= 0 && index < this.items.length) {
+	            this.pixiScrollBox.scrollTo(index);
+	        }
+	    }
+	    /** Scroll to top */
+	    scrollToTop() {
+	        this.pixiScrollBox.scrollTop();
+	    }
+	    /** Scroll to bottom */
+	    scrollToBottom() {
+	        this.pixiScrollBox.scrollBottom();
+	    }
+	    /** Get current scroll position Y */
+	    getScrollY() {
+	        return this.pixiScrollBox.scrollY;
+	    }
+	    /** Get current scroll position X */
+	    getScrollX() {
+	        return this.pixiScrollBox.scrollX;
+	    }
+	    /** Set scroll position Y */
+	    setScrollY(value) {
+	        this.pixiScrollBox.scrollY = value;
+	    }
+	    /** Set scroll position X */
+	    setScrollX(value) {
+	        this.pixiScrollBox.scrollX = value;
+	    }
+	    /** Set position */
+	    setPosition(x, y) {
+	        this.container.x = x;
+	        this.container.y = y;
+	    }
+	    /** Get the container */
+	    getContainer() {
+	        return this.container;
+	    }
+	    /** Destroy the component */
+	    destroy() {
+	        this.items = [];
+	        this.pixiScrollBox.destroy();
+	        this.container.destroy({ children: true });
+	        this.removeAllListeners();
+	    }
+	}
+	/**
+	 * Pre-defined scrollbox color schemes
+	 */
+	const GameScrollBoxColors = {
+	    DEFAULT: GameStyleColors.GAME_SCROLLBOX,
+	    DARK: {
+	        ...GameStyleColors.GAME_SCROLLBOX,
+	        background: 0x1A2530,
+	        scrollbarTrack: 0x0A1520
+	    },
+	    LIGHT: {
+	        ...GameStyleColors.GAME_SCROLLBOX,
+	        background: 0x4A5A6A,
+	        scrollbarTrack: 0x3A4A5A
+	    }
+	};
+
+	/**
+	 * Game-style text input component with jellybean styling
+	 *
+	 * Features:
+	 * - Black outer border with inner shadow (inset look)
+	 * - Focus state highlighting
+	 * - Placeholder text support
+	 * - Touch-friendly height (minimum 44px)
+	 *
+	 * @example
+	 * ```typescript
+	 * const nameInput = new GameInput({
+	 *   placeholder: 'Enter your name',
+	 *   width: 250,
+	 *   onChange: (value) => setPlayerName(value),
+	 *   onEnter: (value) => submitName(value)
+	 * });
+	 * stage.addChild(nameInput.getContainer());
+	 * ```
+	 */
+	class GameInput extends EventEmitter {
+	    constructor(config = {}) {
+	        super();
+	        this.isFocused = false;
+	        loadFrameworkFont();
+	        this.config = {
+	            width: config.width || 200,
+	            height: config.height || 44,
+	            placeholder: config.placeholder || '',
+	            value: config.value || '',
+	            maxLength: config.maxLength || 100,
+	            fontSize: config.fontSize || 18,
+	            colorScheme: config.colorScheme || GameStyleColors.GAME_INPUT,
+	            disabled: config.disabled || false,
+	            onChange: config.onChange || (() => { }),
+	            onEnter: config.onEnter || (() => { })
+	        };
+	        // Ensure minimum touch target
+	        this.config.height = Math.max(this.config.height, 44);
+	        this._value = this.config.value;
+	        const factory = graphics();
+	        // Create container and graphics
+	        this.container = factory.createContainer();
+	        this.shadowGraphics = factory.createGraphics();
+	        this.borderGraphics = factory.createGraphics();
+	        this.backgroundGraphics = factory.createGraphics();
+	        this.highlightGraphics = factory.createGraphics();
+	        // Build hierarchy
+	        this.container.addChild(this.shadowGraphics);
+	        this.container.addChild(this.borderGraphics);
+	        this.container.addChild(this.backgroundGraphics);
+	        this.container.addChild(this.highlightGraphics);
+	        // Create @pixi/ui Input
+	        this.createPixiInput();
+	        // Initial render
+	        this.render();
+	    }
+	    createPixiInput() {
+	        const { width, height, placeholder, value, maxLength, fontSize, colorScheme } = this.config;
+	        const padding = 12;
+	        // Create a transparent graphics for background (we draw our own styled background)
+	        const factory = graphics();
+	        const inputBg = factory.createGraphics();
+	        inputBg.rect(0, 0, width, height);
+	        inputBg.fill({ color: 0x000000, alpha: 0 });
+	        this.pixiInput = new Input({
+	            bg: inputBg,
+	            textStyle: {
+	                fontFamily: getFrameworkFontFamily(),
+	                fontSize: fontSize,
+	                fill: colorScheme.text
+	            },
+	            placeholder: placeholder,
+	            value: value,
+	            maxLength: maxLength,
+	            padding: [0, padding, 0, padding],
+	            align: 'left'
+	        });
+	        // Position inside our styled frame
+	        this.pixiInput.x = 0;
+	        this.pixiInput.y = 0;
+	        // Forward events using typed-signals connect
+	        this.pixiInput.onEnter.connect((val) => {
+	            this._value = val;
+	            this.emit('enter', val);
+	            this.config.onEnter(val);
+	        });
+	        this.pixiInput.onChange.connect((val) => {
+	            this._value = val;
+	            this.emit('change', val);
+	            this.config.onChange(val);
+	        });
+	        // Track focus state via pointer events on container
+	        this.container.eventMode = 'static';
+	        this.container.on('pointerdown', () => {
+	            this.isFocused = true;
+	            this.render();
+	            this.emit('focus');
+	        });
+	        // Listen for global clicks to detect blur
+	        // Note: In practice, the @pixi/ui Input handles native HTML input focus
+	        // We update visual state when user clicks away
+	        this.container.addChild(this.pixiInput);
+	    }
+	    render() {
+	        const { width, height, colorScheme, disabled } = this.config;
+	        const radius = 8;
+	        const shadowOffset = 3;
+	        // Clear all
+	        this.shadowGraphics.clear();
+	        this.borderGraphics.clear();
+	        this.backgroundGraphics.clear();
+	        this.highlightGraphics.clear();
+	        const alpha = disabled ? 0.5 : 1;
+	        const bgColor = this.isFocused ? colorScheme.backgroundFocus : colorScheme.background;
+	        // 1. Inner shadow (inset effect - drawn at bottom/right)
+	        this.shadowGraphics.roundRect(shadowOffset, shadowOffset, width, height, radius);
+	        this.shadowGraphics.fill({ color: colorScheme.shadow, alpha: alpha * 0.5 });
+	        // 2. Black border
+	        this.borderGraphics.roundRect(-1, -1, width + 2, height + 2, radius + 1);
+	        this.borderGraphics.stroke({ color: colorScheme.border, width: 1, alpha });
+	        // 3. Background
+	        this.backgroundGraphics.roundRect(0, 0, width, height, radius);
+	        this.backgroundGraphics.fill({ color: bgColor, alpha });
+	        // 4. Inner border (subtle depth)
+	        this.backgroundGraphics.roundRect(1, 1, width - 2, height - 2, radius - 1);
+	        this.backgroundGraphics.stroke({ color: colorScheme.borderInner, width: 1, alpha: alpha * 0.5 });
+	        // 5. Focus highlight
+	        if (this.isFocused && !disabled) {
+	            this.highlightGraphics.roundRect(-2, -2, width + 4, height + 4, radius + 2);
+	            this.highlightGraphics.stroke({ color: colorScheme.selection, width: 2, alpha: 0.6 });
+	        }
+	    }
+	    /** Get current value */
+	    getValue() {
+	        return this._value;
+	    }
+	    /** Set value */
+	    setValue(value) {
+	        this._value = value;
+	        this.pixiInput.value = value;
+	    }
+	    /** Set placeholder */
+	    setPlaceholder(placeholder) {
+	        this.config.placeholder = placeholder;
+	        // Note: @pixi/ui Input doesn't expose a setter for placeholder after construction
+	        // This would require recreating the input in practice
+	    }
+	    /** Set disabled state */
+	    setDisabled(disabled) {
+	        this.config.disabled = disabled;
+	        // @pixi/ui Input v2.x uses eventMode instead of disabled property
+	        this.pixiInput.eventMode = disabled ? 'none' : 'static';
+	        this.render();
+	    }
+	    /** Check if disabled */
+	    isDisabled() {
+	        return this.config.disabled;
+	    }
+	    /** Focus the input */
+	    focus() {
+	        this.isFocused = true;
+	        this.render();
+	        this.emit('focus');
+	        // Note: @pixi/ui Input doesn't expose focus() directly
+	        // The actual HTML input focus is handled internally by the component
+	    }
+	    /** Blur the input */
+	    blur() {
+	        this.isFocused = false;
+	        this.render();
+	        this.emit('blur');
+	        // Note: @pixi/ui Input doesn't expose blur() directly
+	    }
+	    /** Set position */
+	    setPosition(x, y) {
+	        this.container.x = x;
+	        this.container.y = y;
+	    }
+	    /** Get the container */
+	    getContainer() {
+	        return this.container;
+	    }
+	    /** Destroy the component */
+	    destroy() {
+	        this.pixiInput.destroy();
+	        this.container.destroy({ children: true });
+	        this.removeAllListeners();
+	    }
+	}
+	/**
+	 * Pre-defined input color schemes
+	 */
+	const GameInputColors = {
+	    DEFAULT: GameStyleColors.GAME_INPUT,
+	    DARK: {
+	        ...GameStyleColors.GAME_INPUT,
+	        background: 0x1A2530,
+	        backgroundFocus: 0x2A3540
+	    },
+	    LIGHT: {
+	        ...GameStyleColors.GAME_INPUT,
+	        background: 0x4A5A6A,
+	        backgroundFocus: 0x5A6A7A,
+	        text: 0xFFFFFF
+	    }
+	};
+
+	/**
+	 * Game-style list component for arranging children
+	 *
+	 * Features:
+	 * - Automatic layout with configurable gap
+	 * - Vertical or horizontal arrangement
+	 * - Dynamic add/remove items
+	 *
+	 * @example
+	 * ```typescript
+	 * const menu = new GameList({ direction: 'vertical', gap: 12 });
+	 * menu.addItem(button1.getContainer());
+	 * menu.addItem(button2.getContainer());
+	 * menu.addItem(button3.getContainer());
+	 * stage.addChild(menu.getContainer());
+	 * ```
+	 */
+	class GameList extends EventEmitter {
+	    constructor(config = {}) {
+	        super();
+	        this.items = [];
+	        this.config = {
+	            direction: config.direction || 'vertical',
+	            gap: config.gap || 8,
+	            padding: config.padding || 0
+	        };
+	        // Create our wrapper container
+	        this.container = graphics().createContainer();
+	        // Create @pixi/ui List for layout logic
+	        this.pixiList = new List({
+	            type: this.config.direction,
+	            elementsMargin: this.config.gap,
+	            padding: this.config.padding
+	        });
+	        // Add pixi list to our container
+	        this.container.addChild(this.pixiList);
+	    }
+	    /** Add an item to the list */
+	    addItem(item) {
+	        this.items.push(item);
+	        this.pixiList.addChild(item);
+	        this.emit('itemAdded', item);
+	    }
+	    /** Remove an item from the list */
+	    removeItem(item) {
+	        const index = this.items.indexOf(item);
+	        if (index !== -1) {
+	            this.items.splice(index, 1);
+	            this.pixiList.removeChild(item);
+	            this.emit('itemRemoved', item);
+	        }
+	    }
+	    /** Get all items */
+	    getItems() {
+	        return [...this.items];
+	    }
+	    /** Clear all items */
+	    clear() {
+	        this.items.forEach(item => {
+	            this.pixiList.removeChild(item);
+	        });
+	        this.items = [];
+	        this.emit('cleared');
+	    }
+	    /** Get item count */
+	    getItemCount() {
+	        return this.items.length;
+	    }
+	    /** Set gap between items */
+	    setGap(gap) {
+	        this.config.gap = gap;
+	        this.pixiList.elementsMargin = gap;
+	    }
+	    /** Set position */
+	    setPosition(x, y) {
+	        this.container.x = x;
+	        this.container.y = y;
+	    }
+	    /** Get the container */
+	    getContainer() {
+	        return this.container;
+	    }
+	    /** Destroy the component */
+	    destroy() {
+	        this.clear();
+	        this.container.destroy({ children: true });
+	        this.removeAllListeners();
+	    }
+	}
+
+	/**
+	 * Game-style radio button group with jellybean styling
+	 *
+	 * Features:
+	 * - Circular radio buttons with dot indicator
+	 * - Black outer border with inner shadow
+	 * - Vertical or horizontal layout
+	 * - Touch-friendly size
+	 *
+	 * @example
+	 * ```typescript
+	 * const difficulty = new GameRadioGroup({
+	 *   options: [
+	 *     { label: 'Easy', value: 'easy' },
+	 *     { label: 'Medium', value: 'medium' },
+	 *     { label: 'Hard', value: 'hard' }
+	 *   ],
+	 *   selectedValue: 'medium',
+	 *   onChange: (value) => setDifficulty(value)
+	 * });
+	 * stage.addChild(difficulty.getContainer());
+	 * ```
+	 */
+	class GameRadioGroup extends EventEmitter {
+	    constructor(config) {
+	        super();
+	        this.radioItems = [];
+	        this.pressedIndex = -1;
+	        loadFrameworkFont();
+	        this.config = {
+	            options: config.options || [],
+	            selectedValue: config.selectedValue || (config.options[0]?.value ?? ''),
+	            direction: config.direction || 'vertical',
+	            gap: config.gap || 16,
+	            size: config.size || 28,
+	            fontSize: config.fontSize || 18,
+	            colorScheme: config.colorScheme || GameStyleColors.GAME_RADIO,
+	            disabled: config.disabled || false,
+	            onChange: config.onChange || (() => { })
+	        };
+	        this.config.size = Math.max(this.config.size, 28);
+	        this._selectedValue = this.config.selectedValue;
+	        this.container = graphics().createContainer();
+	        this.createRadioItems();
+	        this.render();
+	        this.setupInteraction();
+	    }
+	    createRadioItems() {
+	        const { options, direction, gap, size, fontSize, colorScheme } = this.config;
+	        const factory = graphics();
+	        let offsetX = 0;
+	        let offsetY = 0;
+	        options.forEach((option, index) => {
+	            const itemContainer = factory.createContainer();
+	            itemContainer.x = offsetX;
+	            itemContainer.y = offsetY;
+	            // Create graphics layers
+	            const gfx = {
+	                shadow: factory.createGraphics(),
+	                border: factory.createGraphics(),
+	                background: factory.createGraphics(),
+	                highlight: factory.createGraphics(),
+	                dot: factory.createGraphics()
+	            };
+	            itemContainer.addChild(gfx.shadow);
+	            itemContainer.addChild(gfx.border);
+	            itemContainer.addChild(gfx.background);
+	            itemContainer.addChild(gfx.highlight);
+	            itemContainer.addChild(gfx.dot);
+	            // Create label
+	            const label = factory.createText(option.label, {
+	                fontFamily: getFrameworkFontFamily(),
+	                fontSize: fontSize,
+	                fontWeight: '600',
+	                fill: colorScheme.text
+	            });
+	            label.x = size + 12;
+	            label.y = size / 2;
+	            if (label.anchor)
+	                label.anchor.set(0, 0.5);
+	            itemContainer.addChild(label);
+	            this.container.addChild(itemContainer);
+	            this.radioItems.push({ container: itemContainer, option, graphics: gfx, label });
+	            // Update offset for next item
+	            if (direction === 'horizontal') {
+	                offsetX += size + 12 + (label.width || 60) + gap;
+	            }
+	            else {
+	                offsetY += size + gap;
+	            }
+	        });
+	    }
+	    render() {
+	        const { size, colorScheme, disabled } = this.config;
+	        const radius = size / 2;
+	        const shadowOffset = 2;
+	        this.radioItems.forEach((item, index) => {
+	            const { graphics: gfx, option } = item;
+	            const isSelected = option.value === this._selectedValue;
+	            const isPressed = index === this.pressedIndex;
+	            // Clear all
+	            Object.values(gfx).forEach(g => g.clear());
+	            const alpha = disabled ? 0.5 : 1;
+	            const circleY = isPressed ? shadowOffset - 1 : 0;
+	            const currentShadow = isPressed ? 1 : shadowOffset;
+	            // 1. Shadow
+	            gfx.shadow.circle(radius, radius + currentShadow, radius);
+	            gfx.shadow.fill({ color: colorScheme.circleShadow, alpha });
+	            // 2. Border
+	            gfx.border.circle(radius, radius + circleY, radius + 1);
+	            gfx.border.stroke({ color: colorScheme.circleBorder, width: 1, alpha });
+	            // 3. Background
+	            const bgColor = isSelected ? colorScheme.circleSelected : colorScheme.circleBg;
+	            gfx.background.circle(radius, radius + circleY, radius);
+	            gfx.background.fill({ color: bgColor, alpha });
+	            // 4. Highlight
+	            if (!isPressed) {
+	                gfx.highlight.ellipse(radius, radius + circleY - radius * 0.2, radius * 0.7, radius * 0.35);
+	                gfx.highlight.fill({ color: colorScheme.highlight, alpha: 0.2 * alpha });
+	            }
+	            // 5. Inner dot (if selected)
+	            if (isSelected) {
+	                gfx.dot.circle(radius, radius + circleY, radius * 0.4);
+	                gfx.dot.fill({ color: colorScheme.dot, alpha });
+	            }
+	        });
+	    }
+	    setupInteraction() {
+	        this.radioItems.forEach((item, index) => {
+	            item.container.eventMode = 'static';
+	            item.container.cursor = this.config.disabled ? 'default' : 'pointer';
+	            const size = this.config.size;
+	            const labelWidth = item.label.width || 60;
+	            item.container.hitArea = {
+	                contains: (x, y) => {
+	                    return x >= -4 && x <= size + 12 + labelWidth + 4 && y >= -4 && y <= size + 8;
+	                }
+	            };
+	            item.container.on('pointerdown', () => this.onPointerDown(index));
+	            item.container.on('pointerup', () => this.onPointerUp(index));
+	            item.container.on('pointerupoutside', () => this.onPointerUpOutside());
+	        });
+	    }
+	    onPointerDown(index) {
+	        if (this.config.disabled)
+	            return;
+	        this.pressedIndex = index;
+	        this.render();
+	    }
+	    onPointerUp(index) {
+	        if (this.config.disabled)
+	            return;
+	        this.pressedIndex = -1;
+	        this.selectIndex(index);
+	    }
+	    onPointerUpOutside() {
+	        if (this.config.disabled)
+	            return;
+	        this.pressedIndex = -1;
+	        this.render();
+	    }
+	    selectIndex(index) {
+	        const option = this.radioItems[index]?.option;
+	        if (option && option.value !== this._selectedValue) {
+	            this._selectedValue = option.value;
+	            this.render();
+	            this.emit('change', this._selectedValue);
+	            this.config.onChange(this._selectedValue);
+	        }
+	    }
+	    /** Get selected value */
+	    getValue() {
+	        return this._selectedValue;
+	    }
+	    /** Set selected value */
+	    setValue(value) {
+	        const exists = this.config.options.some(o => o.value === value);
+	        if (exists && this._selectedValue !== value) {
+	            this._selectedValue = value;
+	            this.render();
+	            this.emit('change', this._selectedValue);
+	        }
+	    }
+	    /** Set disabled state */
+	    setDisabled(disabled) {
+	        this.config.disabled = disabled;
+	        this.radioItems.forEach(item => {
+	            item.container.cursor = disabled ? 'default' : 'pointer';
+	        });
+	        this.render();
+	    }
+	    /** Check if disabled */
+	    isDisabled() {
+	        return this.config.disabled;
+	    }
+	    /** Set position */
+	    setPosition(x, y) {
+	        this.container.x = x;
+	        this.container.y = y;
+	    }
+	    /** Get the container */
+	    getContainer() {
+	        return this.container;
+	    }
+	    /** Destroy the component */
+	    destroy() {
+	        this.container.destroy({ children: true });
+	        this.removeAllListeners();
+	    }
+	}
+	/**
+	 * Pre-defined radio color schemes
+	 */
+	const GameRadioColors = {
+	    DEFAULT: GameStyleColors.GAME_RADIO,
+	    GREEN: {
+	        ...GameStyleColors.GAME_RADIO,
+	        circleSelected: 0x4CAF50
+	    },
+	    ORANGE: {
+	        ...GameStyleColors.GAME_RADIO,
+	        circleSelected: 0xF5B041
+	    },
+	    PURPLE: {
+	        ...GameStyleColors.GAME_RADIO,
+	        circleSelected: 0x9C27B0
+	    }
+	};
+
+	/**
+	 * Game-style dropdown select component with jellybean styling
+	 *
+	 * Features:
+	 * - Jellybean trigger button (like GameStyleButton)
+	 * - Dropdown panel with game styling
+	 * - Item hover and selection states
+	 * - Arrow indicator
+	 *
+	 * @example
+	 * ```typescript
+	 * const levelSelect = new GameSelect({
+	 *   placeholder: 'Select Level',
+	 *   options: [
+	 *     { label: 'Level 1', value: '1' },
+	 *     { label: 'Level 2', value: '2' },
+	 *     { label: 'Level 3', value: '3' }
+	 *   ],
+	 *   onChange: (value) => loadLevel(value)
+	 * });
+	 * stage.addChild(levelSelect.getContainer());
+	 * ```
+	 */
+	class GameSelect extends EventEmitter {
+	    constructor(config = {}) {
+	        super();
+	        this.dropdownItems = [];
+	        this._isOpen = false;
+	        this.isPressed = false;
+	        this.hoveredIndex = -1;
+	        loadFrameworkFont();
+	        this.config = {
+	            width: config.width || 200,
+	            height: config.height || 44,
+	            placeholder: config.placeholder || 'Select...',
+	            options: config.options || [],
+	            selectedValue: config.selectedValue || '',
+	            fontSize: config.fontSize || 18,
+	            colorScheme: config.colorScheme || GameStyleColors.GAME_SELECT,
+	            disabled: config.disabled || false,
+	            onChange: config.onChange || (() => { })
+	        };
+	        this.config.height = Math.max(this.config.height, 44);
+	        this._selectedValue = this.config.selectedValue;
+	        const factory = graphics();
+	        // Create containers
+	        this.container = factory.createContainer();
+	        this.triggerContainer = factory.createContainer();
+	        this.dropdownContainer = factory.createContainer();
+	        // Create trigger graphics
+	        this.triggerShadow = factory.createGraphics();
+	        this.triggerBorder = factory.createGraphics();
+	        this.triggerBg = factory.createGraphics();
+	        this.triggerHighlight = factory.createGraphics();
+	        this.arrowGraphics = factory.createGraphics();
+	        // Build trigger hierarchy
+	        this.triggerContainer.addChild(this.triggerShadow);
+	        this.triggerContainer.addChild(this.triggerBorder);
+	        this.triggerContainer.addChild(this.triggerBg);
+	        this.triggerContainer.addChild(this.triggerHighlight);
+	        this.triggerContainer.addChild(this.arrowGraphics);
+	        // Create trigger text
+	        this.triggerText = factory.createText(this.getDisplayText(), {
+	            fontFamily: getFrameworkFontFamily(),
+	            fontSize: this.config.fontSize,
+	            fontWeight: '600',
+	            fill: this.config.colorScheme.text
+	        });
+	        if (this.triggerText.anchor)
+	            this.triggerText.anchor.set(0, 0.5);
+	        this.triggerText.x = 12;
+	        this.triggerText.y = this.config.height / 2;
+	        this.triggerContainer.addChild(this.triggerText);
+	        // Create dropdown graphics
+	        this.dropdownShadow = factory.createGraphics();
+	        this.dropdownBorder = factory.createGraphics();
+	        this.dropdownBg = factory.createGraphics();
+	        this.dropdownContainer.addChild(this.dropdownShadow);
+	        this.dropdownContainer.addChild(this.dropdownBorder);
+	        this.dropdownContainer.addChild(this.dropdownBg);
+	        this.dropdownContainer.visible = false;
+	        this.dropdownContainer.y = this.config.height + 4;
+	        // Build hierarchy
+	        this.container.addChild(this.triggerContainer);
+	        this.container.addChild(this.dropdownContainer);
+	        // Create dropdown items
+	        this.createDropdownItems();
+	        // Render and setup
+	        this.render();
+	        this.setupInteraction();
+	    }
+	    getDisplayText() {
+	        if (this._selectedValue) {
+	            const option = this.config.options.find(o => o.value === this._selectedValue);
+	            return option?.label || this._selectedValue;
+	        }
+	        return this.config.placeholder;
+	    }
+	    createDropdownItems() {
+	        const { options, width, height, fontSize, colorScheme } = this.config;
+	        const factory = graphics();
+	        const itemHeight = height - 4;
+	        options.forEach((option, index) => {
+	            const itemContainer = factory.createContainer();
+	            itemContainer.y = index * itemHeight;
+	            const bg = factory.createGraphics();
+	            const text = factory.createText(option.label, {
+	                fontFamily: getFrameworkFontFamily(),
+	                fontSize: fontSize,
+	                fontWeight: '600',
+	                fill: colorScheme.text
+	            });
+	            if (text.anchor)
+	                text.anchor.set(0, 0.5);
+	            text.x = 12;
+	            text.y = itemHeight / 2;
+	            itemContainer.addChild(bg);
+	            itemContainer.addChild(text);
+	            this.dropdownContainer.addChild(itemContainer);
+	            this.dropdownItems.push({ container: itemContainer, bg, text, option });
+	        });
+	    }
+	    render() {
+	        this.renderTrigger();
+	        this.renderDropdown();
+	    }
+	    renderTrigger() {
+	        const { width, height, colorScheme, disabled } = this.config;
+	        const radius = 8;
+	        const shadowOffset = 3;
+	        // Clear
+	        this.triggerShadow.clear();
+	        this.triggerBorder.clear();
+	        this.triggerBg.clear();
+	        this.triggerHighlight.clear();
+	        this.arrowGraphics.clear();
+	        const alpha = disabled ? 0.5 : 1;
+	        const triggerY = this.isPressed ? shadowOffset - 1 : 0;
+	        const currentShadow = this.isPressed ? 1 : shadowOffset;
+	        // 1. Shadow
+	        this.triggerShadow.roundRect(0, currentShadow, width, height, radius);
+	        this.triggerShadow.fill({ color: colorScheme.triggerShadow, alpha });
+	        // 2. Border
+	        this.triggerBorder.roundRect(-1, triggerY - 1, width + 2, height + currentShadow + 2, radius + 1);
+	        this.triggerBorder.stroke({ color: colorScheme.triggerBorder, width: 1, alpha });
+	        // 3. Background
+	        this.triggerBg.roundRect(0, triggerY, width, height, radius);
+	        this.triggerBg.fill({ color: colorScheme.triggerBg, alpha });
+	        // 4. Highlight
+	        if (!this.isPressed) {
+	            this.triggerHighlight.roundRect(3, triggerY + 3, width - 6, height * 0.4, radius - 2);
+	            this.triggerHighlight.fill({ color: colorScheme.triggerHighlight, alpha: 0.25 * alpha });
+	        }
+	        // 5. Arrow
+	        const arrowX = width - 24;
+	        const arrowY = triggerY + height / 2;
+	        const arrowSize = 6;
+	        this.arrowGraphics.moveTo(arrowX, arrowY - arrowSize / 2);
+	        this.arrowGraphics.lineTo(arrowX + arrowSize, arrowY - arrowSize / 2);
+	        this.arrowGraphics.lineTo(arrowX + arrowSize / 2, arrowY + arrowSize / 2);
+	        this.arrowGraphics.closePath();
+	        this.arrowGraphics.fill({ color: colorScheme.arrow, alpha });
+	        // Update text position
+	        this.triggerText.y = triggerY + height / 2;
+	    }
+	    renderDropdown() {
+	        const { width, height, options, colorScheme } = this.config;
+	        const radius = 8;
+	        const itemHeight = height - 4;
+	        const dropdownHeight = options.length * itemHeight + 8;
+	        const shadowOffset = 4;
+	        // Clear
+	        this.dropdownShadow.clear();
+	        this.dropdownBorder.clear();
+	        this.dropdownBg.clear();
+	        // 1. Shadow
+	        this.dropdownShadow.roundRect(shadowOffset, shadowOffset, width, dropdownHeight, radius);
+	        this.dropdownShadow.fill({ color: colorScheme.dropdownShadow, alpha: 0.5 });
+	        // 2. Border
+	        this.dropdownBorder.roundRect(-1, -1, width + 2, dropdownHeight + 2, radius + 1);
+	        this.dropdownBorder.stroke({ color: colorScheme.dropdownBorder, width: 1 });
+	        // 3. Background
+	        this.dropdownBg.roundRect(0, 0, width, dropdownHeight, radius);
+	        this.dropdownBg.fill({ color: colorScheme.dropdownBg });
+	        // Render items
+	        this.dropdownItems.forEach((item, index) => {
+	            item.bg.clear();
+	            const isHovered = index === this.hoveredIndex;
+	            const isSelected = item.option.value === this._selectedValue;
+	            if (isHovered || isSelected) {
+	                const bgColor = isSelected ? colorScheme.itemSelected : colorScheme.itemHover;
+	                item.bg.roundRect(4, 2, width - 8, itemHeight - 4, 4);
+	                item.bg.fill({ color: bgColor });
+	            }
+	        });
+	    }
+	    setupInteraction() {
+	        // Trigger interaction
+	        this.triggerContainer.eventMode = 'static';
+	        this.triggerContainer.cursor = this.config.disabled ? 'default' : 'pointer';
+	        this.triggerContainer.hitArea = {
+	            contains: (x, y) => {
+	                return x >= 0 && x <= this.config.width && y >= 0 && y <= this.config.height + 4;
+	            }
+	        };
+	        this.triggerContainer.on('pointerdown', this.onTriggerDown.bind(this));
+	        this.triggerContainer.on('pointerup', this.onTriggerUp.bind(this));
+	        this.triggerContainer.on('pointerupoutside', this.onTriggerUpOutside.bind(this));
+	        // Dropdown item interactions
+	        this.dropdownItems.forEach((item, index) => {
+	            item.container.eventMode = 'static';
+	            item.container.cursor = 'pointer';
+	            item.container.hitArea = {
+	                contains: (x, y) => {
+	                    return x >= 0 && x <= this.config.width && y >= 0 && y <= this.config.height - 4;
+	                }
+	            };
+	            item.container.on('pointerover', () => {
+	                this.hoveredIndex = index;
+	                this.renderDropdown();
+	            });
+	            item.container.on('pointerout', () => {
+	                this.hoveredIndex = -1;
+	                this.renderDropdown();
+	            });
+	            item.container.on('pointerup', () => {
+	                this.selectOption(item.option);
+	            });
+	        });
+	    }
+	    onTriggerDown() {
+	        if (this.config.disabled)
+	            return;
+	        this.isPressed = true;
+	        this.renderTrigger();
+	    }
+	    onTriggerUp() {
+	        if (this.config.disabled)
+	            return;
+	        this.isPressed = false;
+	        this.toggleDropdown();
+	    }
+	    onTriggerUpOutside() {
+	        if (this.config.disabled)
+	            return;
+	        this.isPressed = false;
+	        this.renderTrigger();
+	    }
+	    toggleDropdown() {
+	        this._isOpen = !this._isOpen;
+	        this.dropdownContainer.visible = this._isOpen;
+	        this.renderTrigger();
+	        this.emit(this._isOpen ? 'open' : 'close');
+	    }
+	    selectOption(option) {
+	        this._selectedValue = option.value;
+	        this.triggerText.text = option.label;
+	        this.close();
+	        this.emit('change', option.value);
+	        this.config.onChange(option.value);
+	    }
+	    /** Open the dropdown */
+	    open() {
+	        if (!this._isOpen) {
+	            this._isOpen = true;
+	            this.dropdownContainer.visible = true;
+	            this.emit('open');
+	        }
+	    }
+	    /** Close the dropdown */
+	    close() {
+	        if (this._isOpen) {
+	            this._isOpen = false;
+	            this.dropdownContainer.visible = false;
+	            this.emit('close');
+	        }
+	    }
+	    /** Get selected value */
+	    getValue() {
+	        return this._selectedValue;
+	    }
+	    /** Set selected value */
+	    setValue(value) {
+	        const option = this.config.options.find(o => o.value === value);
+	        if (option && this._selectedValue !== value) {
+	            this._selectedValue = value;
+	            this.triggerText.text = option.label;
+	            this.renderDropdown();
+	            this.emit('change', value);
+	        }
+	    }
+	    /** Set options */
+	    setOptions(options) {
+	        // Clear existing items
+	        this.dropdownItems.forEach(item => {
+	            item.container.destroy({ children: true });
+	        });
+	        this.dropdownItems = [];
+	        // Update config and recreate
+	        this.config.options = options;
+	        this.createDropdownItems();
+	        this.render();
+	        this.setupInteraction();
+	    }
+	    /** Set disabled state */
+	    setDisabled(disabled) {
+	        this.config.disabled = disabled;
+	        this.triggerContainer.cursor = disabled ? 'default' : 'pointer';
+	        this.render();
+	    }
+	    /** Check if disabled */
+	    isDisabled() {
+	        return this.config.disabled;
+	    }
+	    /** Check if open */
+	    isOpen() {
+	        return this._isOpen;
+	    }
+	    /** Set position */
+	    setPosition(x, y) {
+	        this.container.x = x;
+	        this.container.y = y;
+	    }
+	    /** Get the container */
+	    getContainer() {
+	        return this.container;
+	    }
+	    /** Destroy the component */
+	    destroy() {
+	        this.dropdownItems = [];
+	        this.container.destroy({ children: true });
+	        this.removeAllListeners();
+	    }
+	}
+	/**
+	 * Pre-defined select color schemes
+	 */
+	const GameSelectColors = {
+	    DEFAULT: GameStyleColors.GAME_SELECT,
+	    GREEN: {
+	        ...GameStyleColors.GAME_SELECT,
+	        triggerBg: 0x4CAF50,
+	        triggerShadow: 0x388E3C,
+	        itemSelected: 0x4CAF50
+	    },
+	    PURPLE: {
+	        ...GameStyleColors.GAME_SELECT,
+	        triggerBg: 0x9C27B0,
+	        triggerShadow: 0x7B1FA2,
+	        itemSelected: 0x9C27B0
+	    },
+	    ORANGE: {
+	        ...GameStyleColors.GAME_SELECT,
+	        triggerBg: 0xF5B041,
+	        triggerShadow: 0xD68910,
+	        itemSelected: 0xF5B041
+	    }
+	};
+
 	/**
 	 * ScreenManager - Stack-based screen navigation with animated transitions
 	 *
@@ -46610,7 +54292,7 @@
 	        container.x = from;
 	        return animate({
 	            duration,
-	            easing: Easing.easeOutCubic,
+	            easing: Easing$1.easeOutCubic,
 	            onUpdate: (_, eased) => {
 	                container.x = lerp(from, to, eased);
 	            },
@@ -46623,7 +54305,7 @@
 	        container.alpha = from;
 	        return animate({
 	            duration,
-	            easing: Easing.easeOutCubic,
+	            easing: Easing$1.easeOutCubic,
 	            onUpdate: (_, eased) => {
 	                container.alpha = lerp(from, to, eased);
 	            },
@@ -47195,7 +54877,7 @@
 	        const overlayAlpha = this.theme.overlayAlpha || 0.6;
 	        return animate({
 	            duration: this.animationDuration,
-	            easing: Easing.easeOutBack,
+	            easing: Easing$1.easeOutBack,
 	            onUpdate: (progress, eased) => {
 	                this.setScaleFromCenter(lerp(0.8, 1, eased));
 	                this.panelContainer.alpha = progress;
@@ -47210,7 +54892,7 @@
 	        const overlayAlpha = this.theme.overlayAlpha || 0.6;
 	        return animate({
 	            duration: this.animationDuration * 0.8,
-	            easing: Easing.easeInCubic,
+	            easing: Easing$1.easeInCubic,
 	            onUpdate: (progress, eased) => {
 	                this.setScaleFromCenter(lerp(1, 0.8, eased));
 	                this.panelContainer.alpha = 1 - progress;
@@ -47382,7 +55064,7 @@
 	        const targetY = this.screenHeight - this.config.height;
 	        animate({
 	            duration: 200,
-	            easing: Easing.easeOutCubic,
+	            easing: Easing$1.easeOutCubic,
 	            onUpdate: (_, eased) => {
 	                this.panelContainer.y = lerp(startY, targetY, eased);
 	            },
@@ -47434,7 +55116,7 @@
 	        this.overlay.alpha = 0;
 	        return animate({
 	            duration: this.animationDuration,
-	            easing: Easing.easeOutCubic,
+	            easing: Easing$1.easeOutCubic,
 	            onUpdate: (progress, eased) => {
 	                this.panelContainer.y = lerp(startY, targetY, eased);
 	                this.overlay.alpha = overlayAlpha * progress;
@@ -47450,7 +55132,7 @@
 	        const overlayAlpha = this.theme.overlayAlpha || 0.6;
 	        return animate({
 	            duration: this.animationDuration * 0.8,
-	            easing: Easing.easeInCubic,
+	            easing: Easing$1.easeInCubic,
 	            onUpdate: (progress, eased) => {
 	                this.panelContainer.y = lerp(startY, targetY, eased);
 	                this.overlay.alpha = overlayAlpha * (1 - progress);
@@ -47473,7 +55155,7 @@
 	/**
 	 * Default confetti configuration
 	 */
-	const DEFAULT_CONFIG$1 = {
+	const DEFAULT_CONFIG$2 = {
 	    colors: [0xFFD700, 0xFF6B6B, 0x6BCB77, 0x4D96FF, 0xFF69B4, 0xFFFFFF],
 	    particleCount: 50,
 	    duration: 2000,
@@ -47519,7 +55201,7 @@
 	     * Best for: Victory screens, level complete
 	     */
 	    rain(config = {}) {
-	        const cfg = { ...DEFAULT_CONFIG$1, ...config };
+	        const cfg = { ...DEFAULT_CONFIG$2, ...config };
 	        this.isActive = true;
 	        this.pendingParticles = cfg.particleCount; // Track pending particles
 	        for (let i = 0; i < cfg.particleCount; i++) {
@@ -47542,7 +55224,7 @@
 	     * Best for: Star earned, reward received
 	     */
 	    burst(x, y, config = {}) {
-	        const cfg = { ...DEFAULT_CONFIG$1, ...config };
+	        const cfg = { ...DEFAULT_CONFIG$2, ...config };
 	        this.isActive = true;
 	        const spreadRad = (cfg.spread * Math.PI) / 180;
 	        for (let i = 0; i < cfg.particleCount; i++) {
@@ -47558,7 +55240,7 @@
 	     * Best for: Bonus, jackpot, special rewards
 	     */
 	    fountain(x, y, config = {}) {
-	        const cfg = { ...DEFAULT_CONFIG$1, ...config };
+	        const cfg = { ...DEFAULT_CONFIG$2, ...config };
 	        this.isActive = true;
 	        const spreadRad = (cfg.spread * Math.PI) / 180 / 2;
 	        for (let i = 0; i < cfg.particleCount; i++) {
@@ -47642,7 +55324,7 @@
 	            // Update life
 	            p.life += deltaTime;
 	            // Apply gravity
-	            p.vy += DEFAULT_CONFIG$1.gravity * dt * 60;
+	            p.vy += DEFAULT_CONFIG$2.gravity * dt * 60;
 	            // Apply wobble (horizontal oscillation)
 	            const wobble = Math.sin(p.life * 0.01 * p.wobbleSpeed + p.wobblePhase) * 0.5;
 	            // Update position
@@ -48121,7 +55803,7 @@
 	/**
 	 * Default configuration
 	 */
-	const DEFAULT_CONFIG = {
+	const DEFAULT_CONFIG$1 = {
 	    radius: 30,
 	    count: 4,
 	    colors: [0xFFFFFF, 0xFFF8DC, 0xFFD700],
@@ -48172,7 +55854,7 @@
 	     * Sparkles will continuously appear and animate around the target
 	     */
 	    addZone(target, config = {}) {
-	        const cfg = { ...DEFAULT_CONFIG, ...config };
+	        const cfg = { ...DEFAULT_CONFIG$1, ...config };
 	        const factory = getGraphicsFactory();
 	        // Create container for this zone's particles
 	        const zoneContainer = factory.createContainer();
@@ -48862,6 +56544,274 @@
 	        this.confetti.destroy();
 	        this.shine.destroy();
 	        this.starburst.destroy();
+	        this.removeAllListeners();
+	    }
+	}
+
+	/**
+	 * Default configuration
+	 */
+	const DEFAULT_CONFIG = {
+	    rayCount: 12,
+	    innerRadius: 20,
+	    outerRadius: 150,
+	    rayWidth: 0.15,
+	    color: 0xFFD700,
+	    alphaCenter: 0.8,
+	    alphaEdge: 0,
+	    rotationSpeed: 0.5,
+	    method: 'mask'
+	};
+	/**
+	 * Convert hex color to rgba string with alpha
+	 */
+	function hexToRgba(hex, alpha) {
+	    const r = (hex >> 16) & 0xFF;
+	    const g = (hex >> 8) & 0xFF;
+	    const b = hex & 0xFF;
+	    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+	}
+	/**
+	 * SunburstEffect - Rotating ray/sunburst background effect
+	 *
+	 * Creates a sunburst pattern with rays emanating from a center point,
+	 * featuring smooth gradient fade from center to edge. Optimized for
+	 * use as a rotating background element in mobile games.
+	 *
+	 * Two rendering methods available:
+	 * - 'mask' (default): Best for rotating backgrounds. Uses a radial gradient
+	 *   circle masked by ray shapes. Gradient rotates with the container.
+	 * - 'global': Uses global coordinate system for gradient. Better performance
+	 *   but gradient doesn't rotate with container (stays fixed in world space).
+	 *
+	 * @example
+	 * ```typescript
+	 * // Create sunburst effect
+	 * const sunburst = new SunburstEffect({
+	 *   rayCount: 16,
+	 *   outerRadius: 200,
+	 *   color: 0xFFD700,
+	 *   rotationSpeed: 0.3
+	 * });
+	 *
+	 * // Add to stage
+	 * stage.addChildAt(sunburst.getContainer(), 0);
+	 *
+	 * // Update in game loop
+	 * game.on('update', (dt) => sunburst.update(dt));
+	 *
+	 * // Position at center
+	 * sunburst.setPosition(screenWidth / 2, screenHeight / 2);
+	 * ```
+	 */
+	class SunburstEffect extends EventEmitter {
+	    constructor(config = {}) {
+	        super();
+	        this.rotationAngle = 0;
+	        this.isPaused = false;
+	        // For mask method
+	        this.gradientCircle = null;
+	        this.rayMask = null;
+	        // For global method
+	        this.raysGraphics = null;
+	        this.config = { ...DEFAULT_CONFIG, ...config };
+	        const factory = getGraphicsFactory();
+	        this.container = factory.createContainer();
+	        this.build();
+	    }
+	    /**
+	     * Build the sunburst effect based on configured method
+	     */
+	    build() {
+	        if (this.config.method === 'mask') {
+	            this.buildMaskMethod();
+	        }
+	        else {
+	            this.buildGlobalMethod();
+	        }
+	    }
+	    /**
+	     * Build using Mask + Radial Gradient Circle method
+	     * Best for rotating backgrounds - gradient rotates with container
+	     */
+	    buildMaskMethod() {
+	        const factory = getGraphicsFactory();
+	        const { innerRadius, outerRadius, rayCount, rayWidth, color, alphaCenter, alphaEdge } = this.config;
+	        // Create radial gradient circle
+	        const gradientCircle = factory.createGraphics();
+	        const circleGradient = new PIXI__namespace.FillGradient({
+	            type: 'radial',
+	            center: { x: 0.5, y: 0.5 },
+	            innerRadius: innerRadius / (outerRadius * 2),
+	            outerCenter: { x: 0.5, y: 0.5 },
+	            outerRadius: 0.5,
+	            colorStops: [
+	                { offset: 0, color: hexToRgba(color, alphaCenter) },
+	                { offset: 0.3, color: hexToRgba(color, alphaCenter * 0.7) },
+	                { offset: 0.6, color: hexToRgba(color, alphaCenter * 0.3) },
+	                { offset: 1, color: hexToRgba(color, alphaEdge) }
+	            ]
+	        });
+	        gradientCircle.circle(0, 0, outerRadius).fill(circleGradient);
+	        // Create ray mask
+	        const rayMask = factory.createGraphics();
+	        for (let i = 0; i < rayCount; i++) {
+	            const angle = (i / rayCount) * Math.PI * 2;
+	            const startAngle = angle - rayWidth / 2;
+	            const endAngle = angle + rayWidth / 2;
+	            rayMask.moveTo(0, 0);
+	            rayMask.lineTo(Math.cos(startAngle) * (outerRadius + 10), Math.sin(startAngle) * (outerRadius + 10));
+	            rayMask.lineTo(Math.cos(endAngle) * (outerRadius + 10), Math.sin(endAngle) * (outerRadius + 10));
+	            rayMask.closePath();
+	        }
+	        rayMask.fill(0xffffff);
+	        // Apply mask
+	        gradientCircle.mask = rayMask;
+	        this.container.addChild(rayMask);
+	        this.container.addChild(gradientCircle);
+	        this.gradientCircle = gradientCircle;
+	        this.rayMask = rayMask;
+	    }
+	    /**
+	     * Build using Single Graphics + Global Radial method
+	     * Better performance but gradient doesn't rotate with container
+	     */
+	    buildGlobalMethod() {
+	        const factory = getGraphicsFactory();
+	        const { innerRadius, outerRadius, rayCount, rayWidth, color, alphaCenter, alphaEdge } = this.config;
+	        // Global radial gradient centered at origin
+	        const radialGradient = new PIXI__namespace.FillGradient({
+	            type: 'radial',
+	            center: { x: 0, y: 0 },
+	            innerRadius: 0,
+	            outerCenter: { x: 0, y: 0 },
+	            outerRadius: outerRadius,
+	            colorStops: [
+	                { offset: 0, color: hexToRgba(color, alphaCenter) },
+	                { offset: 0.3, color: hexToRgba(color, alphaCenter * 0.7) },
+	                { offset: 0.6, color: hexToRgba(color, alphaCenter * 0.3) },
+	                { offset: 1, color: hexToRgba(color, alphaEdge) }
+	            ],
+	            textureSpace: 'global'
+	        });
+	        // Draw ALL rays in ONE Graphics object
+	        const rays = factory.createGraphics();
+	        for (let i = 0; i < rayCount; i++) {
+	            const angle = (i / rayCount) * Math.PI * 2;
+	            const startAngle = angle - rayWidth / 2;
+	            const endAngle = angle + rayWidth / 2;
+	            rays.moveTo(Math.cos(startAngle) * innerRadius, Math.sin(startAngle) * innerRadius);
+	            rays.lineTo(Math.cos(startAngle) * outerRadius, Math.sin(startAngle) * outerRadius);
+	            rays.lineTo(Math.cos(endAngle) * outerRadius, Math.sin(endAngle) * outerRadius);
+	            rays.lineTo(Math.cos(endAngle) * innerRadius, Math.sin(endAngle) * innerRadius);
+	            rays.closePath();
+	        }
+	        rays.fill(radialGradient);
+	        this.container.addChild(rays);
+	        this.raysGraphics = rays;
+	    }
+	    /**
+	     * Update the effect - call every frame
+	     * @param deltaTime Time since last update in milliseconds
+	     */
+	    update(deltaTime) {
+	        if (this.isPaused)
+	            return;
+	        // Convert ms to seconds for rotation calculation
+	        const dt = deltaTime / 1000;
+	        this.rotationAngle += this.config.rotationSpeed * dt;
+	        // Apply rotation to container
+	        this.container.rotation = this.rotationAngle;
+	        this.emit('update', this.rotationAngle);
+	    }
+	    /**
+	     * Get the container for adding to stage
+	     */
+	    getContainer() {
+	        return this.container;
+	    }
+	    /**
+	     * Set position
+	     */
+	    setPosition(x, y) {
+	        this.container.x = x;
+	        this.container.y = y;
+	    }
+	    /**
+	     * Set rotation speed
+	     * @param speed Radians per second
+	     */
+	    setRotationSpeed(speed) {
+	        this.config.rotationSpeed = speed;
+	    }
+	    /**
+	     * Pause rotation
+	     */
+	    pause() {
+	        this.isPaused = true;
+	    }
+	    /**
+	     * Resume rotation
+	     */
+	    resume() {
+	        this.isPaused = false;
+	    }
+	    /**
+	     * Check if paused
+	     */
+	    isPausedState() {
+	        return this.isPaused;
+	    }
+	    /**
+	     * Set visibility
+	     */
+	    setVisible(visible) {
+	        this.container.visible = visible;
+	    }
+	    /**
+	     * Set alpha/opacity
+	     */
+	    setAlpha(alpha) {
+	        this.container.alpha = alpha;
+	    }
+	    /**
+	     * Rebuild with new configuration
+	     */
+	    setConfig(config) {
+	        config.method !== undefined && config.method !== this.config.method;
+	        Object.assign(this.config, config);
+	        // Clear existing graphics
+	        this.clear();
+	        // Rebuild
+	        this.build();
+	        this.emit('config-changed', this.config);
+	    }
+	    /**
+	     * Clear all graphics
+	     */
+	    clear() {
+	        if (this.gradientCircle) {
+	            this.container.removeChild(this.gradientCircle);
+	            this.gradientCircle.destroy();
+	            this.gradientCircle = null;
+	        }
+	        if (this.rayMask) {
+	            this.container.removeChild(this.rayMask);
+	            this.rayMask.destroy();
+	            this.rayMask = null;
+	        }
+	        if (this.raysGraphics) {
+	            this.container.removeChild(this.raysGraphics);
+	            this.raysGraphics.destroy();
+	            this.raysGraphics = null;
+	        }
+	    }
+	    /**
+	     * Destroy the effect and clean up resources
+	     */
+	    destroy() {
+	        this.clear();
+	        this.container.destroy();
 	        this.removeAllListeners();
 	    }
 	}
@@ -51059,6 +59009,1084 @@
 	});
 
 	/**
+	 * Layout Styles & Presets
+	 *
+	 * Predefined layout configurations for common mobile game UI patterns.
+	 * These presets follow best practices for responsive game interfaces.
+	 *
+	 * @example
+	 * ```typescript
+	 * import { LayoutPresets, createFlexRow, createFlexColumn } from 'gamebyte-framework';
+	 *
+	 * // Use a preset
+	 * container.layout = LayoutPresets.center;
+	 *
+	 * // Use helper functions
+	 * container.layout = createFlexRow({ gap: 10, justify: 'space-between' });
+	 * ```
+	 */
+	// ============================================================================
+	// LAYOUT PRESETS
+	// ============================================================================
+	/**
+	 * Predefined layout configurations for common game UI patterns
+	 */
+	const LayoutPresets = {
+	    /**
+	     * Center content both horizontally and vertically
+	     * Perfect for splash screens, modals, and popups
+	     */
+	    center: {
+	        justifyContent: 'center',
+	        alignItems: 'center',
+	    },
+	    /**
+	     * Center content horizontally only
+	     */
+	    centerHorizontal: {
+	        alignItems: 'center',
+	    },
+	    /**
+	     * Center content vertically only
+	     */
+	    centerVertical: {
+	        justifyContent: 'center',
+	    },
+	    /**
+	     * Top bar layout (fixed at top, full width)
+	     * Use with position: 'absolute' for fixed positioning
+	     */
+	    topBar: {
+	        flexDirection: 'row',
+	        justifyContent: 'space-between',
+	        alignItems: 'center',
+	        width: '100%',
+	        paddingHorizontal: 16,
+	        paddingVertical: 8,
+	    },
+	    /**
+	     * Bottom bar layout (fixed at bottom, full width)
+	     * Use with position: 'absolute' for fixed positioning
+	     */
+	    bottomBar: {
+	        flexDirection: 'row',
+	        justifyContent: 'space-around',
+	        alignItems: 'center',
+	        width: '100%',
+	        paddingHorizontal: 16,
+	        paddingVertical: 12,
+	    },
+	    /**
+	     * Sidebar layout (vertical, full height)
+	     */
+	    sidebar: {
+	        flexDirection: 'column',
+	        alignItems: 'stretch',
+	        height: '100%',
+	        padding: 16,
+	        gap: 12,
+	    },
+	    /**
+	     * Fullscreen container
+	     */
+	    fullscreen: {
+	        width: '100%',
+	        height: '100%',
+	    },
+	    /**
+	     * Card-like container with padding
+	     */
+	    card: {
+	        flexDirection: 'column',
+	        alignItems: 'stretch',
+	        padding: 16,
+	        gap: 12,
+	        borderRadius: 12,
+	    },
+	    /**
+	     * Grid layout (wrapping flex)
+	     */
+	    grid: {
+	        flexDirection: 'row',
+	        flexWrap: 'wrap',
+	        justifyContent: 'flex-start',
+	        alignContent: 'flex-start',
+	        gap: 8,
+	    },
+	    /**
+	     * Simple horizontal row
+	     */
+	    row: {
+	        flexDirection: 'row',
+	        alignItems: 'center',
+	    },
+	    /**
+	     * Simple vertical column
+	     */
+	    column: {
+	        flexDirection: 'column',
+	        alignItems: 'stretch',
+	    },
+	    /**
+	     * Stack layout (overlapping children)
+	     * Children should use position: 'absolute'
+	     */
+	    stack: {
+	        position: 'relative',
+	    },
+	    /**
+	     * HUD layout (corners + center)
+	     * Typically used as root for game HUD
+	     */
+	    hud: {
+	        width: '100%',
+	        height: '100%',
+	        position: 'relative',
+	    },
+	    /**
+	     * Modal/dialog layout (centered with backdrop)
+	     */
+	    modal: {
+	        position: 'absolute',
+	        top: 0,
+	        left: 0,
+	        right: 0,
+	        bottom: 0,
+	        justifyContent: 'center',
+	        alignItems: 'center',
+	    },
+	    /**
+	     * Menu layout (vertical list of items)
+	     */
+	    menu: {
+	        flexDirection: 'column',
+	        alignItems: 'stretch',
+	        gap: 8,
+	        padding: 16,
+	    },
+	    /**
+	     * Scrollable list
+	     */
+	    scrollList: {
+	        flexDirection: 'column',
+	        alignItems: 'stretch',
+	        gap: 8,
+	        overflow: 'scroll',
+	    },
+	    /**
+	     * Level select grid
+	     */
+	    levelGrid: {
+	        flexDirection: 'row',
+	        flexWrap: 'wrap',
+	        justifyContent: 'center',
+	        alignContent: 'flex-start',
+	        gap: 16,
+	        padding: 20,
+	    },
+	    /**
+	     * Button group (horizontal)
+	     */
+	    buttonGroup: {
+	        flexDirection: 'row',
+	        justifyContent: 'center',
+	        alignItems: 'center',
+	        gap: 12,
+	    },
+	    /**
+	     * Button group (vertical)
+	     */
+	    buttonGroupVertical: {
+	        flexDirection: 'column',
+	        alignItems: 'stretch',
+	        gap: 12,
+	    },
+	    /**
+	     * Resource bar (coins, gems display)
+	     */
+	    resourceBar: {
+	        flexDirection: 'row',
+	        alignItems: 'center',
+	        gap: 8,
+	        paddingHorizontal: 12,
+	        paddingVertical: 6,
+	        borderRadius: 20,
+	    },
+	    /**
+	     * Icon button layout
+	     */
+	    iconButton: {
+	        justifyContent: 'center',
+	        alignItems: 'center',
+	        aspectRatio: 1,
+	    },
+	    /**
+	     * Text button layout (icon + label)
+	     */
+	    textButton: {
+	        flexDirection: 'row',
+	        justifyContent: 'center',
+	        alignItems: 'center',
+	        gap: 8,
+	        paddingHorizontal: 20,
+	        paddingVertical: 12,
+	    },
+	};
+	// ============================================================================
+	// HELPER FUNCTIONS
+	// ============================================================================
+	/**
+	 * Create a flex row layout
+	 */
+	function createFlexRow(options = {}) {
+	    return {
+	        flexDirection: options.reverse ? 'row-reverse' : 'row',
+	        justifyContent: options.justify ?? 'flex-start',
+	        alignItems: options.align ?? 'center',
+	        flexWrap: options.wrap ? 'wrap' : 'nowrap',
+	        gap: options.gap,
+	    };
+	}
+	/**
+	 * Create a flex column layout
+	 */
+	function createFlexColumn(options = {}) {
+	    return {
+	        flexDirection: options.reverse ? 'column-reverse' : 'column',
+	        justifyContent: options.justify ?? 'flex-start',
+	        alignItems: options.align ?? 'stretch',
+	        gap: options.gap,
+	    };
+	}
+	/**
+	 * Create a centered layout
+	 */
+	function createCentered(options = {}) {
+	    return {
+	        justifyContent: 'center',
+	        alignItems: 'center',
+	        width: options.width,
+	        height: options.height,
+	    };
+	}
+	/**
+	 * Create a grid layout
+	 */
+	function createGrid(options = {}) {
+	    return {
+	        flexDirection: 'row',
+	        flexWrap: 'wrap',
+	        justifyContent: 'flex-start',
+	        alignContent: 'flex-start',
+	        gap: options.gap,
+	        rowGap: options.rowGap,
+	        columnGap: options.columnGap,
+	    };
+	}
+	/**
+	 * Create a stack layout (overlapping children)
+	 * Children should use position: 'absolute'
+	 */
+	function createStack(options = {}) {
+	    return {
+	        position: 'relative',
+	        width: options.width,
+	        height: options.height,
+	    };
+	}
+	/**
+	 * Create an absolute positioned child
+	 */
+	function createAbsolute(options = {}) {
+	    const config = {
+	        position: 'absolute',
+	        top: options.top,
+	        right: options.right,
+	        bottom: options.bottom,
+	        left: options.left,
+	        width: options.width,
+	        height: options.height,
+	    };
+	    // Center horizontally
+	    if (options.centerX) {
+	        config.left = '50%';
+	        // Note: Transform translate needs to be handled separately in PixiJS
+	    }
+	    // Center vertically
+	    if (options.centerY) {
+	        config.top = '50%';
+	    }
+	    return config;
+	}
+	/**
+	 * Create spacing (margin or padding)
+	 */
+	function createSpacing(value) {
+	    if (typeof value === 'number') {
+	        return { top: value, right: value, bottom: value, left: value };
+	    }
+	    return value;
+	}
+	/**
+	 * Create margin config
+	 */
+	function createMargin(value) {
+	    const spacing = createSpacing(value);
+	    return {
+	        marginTop: spacing.top,
+	        marginRight: spacing.right,
+	        marginBottom: spacing.bottom,
+	        marginLeft: spacing.left,
+	    };
+	}
+	/**
+	 * Create padding config
+	 */
+	function createPadding(value) {
+	    const spacing = createSpacing(value);
+	    return {
+	        paddingTop: spacing.top,
+	        paddingRight: spacing.right,
+	        paddingBottom: spacing.bottom,
+	        paddingLeft: spacing.left,
+	    };
+	}
+	/**
+	 * Create a sized layout
+	 */
+	function createSized(width, height) {
+	    return { width, height };
+	}
+	/**
+	 * Create percentage-based sizing
+	 */
+	function percent(value) {
+	    return `${value}%`;
+	}
+	/**
+	 * Merge multiple layout configs
+	 */
+	function mergeLayouts(...configs) {
+	    return Object.assign({}, ...configs.filter(Boolean));
+	}
+	// ============================================================================
+	// RESPONSIVE HELPERS
+	// ============================================================================
+	/**
+	 * Create responsive layout based on screen size
+	 */
+	function createResponsiveLayout(baseLayout, breakpoints) {
+	    const sortedBreakpoints = Object.entries(breakpoints)
+	        .map(([key, value]) => ({
+	        width: parseInt(key, 10),
+	        config: value,
+	    }))
+	        .sort((a, b) => b.width - a.width);
+	    return (screenWidth) => {
+	        const matchedBreakpoint = sortedBreakpoints.find(bp => screenWidth >= bp.width);
+	        if (matchedBreakpoint) {
+	            return mergeLayouts(baseLayout, matchedBreakpoint.config);
+	        }
+	        return baseLayout;
+	    };
+	}
+	/**
+	 * Scale a layout config for different screen densities
+	 */
+	function scaleLayout(layout, scale) {
+	    const scaled = { ...layout };
+	    // Scale numeric values
+	    const numericKeys = [
+	        'gap', 'rowGap', 'columnGap',
+	        'borderRadius',
+	    ];
+	    for (const key of numericKeys) {
+	        if (typeof scaled[key] === 'number') {
+	            scaled[key] = Math.round(scaled[key] * scale);
+	        }
+	    }
+	    // Scale spacing values (only if numeric)
+	    const spacingKeys = [
+	        'margin', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft',
+	        'padding', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
+	        'marginHorizontal', 'marginVertical', 'paddingHorizontal', 'paddingVertical',
+	    ];
+	    for (const key of spacingKeys) {
+	        if (typeof scaled[key] === 'number') {
+	            scaled[key] = Math.round(scaled[key] * scale);
+	        }
+	    }
+	    return scaled;
+	}
+	// ============================================================================
+	// GAME-SPECIFIC PRESETS
+	// ============================================================================
+	/**
+	 * Mobile game-specific layout presets
+	 */
+	const GameLayoutPresets = {
+	    /**
+	     * Main game screen layout with HUD areas
+	     */
+	    gameScreen: {
+	        width: '100%',
+	        height: '100%',
+	        flexDirection: 'column',
+	        justifyContent: 'space-between',
+	    },
+	    /**
+	     * Safe area aware container
+	     * Respects device notches and home indicators
+	     */
+	    safeArea: {
+	        width: '100%',
+	        height: '100%',
+	        paddingTop: 44, // iOS notch
+	        paddingBottom: 34, // iOS home indicator
+	    },
+	    /**
+	     * Touch-friendly button (min 44pt)
+	     */
+	    touchButton: {
+	        minWidth: 44,
+	        minHeight: 44,
+	        justifyContent: 'center',
+	        alignItems: 'center',
+	    },
+	    /**
+	     * Currency display (icon + value)
+	     */
+	    currencyDisplay: {
+	        flexDirection: 'row',
+	        alignItems: 'center',
+	        gap: 6,
+	        paddingHorizontal: 12,
+	        paddingVertical: 4,
+	    },
+	    /**
+	     * Progress bar container
+	     */
+	    progressBar: {
+	        width: '100%',
+	        height: 20,
+	        borderRadius: 10,
+	        overflow: 'hidden',
+	    },
+	    /**
+	     * Level button in level select
+	     */
+	    levelButton: {
+	        width: 80,
+	        height: 80,
+	        justifyContent: 'center',
+	        alignItems: 'center',
+	        borderRadius: 12,
+	    },
+	    /**
+	     * Shop item card
+	     */
+	    shopItem: {
+	        flexDirection: 'column',
+	        alignItems: 'center',
+	        padding: 12,
+	        gap: 8,
+	        borderRadius: 12,
+	    },
+	    /**
+	     * Achievement/reward popup
+	     */
+	    rewardPopup: {
+	        flexDirection: 'column',
+	        alignItems: 'center',
+	        justifyContent: 'center',
+	        padding: 24,
+	        gap: 16,
+	        borderRadius: 20,
+	    },
+	    /**
+	     * Settings menu
+	     */
+	    settingsMenu: {
+	        flexDirection: 'column',
+	        alignItems: 'stretch',
+	        padding: 20,
+	        gap: 16,
+	        width: '80%',
+	        maxWidth: 400,
+	    },
+	    /**
+	     * Leaderboard entry row
+	     */
+	    leaderboardRow: {
+	        flexDirection: 'row',
+	        alignItems: 'center',
+	        justifyContent: 'space-between',
+	        paddingHorizontal: 16,
+	        paddingVertical: 12,
+	        gap: 12,
+	    },
+	    /**
+	     * Tab bar at bottom of screen
+	     */
+	    tabBar: {
+	        flexDirection: 'row',
+	        justifyContent: 'space-around',
+	        alignItems: 'center',
+	        width: '100%',
+	        height: 60,
+	        paddingHorizontal: 16,
+	    },
+	    /**
+	     * Floating action button
+	     */
+	    fab: {
+	        position: 'absolute',
+	        right: 20,
+	        bottom: 80,
+	        width: 56,
+	        height: 56,
+	        borderRadius: 28,
+	        justifyContent: 'center',
+	        alignItems: 'center',
+	    },
+	    /**
+	     * Banner ad placeholder
+	     */
+	    bannerAd: {
+	        width: '100%',
+	        height: 50,
+	        justifyContent: 'center',
+	        alignItems: 'center',
+	    },
+	};
+
+	/**
+	 * Layout Manager
+	 *
+	 * Core layout management for GameByte framework.
+	 * Integrates @pixi/layout with the framework's architecture.
+	 *
+	 * @example
+	 * ```typescript
+	 * import { LayoutManager } from 'gamebyte-framework';
+	 *
+	 * // Initialize with app
+	 * const layoutManager = new LayoutManager();
+	 * await layoutManager.initialize(app);
+	 *
+	 * // Apply layout to stage
+	 * layoutManager.setStageLayout({
+	 *   width: 1080,
+	 *   height: 1920,
+	 *   justifyContent: 'center',
+	 *   alignItems: 'center'
+	 * });
+	 * ```
+	 */
+	/**
+	 * Layout Manager
+	 *
+	 * Manages layout system initialization, responsive scaling,
+	 * and provides utilities for creating layouts.
+	 */
+	class LayoutManager extends EventEmitter {
+	    constructor(config = {}) {
+	        super();
+	        this.app = null;
+	        this.responsiveConfig = null;
+	        this.currentBreakpoint = null;
+	        this.scale = 1;
+	        this.isInitialized = false;
+	        this.config = {
+	            autoUpdate: true,
+	            enableDebug: false,
+	            throttle: 100,
+	            ...config,
+	        };
+	    }
+	    /**
+	     * Initialize the layout system with a PixiJS application
+	     */
+	    async initialize(app) {
+	        if (this.isInitialized) {
+	            console.warn('LayoutManager already initialized');
+	            return;
+	        }
+	        this.app = app;
+	        // @pixi/layout is imported at the entry point (index.ts)
+	        // The layout property is added to containers via mixins
+	        // Configure layout system if available
+	        const renderer = app.renderer;
+	        if (renderer.layout) {
+	            if (this.config.enableDebug !== undefined) {
+	                renderer.layout.enableDebug = this.config.enableDebug;
+	            }
+	            if (this.config.throttle !== undefined) {
+	                renderer.layout.throttle = this.config.throttle;
+	            }
+	        }
+	        this.isInitialized = true;
+	        console.log('✅ LayoutManager initialized');
+	        this.emit('initialized');
+	    }
+	    /**
+	     * Configure responsive layout behavior
+	     */
+	    setResponsiveConfig(config) {
+	        this.responsiveConfig = {
+	            scaleMode: 'fit',
+	            maintainAspectRatio: true,
+	            breakpoints: LayoutManager.DEFAULT_BREAKPOINTS,
+	            ...config,
+	        };
+	        // Update current state
+	        if (this.app) {
+	            this.handleResize(this.app.screen.width, this.app.screen.height);
+	        }
+	    }
+	    /**
+	     * Set layout on the application stage
+	     */
+	    setStageLayout(layout) {
+	        if (!this.app) {
+	            console.warn('LayoutManager not initialized');
+	            return;
+	        }
+	        const stage = this.app.stage;
+	        if (stage) {
+	            // Apply screen dimensions if not specified
+	            const finalLayout = {
+	                width: this.app.screen.width,
+	                height: this.app.screen.height,
+	                ...layout,
+	            };
+	            stage.layout = finalLayout;
+	        }
+	    }
+	    /**
+	     * Apply layout to a container
+	     */
+	    applyLayout(container, layout) {
+	        const containerAny = container;
+	        containerAny.layout = layout;
+	    }
+	    /**
+	     * Get a preset layout
+	     */
+	    getPreset(name) {
+	        return { ...LayoutPresets[name] };
+	    }
+	    /**
+	     * Get a game-specific preset layout
+	     */
+	    getGamePreset(name) {
+	        return { ...GameLayoutPresets[name] };
+	    }
+	    /**
+	     * Handle window/canvas resize
+	     */
+	    handleResize(width, height) {
+	        if (!this.responsiveConfig) {
+	            this.scale = 1;
+	            this.emit('resize', width, height, this.scale);
+	            return;
+	        }
+	        // Calculate scale based on scale mode
+	        const { baseWidth, baseHeight, scaleMode } = this.responsiveConfig;
+	        switch (scaleMode) {
+	            case 'fit':
+	                this.scale = Math.min(width / baseWidth, height / baseHeight);
+	                break;
+	            case 'fill':
+	                this.scale = Math.max(width / baseWidth, height / baseHeight);
+	                break;
+	            case 'stretch':
+	                // Don't maintain uniform scale
+	                this.scale = width / baseWidth; // Use width as reference
+	                break;
+	            case 'none':
+	            default:
+	                this.scale = 1;
+	                break;
+	        }
+	        // Find matching breakpoint
+	        const breakpoints = this.responsiveConfig.breakpoints || LayoutManager.DEFAULT_BREAKPOINTS;
+	        const previousBreakpoint = this.currentBreakpoint;
+	        this.currentBreakpoint = breakpoints.find(bp => {
+	            const matchesMin = width >= bp.minWidth;
+	            const matchesMax = bp.maxWidth === undefined || width <= bp.maxWidth;
+	            return matchesMin && matchesMax;
+	        }) || null;
+	        // Apply breakpoint scale if defined
+	        if (this.currentBreakpoint?.scale !== undefined) {
+	            this.scale *= this.currentBreakpoint.scale;
+	        }
+	        // Emit events
+	        this.emit('resize', width, height, this.scale);
+	        if (this.currentBreakpoint !== previousBreakpoint) {
+	            this.emit('breakpoint-change', this.currentBreakpoint, previousBreakpoint);
+	        }
+	        // Update stage layout if app is available
+	        if (this.app) {
+	            const stage = this.app.stage;
+	            if (stage.layout) {
+	                stage.layout = {
+	                    ...stage.layout,
+	                    width,
+	                    height,
+	                };
+	            }
+	        }
+	    }
+	    /**
+	     * Get current scale factor
+	     */
+	    getScale() {
+	        return this.scale;
+	    }
+	    /**
+	     * Get current breakpoint
+	     */
+	    getCurrentBreakpoint() {
+	        return this.currentBreakpoint;
+	    }
+	    /**
+	     * Scale a layout config for current screen density
+	     */
+	    scaleLayoutForScreen(layout) {
+	        return scaleLayout(layout, this.scale);
+	    }
+	    /**
+	     * Enable/disable debug visualization
+	     */
+	    setDebugMode(enabled) {
+	        this.config.enableDebug = enabled;
+	        if (this.app) {
+	            const renderer = this.app.renderer;
+	            if (renderer.layout) {
+	                renderer.layout.enableDebug = enabled;
+	            }
+	        }
+	    }
+	    /**
+	     * Manually trigger layout update
+	     */
+	    update(container) {
+	        if (!this.app)
+	            return;
+	        const renderer = this.app.renderer;
+	        if (renderer.layout && renderer.layout.update) {
+	            renderer.layout.update(container || this.app.stage);
+	            this.emit('layout-update');
+	        }
+	    }
+	    /**
+	     * Check if layout manager is initialized
+	     */
+	    isReady() {
+	        return this.isInitialized;
+	    }
+	    /**
+	     * Get the PixiJS application
+	     */
+	    getApp() {
+	        return this.app;
+	    }
+	    /**
+	     * Get current responsive config
+	     */
+	    getResponsiveConfig() {
+	        return this.responsiveConfig;
+	    }
+	    /**
+	     * Create a layout-enabled container
+	     */
+	    createContainer(layout = {}) {
+	        const container = new PIXI__namespace.Container();
+	        container.layout = layout;
+	        return container;
+	    }
+	    /**
+	     * Destroy the layout manager
+	     */
+	    destroy() {
+	        this.app = null;
+	        this.responsiveConfig = null;
+	        this.currentBreakpoint = null;
+	        this.isInitialized = false;
+	        this.removeAllListeners();
+	        this.emit('destroyed');
+	    }
+	}
+	// Default breakpoints for mobile games
+	LayoutManager.DEFAULT_BREAKPOINTS = [
+	    { name: 'xs', minWidth: 0, maxWidth: 479, scale: 0.75 },
+	    { name: 'sm', minWidth: 480, maxWidth: 767, scale: 0.875 },
+	    { name: 'md', minWidth: 768, maxWidth: 1023, scale: 1 },
+	    { name: 'lg', minWidth: 1024, maxWidth: 1439, scale: 1.125 },
+	    { name: 'xl', minWidth: 1440, scale: 1.25 },
+	];
+	// Singleton instance for facade access
+	let layoutManagerInstance = null;
+	/**
+	 * Get the global LayoutManager instance
+	 */
+	function getLayoutManager() {
+	    if (!layoutManagerInstance) {
+	        layoutManagerInstance = new LayoutManager();
+	    }
+	    return layoutManagerInstance;
+	}
+	/**
+	 * Set the global LayoutManager instance
+	 */
+	function setLayoutManager(manager) {
+	    layoutManagerInstance = manager;
+	}
+
+	/**
+	 * Reactive State Management for GameByte UI
+	 *
+	 * Provides automatic UI updates when state changes.
+	 * Inspired by Vue/Svelte reactivity.
+	 *
+	 * @example
+	 * ```typescript
+	 * import { createState } from 'gamebyte-framework';
+	 *
+	 * const state = createState({
+	 *   coins: 0,
+	 *   health: 100
+	 * });
+	 *
+	 * // UI automatically updates when state changes
+	 * state.coins += 50;
+	 *
+	 * // Listen to changes
+	 * state.on('coins', (newVal, oldVal) => {
+	 *   console.log(`Coins: ${oldVal} -> ${newVal}`);
+	 * });
+	 *
+	 * // Batch multiple updates (single notification)
+	 * state.batch((s) => {
+	 *   s.coins += 100;
+	 *   s.health -= 10;
+	 * });
+	 *
+	 * // Reset to initial values
+	 * state.reset();
+	 * ```
+	 */
+	/**
+	 * Creates a reactive state object that triggers updates when properties change.
+	 *
+	 * @param initialState - Initial state values
+	 * @returns Reactive state proxy with subscription methods
+	 *
+	 * @example
+	 * ```typescript
+	 * // Create game state
+	 * const gameState = createState({
+	 *   score: 0,
+	 *   lives: 3,
+	 *   level: 1
+	 * });
+	 *
+	 * // Direct property access/modification
+	 * gameState.score += 100;
+	 * console.log(gameState.score); // 100
+	 *
+	 * // Subscribe to changes
+	 * const unsubscribe = gameState.on('score', (newScore, oldScore) => {
+	 *   updateScoreDisplay(newScore);
+	 * });
+	 *
+	 * // Later: unsubscribe
+	 * unsubscribe();
+	 * ```
+	 */
+	function createState(initialState) {
+	    const listeners = new Map();
+	    const values = { ...initialState };
+	    let isBatching = false;
+	    let batchedChanges = [];
+	    // Get listeners for a key
+	    const getListeners = (key) => {
+	        if (!listeners.has(key)) {
+	            listeners.set(key, new Set());
+	        }
+	        return listeners.get(key);
+	    };
+	    // Notify listeners of a change
+	    const notify = (key, newValue, oldValue) => {
+	        // Notify specific key listeners
+	        getListeners(key).forEach(listener => {
+	            try {
+	                listener(newValue, oldValue, key);
+	            }
+	            catch (e) {
+	                console.error(`Error in state listener for '${String(key)}':`, e);
+	            }
+	        });
+	        // Notify wildcard listeners
+	        getListeners('*').forEach(listener => {
+	            try {
+	                listener(newValue, oldValue, key);
+	            }
+	            catch (e) {
+	                console.error('Error in state wildcard listener:', e);
+	            }
+	        });
+	    };
+	    // Process batched changes
+	    const processBatch = () => {
+	        const changes = batchedChanges;
+	        batchedChanges = [];
+	        isBatching = false;
+	        // Dedupe changes (keep last value for each key)
+	        const deduped = new Map();
+	        for (const change of changes) {
+	            const existing = deduped.get(change.key);
+	            if (existing) {
+	                existing.newValue = change.newValue;
+	            }
+	            else {
+	                deduped.set(change.key, { oldValue: change.oldValue, newValue: change.newValue });
+	            }
+	        }
+	        // Notify
+	        deduped.forEach((change, key) => {
+	            if (change.oldValue !== change.newValue) {
+	                notify(key, change.newValue, change.oldValue);
+	            }
+	        });
+	    };
+	    // Create proxy to intercept property access/changes
+	    const proxy = new Proxy(values, {
+	        get(target, prop) {
+	            // Handle ReactiveState methods
+	            if (prop === 'value') {
+	                return { ...values };
+	            }
+	            if (prop === 'on') {
+	                return (key, listener) => {
+	                    getListeners(key).add(listener);
+	                    // Return unsubscribe function
+	                    return () => {
+	                        getListeners(key).delete(listener);
+	                    };
+	                };
+	            }
+	            if (prop === 'onChange') {
+	                return (listener) => {
+	                    const wrappedListener = () => {
+	                        listener({ ...values });
+	                    };
+	                    getListeners('*').add(wrappedListener);
+	                    return () => {
+	                        getListeners('*').delete(wrappedListener);
+	                    };
+	                };
+	            }
+	            if (prop === 'batch') {
+	                return (updater) => {
+	                    isBatching = true;
+	                    try {
+	                        updater(proxy);
+	                    }
+	                    finally {
+	                        processBatch();
+	                    }
+	                };
+	            }
+	            if (prop === 'reset') {
+	                return () => {
+	                    const oldValues = { ...values };
+	                    Object.assign(values, initialState);
+	                    // Notify all changed keys
+	                    for (const key of Object.keys(initialState)) {
+	                        if (oldValues[key] !== values[key]) {
+	                            notify(key, values[key], oldValues[key]);
+	                        }
+	                    }
+	                };
+	            }
+	            // Return state value
+	            return values[prop];
+	        },
+	        set(target, prop, newValue) {
+	            const key = prop;
+	            const oldValue = values[key];
+	            // Skip if unchanged
+	            if (oldValue === newValue) {
+	                return true;
+	            }
+	            // Update value
+	            values[key] = newValue;
+	            // Handle batching
+	            if (isBatching) {
+	                batchedChanges.push({ key, oldValue, newValue });
+	            }
+	            else {
+	                notify(key, newValue, oldValue);
+	            }
+	            return true;
+	        },
+	        // Support 'key in state'
+	        has(target, prop) {
+	            return prop in values || ['value', 'on', 'onChange', 'batch', 'reset'].includes(prop);
+	        },
+	        // Support Object.keys(state)
+	        ownKeys() {
+	            return Reflect.ownKeys(values);
+	        },
+	        getOwnPropertyDescriptor(target, prop) {
+	            if (prop in values) {
+	                return {
+	                    enumerable: true,
+	                    configurable: true,
+	                    value: values[prop]
+	                };
+	            }
+	            return undefined;
+	        }
+	    });
+	    return proxy;
+	}
+	/**
+	 * Creates a computed value that auto-updates when dependencies change.
+	 *
+	 * @example
+	 * ```typescript
+	 * const state = createState({ base: 10, bonus: 5 });
+	 * const total = computed(() => state.base + state.bonus);
+	 *
+	 * console.log(total.value); // 15
+	 * state.bonus = 10;
+	 * console.log(total.value); // 20
+	 * ```
+	 */
+	function computed(getter) {
+	    return {
+	        get value() {
+	            return getter();
+	        }
+	    };
+	}
+	/**
+	 * Checks if a value is a reactive getter function.
+	 */
+	function isReactive(value) {
+	    return typeof value === 'function';
+	}
+	/**
+	 * Resolves a potentially reactive value.
+	 */
+	function resolveValue(value) {
+	    return isReactive(value) ? value() : value;
+	}
+
+	/**
 	 * GameByte Framework - Main Entry Point
 	 *
 	 * A comprehensive JavaScript game engine framework that unifies 2D and 3D
@@ -51122,6 +60150,7 @@
 	    RenderingMode: exports.RenderingMode,
 	    ServiceContainer,
 	    Assets,
+	    Gradients,
 	    // Facades for static access
 	    Renderer: null, // Will be set after app initialization
 	    Scenes: null, // Will be set after app initialization
@@ -51149,7 +60178,7 @@
 	    GameByteFramework.UI = UI;
 	    GameByteFramework.Animations = Animations;
 	    GameByteFramework.Themes = Themes;
-	    GameByteFramework.Input = Input;
+	    GameByteFramework.Input = Input$1;
 	    GameByteFramework.Physics = Physics;
 	    GameByteFramework.Performance = Performance;
 	    GameByteFramework.Audio = Audio;
@@ -51214,10 +60243,22 @@
 	exports.GameByteUINavigationHandler = GameByteUINavigationHandler;
 	exports.GameByteUITimeline = GameByteUITimeline;
 	exports.GameByteVirtualControlsManager = GameByteVirtualControlsManager;
+	exports.GameCheckBox = GameCheckBox;
+	exports.GameCheckBoxColors = GameCheckBoxColors;
 	exports.GameHUDScreen = GameHUDScreen;
+	exports.GameInput = GameInput;
+	exports.GameInputColors = GameInputColors;
+	exports.GameLayoutPresets = GameLayoutPresets;
+	exports.GameList = GameList;
 	exports.GameLoopOptimizer = GameLoopOptimizer;
 	exports.GameModalPanel = GameModalPanel;
 	exports.GamePanel = GamePanel;
+	exports.GameRadioColors = GameRadioColors;
+	exports.GameRadioGroup = GameRadioGroup;
+	exports.GameScrollBox = GameScrollBox;
+	exports.GameScrollBoxColors = GameScrollBoxColors;
+	exports.GameSelect = GameSelect;
+	exports.GameSelectColors = GameSelectColors;
 	exports.GameSlider = GameSlider;
 	exports.GameSliderColors = GameSliderColors;
 	exports.GameStyleButton = GameStyleButton;
@@ -51229,12 +60270,14 @@
 	exports.GameTooltip = GameTooltip;
 	exports.GameTooltipColors = GameTooltipColors;
 	exports.GameTopBar = GameTopBar;
+	exports.Gradients = Gradients;
 	exports.GraphicsEngine = GraphicsEngine;
 	exports.HexagonLevelButton = HexagonLevelButton;
 	exports.HubScreen = HubScreen;
 	exports.HybridRenderer = HybridRenderer;
-	exports.Input = Input;
+	exports.Input = Input$1;
 	exports.InputServiceProvider = InputServiceProvider;
+	exports.LayoutPresets = LayoutPresets;
 	exports.LevelPath = LevelPath;
 	exports.Matter2DBody = Matter2DBody;
 	exports.Matter2DConstraint = Matter2DConstraint;
@@ -51263,7 +60306,9 @@
 	exports.PhysicsServiceProvider = PhysicsServiceProvider;
 	exports.PixiCompatibility = PixiCompatibility;
 	exports.PixiGraphicsFactory = PixiGraphicsFactory;
+	exports.PixiLayoutManager = LayoutManager;
 	exports.PixiRenderer = PixiRenderer;
+	exports.PixiUI = index;
 	exports.PixiVersionDetector = PixiVersionDetector;
 	exports.PluginManager = PluginManager;
 	exports.PluginServiceProvider = PluginServiceProvider;
@@ -51288,6 +60333,8 @@
 	exports.SimpleScreen = SimpleScreen;
 	exports.Spatial = SpatialAudioFacade;
 	exports.SplashScreen = SplashScreen;
+	exports.StarBurstEffect = StarBurstEffect;
+	exports.SunburstEffect = SunburstEffect;
 	exports.Themes = Themes;
 	exports.ThreeCompatibility = ThreeCompatibility;
 	exports.ThreeGraphicsFactory = ThreeGraphicsFactory;
@@ -51304,23 +60351,47 @@
 	exports.UIThemeManager = UIThemeManager;
 	exports.VibrantUITheme = VibrantUITheme;
 	exports.VirtualJoystick = VirtualJoystick;
+	exports.computed = computed;
+	exports.createAbsolute = createAbsolute;
+	exports.createCentered = createCentered;
+	exports.createFlexColumn = createFlexColumn;
+	exports.createFlexRow = createFlexRow;
 	exports.createGame = createGame;
 	exports.createGameButtonGradient = createGameButtonGradient;
+	exports.createGrid = createGrid;
+	exports.createLinearGradient = createLinearGradient;
+	exports.createMargin = createMargin;
 	exports.createMergeGame = createMergeGame;
 	exports.createMobileGame = createMobileGame;
+	exports.createPadding = createPadding;
+	exports.createRadialGradient = createRadialGradient;
 	exports.createResponsiveCalculator = createResponsiveCalculator;
+	exports.createResponsiveLayout = createResponsiveLayout;
 	exports.createSafeAreaLayout = createSafeAreaLayout;
+	exports.createSized = createSized;
 	exports.createSkyGradient = createSkyGradient;
+	exports.createSpacing = createSpacing;
+	exports.createStack = createStack;
+	exports.createState = createState;
 	exports.darkenColor = darkenColor$1;
 	exports.default = GameByteFramework;
 	exports.drawToTexture = drawToTexture;
 	exports.getFrameworkFontFamily = getFrameworkFontFamily;
+	exports.getLayoutManager = getLayoutManager;
 	exports.graphics = graphics;
 	exports.initializeFacades = initializeFacades;
 	exports.isFontReady = isFontReady;
+	exports.isReactive = isReactive;
 	exports.lightenColor = lightenColor;
+	exports.linearGradient = createLinearGradient;
 	exports.loadFrameworkFont = loadFrameworkFont;
+	exports.mergeLayouts = mergeLayouts;
 	exports.numberToHex = numberToHex;
+	exports.percent = percent;
+	exports.radialGradient = createRadialGradient;
+	exports.resolveValue = resolveValue;
+	exports.scaleLayout = scaleLayout;
+	exports.setLayoutManager = setLayoutManager;
 
 	Object.defineProperty(exports, '__esModule', { value: true });
 

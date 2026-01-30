@@ -53,7 +53,7 @@ export class GameScrollBox extends EventEmitter {
   private shadowGraphics: IGraphics;
   private borderGraphics: IGraphics;
   private backgroundGraphics: IGraphics;
-  private pixiScrollBox: ScrollBox;
+  private pixiScrollBox!: ScrollBox;
   private items: IContainer[] = [];
 
   private config: Required<GameScrollBoxConfig>;
@@ -112,7 +112,8 @@ export class GameScrollBox extends EventEmitter {
     this.pixiScrollBox.y = borderWidth + padding;
 
     // Forward scroll events
-    this.pixiScrollBox.onScroll.connect((scrollY: number) => {
+    this.pixiScrollBox.onScroll.connect((value) => {
+      const scrollY = typeof value === 'number' ? value : (value as { y?: number }).y ?? 0;
       this.emit('scroll', { y: scrollY, x: 0 });
     });
 

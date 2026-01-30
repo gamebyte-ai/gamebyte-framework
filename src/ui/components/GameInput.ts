@@ -63,7 +63,7 @@ export class GameInput extends EventEmitter {
   private borderGraphics: IGraphics;
   private backgroundGraphics: IGraphics;
   private highlightGraphics: IGraphics;
-  private pixiInput: Input;
+  private pixiInput!: Input;
 
   private config: Required<GameInputConfig>;
   private _value: string;
