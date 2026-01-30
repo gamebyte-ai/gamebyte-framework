@@ -352,6 +352,7 @@
             glowCircle.fill({ color: colors.glowColor, alpha: 0.75 });
             glowCircle.x = raysCenterX;
             glowCircle.y = raysCenterY;
+            // Note: BlurFilter uses direct PIXI.js as framework filter abstraction is not yet available
             glowCircle.filters = [new PIXI.BlurFilter({ strength: 60, quality: 4 })];
             glowCircle.mask = raysMask;
             stage.addChild(glowCircle);

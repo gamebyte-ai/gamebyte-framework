@@ -42,6 +42,17 @@
     <script src="./dist/gamebyte.umd.js"></script>
 
     <script>
+        /**
+         * Archero-Style Responsive Menu Demo (Standalone)
+         *
+         * This demo uses direct PIXI.js v8 API for standalone operation.
+         * For framework-integrated usage, use:
+         * - graphics().createGraphics() instead of new PIXI.Graphics()
+         * - graphics().createContainer() instead of new PIXI.Container()
+         * - graphics().createText() instead of new PIXI.Text()
+         *
+         * See ArcheroMenu component with responsive option for framework version.
+         */
         (async () => {
             try {
                 const { createGame, ArcheroMenu, ARCHERO_COLORS } = GameByteFramework;

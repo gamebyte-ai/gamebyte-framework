@@ -100,6 +100,17 @@
 
   <script src="../gamebyte.umd.js"></script>
   <script>
+    /**
+     * Dual Joystick Demo (Standalone)
+     *
+     * This demo uses direct PIXI.js v8 API for standalone operation.
+     * For framework-integrated usage, use:
+     * - graphics().createGraphics() instead of new PIXI.Graphics()
+     * - graphics().createContainer() instead of new PIXI.Container()
+     * - createGame() instead of new PIXI.Application()
+     *
+     * See VirtualJoystick component for framework-integrated version.
+     */
     const { VirtualJoystick, GraphicsEngine, RenderingMode } = GameByteFramework;
 
     // Game state

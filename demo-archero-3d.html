@@ -50,6 +50,19 @@
     <div id="game-container"></div>
 
     <script>
+        /**
+         * Archero-Style 3D Hybrid Demo (Standalone)
+         *
+         * This demo uses direct PIXI.js v8 and THREE.js for standalone hybrid rendering.
+         * For framework-integrated usage, use:
+         * - HybridRenderer from gamebyte-framework for 2D+3D
+         * - graphics().createGraphics() instead of new PIXI.Graphics()
+         * - graphics().createContainer() instead of new PIXI.Container()
+         * - graphics().createText() instead of new PIXI.Text()
+         *
+         * See ArcheroMenu component and HybridRenderer for framework version.
+         */
+
         // Function to load script and wait for it
         function loadScript(src) {
             return new Promise((resolve, reject) => {
