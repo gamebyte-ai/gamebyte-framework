@@ -53716,6 +53716,7 @@
 	        this._isOpen = false;
 	        this.isPressed = false;
 	        this.hoveredIndex = -1;
+	        this.globalClickHandler = null;
 	        loadFrameworkFont();
 	        this.config = {
 	            width: config.width || 200,
@@ -53935,14 +53936,13 @@
 	        this.renderTrigger();
 	    }
 	    toggleDropdown() {
-	        this._isOpen = !this._isOpen;
-	        this.dropdownContainer.visible = this._isOpen;
-	        // Bring to front when opening so dropdown appears above other elements
 	        if (this._isOpen) {
-	            this.bringToFront();
+	            this.close();
+	        }
+	        else {
+	            this.open();
 	        }
 	        this.renderTrigger();
-	        this.emit(this._isOpen ? 'open' : 'close');
 	    }
 	    /** Bring this component to the front of its parent container */
 	    bringToFront() {
@@ -53954,6 +53954,55 @@
 	                parent.addChild(this.container);
 	            }
 	        }
+	    }
+	    /** Find the root/stage by traversing up the parent chain */
+	    getStage() {
+	        let current = this.container;
+	        while (current.parent) {
+	            current = current.parent;
+	        }
+	        return current;
+	    }
+	    /** Check if a display object is a descendant of this component */
+	    isDescendant(target) {
+	        let current = target;
+	        while (current) {
+	            if (current === this.container)
+	                return true;
+	            current = current.parent;
+	        }
+	        return false;
+	    }
+	    /** Add global click listener to close dropdown when clicking outside */
+	    addGlobalClickListener() {
+	        if (this.globalClickHandler)
+	            return;
+	        const stage = this.getStage();
+	        if (!stage)
+	            return;
+	        this.globalClickHandler = (event) => {
+	            // Check if click was outside this component
+	            if (!this.isDescendant(event.target)) {
+	                this.close();
+	            }
+	        };
+	        // Use setTimeout to avoid closing immediately from the same click that opened
+	        setTimeout(() => {
+	            if (stage.eventMode === 'none') {
+	                stage.eventMode = 'static';
+	            }
+	            stage.on('pointerdown', this.globalClickHandler);
+	        }, 0);
+	    }
+	    /** Remove global click listener */
+	    removeGlobalClickListener() {
+	        if (!this.globalClickHandler)
+	            return;
+	        const stage = this.getStage();
+	        if (stage) {
+	            stage.off('pointerdown', this.globalClickHandler);
+	        }
+	        this.globalClickHandler = null;
 	    }
 	    selectOption(option) {
 	        this._selectedValue = option.value;
@@ -53968,6 +54017,7 @@
 	            this._isOpen = true;
 	            this.dropdownContainer.visible = true;
 	            this.bringToFront();
+	            this.addGlobalClickListener();
 	            this.emit('open');
 	        }
 	    }
@@ -53976,6 +54026,7 @@
 	        if (this._isOpen) {
 	            this._isOpen = false;
 	            this.dropdownContainer.visible = false;
+	            this.removeGlobalClickListener();
 	            this.emit('close');
 	        }
 	    }
@@ -54031,6 +54082,7 @@
 	    }
 	    /** Destroy the component */
 	    destroy() {
+	        this.removeGlobalClickListener();
 	        this.dropdownItems = [];
 	        this.container.destroy({ children: true });
 	        this.removeAllListeners();

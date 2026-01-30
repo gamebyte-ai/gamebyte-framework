@@ -96,6 +96,7 @@ export class GameSelect extends EventEmitter {
   private _isOpen: boolean = false;
   private isPressed: boolean = false;
   private hoveredIndex: number = -1;
+  private globalClickHandler: ((event: any) => void) | null = null;
 
   constructor(config: GameSelectConfig = {}) {
     super();
@@ -364,16 +365,12 @@ export class GameSelect extends EventEmitter {
   }
 
   private toggleDropdown(): void {
-    this._isOpen = !this._isOpen;
-    this.dropdownContainer.visible = this._isOpen;
-
-    // Bring to front when opening so dropdown appears above other elements
     if (this._isOpen) {
-      this.bringToFront();
+      this.close();
+    } else {
+      this.open();
     }
-
     this.renderTrigger();
-    this.emit(this._isOpen ? 'open' : 'close');
   }
 
   /** Bring this component to the front of its parent container */
@@ -386,6 +383,59 @@ export class GameSelect extends EventEmitter {
         parent.addChild(this.container);
       }
     }
+  }
+
+  /** Find the root/stage by traversing up the parent chain */
+  private getStage(): any {
+    let current: any = this.container;
+    while (current.parent) {
+      current = current.parent;
+    }
+    return current;
+  }
+
+  /** Check if a display object is a descendant of this component */
+  private isDescendant(target: any): boolean {
+    let current = target;
+    while (current) {
+      if (current === this.container) return true;
+      current = current.parent;
+    }
+    return false;
+  }
+
+  /** Add global click listener to close dropdown when clicking outside */
+  private addGlobalClickListener(): void {
+    if (this.globalClickHandler) return;
+
+    const stage = this.getStage();
+    if (!stage) return;
+
+    this.globalClickHandler = (event: any) => {
+      // Check if click was outside this component
+      if (!this.isDescendant(event.target)) {
+        this.close();
+      }
+    };
+
+    // Use setTimeout to avoid closing immediately from the same click that opened
+    setTimeout(() => {
+      if (stage.eventMode === 'none') {
+        stage.eventMode = 'static';
+      }
+      stage.on('pointerdown', this.globalClickHandler);
+    }, 0);
+  }
+
+  /** Remove global click listener */
+  private removeGlobalClickListener(): void {
+    if (!this.globalClickHandler) return;
+
+    const stage = this.getStage();
+    if (stage) {
+      stage.off('pointerdown', this.globalClickHandler);
+    }
+    this.globalClickHandler = null;
   }
 
   private selectOption(option: GameSelectOption): void {
@@ -402,6 +452,7 @@ export class GameSelect extends EventEmitter {
       this._isOpen = true;
       this.dropdownContainer.visible = true;
       this.bringToFront();
+      this.addGlobalClickListener();
       this.emit('open');
     }
   }
@@ -411,6 +462,7 @@ export class GameSelect extends EventEmitter {
     if (this._isOpen) {
       this._isOpen = false;
       this.dropdownContainer.visible = false;
+      this.removeGlobalClickListener();
       this.emit('close');
     }
   }
@@ -476,6 +528,7 @@ export class GameSelect extends EventEmitter {
 
   /** Destroy the component */
   public destroy(): void {
+    this.removeGlobalClickListener();
     this.dropdownItems = [];
     this.container.destroy({ children: true });
     this.removeAllListeners();
