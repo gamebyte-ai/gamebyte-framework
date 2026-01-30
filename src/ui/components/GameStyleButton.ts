@@ -39,6 +39,7 @@ export interface GameStyleButtonConfig {
   borderRadius?: number;
   borderWidth?: number;
   shadowOffset?: number;          // Only used in 'raised' style
+  horizontalPadding?: number;     // Safe padding from left/right edges (default: 12)
   disabled?: boolean;
   icon?: string;
 }
@@ -103,6 +104,7 @@ export class GameStyleButton extends EventEmitter {
       borderRadius: config.borderRadius || 14,
       borderWidth: config.borderWidth || 1,
       shadowOffset: config.shadowOffset || 3,
+      horizontalPadding: config.horizontalPadding ?? 12,  // Safe text padding from edges
       disabled: config.disabled || false,
       icon: config.icon || ''
     };
@@ -140,9 +142,10 @@ export class GameStyleButton extends EventEmitter {
 
   /**
    * Create styled text with stroke
+   * Text is automatically scaled down if it exceeds available width
    */
   private createText(): void {
-    const { colorScheme, fontSize, fontFamily, width, height } = this.config;
+    const { colorScheme, fontSize, fontFamily, width, height, horizontalPadding } = this.config;
 
     // Determine if we need dark text (for light backgrounds like cream)
     const isLightBackground = this.isLightColor(colorScheme.gradientTop);
@@ -171,6 +174,14 @@ export class GameStyleButton extends EventEmitter {
     if (this.textField.anchor) this.textField.anchor.set(0.5, 0.5);
     this.textField.x = width / 2;
     this.textField.y = height / 2;
+
+    // Scale down text if it exceeds available width (with padding)
+    const availableWidth = width - (horizontalPadding * 2);
+    const textWidth = (this.textField as any).width || 0;
+    if (textWidth > availableWidth && textWidth > 0) {
+      const scale = availableWidth / textWidth;
+      this.textField.scale = { x: scale, y: scale };
+    }
 
     this.container.addChild(this.textField);
   }
@@ -434,7 +445,18 @@ export class GameStyleButton extends EventEmitter {
   public setText(text: string): this {
     this.config.text = text;
     if (this.textField) {
+      // Reset scale before measuring
+      this.textField.scale = { x: 1, y: 1 };
       this.textField.text = text;
+
+      // Scale down if text exceeds available width
+      const { width, horizontalPadding } = this.config;
+      const availableWidth = width - (horizontalPadding * 2);
+      const textWidth = (this.textField as any).width || 0;
+      if (textWidth > availableWidth && textWidth > 0) {
+        const scale = availableWidth / textWidth;
+        this.textField.scale = { x: scale, y: scale };
+      }
     }
     return this;
   }
