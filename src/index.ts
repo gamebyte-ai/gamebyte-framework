@@ -402,6 +402,15 @@ export type { GameSliderConfig, GameSliderColorScheme } from './ui/components/Ga
 export { GameTooltip, GameTooltipColors } from './ui/components/GameTooltip';
 export type { GameTooltipConfig, GameTooltipColorScheme, TooltipTailPosition } from './ui/components/GameTooltip';
 
+export { GameScrollBox, GameScrollBoxColors } from './ui/components/GameScrollBox';
+export type { GameScrollBoxConfig, GameScrollBoxColorScheme } from './ui/components/GameScrollBox';
+
+export { GameInput, GameInputColors } from './ui/components/GameInput';
+export type { GameInputConfig, GameInputColorScheme } from './ui/components/GameInput';
+
+export { GameList } from './ui/components/GameList';
+export type { GameListConfig } from './ui/components/GameList';
+
 // Font Loader (auto-loads framework font)
 export { loadFrameworkFont, getFrameworkFontFamily, isFontReady } from './ui/utils/FontLoader';
 
