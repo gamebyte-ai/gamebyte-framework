@@ -53917,8 +53917,23 @@
 	    toggleDropdown() {
 	        this._isOpen = !this._isOpen;
 	        this.dropdownContainer.visible = this._isOpen;
+	        // Bring to front when opening so dropdown appears above other elements
+	        if (this._isOpen) {
+	            this.bringToFront();
+	        }
 	        this.renderTrigger();
 	        this.emit(this._isOpen ? 'open' : 'close');
+	    }
+	    /** Bring this component to the front of its parent container */
+	    bringToFront() {
+	        const parent = this.container.parent;
+	        if (parent && parent.children) {
+	            const index = parent.children.indexOf(this.container);
+	            if (index !== -1 && index < parent.children.length - 1) {
+	                // Re-adding moves it to the top in Pixi.js
+	                parent.addChild(this.container);
+	            }
+	        }
 	    }
 	    selectOption(option) {
 	        this._selectedValue = option.value;
@@ -53932,6 +53947,7 @@
 	        if (!this._isOpen) {
 	            this._isOpen = true;
 	            this.dropdownContainer.visible = true;
+	            this.bringToFront();
 	            this.emit('open');
 	        }
 	    }

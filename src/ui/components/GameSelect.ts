@@ -366,8 +366,26 @@ export class GameSelect extends EventEmitter {
   private toggleDropdown(): void {
     this._isOpen = !this._isOpen;
     this.dropdownContainer.visible = this._isOpen;
+
+    // Bring to front when opening so dropdown appears above other elements
+    if (this._isOpen) {
+      this.bringToFront();
+    }
+
     this.renderTrigger();
     this.emit(this._isOpen ? 'open' : 'close');
+  }
+
+  /** Bring this component to the front of its parent container */
+  private bringToFront(): void {
+    const parent = (this.container as any).parent;
+    if (parent && parent.children) {
+      const index = parent.children.indexOf(this.container);
+      if (index !== -1 && index < parent.children.length - 1) {
+        // Re-adding moves it to the top in Pixi.js
+        parent.addChild(this.container);
+      }
+    }
   }
 
   private selectOption(option: GameSelectOption): void {
@@ -383,6 +401,7 @@ export class GameSelect extends EventEmitter {
     if (!this._isOpen) {
       this._isOpen = true;
       this.dropdownContainer.visible = true;
+      this.bringToFront();
       this.emit('open');
     }
   }
