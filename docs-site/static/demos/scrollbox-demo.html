@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - GameScrollBox Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 {
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        p {
+            color: #8892b0;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        #game-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        canvas { display: block; }
+        .info {
+            color: #8892b0;
+            margin-top: 20px;
+            font-size: 12px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>GameScrollBox Component</h1>
+    <p>Game-style scrollable container with jellybean styling</p>
+    <div id="game-container"></div>
+    <div class="info">
+        Features: Smooth scrolling, content masking, jellybean frame styling
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="../gamebyte.umd.js"></script>
+
+    <script>
+        const {
+            createGame,
+            GameScrollBox,
+            GameScrollBoxColors,
+            GameStyleButton,
+            GameStyleColors,
+            GameCheckBox,
+            loadFrameworkFont,
+            graphics
+        } = window.GameByteFramework;
+
+        const CONFIG = { width: 550, height: 600 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.getElementById('game-container').appendChild(canvas);
+
+        const game = createGame();
+        let renderer, stage;
+
+        async function init() {
+            await loadFrameworkFont();
+            await game.initialize(canvas, '2d');
+            renderer = game.make('renderer');
+            stage = renderer.getStage();
+
+            const factory = graphics();
+            let yOffset = 30;
+
+            // Background
+            const bg = factory.createGraphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill({ color: 0x1a1a2e });
+            stage.addChild(bg);
+
+            // Title
+            const title = factory.createText('GameScrollBox Demo', {
+                fontFamily: 'Lilita One, Arial Black, sans-serif',
+                fontSize: 28,
+                fill: 0xFFFFFF
+            });
+            title.x = CONFIG.width / 2;
+            title.y = yOffset;
+            if (title.anchor) title.anchor.set(0.5, 0);
+            stage.addChild(title);
+            yOffset += 60;
+
+            // Inventory ScrollBox
+            const inventoryLabel = factory.createText('📦 Inventory (Scroll to see more)', {
+                fontSize: 16,
+                fill: 0x8892b0
+            });
+            inventoryLabel.x = 30;
+            inventoryLabel.y = yOffset;
+            stage.addChild(inventoryLabel);
+            yOffset += 30;
+
+            const inventoryBox = new GameScrollBox({
+                width: 240,
+                height: 280,
+                padding: 12,
+                colorScheme: GameScrollBoxColors.DEFAULT
+            });
+            inventoryBox.setPosition(30, yOffset);
+
+            // Add inventory items
+            const items = [
+                { name: '⚔️ Iron Sword', color: GameStyleColors.BLUE_BUTTON },
+                { name: '🛡️ Steel Shield', color: GameStyleColors.BLUE_BUTTON },
+                { name: '🧪 Health Potion', color: GameStyleColors.RED_BUTTON },
+                { name: '🧪 Mana Potion', color: GameStyleColors.PURPLE_BUTTON },
+                { name: '🗝️ Golden Key', color: GameStyleColors.YELLOW_BUTTON },
+                { name: '📜 Magic Scroll', color: GameStyleColors.PURPLE_BUTTON },
+                { name: '🏹 Longbow', color: GameStyleColors.GREEN_BUTTON },
+                { name: '🔮 Crystal Orb', color: GameStyleColors.PURPLE_BUTTON },
+                { name: '👑 Crown', color: GameStyleColors.YELLOW_BUTTON },
+                { name: '🧲 Magnet', color: GameStyleColors.RED_BUTTON }
+            ];
+
+            items.forEach(item => {
+                const btn = new GameStyleButton({
+                    text: item.name,
+                    width: 200,
+                    height: 50,
+                    fontSize: 16,
+                    colorScheme: item.color
+                });
+                btn.on('click', () => console.log(`Selected: ${item.name}`));
+                inventoryBox.addItem(btn.getContainer());
+            });
+
+            stage.addChild(inventoryBox.getContainer());
+
+            // Settings ScrollBox
+            const settingsLabel = factory.createText('⚙️ Settings', {
+                fontSize: 16,
+                fill: 0x8892b0
+            });
+            settingsLabel.x = 290;
+            settingsLabel.y = yOffset - 30;
+            stage.addChild(settingsLabel);
+
+            const settingsBox = new GameScrollBox({
+                width: 220,
+                height: 280,
+                padding: 12,
+                colorScheme: GameScrollBoxColors.DARK
+            });
+            settingsBox.setPosition(290, yOffset);
+
+            // Add settings items
+            const settings = [
+                'Sound Effects',
+                'Background Music',
+                'Vibration',
+                'Notifications',
+                'Auto-Save',
+                'Cloud Sync',
+                'HD Graphics',
+                'Show FPS',
+                'Tutorial Tips',
+                'Colorblind Mode'
+            ];
+
+            settings.forEach((setting, i) => {
+                const checkbox = new GameCheckBox({
+                    label: setting,
+                    checked: i < 4,
+                    size: 28,
+                    fontSize: 14,
+                    onChange: (val) => console.log(`${setting}: ${val}`)
+                });
+                settingsBox.addItem(checkbox.getContainer());
+            });
+
+            stage.addChild(settingsBox.getContainer());
+
+            // Scroll controls
+            yOffset += 300;
+
+            const scrollLabel = factory.createText('Scroll Controls:', {
+                fontSize: 14,
+                fill: 0x8892b0
+            });
+            scrollLabel.x = 30;
+            scrollLabel.y = yOffset;
+            stage.addChild(scrollLabel);
+            yOffset += 30;
+
+            const topBtn = new GameStyleButton({
+                text: '⬆️ Top',
+                width: 100,
+                height: 40,
+                fontSize: 14,
+                colorScheme: GameStyleColors.BLUE_BUTTON
+            });
+            topBtn.setPosition(30, yOffset);
+            topBtn.on('click', () => inventoryBox.scrollToTop());
+            stage.addChild(topBtn.getContainer());
+
+            const bottomBtn = new GameStyleButton({
+                text: '⬇️ Bottom',
+                width: 100,
+                height: 40,
+                fontSize: 14,
+                colorScheme: GameStyleColors.BLUE_BUTTON
+            });
+            bottomBtn.setPosition(145, yOffset);
+            bottomBtn.on('click', () => inventoryBox.scrollToBottom());
+            stage.addChild(bottomBtn.getContainer());
+
+            // Start the game loop
+            game.start();
+            console.log('ScrollBox demo initialized!');
+        }
+
+        init().catch(console.error);
+    </script>
+</body>
+</html>

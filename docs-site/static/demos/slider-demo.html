@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - GameSlider Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 {
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        p {
+            color: #8892b0;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        #game-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        canvas { display: block; }
+        .info {
+            color: #8892b0;
+            margin-top: 20px;
+            font-size: 12px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>GameSlider Component</h1>
+    <p>Game-style slider with gradient track, fill indicator, and glossy thumb</p>
+    <div id="game-container"></div>
+    <div class="info">
+        Features: Gradient fill, draggable thumb, step support, multiple color schemes
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="../gamebyte.umd.js"></script>
+
+    <script>
+        const {
+            createGame,
+            GameSlider,
+            GameSliderColors,
+            loadFrameworkFont,
+            graphics
+        } = window.GameByteFramework;
+
+        const CONFIG = { width: 500, height: 550 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.getElementById('game-container').appendChild(canvas);
+
+        const game = createGame();
+        let renderer, stage;
+
+        async function init() {
+            await loadFrameworkFont();
+            await game.initialize(canvas, '2d');
+            renderer = game.make('renderer');
+            stage = renderer.getStage();
+
+            const factory = graphics();
+            let yOffset = 30;
+
+            // Background
+            const bg = factory.createGraphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill({ color: 0x1a1a2e });
+            stage.addChild(bg);
+
+            // Title
+            const title = factory.createText('GameSlider Showcase', {
+                fontFamily: 'Lilita One, Arial Black, sans-serif',
+                fontSize: 28,
+                fill: 0xFFFFFF
+            });
+            title.x = CONFIG.width / 2;
+            title.y = yOffset;
+            if (title.anchor) title.anchor.set(0.5, 0);
+            stage.addChild(title);
+            yOffset += 70;
+
+            // Default Slider (Blue) - Volume
+            createSliderRow('🔊 Master Volume', GameSliderColors.DEFAULT, 75, 0, 100, 1, yOffset);
+            yOffset += 80;
+
+            // Green Slider - Music
+            createSliderRow('🎵 Music Volume', GameSliderColors.GREEN, 60, 0, 100, 1, yOffset);
+            yOffset += 80;
+
+            // Orange Slider - SFX
+            createSliderRow('🔔 SFX Volume', GameSliderColors.ORANGE, 80, 0, 100, 1, yOffset);
+            yOffset += 80;
+
+            // Purple Slider - Brightness
+            createSliderRow('☀️ Brightness', GameSliderColors.PURPLE, 50, 0, 100, 5, yOffset);
+            yOffset += 80;
+
+            // Red Slider - Sensitivity
+            createSliderRow('🎮 Sensitivity', GameSliderColors.RED, 30, 0, 100, 10, yOffset);
+            yOffset += 80;
+
+            // Disabled Slider
+            const disabledLabel = factory.createText('🔒 Disabled Slider', {
+                fontSize: 16,
+                fill: 0x8892b0
+            });
+            disabledLabel.x = 40;
+            disabledLabel.y = yOffset;
+            stage.addChild(disabledLabel);
+
+            const disabledSlider = new GameSlider({
+                width: 280,
+                value: 50,
+                disabled: true
+            });
+            disabledSlider.setPosition(40, yOffset + 30);
+            stage.addChild(disabledSlider.getContainer());
+
+            // Start the game loop
+            game.start();
+            console.log('Slider demo initialized!');
+        }
+
+        function createSliderRow(label, colorScheme, initialValue, min, max, step, yPos) {
+            const factory = graphics();
+
+            const labelText = factory.createText(label, {
+                fontSize: 16,
+                fill: 0xCCCCCC
+            });
+            labelText.x = 40;
+            labelText.y = yPos;
+            stage.addChild(labelText);
+
+            const valueText = factory.createText(`${initialValue}%`, {
+                fontSize: 16,
+                fill: 0xFFFFFF
+            });
+            valueText.x = 420;
+            valueText.y = yPos;
+            stage.addChild(valueText);
+
+            const slider = new GameSlider({
+                width: 280,
+                min: min,
+                max: max,
+                value: initialValue,
+                step: step,
+                colorScheme: colorScheme,
+                onChange: (value) => {
+                    console.log(`${label}: ${value}`);
+                    valueText.text = `${Math.round(value)}%`;
+                }
+            });
+            slider.setPosition(40, yPos + 30);
+            stage.addChild(slider.getContainer());
+        }
+
+        init().catch(console.error);
+    </script>
+</body>
+</html>

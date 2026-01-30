@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - Spatial Audio Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
+        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
+        #game-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        canvas { display: block; }
+        .info { color: #8892b0; margin-top: 20px; font-size: 12px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Spatial Audio (3D Positional Sound)</h1>
+    <p>Drag sound sources around the listener to hear 3D positioning</p>
+    <div id="game-container"></div>
+    <div class="info">
+        🎧 Use headphones for best experience! Drag colored circles to move sound sources.
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="../gamebyte.umd.js"></script>
+
+    <script>
+        const {
+            createGame,
+            GameStyleButton,
+            GameStyleColors,
+            GameSlider,
+            GameSliderColors,
+            loadFrameworkFont,
+            getFrameworkFontFamily,
+            graphics
+        } = window.GameByteFramework;
+
+        const CONFIG = { width: 500, height: 600 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.getElementById('game-container').appendChild(canvas);
+
+        const game = createGame();
+        let renderer, stage, factory;
+
+        // Audio
+        let audioCtx;
+        let listener;
+        const soundSources = [];
+        let masterGain;
+
+        // Visual
+        let listenerGraphic;
+        let listenerAngle = 0;
+        const AREA_CENTER = { x: 250, y: 280 };
+        const AREA_RADIUS = 150;
+
+        async function init() {
+            await loadFrameworkFont();
+            await game.initialize(canvas, '2d');
+            renderer = game.make('renderer');
+            stage = renderer.getStage();
+            factory = graphics();
+
+            // Background
+            const bg = factory.createGraphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill({ color: 0x1a1a2e });
+            stage.addChild(bg);
+
+            // Title
+            const title = factory.createText('🔊 Spatial Audio Demo', {
+                fontFamily: getFrameworkFontFamily(),
+                fontSize: 28,
+                fill: 0xFFFFFF
+            });
+            title.x = CONFIG.width / 2;
+            title.y = 15;
+            if (title.anchor) title.anchor.set(0.5, 0);
+            stage.addChild(title);
+
+            // Instructions
+            const instructions = factory.createText('Drag sound sources • Arrow keys rotate listener', {
+                fontSize: 12,
+                fill: 0x8892b0
+            });
+            instructions.x = CONFIG.width / 2;
+            instructions.y = 50;
+            if (instructions.anchor) instructions.anchor.set(0.5, 0);
+            stage.addChild(instructions);
+
+            // Sound area background (circular)
+            const areaBg = factory.createGraphics();
+            areaBg.circle(AREA_CENTER.x, AREA_CENTER.y, AREA_RADIUS + 20);
+            areaBg.fill({ color: 0x0a0a1a, alpha: 0.6 });
+            areaBg.stroke({ color: 0x3D4F5F, width: 2 });
+            stage.addChild(areaBg);
+
+            // Grid lines for reference
+            const grid = factory.createGraphics();
+            for (let i = -AREA_RADIUS; i <= AREA_RADIUS; i += 50) {
+                // Vertical lines
+                grid.moveTo(AREA_CENTER.x + i, AREA_CENTER.y - AREA_RADIUS);
+                grid.lineTo(AREA_CENTER.x + i, AREA_CENTER.y + AREA_RADIUS);
+                // Horizontal lines
+                grid.moveTo(AREA_CENTER.x - AREA_RADIUS, AREA_CENTER.y + i);
+                grid.lineTo(AREA_CENTER.x + AREA_RADIUS, AREA_CENTER.y + i);
+            }
+            grid.stroke({ color: 0x2a2a4e, width: 1 });
+            stage.addChild(grid);
+
+            // Distance circles
+            const distanceCircles = factory.createGraphics();
+            [50, 100, 150].forEach(r => {
+                distanceCircles.circle(AREA_CENTER.x, AREA_CENTER.y, r);
+                distanceCircles.stroke({ color: 0x3D4F5F, width: 1, alpha: 0.5 });
+            });
+            stage.addChild(distanceCircles);
+
+            // Create listener (player icon)
+            createListener();
+
+            // Create sound sources
+            createSoundSource('Drums', 0xE74C3C, -80, -60, 'drums');
+            createSoundSource('Synth', 0x3498DB, 80, -40, 'synth');
+            createSoundSource('Bass', 0x2ECC71, 0, 80, 'bass');
+
+            // Volume control
+            const volLabel = factory.createText('Master Volume:', {
+                fontSize: 14,
+                fill: 0x8892b0
+            });
+            volLabel.x = 30;
+            volLabel.y = 470;
+            stage.addChild(volLabel);
+
+            const volSlider = new GameSlider({
+                width: 200,
+                min: 0,
+                max: 100,
+                value: 70,
+                colorScheme: GameSliderColors.DEFAULT,
+                onChange: (v) => {
+                    if (masterGain) masterGain.gain.value = v / 100;
+                }
+            });
+            volSlider.setPosition(150, 465);
+            stage.addChild(volSlider.getContainer());
+
+            // Play/Stop button
+            const playBtn = new GameStyleButton({
+                text: '▶️ Start Audio',
+                width: 140,
+                height: 50,
+                fontSize: 16,
+                colorScheme: GameStyleColors.GREEN_BUTTON
+            });
+            playBtn.setPosition(30, 520);
+            let isPlaying = false;
+            playBtn.on('click', () => {
+                if (!isPlaying) {
+                    startAudio();
+                    playBtn.setText('⏹ Stop Audio');
+                    isPlaying = true;
+                } else {
+                    stopAudio();
+                    playBtn.setText('▶️ Start Audio');
+                    isPlaying = false;
+                }
+            });
+            stage.addChild(playBtn.getContainer());
+
+            // Reset button
+            const resetBtn = new GameStyleButton({
+                text: '🔄 Reset Positions',
+                width: 140,
+                height: 50,
+                fontSize: 16,
+                colorScheme: GameStyleColors.BLUE_BUTTON
+            });
+            resetBtn.setPosition(180, 520);
+            resetBtn.on('click', resetPositions);
+            stage.addChild(resetBtn.getContainer());
+
+            // Rotate listener buttons
+            const rotLeftBtn = new GameStyleButton({
+                text: '⬅️',
+                width: 60,
+                height: 50,
+                fontSize: 20,
+                colorScheme: GameStyleColors.PURPLE_BUTTON
+            });
+            rotLeftBtn.setPosition(340, 520);
+            rotLeftBtn.on('click', () => rotateListener(-0.3));
+            stage.addChild(rotLeftBtn.getContainer());
+
+            const rotRightBtn = new GameStyleButton({
+                text: '➡️',
+                width: 60,
+                height: 50,
+                fontSize: 20,
+                colorScheme: GameStyleColors.PURPLE_BUTTON
+            });
+            rotRightBtn.setPosition(410, 520);
+            rotRightBtn.on('click', () => rotateListener(0.3));
+            stage.addChild(rotRightBtn.getContainer());
+
+            // Keyboard controls
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft') rotateListener(-0.1);
+                if (e.key === 'ArrowRight') rotateListener(0.1);
+            });
+
+            // Game loop
+            game.on('update', () => {
+                updateAudioPositions();
+                updateVisuals();
+            });
+
+            game.start();
+            console.log('Spatial audio demo initialized!');
+        }
+
+        function createListener() {
+            listenerGraphic = factory.createGraphics();
+
+            // Head (circle)
+            listenerGraphic.circle(0, 0, 20);
+            listenerGraphic.fill({ color: 0xFFD700 });
+            listenerGraphic.stroke({ color: 0xB8860B, width: 3 });
+
+            // Direction indicator (triangle/arrow)
+            listenerGraphic.moveTo(0, -30);
+            listenerGraphic.lineTo(-10, -15);
+            listenerGraphic.lineTo(10, -15);
+            listenerGraphic.closePath();
+            listenerGraphic.fill({ color: 0xFFD700 });
+
+            // Ears
+            listenerGraphic.circle(-22, 0, 6);
+            listenerGraphic.fill({ color: 0xFFA500 });
+            listenerGraphic.circle(22, 0, 6);
+            listenerGraphic.fill({ color: 0xFFA500 });
+
+            listenerGraphic.x = AREA_CENTER.x;
+            listenerGraphic.y = AREA_CENTER.y;
+            stage.addChild(listenerGraphic);
+
+            // Label
+            const label = factory.createText('Listener', {
+                fontSize: 10,
+                fill: 0xFFD700
+            });
+            label.x = AREA_CENTER.x;
+            label.y = AREA_CENTER.y + 30;
+            if (label.anchor) label.anchor.set(0.5, 0);
+            stage.addChild(label);
+        }
+
+        function createSoundSource(name, color, offsetX, offsetY, type) {
+            const source = {
+                name,
+                color,
+                type,
+                x: AREA_CENTER.x + offsetX,
+                y: AREA_CENTER.y + offsetY,
+                initialX: AREA_CENTER.x + offsetX,
+                initialY: AREA_CENTER.y + offsetY,
+                graphic: null,
+                label: null,
+                panner: null,
+                oscillator: null,
+                gain: null,
+                isDragging: false
+            };
+
+            // Visual representation
+            source.graphic = factory.createGraphics();
+            source.graphic.circle(0, 0, 25);
+            source.graphic.fill({ color, alpha: 0.8 });
+            source.graphic.stroke({ color: 0xFFFFFF, width: 2 });
+
+            // Sound wave rings
+            source.graphic.circle(0, 0, 35);
+            source.graphic.stroke({ color, width: 1, alpha: 0.5 });
+            source.graphic.circle(0, 0, 45);
+            source.graphic.stroke({ color, width: 1, alpha: 0.3 });
+
+            source.graphic.x = source.x;
+            source.graphic.y = source.y;
+            source.graphic.eventMode = 'static';
+            source.graphic.cursor = 'grab';
+
+            // Drag handling
+            source.graphic.on('pointerdown', (e) => {
+                source.isDragging = true;
+                source.graphic.cursor = 'grabbing';
+            });
+
+            stage.eventMode = 'static';
+            stage.on('pointermove', (e) => {
+                if (source.isDragging) {
+                    const pos = e.global || e.data?.global;
+                    if (pos) {
+                        // Constrain to area
+                        const dx = pos.x - AREA_CENTER.x;
+                        const dy = pos.y - AREA_CENTER.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < AREA_RADIUS) {
+                            source.x = pos.x;
+                            source.y = pos.y;
+                        } else {
+                            // Clamp to edge
+                            source.x = AREA_CENTER.x + (dx / dist) * AREA_RADIUS;
+                            source.y = AREA_CENTER.y + (dy / dist) * AREA_RADIUS;
+                        }
+                        source.graphic.x = source.x;
+                        source.graphic.y = source.y;
+                        source.label.x = source.x;
+                        source.label.y = source.y + 35;
+                    }
+                }
+            });
+
+            stage.on('pointerup', () => {
+                source.isDragging = false;
+                source.graphic.cursor = 'grab';
+            });
+
+            stage.addChild(source.graphic);
+
+            // Label
+            source.label = factory.createText(name, {
+                fontSize: 12,
+                fill: color
+            });
+            source.label.x = source.x;
+            source.label.y = source.y + 35;
+            if (source.label.anchor) source.label.anchor.set(0.5, 0);
+            stage.addChild(source.label);
+
+            soundSources.push(source);
+        }
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                listener = audioCtx.listener;
+                masterGain = audioCtx.createGain();
+                masterGain.gain.value = 0.7;
+                masterGain.connect(audioCtx.destination);
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function startAudio() {
+            initAudio();
+
+            soundSources.forEach(source => {
+                // Create panner node for 3D positioning
+                source.panner = audioCtx.createPanner();
+                source.panner.panningModel = 'HRTF';
+                source.panner.distanceModel = 'inverse';
+                source.panner.refDistance = 1;
+                source.panner.maxDistance = 10000;
+                source.panner.rolloffFactor = 1;
+                source.panner.coneInnerAngle = 360;
+                source.panner.coneOuterAngle = 360;
+                source.panner.coneOuterGain = 0;
+
+                // Create oscillator based on type
+                source.oscillator = audioCtx.createOscillator();
+                source.gain = audioCtx.createGain();
+                source.gain.gain.value = 0.3;
+
+                switch (source.type) {
+                    case 'drums':
+                        source.oscillator.type = 'square';
+                        source.oscillator.frequency.value = 100;
+                        // Rhythmic modulation
+                        setInterval(() => {
+                            if (source.oscillator) {
+                                source.gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                                source.gain.gain.exponentialRampToValueAtTime(0.1, audioCtx.currentTime + 0.1);
+                            }
+                        }, 250);
+                        break;
+                    case 'synth':
+                        source.oscillator.type = 'sawtooth';
+                        source.oscillator.frequency.value = 220;
+                        // Melody modulation
+                        const notes = [220, 277, 330, 277];
+                        let noteIndex = 0;
+                        setInterval(() => {
+                            if (source.oscillator) {
+                                source.oscillator.frequency.setTargetAtTime(
+                                    notes[noteIndex % notes.length],
+                                    audioCtx.currentTime,
+                                    0.05
+                                );
+                                noteIndex++;
+                            }
+                        }, 500);
+                        break;
+                    case 'bass':
+                        source.oscillator.type = 'sine';
+                        source.oscillator.frequency.value = 55;
+                        // Slow pulse
+                        setInterval(() => {
+                            if (source.oscillator) {
+                                source.gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                                source.gain.gain.exponentialRampToValueAtTime(0.2, audioCtx.currentTime + 0.3);
+                            }
+                        }, 600);
+                        break;
+                }
+
+                source.oscillator.connect(source.gain);
+                source.gain.connect(source.panner);
+                source.panner.connect(masterGain);
+                source.oscillator.start();
+            });
+
+            // Set initial listener orientation
+            updateListenerOrientation();
+        }
+
+        function stopAudio() {
+            soundSources.forEach(source => {
+                if (source.oscillator) {
+                    source.oscillator.stop();
+                    source.oscillator = null;
+                }
+                source.panner = null;
+                source.gain = null;
+            });
+        }
+
+        function updateAudioPositions() {
+            if (!audioCtx) return;
+
+            // Update listener orientation
+            updateListenerOrientation();
+
+            // Update source positions
+            soundSources.forEach(source => {
+                if (source.panner) {
+                    // Convert screen coordinates to 3D space
+                    const x = (source.x - AREA_CENTER.x) / 50;
+                    const z = (source.y - AREA_CENTER.y) / 50;
+                    source.panner.positionX.setValueAtTime(x, audioCtx.currentTime);
+                    source.panner.positionY.setValueAtTime(0, audioCtx.currentTime);
+                    source.panner.positionZ.setValueAtTime(z, audioCtx.currentTime);
+                }
+            });
+        }
+
+        function updateListenerOrientation() {
+            if (!listener) return;
+
+            // Listener is at center
+            if (listener.positionX) {
+                listener.positionX.setValueAtTime(0, audioCtx.currentTime);
+                listener.positionY.setValueAtTime(0, audioCtx.currentTime);
+                listener.positionZ.setValueAtTime(0, audioCtx.currentTime);
+            }
+
+            // Set forward direction based on rotation
+            const forwardX = Math.sin(listenerAngle);
+            const forwardZ = -Math.cos(listenerAngle);
+
+            if (listener.forwardX) {
+                listener.forwardX.setValueAtTime(forwardX, audioCtx.currentTime);
+                listener.forwardY.setValueAtTime(0, audioCtx.currentTime);
+                listener.forwardZ.setValueAtTime(forwardZ, audioCtx.currentTime);
+                listener.upX.setValueAtTime(0, audioCtx.currentTime);
+                listener.upY.setValueAtTime(1, audioCtx.currentTime);
+                listener.upZ.setValueAtTime(0, audioCtx.currentTime);
+            }
+        }
+
+        function rotateListener(delta) {
+            listenerAngle += delta;
+            listenerGraphic.rotation = listenerAngle;
+        }
+
+        function updateVisuals() {
+            // Pulse effect on sound sources when playing
+            soundSources.forEach(source => {
+                if (source.oscillator) {
+                    const pulse = 1 + Math.sin(Date.now() / 200) * 0.05;
+                    source.graphic.scale.set(pulse);
+                }
+            });
+        }
+
+        function resetPositions() {
+            soundSources.forEach(source => {
+                source.x = source.initialX;
+                source.y = source.initialY;
+                source.graphic.x = source.x;
+                source.graphic.y = source.y;
+                source.label.x = source.x;
+                source.label.y = source.y + 35;
+            });
+            listenerAngle = 0;
+            listenerGraphic.rotation = 0;
+        }
+
+        init().catch(console.error);
+    </script>
+</body>
+</html>

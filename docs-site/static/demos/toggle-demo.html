@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - GameToggle Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 {
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        p {
+            color: #8892b0;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        #game-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        canvas { display: block; }
+        .info {
+            color: #8892b0;
+            margin-top: 20px;
+            font-size: 12px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>GameToggle Component</h1>
+    <p>Game-style toggle switch with gradient track and glossy thumb</p>
+    <div id="game-container"></div>
+    <div class="info">
+        Features: Gradient track, glossy thumb, multiple color schemes, press animation
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="../gamebyte.umd.js"></script>
+
+    <script>
+        const {
+            createGame,
+            GameToggle,
+            GameToggleColors,
+            loadFrameworkFont,
+            graphics
+        } = window.GameByteFramework;
+
+        const CONFIG = { width: 450, height: 500 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.getElementById('game-container').appendChild(canvas);
+
+        const game = createGame();
+        let renderer, stage;
+
+        async function init() {
+            await loadFrameworkFont();
+            await game.initialize(canvas, '2d');
+            renderer = game.make('renderer');
+            stage = renderer.getStage();
+
+            const factory = graphics();
+            let yOffset = 30;
+
+            // Background
+            const bg = factory.createGraphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill({ color: 0x1a1a2e });
+            stage.addChild(bg);
+
+            // Title
+            const title = factory.createText('GameToggle Showcase', {
+                fontFamily: 'Lilita One, Arial Black, sans-serif',
+                fontSize: 28,
+                fill: 0xFFFFFF
+            });
+            title.x = CONFIG.width / 2;
+            title.y = yOffset;
+            if (title.anchor) title.anchor.set(0.5, 0);
+            stage.addChild(title);
+            yOffset += 70;
+
+            // Default Toggle (Green)
+            createToggleRow('Default (Green)', GameToggleColors.DEFAULT, true, yOffset);
+            yOffset += 80;
+
+            // Blue Toggle
+            createToggleRow('Blue Theme', GameToggleColors.BLUE, false, yOffset);
+            yOffset += 80;
+
+            // Orange Toggle
+            createToggleRow('Orange Theme', GameToggleColors.ORANGE, true, yOffset);
+            yOffset += 80;
+
+            // Purple Toggle
+            createToggleRow('Purple Theme', GameToggleColors.PURPLE, false, yOffset);
+            yOffset += 80;
+
+            // Disabled Toggle
+            const disabledLabel = factory.createText('Disabled State', {
+                fontSize: 18,
+                fill: 0x8892b0
+            });
+            disabledLabel.x = 40;
+            disabledLabel.y = yOffset;
+            stage.addChild(disabledLabel);
+
+            const disabledToggle = new GameToggle({
+                value: true,
+                disabled: true
+            });
+            disabledToggle.setPosition(300, yOffset - 5);
+            stage.addChild(disabledToggle.getContainer());
+
+            // Start the game loop
+            game.start();
+            console.log('Toggle demo initialized!');
+        }
+
+        function createToggleRow(label, colorScheme, initialValue, yPos) {
+            const factory = graphics();
+
+            const labelText = factory.createText(label, {
+                fontSize: 18,
+                fill: 0xCCCCCC
+            });
+            labelText.x = 40;
+            labelText.y = yPos;
+            stage.addChild(labelText);
+
+            const toggle = new GameToggle({
+                value: initialValue,
+                colorScheme: colorScheme,
+                onChange: (value) => {
+                    console.log(`${label}: ${value ? 'ON' : 'OFF'}`);
+                    statusText.text = value ? 'ON' : 'OFF';
+                    statusText.style.fill = value ? 0x7ED321 : 0xE74C3C;
+                }
+            });
+            toggle.setPosition(300, yPos - 5);
+            stage.addChild(toggle.getContainer());
+
+            const statusText = factory.createText(initialValue ? 'ON' : 'OFF', {
+                fontSize: 16,
+                fill: initialValue ? 0x7ED321 : 0xE74C3C
+            });
+            statusText.x = 390;
+            statusText.y = yPos + 5;
+            stage.addChild(statusText);
+        }
+
+        init().catch(console.error);
+    </script>
+</body>
+</html>

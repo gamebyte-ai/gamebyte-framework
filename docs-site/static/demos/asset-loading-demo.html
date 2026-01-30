@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - Asset Loading Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
+        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
+        #game-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        canvas { display: block; }
+        .info { color: #8892b0; margin-top: 20px; font-size: 12px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Asset Loading System</h1>
+    <p>Progress bars, queue management, and asset caching demonstration</p>
+    <div id="game-container"></div>
+    <div class="info">
+        📦 Click "Load Assets" to simulate loading game resources with progress tracking
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="../gamebyte.umd.js"></script>
+
+    <script>
+        const {
+            createGame,
+            GameStyleButton,
+            GameStyleColors,
+            loadFrameworkFont,
+            getFrameworkFontFamily,
+            graphics
+        } = window.GameByteFramework;
+
+        const CONFIG = { width: 500, height: 600 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.getElementById('game-container').appendChild(canvas);
+
+        const game = createGame();
+        let renderer, stage, factory;
+
+        // Loading state
+        let isLoading = false;
+        let loadedAssets = new Map();
+
+        // Visual elements
+        let progressBar, progressFill, progressText;
+        let assetList = [];
+        let statusText;
+        let loadBtn;
+
+        // Simulated asset queue
+        const ASSETS = [
+            { name: 'player.png', type: 'texture', size: 512, color: 0x3498DB },
+            { name: 'enemy.png', type: 'texture', size: 256, color: 0xE74C3C },
+            { name: 'background.jpg', type: 'texture', size: 2048, color: 0x2ECC71 },
+            { name: 'tiles.atlas', type: 'spritesheet', size: 1024, color: 0x9B59B6 },
+            { name: 'music.mp3', type: 'audio', size: 4096, color: 0xF39C12 },
+            { name: 'sfx_jump.wav', type: 'audio', size: 128, color: 0xF39C12 },
+            { name: 'sfx_coin.wav', type: 'audio', size: 64, color: 0xF39C12 },
+            { name: 'level1.json', type: 'data', size: 32, color: 0x1ABC9C },
+            { name: 'fonts.woff2', type: 'font', size: 256, color: 0xBB8FCE },
+            { name: 'shaders.glsl', type: 'shader', size: 16, color: 0x5DADE2 }
+        ];
+
+        async function init() {
+            await loadFrameworkFont();
+            await game.initialize(canvas, '2d');
+            renderer = game.make('renderer');
+            stage = renderer.getStage();
+            factory = graphics();
+
+            // Background
+            const bg = factory.createGraphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill({ color: 0x1a1a2e });
+            stage.addChild(bg);
+
+            // Title
+            const title = factory.createText('📦 Asset Loading Demo', {
+                fontFamily: getFrameworkFontFamily(),
+                fontSize: 28,
+                fill: 0xFFFFFF
+            });
+            title.x = CONFIG.width / 2;
+            title.y = 15;
+            if (title.anchor) title.anchor.set(0.5, 0);
+            stage.addChild(title);
+
+            // Progress section
+            createProgressSection();
+
+            // Asset queue list
+            createAssetList();
+
+            // Load button
+            loadBtn = new GameStyleButton({
+                text: '📥 Load Assets',
+                width: 160,
+                height: 55,
+                fontSize: 18,
+                colorScheme: GameStyleColors.GREEN_BUTTON
+            });
+            loadBtn.setPosition(30, 520);
+            loadBtn.on('click', startLoading);
+            stage.addChild(loadBtn.getContainer());
+
+            // Clear cache button
+            const clearBtn = new GameStyleButton({
+                text: '🗑️ Clear Cache',
+                width: 140,
+                height: 55,
+                fontSize: 16,
+                colorScheme: GameStyleColors.RED_BUTTON
+            });
+            clearBtn.setPosition(200, 520);
+            clearBtn.on('click', clearCache);
+            stage.addChild(clearBtn.getContainer());
+
+            // Reload button
+            const reloadBtn = new GameStyleButton({
+                text: '🔄 Reload',
+                width: 120,
+                height: 55,
+                fontSize: 16,
+                colorScheme: GameStyleColors.BLUE_BUTTON
+            });
+            reloadBtn.setPosition(350, 520);
+            reloadBtn.on('click', reloadAssets);
+            stage.addChild(reloadBtn.getContainer());
+
+            // Status text
+            statusText = factory.createText('Ready to load assets', {
+                fontSize: 14,
+                fill: 0x8892b0
+            });
+            statusText.x = CONFIG.width / 2;
+            statusText.y = 580;
+            if (statusText.anchor) statusText.anchor.set(0.5, 0);
+            stage.addChild(statusText);
+
+            game.start();
+            console.log('Asset loading demo initialized!');
+        }
+
+        function createProgressSection() {
+            const sectionLabel = factory.createText('Loading Progress:', {
+                fontSize: 16,
+                fill: 0xCCCCCC
+            });
+            sectionLabel.x = 30;
+            sectionLabel.y = 60;
+            stage.addChild(sectionLabel);
+
+            // Progress bar background
+            const progressBg = factory.createGraphics();
+            progressBg.roundRect(30, 90, 440, 40, 10);
+            progressBg.fill({ color: 0x1a1a2e });
+            progressBg.stroke({ color: 0x5D6D7E, width: 2 });
+            stage.addChild(progressBg);
+
+            // Progress bar fill
+            progressFill = factory.createGraphics();
+            progressFill.roundRect(0, 0, 0, 36, 8);
+            progressFill.fill({ color: 0x3498DB });
+            progressFill.x = 32;
+            progressFill.y = 92;
+            stage.addChild(progressFill);
+
+            // Progress text
+            progressText = factory.createText('0%', {
+                fontFamily: getFrameworkFontFamily(),
+                fontSize: 20,
+                fill: 0xFFFFFF
+            });
+            progressText.x = CONFIG.width / 2;
+            progressText.y = 100;
+            if (progressText.anchor) progressText.anchor.set(0.5, 0);
+            stage.addChild(progressText);
+
+            // Stats
+            const statsLabel = factory.createText('Total Size: 8.4 MB | 10 Assets', {
+                fontSize: 12,
+                fill: 0x8892b0
+            });
+            statsLabel.x = 30;
+            statsLabel.y = 140;
+            stage.addChild(statsLabel);
+        }
+
+        function createAssetList() {
+            const listLabel = factory.createText('Asset Queue:', {
+                fontSize: 16,
+                fill: 0xCCCCCC
+            });
+            listLabel.x = 30;
+            listLabel.y = 170;
+            stage.addChild(listLabel);
+
+            // List background
+            const listBg = factory.createGraphics();
+            listBg.roundRect(30, 195, 440, 310, 8);
+            listBg.fill({ color: 0x0a0a1a, alpha: 0.6 });
+            listBg.stroke({ color: 0x3D4F5F, width: 2 });
+            stage.addChild(listBg);
+
+            // Create asset items
+            ASSETS.forEach((asset, index) => {
+                createAssetItem(asset, index);
+            });
+        }
+
+        function createAssetItem(asset, index) {
+            const y = 205 + index * 30;
+
+            // Icon background
+            const iconBg = factory.createGraphics();
+            iconBg.circle(55, y + 10, 10);
+            iconBg.fill({ color: asset.color, alpha: 0.3 });
+            stage.addChild(iconBg);
+
+            // Status indicator
+            const statusIndicator = factory.createGraphics();
+            statusIndicator.circle(0, 0, 6);
+            statusIndicator.fill({ color: 0x5D6D7E });
+            statusIndicator.x = 55;
+            statusIndicator.y = y + 10;
+            stage.addChild(statusIndicator);
+
+            // Asset name
+            const nameText = factory.createText(asset.name, {
+                fontSize: 14,
+                fill: 0xFFFFFF
+            });
+            nameText.x = 75;
+            nameText.y = y + 3;
+            stage.addChild(nameText);
+
+            // Asset type badge
+            const typeBadge = factory.createGraphics();
+            typeBadge.roundRect(0, 0, 70, 18, 4);
+            typeBadge.fill({ color: asset.color, alpha: 0.2 });
+            typeBadge.x = 250;
+            typeBadge.y = y + 3;
+            stage.addChild(typeBadge);
+
+            const typeText = factory.createText(asset.type, {
+                fontSize: 10,
+                fill: asset.color
+            });
+            typeText.x = 285;
+            typeText.y = y + 5;
+            if (typeText.anchor) typeText.anchor.set(0.5, 0);
+            stage.addChild(typeText);
+
+            // Size
+            const sizeStr = asset.size >= 1024 ? `${(asset.size / 1024).toFixed(1)} MB` : `${asset.size} KB`;
+            const sizeText = factory.createText(sizeStr, {
+                fontSize: 12,
+                fill: 0x8892b0
+            });
+            sizeText.x = 350;
+            sizeText.y = y + 5;
+            stage.addChild(sizeText);
+
+            // Progress text for individual asset
+            const assetProgress = factory.createText('', {
+                fontSize: 12,
+                fill: 0x7ED321
+            });
+            assetProgress.x = 420;
+            assetProgress.y = y + 5;
+            stage.addChild(assetProgress);
+
+            assetList.push({
+                asset,
+                statusIndicator,
+                nameText,
+                progressText: assetProgress,
+                loaded: false
+            });
+        }
+
+        async function startLoading() {
+            if (isLoading) return;
+
+            isLoading = true;
+            loadBtn.setText('⏳ Loading...');
+
+            let totalLoaded = 0;
+            const totalAssets = ASSETS.length;
+
+            for (let i = 0; i < assetList.length; i++) {
+                const item = assetList[i];
+
+                // Check if already cached
+                if (loadedAssets.has(item.asset.name)) {
+                    item.loaded = true;
+                    item.statusIndicator.clear();
+                    item.statusIndicator.circle(0, 0, 6);
+                    item.statusIndicator.fill({ color: 0x7ED321 });
+                    item.progressText.text = '✓ cached';
+                    totalLoaded++;
+                    updateProgress(totalLoaded, totalAssets);
+                    await sleep(50); // Quick animation
+                    continue;
+                }
+
+                // Set loading state
+                item.statusIndicator.clear();
+                item.statusIndicator.circle(0, 0, 6);
+                item.statusIndicator.fill({ color: 0xF39C12 });
+                item.progressText.text = '0%';
+                statusText.text = `Loading: ${item.asset.name}`;
+
+                // Simulate loading progress
+                const loadTime = (item.asset.size / 100) * (50 + Math.random() * 50);
+                const steps = 10;
+                const stepTime = loadTime / steps;
+
+                for (let step = 1; step <= steps; step++) {
+                    await sleep(stepTime);
+                    const percent = Math.round((step / steps) * 100);
+                    item.progressText.text = `${percent}%`;
+                }
+
+                // Mark as loaded
+                item.loaded = true;
+                item.statusIndicator.clear();
+                item.statusIndicator.circle(0, 0, 6);
+                item.statusIndicator.fill({ color: 0x7ED321 });
+                item.progressText.text = '✓';
+                item.progressText.style.fill = 0x7ED321;
+
+                // Add to cache
+                loadedAssets.set(item.asset.name, { ...item.asset, loadedAt: Date.now() });
+
+                totalLoaded++;
+                updateProgress(totalLoaded, totalAssets);
+            }
+
+            isLoading = false;
+            loadBtn.setText('📥 Load Assets');
+            statusText.text = `All assets loaded! (${loadedAssets.size} cached)`;
+            statusText.style.fill = 0x7ED321;
+        }
+
+        function updateProgress(loaded, total) {
+            const percent = Math.round((loaded / total) * 100);
+            const width = (percent / 100) * 436;
+
+            progressFill.clear();
+            progressFill.roundRect(0, 0, Math.max(0, width), 36, 8);
+
+            // Color based on progress
+            let color;
+            if (percent < 33) color = 0xE74C3C;
+            else if (percent < 66) color = 0xF39C12;
+            else color = 0x2ECC71;
+
+            progressFill.fill({ color });
+            progressText.text = `${percent}%`;
+        }
+
+        function clearCache() {
+            loadedAssets.clear();
+
+            // Reset all asset items
+            assetList.forEach(item => {
+                item.loaded = false;
+                item.statusIndicator.clear();
+                item.statusIndicator.circle(0, 0, 6);
+                item.statusIndicator.fill({ color: 0x5D6D7E });
+                item.progressText.text = '';
+                item.progressText.style.fill = 0x7ED321;
+            });
+
+            // Reset progress
+            progressFill.clear();
+            progressFill.roundRect(0, 0, 0, 36, 8);
+            progressFill.fill({ color: 0x3498DB });
+            progressText.text = '0%';
+
+            statusText.text = 'Cache cleared';
+            statusText.style.fill = 0xF39C12;
+        }
+
+        async function reloadAssets() {
+            if (isLoading) return;
+
+            // Clear cache first
+            clearCache();
+            await sleep(300);
+
+            // Then reload
+            startLoading();
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        init().catch(console.error);
+    </script>
+</body>
+</html>

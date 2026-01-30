@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - Keyboard Input Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
+        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
+        #game-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        canvas { display: block; }
+        .info { color: #8892b0; margin-top: 20px; font-size: 12px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Keyboard Input System</h1>
+    <p>Press keys to see real-time input handling</p>
+    <div id="game-container"></div>
+    <div class="info">
+        ⌨️ Click the canvas first, then use WASD or Arrow keys to move the character
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="../gamebyte.umd.js"></script>
+
+    <script>
+        const {
+            createGame,
+            loadFrameworkFont,
+            getFrameworkFontFamily,
+            graphics
+        } = window.GameByteFramework;
+
+        const CONFIG = { width: 500, height: 550 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        canvas.tabIndex = 1; // Make focusable
+        document.getElementById('game-container').appendChild(canvas);
+
+        const game = createGame();
+        let renderer, stage, factory;
+
+        // Input state
+        const keys = {};
+        const keyHistory = [];
+        const MAX_HISTORY = 8;
+
+        // Player
+        let player;
+        let playerPos = { x: 250, y: 300 };
+        let playerVel = { x: 0, y: 0 };
+        const SPEED = 4;
+        const FRICTION = 0.9;
+
+        // Key display elements
+        let keyDisplays = {};
+        let historyText;
+        let comboText;
+        let comboTimer = 0;
+        let currentCombo = [];
+
+        // Known combos
+        const COMBOS = {
+            'ArrowUp,ArrowUp,ArrowDown,ArrowDown': '⬆️⬆️⬇️⬇️ Double Jump!',
+            'KeyA,KeyS,KeyD,KeyF': 'ASDF Speed Boost!',
+            'ArrowLeft,ArrowRight,ArrowLeft,ArrowRight': '⬅️➡️⬅️➡️ Dash!',
+            'KeyW,KeyA,KeyS,KeyD': 'WASD Circle!'
+        };
+
+        async function init() {
+            await loadFrameworkFont();
+            await game.initialize(canvas, '2d');
+            renderer = game.make('renderer');
+            stage = renderer.getStage();
+            factory = graphics();
+
+            // Background
+            const bg = factory.createGraphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill({ color: 0x1a1a2e });
+            stage.addChild(bg);
+
+            // Title
+            const title = factory.createText('⌨️ Keyboard Input Demo', {
+                fontFamily: getFrameworkFontFamily(),
+                fontSize: 28,
+                fill: 0xFFFFFF
+            });
+            title.x = CONFIG.width / 2;
+            title.y = 15;
+            if (title.anchor) title.anchor.set(0.5, 0);
+            stage.addChild(title);
+
+            // Key visualization section
+            createKeyDisplay();
+
+            // Play area
+            const playArea = factory.createGraphics();
+            playArea.roundRect(30, 200, 440, 200, 8);
+            playArea.fill({ color: 0x0a0a1a, alpha: 0.6 });
+            playArea.stroke({ color: 0x3D4F5F, width: 2 });
+            stage.addChild(playArea);
+
+            const areaLabel = factory.createText('Movement Area (WASD / Arrows)', {
+                fontSize: 12,
+                fill: 0x8892b0
+            });
+            areaLabel.x = 250;
+            areaLabel.y = 205;
+            if (areaLabel.anchor) areaLabel.anchor.set(0.5, 0);
+            stage.addChild(areaLabel);
+
+            // Create player
+            createPlayer();
+
+            // History section
+            const historyLabel = factory.createText('Key History:', {
+                fontSize: 14,
+                fill: 0x8892b0
+            });
+            historyLabel.x = 30;
+            historyLabel.y = 420;
+            stage.addChild(historyLabel);
+
+            historyText = factory.createText('Press any key...', {
+                fontSize: 16,
+                fill: 0x5DADE2
+            });
+            historyText.x = 30;
+            historyText.y = 445;
+            stage.addChild(historyText);
+
+            // Combo display
+            comboText = factory.createText('', {
+                fontFamily: getFrameworkFontFamily(),
+                fontSize: 24,
+                fill: 0xF39C12
+            });
+            comboText.x = 250;
+            comboText.y = 490;
+            if (comboText.anchor) comboText.anchor.set(0.5, 0);
+            stage.addChild(comboText);
+
+            // Keyboard events
+            canvas.addEventListener('keydown', onKeyDown);
+            canvas.addEventListener('keyup', onKeyUp);
+
+            // Focus canvas
+            canvas.focus();
+
+            // Game loop
+            game.on('update', (deltaTime) => {
+                update(deltaTime);
+            });
+
+            game.start();
+            console.log('Keyboard demo initialized!');
+        }
+
+        function createKeyDisplay() {
+            // WASD keys
+            const wasdLabel = factory.createText('WASD:', {
+                fontSize: 12,
+                fill: 0x8892b0
+            });
+            wasdLabel.x = 30;
+            wasdLabel.y = 60;
+            stage.addChild(wasdLabel);
+
+            createKeyBox('KeyW', 'W', 90, 55);
+            createKeyBox('KeyA', 'A', 50, 95);
+            createKeyBox('KeyS', 'S', 90, 95);
+            createKeyBox('KeyD', 'D', 130, 95);
+
+            // Arrow keys
+            const arrowLabel = factory.createText('Arrows:', {
+                fontSize: 12,
+                fill: 0x8892b0
+            });
+            arrowLabel.x = 200;
+            arrowLabel.y = 60;
+            stage.addChild(arrowLabel);
+
+            createKeyBox('ArrowUp', '↑', 260, 55);
+            createKeyBox('ArrowLeft', '←', 220, 95);
+            createKeyBox('ArrowDown', '↓', 260, 95);
+            createKeyBox('ArrowRight', '→', 300, 95);
+
+            // Modifier keys
+            const modLabel = factory.createText('Modifiers:', {
+                fontSize: 12,
+                fill: 0x8892b0
+            });
+            modLabel.x = 370;
+            modLabel.y = 60;
+            stage.addChild(modLabel);
+
+            createKeyBox('ShiftLeft', 'Shift', 370, 75, 60);
+            createKeyBox('ControlLeft', 'Ctrl', 370, 115, 60);
+            createKeyBox('Space', 'Space', 440, 75, 60);
+
+            // Combo hint
+            const comboHint = factory.createText('Try: ↑↑↓↓ or ASDF for combos!', {
+                fontSize: 11,
+                fill: 0x7ED321
+            });
+            comboHint.x = 30;
+            comboHint.y = 155;
+            stage.addChild(comboHint);
+        }
+
+        function createKeyBox(keyCode, label, x, y, width = 35) {
+            const container = factory.createContainer();
+            container.x = x;
+            container.y = y;
+
+            // Background
+            const bg = factory.createGraphics();
+            bg.roundRect(0, 0, width, 35, 6);
+            bg.fill({ color: 0x2a2a4e });
+            bg.stroke({ color: 0x5D6D7E, width: 2 });
+            container.addChild(bg);
+
+            // Label
+            const text = factory.createText(label, {
+                fontSize: width > 40 ? 12 : 16,
+                fill: 0xFFFFFF
+            });
+            text.x = width / 2;
+            text.y = 17;
+            if (text.anchor) text.anchor.set(0.5, 0.5);
+            container.addChild(text);
+
+            stage.addChild(container);
+
+            keyDisplays[keyCode] = { container, bg, text };
+        }
+
+        function createPlayer() {
+            player = factory.createGraphics();
+
+            // Body
+            player.circle(0, 0, 20);
+            player.fill({ color: 0x3498DB });
+
+            // Eyes
+            player.circle(-6, -5, 4);
+            player.fill({ color: 0xFFFFFF });
+            player.circle(6, -5, 4);
+            player.fill({ color: 0xFFFFFF });
+            player.circle(-5, -4, 2);
+            player.fill({ color: 0x000000 });
+            player.circle(7, -4, 2);
+            player.fill({ color: 0x000000 });
+
+            player.x = playerPos.x;
+            player.y = playerPos.y;
+            stage.addChild(player);
+
+            // Trail effect container
+            window.trails = [];
+        }
+
+        function onKeyDown(e) {
+            e.preventDefault();
+
+            if (!keys[e.code]) {
+                keys[e.code] = true;
+
+                // Add to history
+                keyHistory.push(e.code);
+                if (keyHistory.length > MAX_HISTORY) {
+                    keyHistory.shift();
+                }
+                updateHistoryDisplay();
+
+                // Check for combos
+                currentCombo.push(e.code);
+                comboTimer = 30; // Reset combo timer
+                checkCombos();
+
+                // Visual feedback
+                highlightKey(e.code, true);
+            }
+        }
+
+        function onKeyUp(e) {
+            keys[e.code] = false;
+            highlightKey(e.code, false);
+        }
+
+        function highlightKey(code, active) {
+            const keyDisplay = keyDisplays[code];
+            if (keyDisplay) {
+                keyDisplay.bg.clear();
+                keyDisplay.bg.roundRect(0, 0, keyDisplay.bg.width || 35, 35, 6);
+                if (active) {
+                    keyDisplay.bg.fill({ color: 0x3498DB });
+                    keyDisplay.bg.stroke({ color: 0x5DADE2, width: 2 });
+                } else {
+                    keyDisplay.bg.fill({ color: 0x2a2a4e });
+                    keyDisplay.bg.stroke({ color: 0x5D6D7E, width: 2 });
+                }
+            }
+        }
+
+        function updateHistoryDisplay() {
+            const displayKeys = keyHistory.slice(-MAX_HISTORY).map(k => {
+                // Convert key codes to readable format
+                if (k.startsWith('Key')) return k.substring(3);
+                if (k.startsWith('Arrow')) return { 'ArrowUp': '↑', 'ArrowDown': '↓', 'ArrowLeft': '←', 'ArrowRight': '→' }[k];
+                if (k === 'Space') return '␣';
+                if (k === 'ShiftLeft' || k === 'ShiftRight') return '⇧';
+                if (k === 'ControlLeft' || k === 'ControlRight') return '⌃';
+                return k;
+            });
+            historyText.text = displayKeys.join(' → ');
+        }
+
+        function checkCombos() {
+            // Check last 4 keys for combos
+            if (currentCombo.length >= 4) {
+                const lastFour = currentCombo.slice(-4).join(',');
+                if (COMBOS[lastFour]) {
+                    comboText.text = COMBOS[lastFour];
+                    comboText.style.fill = 0xF39C12;
+
+                    // Visual effect on player
+                    playerVel.x *= 2;
+                    playerVel.y *= 2;
+
+                    currentCombo = [];
+                }
+            }
+        }
+
+        function update(deltaTime) {
+            // Handle movement input
+            let moveX = 0;
+            let moveY = 0;
+
+            if (keys['KeyW'] || keys['ArrowUp']) moveY = -1;
+            if (keys['KeyS'] || keys['ArrowDown']) moveY = 1;
+            if (keys['KeyA'] || keys['ArrowLeft']) moveX = -1;
+            if (keys['KeyD'] || keys['ArrowRight']) moveX = 1;
+
+            // Sprint with shift
+            const speedMod = keys['ShiftLeft'] || keys['ShiftRight'] ? 2 : 1;
+
+            // Apply velocity
+            playerVel.x += moveX * SPEED * speedMod * 0.1;
+            playerVel.y += moveY * SPEED * speedMod * 0.1;
+
+            // Apply friction
+            playerVel.x *= FRICTION;
+            playerVel.y *= FRICTION;
+
+            // Update position
+            playerPos.x += playerVel.x * (deltaTime / 16.67);
+            playerPos.y += playerVel.y * (deltaTime / 16.67);
+
+            // Clamp to play area (30-470, 220-380)
+            playerPos.x = Math.max(50, Math.min(450, playerPos.x));
+            playerPos.y = Math.max(240, Math.min(380, playerPos.y));
+
+            // Update player visual
+            player.x = playerPos.x;
+            player.y = playerPos.y;
+
+            // Rotation based on velocity
+            if (Math.abs(playerVel.x) > 0.1 || Math.abs(playerVel.y) > 0.1) {
+                player.rotation = Math.atan2(playerVel.y, playerVel.x) + Math.PI / 2;
+            }
+
+            // Scale based on speed
+            const speed = Math.sqrt(playerVel.x * playerVel.x + playerVel.y * playerVel.y);
+            const scale = 1 + speed * 0.02;
+            player.scale.set(scale, 1 / scale);
+
+            // Combo timer
+            if (comboTimer > 0) {
+                comboTimer--;
+                if (comboTimer === 0) {
+                    currentCombo = [];
+                }
+            }
+
+            // Fade combo text
+            if (comboText.text && !comboTimer) {
+                comboText.alpha -= 0.02;
+                if (comboText.alpha <= 0) {
+                    comboText.text = '';
+                    comboText.alpha = 1;
+                }
+            } else {
+                comboText.alpha = 1;
+            }
+        }
+
+        init().catch(console.error);
+    </script>
+</body>
+</html>

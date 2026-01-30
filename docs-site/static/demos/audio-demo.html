@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - Audio System Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
+        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
+        #game-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        canvas { display: block; }
+        .info { color: #8892b0; margin-top: 20px; font-size: 12px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Audio System</h1>
+    <p>Music, sound effects, and volume control demonstration</p>
+    <div id="game-container"></div>
+    <div class="info">
+        🔊 Click buttons to trigger sounds (uses Web Audio API synthesis)
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="../gamebyte.umd.js"></script>
+
+    <script>
+        const {
+            createGame,
+            GameStyleButton,
+            GameStyleColors,
+            GameSlider,
+            GameSliderColors,
+            GameToggle,
+            loadFrameworkFont,
+            getFrameworkFontFamily,
+            graphics
+        } = window.GameByteFramework;
+
+        const CONFIG = { width: 500, height: 600 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.getElementById('game-container').appendChild(canvas);
+
+        const game = createGame();
+        let renderer, stage, factory;
+
+        // Audio context and state
+        let audioCtx;
+        let masterVolume = 0.7;
+        let musicVolume = 0.5;
+        let sfxVolume = 0.8;
+        let isMusicPlaying = false;
+        let musicOscillator = null;
+        let musicGain = null;
+
+        // Visual feedback elements
+        let volumeBar, waveformGraphics;
+
+        async function init() {
+            await loadFrameworkFont();
+            await game.initialize(canvas, '2d');
+            renderer = game.make('renderer');
+            stage = renderer.getStage();
+            factory = graphics();
+
+            // Background
+            const bg = factory.createGraphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill({ color: 0x1a1a2e });
+            stage.addChild(bg);
+
+            // Title
+            const title = factory.createText('🎵 Audio System Demo', {
+                fontFamily: getFrameworkFontFamily(),
+                fontSize: 28,
+                fill: 0xFFFFFF
+            });
+            title.x = CONFIG.width / 2;
+            title.y = 15;
+            if (title.anchor) title.anchor.set(0.5, 0);
+            stage.addChild(title);
+
+            // Waveform visualization
+            const waveLabel = factory.createText('Sound Visualization:', {
+                fontSize: 14,
+                fill: 0x8892b0
+            });
+            waveLabel.x = 30;
+            waveLabel.y = 60;
+            stage.addChild(waveLabel);
+
+            const waveBg = factory.createGraphics();
+            waveBg.roundRect(30, 85, 440, 80, 8);
+            waveBg.fill({ color: 0x0a0a1a, alpha: 0.6 });
+            waveBg.stroke({ color: 0x3D4F5F, width: 2 });
+            stage.addChild(waveBg);
+
+            waveformGraphics = factory.createGraphics();
+            stage.addChild(waveformGraphics);
+
+            let yOffset = 185;
+
+            // Volume Controls Section
+            const volLabel = factory.createText('🔊 Volume Controls:', {
+                fontSize: 16,
+                fill: 0xCCCCCC
+            });
+            volLabel.x = 30;
+            volLabel.y = yOffset;
+            stage.addChild(volLabel);
+            yOffset += 35;
+
+            // Master Volume
+            createVolumeControl('Master', masterVolume, GameSliderColors.DEFAULT, yOffset, (v) => {
+                masterVolume = v / 100;
+                if (musicGain) musicGain.gain.value = masterVolume * musicVolume;
+            });
+            yOffset += 60;
+
+            // Music Volume
+            createVolumeControl('Music', musicVolume * 100, GameSliderColors.GREEN, yOffset, (v) => {
+                musicVolume = v / 100;
+                if (musicGain) musicGain.gain.value = masterVolume * musicVolume;
+            });
+            yOffset += 60;
+
+            // SFX Volume
+            createVolumeControl('SFX', sfxVolume * 100, GameSliderColors.ORANGE, yOffset, (v) => {
+                sfxVolume = v / 100;
+            });
+            yOffset += 70;
+
+            // Music Controls
+            const musicLabel = factory.createText('🎶 Background Music:', {
+                fontSize: 16,
+                fill: 0xCCCCCC
+            });
+            musicLabel.x = 30;
+            musicLabel.y = yOffset;
+            stage.addChild(musicLabel);
+            yOffset += 35;
+
+            const playMusicBtn = new GameStyleButton({
+                text: '▶️ Play Music',
+                width: 140,
+                height: 50,
+                fontSize: 16,
+                colorScheme: GameStyleColors.GREEN_BUTTON
+            });
+            playMusicBtn.setPosition(30, yOffset);
+            playMusicBtn.on('click', () => {
+                if (!isMusicPlaying) {
+                    playMusic();
+                    playMusicBtn.setText('⏸ Pause');
+                } else {
+                    stopMusic();
+                    playMusicBtn.setText('▶️ Play Music');
+                }
+            });
+            stage.addChild(playMusicBtn.getContainer());
+
+            yOffset += 70;
+
+            // Sound Effects
+            const sfxLabel = factory.createText('🔔 Sound Effects:', {
+                fontSize: 16,
+                fill: 0xCCCCCC
+            });
+            sfxLabel.x = 30;
+            sfxLabel.y = yOffset;
+            stage.addChild(sfxLabel);
+            yOffset += 35;
+
+            const sfxButtons = [
+                { text: '🪙 Coin', freq: 880, type: 'coin' },
+                { text: '💥 Hit', freq: 150, type: 'hit' },
+                { text: '⬆️ Jump', freq: 440, type: 'jump' },
+                { text: '✨ Power', freq: 660, type: 'power' }
+            ];
+
+            const colors = [GameStyleColors.YELLOW_BUTTON, GameStyleColors.RED_BUTTON,
+                           GameStyleColors.BLUE_BUTTON, GameStyleColors.PURPLE_BUTTON];
+
+            sfxButtons.forEach((sfx, i) => {
+                const btn = new GameStyleButton({
+                    text: sfx.text,
+                    width: 100,
+                    height: 50,
+                    fontSize: 14,
+                    colorScheme: colors[i]
+                });
+                btn.setPosition(30 + i * 115, yOffset);
+                btn.on('click', () => playSFX(sfx.type, sfx.freq));
+                stage.addChild(btn.getContainer());
+            });
+
+            // Game loop for waveform
+            game.on('update', () => {
+                drawWaveform();
+            });
+
+            game.start();
+            console.log('Audio demo initialized!');
+        }
+
+        function createVolumeControl(label, initialValue, colorScheme, yPos, onChange) {
+            const labelText = factory.createText(label, {
+                fontSize: 14,
+                fill: 0x8892b0
+            });
+            labelText.x = 30;
+            labelText.y = yPos;
+            stage.addChild(labelText);
+
+            const valueText = factory.createText(`${Math.round(initialValue)}%`, {
+                fontSize: 14,
+                fill: 0xFFFFFF
+            });
+            valueText.x = 420;
+            valueText.y = yPos;
+            stage.addChild(valueText);
+
+            const slider = new GameSlider({
+                width: 280,
+                min: 0,
+                max: 100,
+                value: initialValue,
+                colorScheme: colorScheme,
+                onChange: (value) => {
+                    valueText.text = `${Math.round(value)}%`;
+                    onChange(value);
+                }
+            });
+            slider.setPosition(100, yPos - 5);
+            stage.addChild(slider.getContainer());
+        }
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playMusic() {
+            initAudio();
+            isMusicPlaying = true;
+
+            // Create a simple melody using oscillators
+            musicGain = audioCtx.createGain();
+            musicGain.gain.value = masterVolume * musicVolume;
+            musicGain.connect(audioCtx.destination);
+
+            // Simple ambient music with multiple oscillators
+            musicOscillator = audioCtx.createOscillator();
+            musicOscillator.type = 'sine';
+            musicOscillator.frequency.value = 220;
+
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 800;
+
+            musicOscillator.connect(filter);
+            filter.connect(musicGain);
+            musicOscillator.start();
+
+            // Modulate frequency for variation
+            setInterval(() => {
+                if (isMusicPlaying && musicOscillator) {
+                    const notes = [220, 262, 294, 330, 262];
+                    const note = notes[Math.floor(Math.random() * notes.length)];
+                    musicOscillator.frequency.setTargetAtTime(note, audioCtx.currentTime, 0.1);
+                }
+            }, 500);
+        }
+
+        function stopMusic() {
+            isMusicPlaying = false;
+            if (musicOscillator) {
+                musicOscillator.stop();
+                musicOscillator = null;
+            }
+        }
+
+        function playSFX(type, baseFreq) {
+            initAudio();
+
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            gainNode.gain.value = masterVolume * sfxVolume;
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            switch (type) {
+                case 'coin':
+                    oscillator.type = 'square';
+                    oscillator.frequency.setValueAtTime(baseFreq, audioCtx.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(baseFreq * 1.5, audioCtx.currentTime + 0.1);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                    break;
+                case 'hit':
+                    oscillator.type = 'sawtooth';
+                    oscillator.frequency.setValueAtTime(baseFreq, audioCtx.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.15);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                    break;
+                case 'jump':
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(baseFreq, audioCtx.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(baseFreq * 2, audioCtx.currentTime + 0.15);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                    break;
+                case 'power':
+                    oscillator.type = 'triangle';
+                    oscillator.frequency.setValueAtTime(baseFreq, audioCtx.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(baseFreq * 1.2, audioCtx.currentTime + 0.3);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                    break;
+            }
+
+            oscillator.start(audioCtx.currentTime);
+            oscillator.stop(audioCtx.currentTime + 0.5);
+
+            // Visual feedback
+            triggerWaveform();
+        }
+
+        let waveformActive = false;
+        let waveformPhase = 0;
+
+        function triggerWaveform() {
+            waveformActive = true;
+            setTimeout(() => { waveformActive = false; }, 300);
+        }
+
+        function drawWaveform() {
+            waveformGraphics.clear();
+
+            const width = 440;
+            const height = 80;
+            const centerY = 125;
+            const startX = 30;
+
+            waveformGraphics.moveTo(startX, centerY);
+
+            const amplitude = waveformActive || isMusicPlaying ? 30 : 5;
+            const frequency = waveformActive ? 0.05 : 0.02;
+
+            for (let x = 0; x < width; x++) {
+                const y = centerY + Math.sin((x + waveformPhase) * frequency) * amplitude *
+                         (waveformActive ? Math.random() * 0.5 + 0.5 : 1);
+                waveformGraphics.lineTo(startX + x, y);
+            }
+
+            const color = isMusicPlaying ? 0x2ECC71 : (waveformActive ? 0x3498DB : 0x5D6D7E);
+            waveformGraphics.stroke({ color, width: 2 });
+
+            waveformPhase += isMusicPlaying || waveformActive ? 5 : 1;
+        }
+
+        init().catch(console.error);
+    </script>
+</body>
+</html>

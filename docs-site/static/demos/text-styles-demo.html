@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - Text Styles Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 {
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        p {
+            color: #8892b0;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        #game-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        canvas { display: block; }
+        .info {
+            color: #8892b0;
+            margin-top: 20px;
+            font-size: 12px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Text Styles & Typography</h1>
+    <p>Game-style text rendering with various styles and effects</p>
+    <div id="game-container"></div>
+    <div class="info">
+        Features: Font loading, drop shadows, strokes, gradients, sizes
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="../gamebyte.umd.js"></script>
+
+    <script>
+        const {
+            createGame,
+            loadFrameworkFont,
+            getFrameworkFontFamily,
+            graphics
+        } = window.GameByteFramework;
+
+        const CONFIG = { width: 500, height: 600 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.getElementById('game-container').appendChild(canvas);
+
+        const game = createGame();
+        let renderer, stage;
+
+        async function init() {
+            await loadFrameworkFont();
+            await game.initialize(canvas, '2d');
+            renderer = game.make('renderer');
+            stage = renderer.getStage();
+
+            const factory = graphics();
+            let yOffset = 30;
+
+            // Background
+            const bg = factory.createGraphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill({ color: 0x1a1a2e });
+            stage.addChild(bg);
+
+            // Title
+            const title = factory.createText('Text Styles Showcase', {
+                fontFamily: getFrameworkFontFamily(),
+                fontSize: 32,
+                fill: 0xFFFFFF,
+                dropShadow: {
+                    color: 0x000000,
+                    distance: 3,
+                    blur: 4,
+                    alpha: 0.5
+                }
+            });
+            title.x = CONFIG.width / 2;
+            title.y = yOffset;
+            if (title.anchor) title.anchor.set(0.5, 0);
+            stage.addChild(title);
+            yOffset += 70;
+
+            // Basic Text
+            const basicLabel = factory.createText('Basic Text Styles:', {
+                fontSize: 14,
+                fill: 0x8892b0
+            });
+            basicLabel.x = 30;
+            basicLabel.y = yOffset;
+            stage.addChild(basicLabel);
+            yOffset += 30;
+
+            const basicText = factory.createText('Simple Game Text', {
+                fontFamily: getFrameworkFontFamily(),
+                fontSize: 24,
+                fill: 0xFFFFFF
+            });
+            basicText.x = 30;
+            basicText.y = yOffset;
+            stage.addChild(basicText);
+            yOffset += 50;
+
+            // With Drop Shadow
+            const shadowLabel = factory.createText('With Drop Shadow:', {
+                fontSize: 14,
+                fill: 0x8892b0
+            });
+            shadowLabel.x = 30;
+            shadowLabel.y = yOffset;
+            stage.addChild(shadowLabel);
+            yOffset += 30;
+
+            const shadowText = factory.createText('Shadowed Text', {
+                fontFamily: getFrameworkFontFamily(),
+                fontSize: 28,
+                fill: 0xFFD700,
+                dropShadow: {
+                    color: 0x000000,
+                    distance: 4,
+                    blur: 3,
+                    alpha: 0.6
+                }
+            });
+            shadowText.x = 30;
+            shadowText.y = yOffset;
+            stage.addChild(shadowText);
+            yOffset += 55;
+
+            // With Stroke
+            const strokeLabel = factory.createText('With Stroke Outline:', {
+                fontSize: 14,
+                fill: 0x8892b0
+            });
+            strokeLabel.x = 30;
+            strokeLabel.y = yOffset;
+            stage.addChild(strokeLabel);
+            yOffset += 30;
+
+            const strokeText = factory.createText('Outlined Text', {
+                fontFamily: getFrameworkFontFamily(),
+                fontSize: 28,
+                fill: 0x4CAF50,
+                stroke: {
+                    color: 0x1B5E20,
+                    width: 4
+                }
+            });
+            strokeText.x = 30;
+            strokeText.y = yOffset;
+            stage.addChild(strokeText);
+            yOffset += 55;
+
+            // Combined Effects
+            const combinedLabel = factory.createText('Combined Effects:', {
+                fontSize: 14,
+                fill: 0x8892b0
+            });
+            combinedLabel.x = 30;
+            combinedLabel.y = yOffset;
+            stage.addChild(combinedLabel);
+            yOffset += 30;
+
+            const combinedText = factory.createText('Game Title!', {
+                fontFamily: getFrameworkFontFamily(),
+                fontSize: 36,
+                fill: 0xFF6B6B,
+                stroke: {
+                    color: 0x8B0000,
+                    width: 5
+                },
+                dropShadow: {
+                    color: 0x000000,
+                    distance: 5,
+                    blur: 4,
+                    alpha: 0.7
+                }
+            });
+            combinedText.x = 30;
+            combinedText.y = yOffset;
+            stage.addChild(combinedText);
+            yOffset += 65;
+
+            // Score Style
+            const scoreLabel = factory.createText('Score Display:', {
+                fontSize: 14,
+                fill: 0x8892b0
+            });
+            scoreLabel.x = 30;
+            scoreLabel.y = yOffset;
+            stage.addChild(scoreLabel);
+            yOffset += 30;
+
+            const scoreText = factory.createText('Score: 12,500', {
+                fontFamily: getFrameworkFontFamily(),
+                fontSize: 32,
+                fill: 0xFFD700,
+                stroke: {
+                    color: 0xB8860B,
+                    width: 3
+                },
+                dropShadow: {
+                    color: 0x000000,
+                    distance: 3,
+                    blur: 2,
+                    alpha: 0.5
+                }
+            });
+            scoreText.x = 30;
+            scoreText.y = yOffset;
+            stage.addChild(scoreText);
+            yOffset += 60;
+
+            // Size Variations
+            const sizeLabel = factory.createText('Size Variations:', {
+                fontSize: 14,
+                fill: 0x8892b0
+            });
+            sizeLabel.x = 30;
+            sizeLabel.y = yOffset;
+            stage.addChild(sizeLabel);
+            yOffset += 30;
+
+            const sizes = [12, 16, 20, 24, 28];
+            let xPos = 30;
+            sizes.forEach(size => {
+                const sizeText = factory.createText(`${size}px`, {
+                    fontFamily: getFrameworkFontFamily(),
+                    fontSize: size,
+                    fill: 0x5DADE2
+                });
+                sizeText.x = xPos;
+                sizeText.y = yOffset;
+                stage.addChild(sizeText);
+                xPos += size * 3 + 15;
+            });
+
+            // Start the game loop
+            game.start();
+            console.log('Text styles demo initialized!');
+        }
+
+        init().catch(console.error);
+    </script>
+</body>
+</html>

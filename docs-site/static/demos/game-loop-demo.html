@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - Game Loop Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 {
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        p {
+            color: #8892b0;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        #game-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        canvas { display: block; }
+        .info {
+            color: #8892b0;
+            margin-top: 20px;
+            font-size: 12px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Game Loop Visualizer</h1>
+    <p>Understanding the game loop with real-time visualization</p>
+    <div id="game-container"></div>
+    <div class="info">
+        Features: Delta time, FPS counter, update/render cycle, animation
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="../gamebyte.umd.js"></script>
+
+    <script>
+        const {
+            createGame,
+            GameStyleButton,
+            GameStyleColors,
+            loadFrameworkFont,
+            getFrameworkFontFamily,
+            graphics
+        } = window.GameByteFramework;
+
+        const CONFIG = { width: 500, height: 550 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.getElementById('game-container').appendChild(canvas);
+
+        const game = createGame();
+        let renderer, stage;
+
+        // Game loop state
+        let isPaused = false;
+        let frameCount = 0;
+        let totalTime = 0;
+        let lastFPS = 60;
+        let fpsHistory = [];
+
+        // Animated objects
+        let rotatingBox, bouncingBall, movingBar;
+        let ballVelocity = { x: 2, y: 2 };
+        let ballPos = { x: 250, y: 200 };
+
+        // UI elements
+        let fpsText, deltaText, frameText, timeText;
+
+        async function init() {
+            await loadFrameworkFont();
+            await game.initialize(canvas, '2d');
+            renderer = game.make('renderer');
+            stage = renderer.getStage();
+
+            const factory = graphics();
+
+            // Background
+            const bg = factory.createGraphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill({ color: 0x1a1a2e });
+            stage.addChild(bg);
+
+            // Title
+            const title = factory.createText('Game Loop Visualizer', {
+                fontFamily: getFrameworkFontFamily(),
+                fontSize: 28,
+                fill: 0xFFFFFF
+            });
+            title.x = CONFIG.width / 2;
+            title.y = 20;
+            if (title.anchor) title.anchor.set(0.5, 0);
+            stage.addChild(title);
+
+            // Stats Panel
+            createStatsPanel(factory);
+
+            // Animation Area
+            const areaLabel = factory.createText('Animation Area:', {
+                fontSize: 14,
+                fill: 0x8892b0
+            });
+            areaLabel.x = 30;
+            areaLabel.y = 180;
+            stage.addChild(areaLabel);
+
+            // Animation container with border
+            const animArea = factory.createGraphics();
+            animArea.roundRect(30, 200, 440, 200, 8);
+            animArea.stroke({ color: 0x3D4F5F, width: 2 });
+            animArea.fill({ color: 0x0a0a1a, alpha: 0.5 });
+            stage.addChild(animArea);
+
+            // Create animated objects
+            createAnimatedObjects(factory);
+
+            // Control buttons
+            const pauseBtn = new GameStyleButton({
+                text: '⏸ Pause',
+                width: 120,
+                height: 50,
+                fontSize: 16,
+                colorScheme: GameStyleColors.YELLOW_BUTTON
+            });
+            pauseBtn.setPosition(30, 420);
+            pauseBtn.on('click', () => {
+                isPaused = !isPaused;
+                pauseBtn.setText(isPaused ? '▶ Resume' : '⏸ Pause');
+            });
+            stage.addChild(pauseBtn.getContainer());
+
+            const resetBtn = new GameStyleButton({
+                text: '🔄 Reset',
+                width: 120,
+                height: 50,
+                fontSize: 16,
+                colorScheme: GameStyleColors.BLUE_BUTTON
+            });
+            resetBtn.setPosition(170, 420);
+            resetBtn.on('click', () => {
+                frameCount = 0;
+                totalTime = 0;
+                ballPos = { x: 250, y: 300 };
+                ballVelocity = { x: 2, y: 2 };
+                rotatingBox.rotation = 0;
+            });
+            stage.addChild(resetBtn.getContainer());
+
+            const speedBtn = new GameStyleButton({
+                text: '⚡ Speed x2',
+                width: 120,
+                height: 50,
+                fontSize: 16,
+                colorScheme: GameStyleColors.GREEN_BUTTON
+            });
+            let speedMultiplier = 1;
+            speedBtn.setPosition(310, 420);
+            speedBtn.on('click', () => {
+                speedMultiplier = speedMultiplier === 1 ? 2 : 1;
+                speedBtn.setText(speedMultiplier === 1 ? '⚡ Speed x2' : '🐢 Speed x1');
+                ballVelocity.x = 2 * speedMultiplier * Math.sign(ballVelocity.x);
+                ballVelocity.y = 2 * speedMultiplier * Math.sign(ballVelocity.y);
+            });
+            stage.addChild(speedBtn.getContainer());
+
+            // Loop explanation
+            const loopText = factory.createText(
+                'Game Loop: update(deltaTime) → render() → repeat',
+                {
+                    fontSize: 12,
+                    fill: 0x8892b0
+                }
+            );
+            loopText.x = CONFIG.width / 2;
+            loopText.y = 490;
+            if (loopText.anchor) loopText.anchor.set(0.5, 0);
+            stage.addChild(loopText);
+
+            // Setup custom game loop
+            game.on('update', (deltaTime) => {
+                if (!isPaused) {
+                    update(deltaTime);
+                }
+            });
+
+            // Start the game
+            game.start();
+            console.log('Game loop demo initialized!');
+        }
+
+        function createStatsPanel(factory) {
+            // Stats background
+            const statsBg = factory.createGraphics();
+            statsBg.roundRect(30, 60, 440, 100, 8);
+            statsBg.fill({ color: 0x2a2a4e, alpha: 0.8 });
+            stage.addChild(statsBg);
+
+            // FPS
+            const fpsLabel = factory.createText('FPS:', { fontSize: 14, fill: 0x8892b0 });
+            fpsLabel.x = 50;
+            fpsLabel.y = 75;
+            stage.addChild(fpsLabel);
+
+            fpsText = factory.createText('60', {
+                fontFamily: getFrameworkFontFamily(),
+                fontSize: 24,
+                fill: 0x7ED321
+            });
+            fpsText.x = 100;
+            fpsText.y = 70;
+            stage.addChild(fpsText);
+
+            // Delta Time
+            const dtLabel = factory.createText('Delta:', { fontSize: 14, fill: 0x8892b0 });
+            dtLabel.x = 180;
+            dtLabel.y = 75;
+            stage.addChild(dtLabel);
+
+            deltaText = factory.createText('16.67ms', {
+                fontFamily: getFrameworkFontFamily(),
+                fontSize: 18,
+                fill: 0x5DADE2
+            });
+            deltaText.x = 240;
+            deltaText.y = 72;
+            stage.addChild(deltaText);
+
+            // Frame Count
+            const frameLabel = factory.createText('Frame:', { fontSize: 14, fill: 0x8892b0 });
+            frameLabel.x = 50;
+            frameLabel.y = 115;
+            stage.addChild(frameLabel);
+
+            frameText = factory.createText('0', {
+                fontFamily: getFrameworkFontFamily(),
+                fontSize: 18,
+                fill: 0xF5B041
+            });
+            frameText.x = 110;
+            frameText.y = 112;
+            stage.addChild(frameText);
+
+            // Total Time
+            const timeLabel = factory.createText('Time:', { fontSize: 14, fill: 0x8892b0 });
+            timeLabel.x = 250;
+            timeLabel.y = 115;
+            stage.addChild(timeLabel);
+
+            timeText = factory.createText('0.00s', {
+                fontFamily: getFrameworkFontFamily(),
+                fontSize: 18,
+                fill: 0xBB8FCE
+            });
+            timeText.x = 305;
+            timeText.y = 112;
+            stage.addChild(timeText);
+        }
+
+        function createAnimatedObjects(factory) {
+            // Rotating box
+            rotatingBox = factory.createGraphics();
+            rotatingBox.rect(-25, -25, 50, 50);
+            rotatingBox.fill({ color: 0xE74C3C });
+            rotatingBox.x = 100;
+            rotatingBox.y = 300;
+            stage.addChild(rotatingBox);
+
+            // Bouncing ball
+            bouncingBall = factory.createGraphics();
+            bouncingBall.circle(0, 0, 15);
+            bouncingBall.fill({ color: 0x3498DB });
+            bouncingBall.x = ballPos.x;
+            bouncingBall.y = ballPos.y;
+            stage.addChild(bouncingBall);
+
+            // Moving bar (oscillating)
+            movingBar = factory.createGraphics();
+            movingBar.rect(-40, -5, 80, 10);
+            movingBar.fill({ color: 0x2ECC71 });
+            movingBar.x = 380;
+            movingBar.y = 300;
+            stage.addChild(movingBar);
+        }
+
+        function update(deltaTime) {
+            // Update stats
+            frameCount++;
+            totalTime += deltaTime / 1000;
+
+            // Calculate FPS
+            const fps = 1000 / deltaTime;
+            fpsHistory.push(fps);
+            if (fpsHistory.length > 30) fpsHistory.shift();
+            lastFPS = Math.round(fpsHistory.reduce((a, b) => a + b, 0) / fpsHistory.length);
+
+            // Update UI
+            fpsText.text = lastFPS.toString();
+            fpsText.style.fill = lastFPS >= 55 ? 0x7ED321 : (lastFPS >= 30 ? 0xF5B041 : 0xE74C3C);
+            deltaText.text = deltaTime.toFixed(2) + 'ms';
+            frameText.text = frameCount.toString();
+            timeText.text = totalTime.toFixed(2) + 's';
+
+            // Animate rotating box
+            rotatingBox.rotation += 0.02 * (deltaTime / 16.67);
+
+            // Animate bouncing ball
+            ballPos.x += ballVelocity.x * (deltaTime / 16.67);
+            ballPos.y += ballVelocity.y * (deltaTime / 16.67);
+
+            // Bounce off walls (within animation area: 30-470, 200-400)
+            if (ballPos.x < 50 || ballPos.x > 455) {
+                ballVelocity.x *= -1;
+                ballPos.x = Math.max(50, Math.min(455, ballPos.x));
+            }
+            if (ballPos.y < 220 || ballPos.y > 385) {
+                ballVelocity.y *= -1;
+                ballPos.y = Math.max(220, Math.min(385, ballPos.y));
+            }
+            bouncingBall.x = ballPos.x;
+            bouncingBall.y = ballPos.y;
+
+            // Animate moving bar (sine wave)
+            movingBar.y = 300 + Math.sin(totalTime * 3) * 80;
+        }
+
+        init().catch(console.error);
+    </script>
+</body>
+</html>

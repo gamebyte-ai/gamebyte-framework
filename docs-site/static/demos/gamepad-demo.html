@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - Gamepad Input Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
+        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
+        #game-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        canvas { display: block; }
+        .info { color: #8892b0; margin-top: 20px; font-size: 12px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Gamepad Input System</h1>
+    <p>Connect a controller to see real-time input visualization</p>
+    <div id="game-container"></div>
+    <div class="info">
+        🎮 Press any button on your gamepad to connect. Works with Xbox, PlayStation, and generic controllers.
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="../gamebyte.umd.js"></script>
+
+    <script>
+        const {
+            createGame,
+            loadFrameworkFont,
+            getFrameworkFontFamily,
+            graphics
+        } = window.GameByteFramework;
+
+        const CONFIG = { width: 500, height: 600 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.getElementById('game-container').appendChild(canvas);
+
+        const game = createGame();
+        let renderer, stage, factory;
+
+        // Gamepad state
+        let gamepad = null;
+        let gamepadIndex = -1;
+
+        // Visual elements
+        let statusText;
+        let leftStick, rightStick;
+        let leftStickIndicator, rightStickIndicator;
+        let buttons = {};
+        let triggerBars = {};
+        let vibrationIndicator;
+
+        async function init() {
+            await loadFrameworkFont();
+            await game.initialize(canvas, '2d');
+            renderer = game.make('renderer');
+            stage = renderer.getStage();
+            factory = graphics();
+
+            // Background
+            const bg = factory.createGraphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill({ color: 0x1a1a2e });
+            stage.addChild(bg);
+
+            // Title
+            const title = factory.createText('🎮 Gamepad Input Demo', {
+                fontFamily: getFrameworkFontFamily(),
+                fontSize: 28,
+                fill: 0xFFFFFF
+            });
+            title.x = CONFIG.width / 2;
+            title.y = 15;
+            if (title.anchor) title.anchor.set(0.5, 0);
+            stage.addChild(title);
+
+            // Status
+            statusText = factory.createText('No gamepad detected - Press any button to connect', {
+                fontSize: 14,
+                fill: 0xF39C12
+            });
+            statusText.x = CONFIG.width / 2;
+            statusText.y = 55;
+            if (statusText.anchor) statusText.anchor.set(0.5, 0);
+            stage.addChild(statusText);
+
+            // Controller layout
+            createControllerLayout();
+
+            // Gamepad events
+            window.addEventListener('gamepadconnected', (e) => {
+                gamepadIndex = e.gamepad.index;
+                statusText.text = `Connected: ${e.gamepad.id}`;
+                statusText.style.fill = 0x2ECC71;
+            });
+
+            window.addEventListener('gamepaddisconnected', (e) => {
+                if (e.gamepad.index === gamepadIndex) {
+                    gamepadIndex = -1;
+                    gamepad = null;
+                    statusText.text = 'Gamepad disconnected';
+                    statusText.style.fill = 0xE74C3C;
+                }
+            });
+
+            // Game loop
+            game.on('update', () => {
+                pollGamepad();
+                updateDisplay();
+            });
+
+            game.start();
+            console.log('Gamepad demo initialized!');
+        }
+
+        function createControllerLayout() {
+            // Controller body outline
+            const body = factory.createGraphics();
+            body.roundRect(50, 100, 400, 250, 40);
+            body.fill({ color: 0x2a2a4e, alpha: 0.8 });
+            body.stroke({ color: 0x5D6D7E, width: 2 });
+            stage.addChild(body);
+
+            // Left stick area
+            const leftStickBg = factory.createGraphics();
+            leftStickBg.circle(130, 200, 45);
+            leftStickBg.fill({ color: 0x1a1a2e });
+            leftStickBg.stroke({ color: 0x5D6D7E, width: 2 });
+            stage.addChild(leftStickBg);
+
+            leftStick = factory.createGraphics();
+            leftStick.circle(0, 0, 25);
+            leftStick.fill({ color: 0x5D6D7E });
+            leftStick.x = 130;
+            leftStick.y = 200;
+            stage.addChild(leftStick);
+
+            // Left stick label
+            const lsLabel = factory.createText('L', { fontSize: 14, fill: 0x8892b0 });
+            lsLabel.x = 130;
+            lsLabel.y = 255;
+            if (lsLabel.anchor) lsLabel.anchor.set(0.5, 0);
+            stage.addChild(lsLabel);
+
+            // Right stick area
+            const rightStickBg = factory.createGraphics();
+            rightStickBg.circle(320, 280, 45);
+            rightStickBg.fill({ color: 0x1a1a2e });
+            rightStickBg.stroke({ color: 0x5D6D7E, width: 2 });
+            stage.addChild(rightStickBg);
+
+            rightStick = factory.createGraphics();
+            rightStick.circle(0, 0, 25);
+            rightStick.fill({ color: 0x5D6D7E });
+            rightStick.x = 320;
+            rightStick.y = 280;
+            stage.addChild(rightStick);
+
+            // Right stick label
+            const rsLabel = factory.createText('R', { fontSize: 14, fill: 0x8892b0 });
+            rsLabel.x = 320;
+            rsLabel.y = 335;
+            if (rsLabel.anchor) rsLabel.anchor.set(0.5, 0);
+            stage.addChild(rsLabel);
+
+            // D-Pad
+            createDPad(130, 290);
+
+            // Face buttons (A, B, X, Y)
+            createFaceButton('A', 370, 210, 0x2ECC71, 0);  // Green
+            createFaceButton('B', 400, 180, 0xE74C3C, 1);  // Red
+            createFaceButton('X', 340, 180, 0x3498DB, 2);  // Blue
+            createFaceButton('Y', 370, 150, 0xF39C12, 3);  // Yellow
+
+            // Shoulder buttons
+            createShoulderButton('LB', 80, 90, 4);
+            createShoulderButton('RB', 360, 90, 5);
+
+            // Triggers
+            createTrigger('LT', 80, 380, 6);
+            createTrigger('RT', 360, 380, 7);
+
+            // Start/Select (or Menu/View)
+            createSmallButton('Back', 200, 180, 8);
+            createSmallButton('Start', 280, 180, 9);
+
+            // Stick buttons
+            createSmallButton('L3', 130, 200, 10);
+            createSmallButton('R3', 320, 280, 11);
+
+            // Trigger value display
+            const triggerLabel = factory.createText('Triggers:', { fontSize: 14, fill: 0x8892b0 });
+            triggerLabel.x = 30;
+            triggerLabel.y = 450;
+            stage.addChild(triggerLabel);
+
+            // LT bar
+            const ltBarBg = factory.createGraphics();
+            ltBarBg.rect(100, 455, 150, 20);
+            ltBarBg.fill({ color: 0x1a1a2e });
+            ltBarBg.stroke({ color: 0x5D6D7E, width: 1 });
+            stage.addChild(ltBarBg);
+
+            triggerBars.LT = factory.createGraphics();
+            triggerBars.LT.rect(0, 0, 0, 18);
+            triggerBars.LT.fill({ color: 0x3498DB });
+            triggerBars.LT.x = 101;
+            triggerBars.LT.y = 456;
+            stage.addChild(triggerBars.LT);
+
+            const ltLabel = factory.createText('LT', { fontSize: 12, fill: 0xFFFFFF });
+            ltLabel.x = 175;
+            ltLabel.y = 457;
+            if (ltLabel.anchor) ltLabel.anchor.set(0.5, 0);
+            stage.addChild(ltLabel);
+
+            // RT bar
+            const rtBarBg = factory.createGraphics();
+            rtBarBg.rect(270, 455, 150, 20);
+            rtBarBg.fill({ color: 0x1a1a2e });
+            rtBarBg.stroke({ color: 0x5D6D7E, width: 1 });
+            stage.addChild(rtBarBg);
+
+            triggerBars.RT = factory.createGraphics();
+            triggerBars.RT.rect(0, 0, 0, 18);
+            triggerBars.RT.fill({ color: 0xE74C3C });
+            triggerBars.RT.x = 271;
+            triggerBars.RT.y = 456;
+            stage.addChild(triggerBars.RT);
+
+            const rtLabel = factory.createText('RT', { fontSize: 12, fill: 0xFFFFFF });
+            rtLabel.x = 345;
+            rtLabel.y = 457;
+            if (rtLabel.anchor) rtLabel.anchor.set(0.5, 0);
+            stage.addChild(rtLabel);
+
+            // Axes display
+            const axesLabel = factory.createText('Axes:', { fontSize: 14, fill: 0x8892b0 });
+            axesLabel.x = 30;
+            axesLabel.y = 490;
+            stage.addChild(axesLabel);
+
+            window.axesText = factory.createText('L: 0.00, 0.00  R: 0.00, 0.00', {
+                fontSize: 14,
+                fill: 0xFFFFFF
+            });
+            window.axesText.x = 90;
+            window.axesText.y = 490;
+            stage.addChild(window.axesText);
+
+            // Vibration test
+            const vibLabel = factory.createText('Vibration:', { fontSize: 14, fill: 0x8892b0 });
+            vibLabel.x = 30;
+            vibLabel.y = 520;
+            stage.addChild(vibLabel);
+
+            vibrationIndicator = factory.createGraphics();
+            vibrationIndicator.roundRect(0, 0, 100, 25, 6);
+            vibrationIndicator.fill({ color: 0x5D6D7E });
+            vibrationIndicator.x = 110;
+            vibrationIndicator.y = 515;
+            vibrationIndicator.eventMode = 'static';
+            vibrationIndicator.cursor = 'pointer';
+            stage.addChild(vibrationIndicator);
+
+            const vibText = factory.createText('Test Rumble', {
+                fontSize: 12,
+                fill: 0xFFFFFF
+            });
+            vibText.x = 160;
+            vibText.y = 527;
+            if (vibText.anchor) vibText.anchor.set(0.5, 0.5);
+            stage.addChild(vibText);
+
+            vibrationIndicator.on('pointerdown', testVibration);
+        }
+
+        function createDPad(x, y) {
+            const size = 30;
+            const gap = 2;
+
+            // Up
+            createDPadButton('Up', x, y - size - gap, 12);
+            // Down
+            createDPadButton('Down', x, y + size + gap, 13);
+            // Left
+            createDPadButton('Left', x - size - gap, y, 14);
+            // Right
+            createDPadButton('Right', x + size + gap, y, 15);
+
+            // Center
+            const center = factory.createGraphics();
+            center.rect(x - size/2, y - size/2, size, size);
+            center.fill({ color: 0x2a2a4e });
+            stage.addChild(center);
+        }
+
+        function createDPadButton(name, x, y, index) {
+            const btn = factory.createGraphics();
+            btn.rect(-15, -15, 30, 30);
+            btn.fill({ color: 0x5D6D7E });
+            btn.x = x;
+            btn.y = y;
+            stage.addChild(btn);
+            buttons[`DPad${name}`] = { graphic: btn, index };
+        }
+
+        function createFaceButton(label, x, y, color, index) {
+            const btn = factory.createGraphics();
+            btn.circle(0, 0, 18);
+            btn.fill({ color: 0x5D6D7E });
+            btn.stroke({ color: 0x3D4F5F, width: 2 });
+            btn.x = x;
+            btn.y = y;
+            stage.addChild(btn);
+
+            const text = factory.createText(label, {
+                fontSize: 14,
+                fill: 0xFFFFFF
+            });
+            text.x = x;
+            text.y = y;
+            if (text.anchor) text.anchor.set(0.5, 0.5);
+            stage.addChild(text);
+
+            buttons[label] = { graphic: btn, color, index };
+        }
+
+        function createShoulderButton(label, x, y, index) {
+            const btn = factory.createGraphics();
+            btn.roundRect(0, 0, 60, 25, 6);
+            btn.fill({ color: 0x5D6D7E });
+            btn.x = x;
+            btn.y = y;
+            stage.addChild(btn);
+
+            const text = factory.createText(label, {
+                fontSize: 12,
+                fill: 0xFFFFFF
+            });
+            text.x = x + 30;
+            text.y = y + 12;
+            if (text.anchor) text.anchor.set(0.5, 0.5);
+            stage.addChild(text);
+
+            buttons[label] = { graphic: btn, index };
+        }
+
+        function createTrigger(label, x, y, index) {
+            const text = factory.createText(label, {
+                fontSize: 12,
+                fill: 0x8892b0
+            });
+            text.x = x + 30;
+            text.y = y;
+            if (text.anchor) text.anchor.set(0.5, 0);
+            stage.addChild(text);
+        }
+
+        function createSmallButton(label, x, y, index) {
+            const btn = factory.createGraphics();
+            btn.circle(0, 0, 10);
+            btn.fill({ color: 0x3D4F5F });
+            btn.x = x;
+            btn.y = y;
+            stage.addChild(btn);
+
+            buttons[label] = { graphic: btn, index };
+        }
+
+        function pollGamepad() {
+            const gamepads = navigator.getGamepads();
+            if (gamepadIndex >= 0 && gamepads[gamepadIndex]) {
+                gamepad = gamepads[gamepadIndex];
+            } else {
+                // Try to find any connected gamepad
+                for (let i = 0; i < gamepads.length; i++) {
+                    if (gamepads[i]) {
+                        gamepadIndex = i;
+                        gamepad = gamepads[i];
+                        statusText.text = `Connected: ${gamepad.id}`;
+                        statusText.style.fill = 0x2ECC71;
+                        break;
+                    }
+                }
+            }
+        }
+
+        function updateDisplay() {
+            if (!gamepad) return;
+
+            // Update sticks
+            const lx = gamepad.axes[0] || 0;
+            const ly = gamepad.axes[1] || 0;
+            const rx = gamepad.axes[2] || 0;
+            const ry = gamepad.axes[3] || 0;
+
+            leftStick.x = 130 + lx * 35;
+            leftStick.y = 200 + ly * 35;
+
+            rightStick.x = 320 + rx * 35;
+            rightStick.y = 280 + ry * 35;
+
+            // Update axes text
+            window.axesText.text = `L: ${lx.toFixed(2)}, ${ly.toFixed(2)}  R: ${rx.toFixed(2)}, ${ry.toFixed(2)}`;
+
+            // Update face buttons
+            ['A', 'B', 'X', 'Y'].forEach((name, i) => {
+                const btn = buttons[name];
+                const pressed = gamepad.buttons[i]?.pressed;
+                btn.graphic.clear();
+                btn.graphic.circle(0, 0, 18);
+                btn.graphic.fill({ color: pressed ? btn.color : 0x5D6D7E });
+                btn.graphic.stroke({ color: pressed ? 0xFFFFFF : 0x3D4F5F, width: 2 });
+            });
+
+            // Update shoulder buttons
+            ['LB', 'RB'].forEach((name) => {
+                const btn = buttons[name];
+                const pressed = gamepad.buttons[btn.index]?.pressed;
+                btn.graphic.clear();
+                btn.graphic.roundRect(0, 0, 60, 25, 6);
+                btn.graphic.fill({ color: pressed ? 0x3498DB : 0x5D6D7E });
+            });
+
+            // Update triggers
+            const lt = gamepad.buttons[6]?.value || 0;
+            const rt = gamepad.buttons[7]?.value || 0;
+
+            triggerBars.LT.clear();
+            triggerBars.LT.rect(0, 0, lt * 148, 18);
+            triggerBars.LT.fill({ color: 0x3498DB });
+
+            triggerBars.RT.clear();
+            triggerBars.RT.rect(0, 0, rt * 148, 18);
+            triggerBars.RT.fill({ color: 0xE74C3C });
+
+            // Update D-Pad
+            ['Up', 'Down', 'Left', 'Right'].forEach((dir) => {
+                const btn = buttons[`DPad${dir}`];
+                if (btn) {
+                    const pressed = gamepad.buttons[btn.index]?.pressed;
+                    btn.graphic.clear();
+                    btn.graphic.rect(-15, -15, 30, 30);
+                    btn.graphic.fill({ color: pressed ? 0x3498DB : 0x5D6D7E });
+                }
+            });
+
+            // Update small buttons
+            ['Back', 'Start', 'L3', 'R3'].forEach((name) => {
+                const btn = buttons[name];
+                if (btn && gamepad.buttons[btn.index]) {
+                    const pressed = gamepad.buttons[btn.index].pressed;
+                    btn.graphic.clear();
+                    btn.graphic.circle(0, 0, 10);
+                    btn.graphic.fill({ color: pressed ? 0x2ECC71 : 0x3D4F5F });
+                }
+            });
+        }
+
+        function testVibration() {
+            if (gamepad && gamepad.vibrationActuator) {
+                gamepad.vibrationActuator.playEffect('dual-rumble', {
+                    startDelay: 0,
+                    duration: 200,
+                    weakMagnitude: 0.5,
+                    strongMagnitude: 1.0
+                });
+
+                // Visual feedback
+                vibrationIndicator.clear();
+                vibrationIndicator.roundRect(0, 0, 100, 25, 6);
+                vibrationIndicator.fill({ color: 0x2ECC71 });
+
+                setTimeout(() => {
+                    vibrationIndicator.clear();
+                    vibrationIndicator.roundRect(0, 0, 100, 25, 6);
+                    vibrationIndicator.fill({ color: 0x5D6D7E });
+                }, 200);
+            }
+        }
+
+        init().catch(console.error);
+    </script>
+</body>
+</html>

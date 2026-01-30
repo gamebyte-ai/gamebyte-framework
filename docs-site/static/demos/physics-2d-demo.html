@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - 2D Physics Demo (Matter.js)</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
+        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
+        #game-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        canvas { display: block; }
+        .info { color: #8892b0; margin-top: 20px; font-size: 12px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>2D Physics with Matter.js</h1>
+    <p>Real-time physics simulation integrated with GameByte</p>
+    <div id="game-container"></div>
+    <div class="info">
+        Click anywhere to spawn objects! Physics powered by Matter.js
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/matter-js@0.19.0/build/matter.min.js"></script>
+    <script src="../gamebyte.umd.js"></script>
+
+    <script>
+        const {
+            createGame,
+            GameStyleButton,
+            GameStyleColors,
+            loadFrameworkFont,
+            getFrameworkFontFamily,
+            graphics
+        } = window.GameByteFramework;
+
+        const Matter = window.Matter;
+        const { Engine, World, Bodies, Body, Events } = Matter;
+
+        const CONFIG = { width: 500, height: 550 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.getElementById('game-container').appendChild(canvas);
+
+        const game = createGame();
+        let renderer, stage, factory;
+
+        // Physics
+        let engine, world;
+        let physicsObjects = [];
+
+        async function init() {
+            await loadFrameworkFont();
+            await game.initialize(canvas, '2d');
+            renderer = game.make('renderer');
+            stage = renderer.getStage();
+            factory = graphics();
+
+            // Background
+            const bg = factory.createGraphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill({ color: 0x1a1a2e });
+            stage.addChild(bg);
+
+            // Title
+            const title = factory.createText('2D Physics Demo', {
+                fontFamily: getFrameworkFontFamily(),
+                fontSize: 28,
+                fill: 0xFFFFFF
+            });
+            title.x = CONFIG.width / 2;
+            title.y = 15;
+            if (title.anchor) title.anchor.set(0.5, 0);
+            stage.addChild(title);
+
+            // Physics area
+            const physicsArea = factory.createGraphics();
+            physicsArea.roundRect(20, 60, 460, 380, 8);
+            physicsArea.fill({ color: 0x0a0a1a, alpha: 0.6 });
+            physicsArea.stroke({ color: 0x3D4F5F, width: 2 });
+            stage.addChild(physicsArea);
+
+            // Initialize physics
+            initPhysics();
+
+            // Controls
+            const boxBtn = new GameStyleButton({
+                text: '📦 Box',
+                width: 100,
+                height: 45,
+                fontSize: 14,
+                colorScheme: GameStyleColors.BLUE_BUTTON
+            });
+            boxBtn.setPosition(30, 455);
+            boxBtn.on('click', () => spawnBox(250, 100));
+            stage.addChild(boxBtn.getContainer());
+
+            const circleBtn = new GameStyleButton({
+                text: '⚪ Circle',
+                width: 100,
+                height: 45,
+                fontSize: 14,
+                colorScheme: GameStyleColors.GREEN_BUTTON
+            });
+            circleBtn.setPosition(140, 455);
+            circleBtn.on('click', () => spawnCircle(250, 100));
+            stage.addChild(circleBtn.getContainer());
+
+            const clearBtn = new GameStyleButton({
+                text: '🗑️ Clear',
+                width: 100,
+                height: 45,
+                fontSize: 14,
+                colorScheme: GameStyleColors.RED_BUTTON
+            });
+            clearBtn.setPosition(250, 455);
+            clearBtn.on('click', clearObjects);
+            stage.addChild(clearBtn.getContainer());
+
+            const shakeBtn = new GameStyleButton({
+                text: '🌀 Shake',
+                width: 100,
+                height: 45,
+                fontSize: 14,
+                colorScheme: GameStyleColors.PURPLE_BUTTON
+            });
+            shakeBtn.setPosition(360, 455);
+            shakeBtn.on('click', shakeWorld);
+            stage.addChild(shakeBtn.getContainer());
+
+            // Click to spawn
+            stage.eventMode = 'static';
+            stage.hitArea = { contains: () => true };
+            stage.on('pointerdown', (e) => {
+                const pos = e.global || e.data?.global;
+                if (pos && pos.y > 60 && pos.y < 440) {
+                    if (Math.random() > 0.5) {
+                        spawnBox(pos.x, pos.y);
+                    } else {
+                        spawnCircle(pos.x, pos.y);
+                    }
+                }
+            });
+
+            // Game loop
+            game.on('update', (deltaTime) => {
+                Engine.update(engine, deltaTime);
+                updateGraphics();
+            });
+
+            // Spawn initial objects
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    spawnBox(100 + i * 70, 80);
+                }, i * 100);
+            }
+
+            game.start();
+            console.log('Physics demo initialized!');
+        }
+
+        function initPhysics() {
+            engine = Engine.create();
+            world = engine.world;
+            engine.gravity.y = 1;
+
+            // Ground
+            const ground = Bodies.rectangle(250, 450, 460, 20, { isStatic: true });
+            World.add(world, ground);
+
+            // Draw ground
+            const groundGfx = factory.createGraphics();
+            groundGfx.roundRect(20, 440, 460, 20, 4);
+            groundGfx.fill({ color: 0x5D6D7E });
+            stage.addChild(groundGfx);
+
+            // Walls
+            const leftWall = Bodies.rectangle(15, 250, 10, 380, { isStatic: true });
+            const rightWall = Bodies.rectangle(485, 250, 10, 380, { isStatic: true });
+            World.add(world, [leftWall, rightWall]);
+        }
+
+        function spawnBox(x, y) {
+            const size = 30 + Math.random() * 20;
+            const body = Bodies.rectangle(x, y, size, size, {
+                restitution: 0.6,
+                friction: 0.1
+            });
+            World.add(world, body);
+
+            const color = [0xE74C3C, 0x3498DB, 0x2ECC71, 0x9B59B6, 0xF39C12][Math.floor(Math.random() * 5)];
+            const gfx = factory.createGraphics();
+            gfx.rect(-size / 2, -size / 2, size, size);
+            gfx.fill({ color });
+            gfx.stroke({ color: 0x000000, width: 2 });
+            stage.addChild(gfx);
+
+            physicsObjects.push({ body, gfx, type: 'box', size });
+        }
+
+        function spawnCircle(x, y) {
+            const radius = 15 + Math.random() * 15;
+            const body = Bodies.circle(x, y, radius, {
+                restitution: 0.8,
+                friction: 0.05
+            });
+            World.add(world, body);
+
+            const color = [0xE74C3C, 0x3498DB, 0x2ECC71, 0x9B59B6, 0xF39C12][Math.floor(Math.random() * 5)];
+            const gfx = factory.createGraphics();
+            gfx.circle(0, 0, radius);
+            gfx.fill({ color });
+            gfx.stroke({ color: 0x000000, width: 2 });
+            stage.addChild(gfx);
+
+            physicsObjects.push({ body, gfx, type: 'circle', radius });
+        }
+
+        function updateGraphics() {
+            physicsObjects.forEach(obj => {
+                obj.gfx.x = obj.body.position.x;
+                obj.gfx.y = obj.body.position.y;
+                obj.gfx.rotation = obj.body.angle;
+
+                // Remove if out of bounds
+                if (obj.body.position.y > 600) {
+                    World.remove(world, obj.body);
+                    stage.removeChild(obj.gfx);
+                }
+            });
+
+            // Clean up removed objects
+            physicsObjects = physicsObjects.filter(obj => obj.body.position.y <= 600);
+        }
+
+        function clearObjects() {
+            physicsObjects.forEach(obj => {
+                World.remove(world, obj.body);
+                stage.removeChild(obj.gfx);
+            });
+            physicsObjects = [];
+        }
+
+        function shakeWorld() {
+            physicsObjects.forEach(obj => {
+                Body.applyForce(obj.body, obj.body.position, {
+                    x: (Math.random() - 0.5) * 0.5,
+                    y: -0.3 - Math.random() * 0.3
+                });
+            });
+        }
+
+        init().catch(console.error);
+    </script>
+</body>
+</html>
