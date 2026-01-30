@@ -411,6 +411,15 @@ export type { GameInputConfig, GameInputColorScheme } from './ui/components/Game
 export { GameList } from './ui/components/GameList';
 export type { GameListConfig } from './ui/components/GameList';
 
+export { GameRadioGroup, GameRadioColors } from './ui/components/GameRadioGroup';
+export type { GameRadioGroupConfig, GameRadioColorScheme, GameRadioOption } from './ui/components/GameRadioGroup';
+
+export { GameSelect, GameSelectColors } from './ui/components/GameSelect';
+export type { GameSelectConfig, GameSelectColorScheme, GameSelectOption } from './ui/components/GameSelect';
+
+// Raw @pixi/ui re-export for advanced users
+export * as PixiUI from '@pixi/ui';
+
 // Font Loader (auto-loads framework font)
 export { loadFrameworkFont, getFrameworkFontFamily, isFontReady } from './ui/utils/FontLoader';
 
