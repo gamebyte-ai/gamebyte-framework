@@ -1,38 +1,7 @@
 import { EventEmitter } from 'eventemitter3';
 import { graphics } from '../../graphics/GraphicsEngine';
-import { IContainer, IGraphics, ISprite } from '../../contracts/Graphics';
-
-/**
- * Creates a horizontal gradient texture for slider track
- * @internal
- */
-function createTrackGradient(
-  width: number,
-  height: number,
-  colorTop: number,
-  colorBottom: number,
-  borderRadius: number
-): HTMLCanvasElement {
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext('2d')!;
-
-  const topHex = '#' + colorTop.toString(16).padStart(6, '0');
-  const bottomHex = '#' + colorBottom.toString(16).padStart(6, '0');
-
-  // Vertical gradient (top lighter, bottom darker)
-  const gradient = ctx.createLinearGradient(0, 0, 0, height);
-  gradient.addColorStop(0, topHex);
-  gradient.addColorStop(1, bottomHex);
-
-  ctx.beginPath();
-  ctx.roundRect(0, 0, width, height, borderRadius);
-  ctx.fillStyle = gradient;
-  ctx.fill();
-
-  return canvas;
-}
+import { IContainer, IGraphics } from '../../contracts/Graphics';
+import { Gradients } from '../../graphics/GradientFactory';
 
 /**
  * Slider color scheme - game style
@@ -92,8 +61,6 @@ export class GameSlider extends EventEmitter {
   private trackGraphics: IGraphics;
   private fillGraphics: IGraphics;
   private thumbGraphics: IGraphics;
-  private trackGradientSprite?: ISprite;
-  private fillGradientSprite?: ISprite;
 
   private config: Required<GameSliderConfig>;
   private _value: number;
@@ -204,16 +171,6 @@ export class GameSlider extends EventEmitter {
     this.fillGraphics.clear();
     this.thumbGraphics.clear();
 
-    // Remove old gradient sprites
-    if (this.trackGradientSprite) {
-      this.container.removeChild(this.trackGradientSprite);
-      this.trackGradientSprite = undefined;
-    }
-    if (this.fillGradientSprite) {
-      this.container.removeChild(this.fillGradientSprite);
-      this.fillGradientSprite = undefined;
-    }
-
     const alpha = disabled ? 0.5 : 1;
     const thumbScale = this.isPressed ? 0.9 : 1.0;
 
@@ -240,50 +197,26 @@ export class GameSlider extends EventEmitter {
     this.borderGraphics.roundRect(0, 0, width, height, radius);
     this.borderGraphics.fill({ color: colorScheme.border, alpha });
 
-    // Layer 3: Track background with gradient
-    const trackBgCanvas = createTrackGradient(
-      trackWidth,
-      trackHeight,
-      colorScheme.trackTop,
-      colorScheme.trackBottom,
-      trackRadius
-    );
-    const trackBgTexture = graphics().createTexture(trackBgCanvas);
-    this.trackGradientSprite = graphics().createSprite(trackBgTexture);
-    this.trackGradientSprite.x = trackX;
-    this.trackGradientSprite.y = trackY;
-    if (disabled) this.trackGradientSprite.alpha = alpha;
+    // Layer 3: Track background with native FillGradient
+    const trackGradient = Gradients.linear.vertical(colorScheme.trackTop, colorScheme.trackBottom);
+    this.trackGraphics.roundRect(trackX, trackY, trackWidth, trackHeight, trackRadius);
+    this.trackGraphics.fill(trackGradient as any);
+    if (disabled) this.trackGraphics.alpha = alpha;
 
-    // Insert after trackGraphics
-    const trackIndex = this.container.getChildIndex(this.trackGraphics);
-    this.container.addChild(this.trackGradientSprite);
-    this.container.setChildIndex(this.trackGradientSprite, trackIndex + 1);
-
-    // Layer 4: Fill (progress) with gradient
+    // Layer 4: Fill (progress) with native FillGradient
     const fillWidth = Math.max(trackHeight, (thumbX - trackX + thumbRadius));
     if (fillWidth > trackHeight) {
-      const fillCanvas = createTrackGradient(
-        fillWidth,
-        trackHeight,
-        colorScheme.fillTop,
-        colorScheme.fillBottom,
-        trackRadius
-      );
-      const fillTexture = graphics().createTexture(fillCanvas);
-      this.fillGradientSprite = graphics().createSprite(fillTexture);
-      this.fillGradientSprite.x = trackX;
-      this.fillGradientSprite.y = trackY;
-      if (disabled) this.fillGradientSprite.alpha = alpha;
-
-      // Insert after track gradient
-      const fillIndex = this.container.getChildIndex(this.trackGradientSprite);
-      this.container.addChild(this.fillGradientSprite);
-      this.container.setChildIndex(this.fillGradientSprite, fillIndex + 1);
+      const fillGradient = Gradients.linear.vertical(colorScheme.fillTop, colorScheme.fillBottom);
+      this.fillGraphics.roundRect(trackX, trackY, fillWidth, trackHeight, trackRadius);
+      this.fillGraphics.fill(fillGradient as any);
+      if (disabled) this.fillGraphics.alpha = alpha;
     }
 
-    // Inner shadow on track (subtle)
-    this.trackGraphics.roundRect(trackX + 2, trackY + 1, trackWidth - 4, 3, 1.5);
-    this.trackGraphics.fill({ color: 0x000000, alpha: 0.15 * alpha });
+    // Inner shadow on track (subtle) - draw on top of track
+    const innerShadow = graphics().createGraphics();
+    innerShadow.roundRect(trackX + 2, trackY + 1, trackWidth - 4, 3, 1.5);
+    innerShadow.fill({ color: 0x000000, alpha: 0.15 * alpha });
+    this.container.addChild(innerShadow);
 
     // Layer 5: Thumb
     // Thumb shadow

@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ResultScreen Demo - GameByte Framework</title>
+    <title>Victory Screen Demo - GameByte Framework</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { overflow: hidden; background: #1c2333; transition: background 0.3s ease; }
-        body.light-theme { background: #e8eef5; }
+        body { overflow: hidden; background: #1a1a2e; transition: background 0.3s ease; }
+        body.light-theme { background: #e8f0f8; }
         canvas { display: block; margin: 0 auto; }
     </style>
 </head>
@@ -17,20 +17,27 @@
 
     <script>
         // =====================================================
-        // ResultScreen Demo - Using Framework Abstractions
+        // Victory Screen Demo - Trophy Style
         // =====================================================
         // This demo showcases:
-        // - Victory/Result screen with trophy and rewards
-        // - Light rays and glow effects
+        // - Custom drawn trophy using ONLY IGraphics interface methods
+        //   (poly, circle, ellipse, roundRect, rect, arc)
+        // - Star rating system (1-3 stars)
+        // - Victory banner with ribbon effects
+        // - Native FillGradient for circular glow effects:
+        //   * Gradients.radial.centered() for trophy/star glows
+        //   * Gradients.linear.vertical() for buttons and panels
+        // - Segmented alpha for ray wedges (FillGradient doesn't
+        //   work for wedges as gradient is per-shape bounding box)
         // - CelebrationManager for confetti
-        // - graphics() abstraction instead of direct PIXI usage
         // =====================================================
 
         const {
             createGame,
             CelebrationManager,
             graphics,
-            loadFrameworkFont
+            loadFrameworkFont,
+            Gradients
         } = GameByteFramework;
 
         const CONFIG = { width: 360, height: 700 };
@@ -83,58 +90,80 @@
         // ===== THEME COLOR PALETTES =====
         const THEME_COLORS = {
             dark: {
-                darkBg: 0x1c2333,
-                rayColor: 0x2a3f5f,
-                rayAlpha: 0.35,
-                glowOuter: 0xa5a845,
-                glowMiddle: 0xb8b850,
-                glowInner: 0xd4d870,
-                panelBg: 0x4a7ab5,
-                panelBorder: 0x2a4a75,
-                panelGradientBottom: 0x3a6a95,
-                bannerBlue: 0x5ab0e8,
-                bannerLight: 0x7ac8f8,
-                bannerDark: 0x3a90c8,
-                rewardPanelBg: 0x5a8ab8,
-                rewardPanelBorder: 0x3a5a85,
-                greenBtn: 0x6ac46a,
-                greenBtnShadow: 0x3a8a3a,
-                greenBtnHighlight: 0x8ae88a,
-                orangeBtn: 0xe8c878,
-                orangeBtnShadow: 0xc8a050,
-                orangeBtnHighlight: 0xf8e0a0,
+                // Background
+                bgTop: 0x1a1a2e,
+                bgBottom: 0x16213e,
+                // Trophy
+                trophyGold: 0xffd700,
+                trophyLight: 0xffec80,
+                trophyDark: 0xb8860b,
+                trophyShadow: 0x8b6914,
+                // Stars
+                starFilled: 0xffd700,
+                starEmpty: 0x4a5568,
+                starGlow: 0xffec80,
+                // Panel
+                panelBg: 0x2d3748,
+                panelBorder: 0x4a5568,
+                // Banner
+                bannerPrimary: 0x6366f1,
+                bannerSecondary: 0x4f46e5,
+                bannerHighlight: 0x818cf8,
+                // Rays
+                rayColor: 0x4f46e5,
+                rayAlpha: 0.3,
+                // Text
                 textWhite: 0xffffff,
-                textOutline: 0x2a4a6a,
-                textDark: 0x4a5a6a,
-                coinDisplayBg: 0x3a4a6a,
-                plusButton: 0xe8a040
+                textGold: 0xffd700,
+                textMuted: 0xa0aec0,
+                // Buttons
+                greenBtn: 0x48bb78,
+                greenBtnShadow: 0x2f855a,
+                greenBtnHighlight: 0x68d391,
+                purpleBtn: 0x9f7aea,
+                purpleBtnShadow: 0x805ad5,
+                purpleBtnHighlight: 0xb794f4,
+                // Reward
+                rewardBg: 0x1a202c,
+                coinGold: 0xffd700
             },
             light: {
-                darkBg: 0xe8eef5,
-                rayColor: 0xc5d5e8,
-                rayAlpha: 0.5,
-                glowOuter: 0xf5d060,
-                glowMiddle: 0xffd700,
-                glowInner: 0xffec80,
-                panelBg: 0x6a9fd8,
-                panelBorder: 0x4a7ab5,
-                panelGradientBottom: 0x5a90c8,
-                bannerBlue: 0x60b8f0,
-                bannerLight: 0x90d0ff,
-                bannerDark: 0x4a98d0,
-                rewardPanelBg: 0x7aa8d0,
-                rewardPanelBorder: 0x5a88b8,
-                greenBtn: 0x5cb85c,
-                greenBtnShadow: 0x449d44,
-                greenBtnHighlight: 0x8cd98c,
-                orangeBtn: 0xf5d070,
-                orangeBtnShadow: 0xd4a840,
-                orangeBtnHighlight: 0xffe8a0,
+                // Background
+                bgTop: 0xe8f0f8,
+                bgBottom: 0xd0e0f0,
+                // Trophy
+                trophyGold: 0xffc800,
+                trophyLight: 0xffe066,
+                trophyDark: 0xd4a000,
+                trophyShadow: 0xa08000,
+                // Stars
+                starFilled: 0xffc800,
+                starEmpty: 0xcbd5e1,
+                starGlow: 0xffe066,
+                // Panel
+                panelBg: 0xffffff,
+                panelBorder: 0xe2e8f0,
+                // Banner
+                bannerPrimary: 0x6366f1,
+                bannerSecondary: 0x4f46e5,
+                bannerHighlight: 0xa5b4fc,
+                // Rays
+                rayColor: 0x818cf8,
+                rayAlpha: 0.4,
+                // Text
                 textWhite: 0xffffff,
-                textOutline: 0x3a5a7a,
-                textDark: 0x3a4a5a,
-                coinDisplayBg: 0x5a7a9a,
-                plusButton: 0xf0a830
+                textGold: 0xd4a000,
+                textMuted: 0x64748b,
+                // Buttons
+                greenBtn: 0x48bb78,
+                greenBtnShadow: 0x38a169,
+                greenBtnHighlight: 0x9ae6b4,
+                purpleBtn: 0x9f7aea,
+                purpleBtnShadow: 0x805ad5,
+                purpleBtnHighlight: 0xd6bcfa,
+                // Reward
+                rewardBg: 0xf1f5f9,
+                coinGold: 0xffc800
             }
         };
 
@@ -152,6 +181,9 @@
         let renderer, stage;
 
         // ===== LIGHT RAYS HELPER =====
+        // Creates rays that fade from center to edges using segmented alpha
+        // Note: Native FillGradient doesn't work for wedge shapes (gradient is per-shape bounding box)
+        // This segmented approach correctly simulates radial fade for ray wedges
         function createLightRays(gfx, config) {
             const colors = getColors();
             const container = gfx.createContainer();
@@ -159,89 +191,324 @@
                 rayCount = 16,
                 innerRadius = 20,
                 outerRadius = 350,
-                innerWidth = 0.08,
-                outerWidth = 0.12,
+                rayWidth = 0.12, // Angular width in radians
                 color = colors.rayColor,
-                alpha = colors.rayAlpha
+                alpha = colors.rayAlpha,
+                segments = 10 // Number of segments for fade effect
             } = config;
 
             for (let i = 0; i < rayCount; i++) {
-                const angle = (i / rayCount) * Math.PI * 2;
+                const centerAngle = (i / rayCount) * Math.PI * 2;
+                const startAngle = centerAngle - rayWidth / 2;
+                const endAngle = centerAngle + rayWidth / 2;
+
                 const ray = gfx.createGraphics();
 
-                const innerLeft = {
-                    x: Math.cos(angle - innerWidth / 2) * innerRadius,
-                    y: Math.sin(angle - innerWidth / 2) * innerRadius
-                };
-                const innerRight = {
-                    x: Math.cos(angle + innerWidth / 2) * innerRadius,
-                    y: Math.sin(angle + innerWidth / 2) * innerRadius
-                };
-                const outerRight = {
-                    x: Math.cos(angle + outerWidth / 2) * outerRadius,
-                    y: Math.sin(angle + outerWidth / 2) * outerRadius
-                };
-                const outerLeft = {
-                    x: Math.cos(angle - outerWidth / 2) * outerRadius,
-                    y: Math.sin(angle - outerWidth / 2) * outerRadius
-                };
+                // Draw segments from inner to outer with fading alpha
+                for (let s = 0; s < segments; s++) {
+                    const innerR = innerRadius + (outerRadius - innerRadius) * (s / segments);
+                    const outerR = innerRadius + (outerRadius - innerRadius) * ((s + 1) / segments);
 
-                ray.poly([
-                    innerLeft.x, innerLeft.y,
-                    innerRight.x, innerRight.y,
-                    outerRight.x, outerRight.y,
-                    outerLeft.x, outerLeft.y
-                ]);
-                ray.fill({ color, alpha });
+                    // Alpha fades from full to near 0 (simulates radial gradient)
+                    const segAlpha = alpha * (1 - (s / segments) * 0.95);
+
+                    // Draw segment using moveTo/lineTo/closePath
+                    ray.moveTo(Math.cos(startAngle) * innerR, Math.sin(startAngle) * innerR);
+                    ray.lineTo(Math.cos(startAngle) * outerR, Math.sin(startAngle) * outerR);
+                    ray.lineTo(Math.cos(endAngle) * outerR, Math.sin(endAngle) * outerR);
+                    ray.lineTo(Math.cos(endAngle) * innerR, Math.sin(endAngle) * innerR);
+                    ray.closePath();
+                    ray.fill({ color, alpha: segAlpha });
+                }
+
                 container.addChild(ray);
             }
 
             return container;
         }
 
-        // ===== MULTI-LAYER GLOW HELPER =====
-        function createGlow(gfx) {
+        // ===== DRAW TROPHY HELPER (uses ONLY IGraphics interface methods) =====
+        function drawTrophy(gfx, x, y, scale = 1) {
             const colors = getColors();
             const container = gfx.createContainer();
+            container.x = x;
+            container.y = y;
+            container.scale.set(scale);
 
-            const outer = gfx.createGraphics();
-            outer.circle(0, 0, 100);
-            outer.fill({ color: colors.glowOuter, alpha: 0.25 });
-            container.addChild(outer);
+            // Trophy cup body - using poly() for the main shape
+            const cupBody = gfx.createGraphics();
+            // Approximate cup shape with polygon points
+            cupBody.poly([
+                -40, -5,    // top left
+                -45, 30,    // left curve top
+                -35, 60,    // left curve bottom
+                -15, 80,    // bottom left curve
+                0, 85,      // bottom center
+                15, 80,     // bottom right curve
+                35, 60,     // right curve bottom
+                45, 30,     // right curve top
+                40, -5      // top right
+            ]);
+            cupBody.fill(colors.trophyGold);
+            container.addChild(cupBody);
 
-            const middle = gfx.createGraphics();
-            middle.circle(0, 0, 70);
-            middle.fill({ color: colors.glowMiddle, alpha: 0.5 });
-            container.addChild(middle);
+            // Cup highlight (inner) - using poly()
+            const cupHighlight = gfx.createGraphics();
+            cupHighlight.poly([
+                -30, 0,
+                -32, 25,
+                -25, 50,
+                -10, 65,
+                5, 65,
+                15, 50,
+                18, 25,
+                15, 0
+            ]);
+            cupHighlight.fill({ color: colors.trophyLight, alpha: 0.5 });
+            container.addChild(cupHighlight);
 
-            const inner = gfx.createGraphics();
-            inner.circle(0, 0, 50);
-            inner.fill({ color: colors.glowInner, alpha: 0.8 });
-            container.addChild(inner);
+            // Left handle - using poly()
+            const leftHandle = gfx.createGraphics();
+            leftHandle.poly([
+                -40, 10,
+                -55, 5,
+                -65, 15,
+                -65, 40,
+                -55, 50,
+                -42, 50,
+                -50, 40,
+                -50, 20,
+                -40, 15
+            ]);
+            leftHandle.fill(colors.trophyGold);
+            container.addChild(leftHandle);
+
+            // Right handle - using poly()
+            const rightHandle = gfx.createGraphics();
+            rightHandle.poly([
+                40, 10,
+                55, 5,
+                65, 15,
+                65, 40,
+                55, 50,
+                42, 50,
+                50, 40,
+                50, 20,
+                40, 15
+            ]);
+            rightHandle.fill(colors.trophyGold);
+            container.addChild(rightHandle);
+
+            // Handle shadows - using poly() with stroke-like thin shapes
+            const leftHandleShadow = gfx.createGraphics();
+            leftHandleShadow.poly([
+                -42, 12, -58, 12, -58, 15, -42, 15
+            ]);
+            leftHandleShadow.fill({ color: colors.trophyDark, alpha: 0.6 });
+            container.addChild(leftHandleShadow);
+
+            const rightHandleShadow = gfx.createGraphics();
+            rightHandleShadow.poly([
+                42, 12, 58, 12, 58, 15, 42, 15
+            ]);
+            rightHandleShadow.fill({ color: colors.trophyDark, alpha: 0.6 });
+            container.addChild(rightHandleShadow);
+
+            // Stem - using rect()
+            const stem = gfx.createGraphics();
+            stem.rect(-8, 85, 16, 25);
+            stem.fill(colors.trophyGold);
+            container.addChild(stem);
+
+            // Stem highlight - using rect()
+            const stemHighlight = gfx.createGraphics();
+            stemHighlight.rect(-4, 85, 6, 25);
+            stemHighlight.fill({ color: colors.trophyLight, alpha: 0.5 });
+            container.addChild(stemHighlight);
+
+            // Base top - using roundRect()
+            const baseTop = gfx.createGraphics();
+            baseTop.roundRect(-25, 108, 50, 10, 3);
+            baseTop.fill(colors.trophyGold);
+            container.addChild(baseTop);
+
+            // Base bottom - using roundRect()
+            const baseBottom = gfx.createGraphics();
+            baseBottom.roundRect(-35, 116, 70, 14, 4);
+            baseBottom.fill(colors.trophyDark);
+            container.addChild(baseBottom);
+
+            // Base highlight - using roundRect()
+            const baseHighlight = gfx.createGraphics();
+            baseHighlight.roundRect(-33, 118, 66, 4, 2);
+            baseHighlight.fill({ color: colors.trophyLight, alpha: 0.4 });
+            container.addChild(baseHighlight);
+
+            // Cup rim - using ellipse()
+            const rim = gfx.createGraphics();
+            rim.ellipse(0, -5, 42, 8);
+            rim.fill(colors.trophyLight);
+            container.addChild(rim);
+
+            // Inner rim shadow - using ellipse()
+            const innerRim = gfx.createGraphics();
+            innerRim.ellipse(0, -2, 35, 6);
+            innerRim.fill({ color: colors.trophyShadow, alpha: 0.5 });
+            container.addChild(innerRim);
+
+            // Trophy number "1" in center - using poly() to draw the number
+            const numberOne = gfx.createGraphics();
+            numberOne.poly([
+                -5, 25,
+                0, 20,
+                5, 20,
+                5, 55,
+                10, 55,
+                10, 60,
+                -10, 60,
+                -10, 55,
+                -5, 55,
+                -5, 30,
+                -8, 33,
+                -8, 28
+            ]);
+            numberOne.fill({ color: colors.trophyDark, alpha: 0.8 });
+            container.addChild(numberOne);
 
             return container;
         }
 
-        // ===== 3D BUTTON HELPER =====
+        // ===== DRAW STAR HELPER (uses poly - valid IGraphics method) =====
+        function drawStar(gfx, x, y, size, filled, colors) {
+            const container = gfx.createContainer();
+            container.x = x;
+            container.y = y;
+
+            // Star glow (only for filled) - using native radial gradient
+            if (filled) {
+                const glow = gfx.createGraphics();
+                const starGlowGradient = Gradients.radial.centered(colors.starGlow, colors.starFilled);
+                glow.circle(0, 0, size * 1.2);
+                glow.fill({ fill: starGlowGradient, alpha: 0.5 });
+                container.addChild(glow);
+            }
+
+            // Star shape - using poly()
+            const star = gfx.createGraphics();
+            const points = [];
+            for (let i = 0; i < 10; i++) {
+                const angle = (i * Math.PI) / 5 - Math.PI / 2;
+                const radius = i % 2 === 0 ? size : size * 0.5;
+                points.push(Math.cos(angle) * radius, Math.sin(angle) * radius);
+            }
+            star.poly(points);
+            star.fill(filled ? colors.starFilled : colors.starEmpty);
+            if (filled) {
+                star.stroke({ color: colors.trophyDark, width: 2 });
+            }
+            container.addChild(star);
+
+            // Star highlight (only for filled) - using poly()
+            if (filled) {
+                const highlight = gfx.createGraphics();
+                const hlPoints = [];
+                for (let i = 0; i < 10; i++) {
+                    const angle = (i * Math.PI) / 5 - Math.PI / 2;
+                    const radius = i % 2 === 0 ? size * 0.6 : size * 0.3;
+                    hlPoints.push(Math.cos(angle) * radius - 2, Math.sin(angle) * radius - 2);
+                }
+                highlight.poly(hlPoints);
+                highlight.fill({ color: colors.starGlow, alpha: 0.5 });
+                container.addChild(highlight);
+            }
+
+            return container;
+        }
+
+        // ===== SPARKLE/SHIMMER EFFECT HELPER =====
+        function createSparkles(gfx, count, radius, color) {
+            const container = gfx.createContainer();
+            const sparkles = [];
+
+            for (let i = 0; i < count; i++) {
+                const sparkle = gfx.createContainer();
+
+                // 4-pointed star shape using poly
+                const star = gfx.createGraphics();
+                const size = 3 + Math.random() * 4;
+                star.poly([
+                    0, -size,
+                    size * 0.3, -size * 0.3,
+                    size, 0,
+                    size * 0.3, size * 0.3,
+                    0, size,
+                    -size * 0.3, size * 0.3,
+                    -size, 0,
+                    -size * 0.3, -size * 0.3
+                ]);
+                star.fill({ color: color, alpha: 0.8 });
+                sparkle.addChild(star);
+
+                // Random position around center
+                const angle = Math.random() * Math.PI * 2;
+                const dist = radius * 0.3 + Math.random() * radius * 0.7;
+                sparkle.x = Math.cos(angle) * dist;
+                sparkle.y = Math.sin(angle) * dist;
+                sparkle.alpha = 0;
+
+                // Store animation data
+                sparkles.push({
+                    sprite: sparkle,
+                    baseX: sparkle.x,
+                    baseY: sparkle.y,
+                    phase: Math.random() * Math.PI * 2,
+                    speed: 0.02 + Math.random() * 0.03,
+                    floatAmount: 2 + Math.random() * 3
+                });
+
+                container.addChild(sparkle);
+            }
+
+            // Animate sparkles
+            game.on('update', () => {
+                sparkles.forEach(s => {
+                    s.phase += s.speed;
+                    // Pulsing alpha
+                    s.sprite.alpha = 0.3 + Math.sin(s.phase) * 0.7;
+                    // Slight floating motion
+                    s.sprite.y = s.baseY + Math.sin(s.phase * 0.5) * s.floatAmount;
+                    // Rotation
+                    s.sprite.rotation += 0.02;
+                });
+            });
+
+            return container;
+        }
+
+        // ===== 3D BUTTON HELPER (uses roundRect - valid IGraphics method) =====
         function create3DButton(gfx, x, y, width, height, config) {
             const container = gfx.createContainer();
             const { mainColor, shadowColor, highlightColor } = config;
 
+            // Shadow - using roundRect()
             const shadow = gfx.createGraphics();
-            shadow.roundRect(x, y + 4, width, height, 12);
+            shadow.roundRect(x, y + 5, width, height, 14);
             shadow.fill(shadowColor);
             container.addChild(shadow);
 
+            // Button with gradient - using roundRect() and Gradients
             const btn = gfx.createGraphics();
-            btn.roundRect(x, y, width, height, 12);
-            btn.fill(mainColor);
+            const btnGradient = Gradients.linear.vertical(highlightColor, mainColor);
+            btn.roundRect(x, y, width, height, 14);
+            btn.fill(btnGradient);
             btn.eventMode = 'static';
             btn.cursor = 'pointer';
             container.addChild(btn);
 
+            // Highlight - using roundRect()
             const highlight = gfx.createGraphics();
-            highlight.roundRect(x + 5, y + 3, width - 10, 15, 8);
-            highlight.fill({ color: highlightColor, alpha: 0.4 });
+            highlight.roundRect(x + 6, y + 4, width - 12, 12, 6);
+            highlight.fill({ color: 0xffffff, alpha: 0.3 });
             container.addChild(highlight);
 
             container.mainBtn = btn;
@@ -281,327 +548,384 @@
                 celebration.clear();
 
                 const centerX = CONFIG.width / 2;
+                const earnedStars = 3; // Can be 1, 2, or 3
 
-                // Background
+                // ===== BACKGROUND WITH GRADIENT (Gradients.linear.vertical) =====
                 const bg = gfx.createGraphics();
+                const bgGradient = Gradients.linear.vertical(colors.bgTop, colors.bgBottom);
                 bg.rect(0, 0, CONFIG.width, CONFIG.height);
-                bg.fill(colors.darkBg);
+                bg.fill(bgGradient);
                 stage.addChild(bg);
 
-                // Trophy light rays
-                const trophyY = 110;
-                const trophyRays = createLightRays(gfx, {
-                    rayCount: 16,
-                    innerRadius: 15,
-                    outerRadius: 350,
-                    innerWidth: 0.06,
-                    outerWidth: 0.14
+                // ===== LIGHT RAYS WITH SEGMENTED ALPHA FADE =====
+                const trophyY = 200;
+                const rays = createLightRays(gfx, {
+                    rayCount: 12,
+                    innerRadius: 30,
+                    outerRadius: 400,
+                    rayWidth: 0.25,
+                    color: colors.bannerHighlight,
+                    alpha: 0.5,
+                    segments: 10
                 });
-                trophyRays.x = centerX;
-                trophyRays.y = trophyY + 40;
-                stage.addChild(trophyRays);
+                rays.x = centerX;
+                rays.y = trophyY;
+                stage.addChild(rays);
 
                 game.on('update', () => {
-                    trophyRays.rotation += 0.002;
+                    rays.rotation += 0.003;
                 });
 
-                // Trophy glow
-                const trophyGlow = createGlow(gfx);
-                trophyGlow.x = centerX;
-                trophyGlow.y = trophyY + 40;
-                stage.addChild(trophyGlow);
+                // ===== VICTORY BANNER (using roundRect and poly) =====
+                const bannerY = 50;
+                const bannerWidth = 280;
+                const bannerHeight = 60;
 
-                // Top right coin display
-                const coinDisplay = gfx.createContainer();
-                coinDisplay.x = CONFIG.width - 80;
-                coinDisplay.y = 25;
-                stage.addChild(coinDisplay);
-
-                const coinBg = gfx.createGraphics();
-                coinBg.roundRect(-50, -15, 100, 30, 15);
-                coinBg.fill(colors.coinDisplayBg);
-                coinDisplay.addChild(coinBg);
-
-                const coinIcon = gfx.createText('\u{1FA99}', { fontSize: 22 });
-                coinIcon.anchor.set(0.5);
-                coinIcon.x = -32;
-                coinDisplay.addChild(coinIcon);
-
-                const coinAmount = gfx.createText('1460', {
-                    fontSize: 16,
-                    fontWeight: 'bold',
-                    fill: colors.textWhite
-                });
-                coinAmount.anchor.set(0, 0.5);
-                coinAmount.x = -16;
-                coinDisplay.addChild(coinAmount);
-
-                const plusBtn = gfx.createGraphics();
-                plusBtn.circle(35, 0, 12);
-                plusBtn.fill(colors.plusButton);
-                coinDisplay.addChild(plusBtn);
-
-                const plusText = gfx.createText('+', {
-                    fontSize: 18,
-                    fontWeight: 'bold',
-                    fill: colors.textWhite
-                });
-                plusText.anchor.set(0.5);
-                plusText.x = 35;
-                coinDisplay.addChild(plusText);
-
-                // Main panel
-                const panelY = 100;
-                const panelWidth = 300;
-                const panelHeight = 480;
-                const panelX = centerX - panelWidth / 2;
-
-                const panelBorder = gfx.createGraphics();
-                panelBorder.roundRect(panelX - 4, panelY - 4, panelWidth + 8, panelHeight + 8, 28);
-                panelBorder.fill(colors.panelBorder);
-                stage.addChild(panelBorder);
-
-                const panelBg = gfx.createGraphics();
-                panelBg.roundRect(panelX, panelY, panelWidth, panelHeight, 25);
-                panelBg.fill(colors.panelBg);
-                stage.addChild(panelBg);
-
-                const panelGradient = gfx.createGraphics();
-                panelGradient.roundRect(panelX, panelY + panelHeight * 0.6, panelWidth, panelHeight * 0.4, 25);
-                panelGradient.fill({ color: colors.panelGradientBottom, alpha: 0.4 });
-                stage.addChild(panelGradient);
-
-                const panelHighlight = gfx.createGraphics();
-                panelHighlight.roundRect(panelX + 10, panelY + 5, panelWidth - 20, 4, 2);
-                panelHighlight.fill({ color: 0xffffff, alpha: 0.15 });
-                stage.addChild(panelHighlight);
-
-                // Trophy emoji
-                const trophy = gfx.createText('\u{1F3C6}', { fontSize: 72 });
-                trophy.anchor.set(0.5);
-                trophy.x = centerX;
-                trophy.y = trophyY + 40;
-                stage.addChild(trophy);
-
-                // Level completed banner
-                const ribbonY = panelY + 100;
-                const ribbonWidth = 260;
-                const ribbonHeight = 55;
-
+                // Banner shadow - roundRect()
                 const bannerShadow = gfx.createGraphics();
-                bannerShadow.roundRect(centerX - ribbonWidth/2, ribbonY + 3, ribbonWidth, ribbonHeight, 8);
-                bannerShadow.fill(colors.bannerDark);
+                bannerShadow.roundRect(centerX - bannerWidth/2, bannerY + 4, bannerWidth, bannerHeight, 12);
+                bannerShadow.fill({ color: 0x000000, alpha: 0.3 });
                 stage.addChild(bannerShadow);
 
+                // Banner body with gradient - roundRect() + Gradients
                 const banner = gfx.createGraphics();
-                banner.roundRect(centerX - ribbonWidth/2, ribbonY, ribbonWidth, ribbonHeight - 3, 8);
-                banner.fill(colors.bannerBlue);
+                const bannerGradient = Gradients.linear.vertical(colors.bannerHighlight, colors.bannerPrimary);
+                banner.roundRect(centerX - bannerWidth/2, bannerY, bannerWidth, bannerHeight, 12);
+                banner.fill(bannerGradient);
                 stage.addChild(banner);
 
+                // Banner highlight - roundRect()
                 const bannerHighlight = gfx.createGraphics();
-                bannerHighlight.roundRect(centerX - ribbonWidth/2 + 5, ribbonY + 2, ribbonWidth - 10, 3, 2);
-                bannerHighlight.fill(colors.bannerLight);
+                bannerHighlight.roundRect(centerX - bannerWidth/2 + 8, bannerY + 4, bannerWidth - 16, 8, 4);
+                bannerHighlight.fill({ color: 0xffffff, alpha: 0.25 });
                 stage.addChild(bannerHighlight);
 
-                // Ribbon ends
-                const leftRibbon = gfx.createGraphics();
-                leftRibbon.poly([
-                    centerX - ribbonWidth/2 - 10, ribbonY + 8,
-                    centerX - ribbonWidth/2, ribbonY + 8,
-                    centerX - ribbonWidth/2, ribbonY + 47,
-                    centerX - ribbonWidth/2 - 10, ribbonY + 47,
-                    centerX - ribbonWidth/2, ribbonY + 27
+                // Ribbon ends - poly()
+                const ribbonEndLeft = gfx.createGraphics();
+                ribbonEndLeft.poly([
+                    centerX - bannerWidth/2 - 15, bannerY + 10,
+                    centerX - bannerWidth/2, bannerY + 10,
+                    centerX - bannerWidth/2, bannerY + 50,
+                    centerX - bannerWidth/2 - 15, bannerY + 50,
+                    centerX - bannerWidth/2 - 5, bannerY + 30
                 ]);
-                leftRibbon.fill(colors.bannerDark);
-                stage.addChild(leftRibbon);
+                ribbonEndLeft.fill(colors.bannerSecondary);
+                stage.addChild(ribbonEndLeft);
 
-                const rightRibbon = gfx.createGraphics();
-                rightRibbon.poly([
-                    centerX + ribbonWidth/2 + 10, ribbonY + 8,
-                    centerX + ribbonWidth/2, ribbonY + 8,
-                    centerX + ribbonWidth/2, ribbonY + 47,
-                    centerX + ribbonWidth/2 + 10, ribbonY + 47,
-                    centerX + ribbonWidth/2, ribbonY + 27
+                const ribbonEndRight = gfx.createGraphics();
+                ribbonEndRight.poly([
+                    centerX + bannerWidth/2 + 15, bannerY + 10,
+                    centerX + bannerWidth/2, bannerY + 10,
+                    centerX + bannerWidth/2, bannerY + 50,
+                    centerX + bannerWidth/2 + 15, bannerY + 50,
+                    centerX + bannerWidth/2 + 5, bannerY + 30
                 ]);
-                rightRibbon.fill(colors.bannerDark);
-                stage.addChild(rightRibbon);
+                ribbonEndRight.fill(colors.bannerSecondary);
+                stage.addChild(ribbonEndRight);
 
-                // Level text
-                const levelText = gfx.createText('LEVEL 20', {
-                    fontSize: 24,
+                // Victory text - createText()
+                const victoryText = gfx.createText('VICTORY!', {
+                    fontSize: 36,
                     fontWeight: 'bold',
                     fill: colors.textWhite,
                     dropShadow: true,
                     dropShadowColor: 0x000000,
                     dropShadowDistance: 2,
-                    dropShadowBlur: 2
+                    dropShadowBlur: 4
+                });
+                victoryText.anchor.set(0.5);
+                victoryText.x = centerX;
+                victoryText.y = bannerY + bannerHeight / 2;
+                stage.addChild(victoryText);
+
+                // ===== TROPHY GLOW - Using native radial gradient =====
+                const trophyGlow1 = gfx.createGraphics();
+                const glowGradient1 = Gradients.radial.multiStop([
+                    { offset: 0, color: colors.trophyLight },
+                    { offset: 0.4, color: colors.trophyGold },
+                    { offset: 1, color: 0x000000 }
+                ]);
+                trophyGlow1.circle(centerX, trophyY, 120);
+                trophyGlow1.fill({ fill: glowGradient1, alpha: 0.4 });
+                stage.addChild(trophyGlow1);
+
+                const trophyGlow2 = gfx.createGraphics();
+                const glowGradient2 = Gradients.radial.centered(colors.trophyLight, colors.trophyGold);
+                trophyGlow2.circle(centerX, trophyY, 80);
+                trophyGlow2.fill({ fill: glowGradient2, alpha: 0.5 });
+                stage.addChild(trophyGlow2);
+
+                // ===== TROPHY =====
+                const trophy = drawTrophy(gfx, centerX, trophyY - 60, 1.1);
+                stage.addChild(trophy);
+
+                // Trophy sparkles
+                const trophySparkles = createSparkles(gfx, 12, 80, colors.trophyLight);
+                trophySparkles.x = centerX;
+                trophySparkles.y = trophyY;
+                stage.addChild(trophySparkles);
+
+                // Trophy bounce animation
+                let trophyBounce = 0;
+                game.on('update', () => {
+                    trophyBounce += 0.05;
+                    trophy.y = (trophyY - 60) + Math.sin(trophyBounce) * 3;
+                    trophySparkles.y = trophyY + Math.sin(trophyBounce) * 3;
+                });
+
+                // ===== STAR RATING =====
+                const starsY = trophyY + 100;
+                const starSize = 28;
+                const starSpacing = 70;
+
+                for (let i = 0; i < 3; i++) {
+                    const starX = centerX + (i - 1) * starSpacing;
+                    const filled = i < earnedStars;
+                    const star = drawStar(gfx, starX, starsY, starSize, filled, colors);
+
+                    // Middle star slightly higher
+                    if (i === 1) {
+                        star.y -= 10;
+                        star.scale.set(1.2);
+                    }
+
+                    stage.addChild(star);
+
+                    // Add sparkles to filled stars
+                    if (filled) {
+                        const starSparkles = createSparkles(gfx, 4, 25, colors.starGlow);
+                        starSparkles.x = starX;
+                        starSparkles.y = i === 1 ? starsY - 10 : starsY;
+                        stage.addChild(starSparkles);
+                    }
+                }
+
+                // ===== LEVEL COMPLETED TEXT - createText() =====
+                const levelText = gfx.createText('LEVEL 20 COMPLETED', {
+                    fontSize: 18,
+                    fontWeight: 'bold',
+                    fill: colors.textMuted
                 });
                 levelText.anchor.set(0.5);
                 levelText.x = centerX;
-                levelText.y = ribbonY + 18;
+                levelText.y = starsY + 55;
                 stage.addChild(levelText);
 
-                const completedText = gfx.createText('COMPLETED!', {
-                    fontSize: 12,
-                    fontWeight: 'bold',
-                    fill: colors.textWhite,
-                    dropShadow: true,
-                    dropShadowColor: 0x000000,
-                    dropShadowDistance: 2,
-                    dropShadowBlur: 2
-                });
-                completedText.anchor.set(0.5);
-                completedText.x = centerX;
-                completedText.y = ribbonY + 38;
-                stage.addChild(completedText);
+                // ===== REWARD PANEL (roundRect) =====
+                const panelY = starsY + 90;
+                const panelWidth = 300;
+                const panelHeight = 180;
+                const panelX = centerX - panelWidth / 2;
 
-                // Rewards title
-                const rewardsY = ribbonY + 75;
+                // Panel shadow - roundRect()
+                const panelShadow = gfx.createGraphics();
+                panelShadow.roundRect(panelX + 4, panelY + 6, panelWidth, panelHeight, 20);
+                panelShadow.fill({ color: 0x000000, alpha: 0.2 });
+                stage.addChild(panelShadow);
+
+                // Panel border - roundRect()
+                const panelBorder = gfx.createGraphics();
+                panelBorder.roundRect(panelX - 3, panelY - 3, panelWidth + 6, panelHeight + 6, 22);
+                panelBorder.fill(colors.panelBorder);
+                stage.addChild(panelBorder);
+
+                // Panel body - roundRect()
+                const panel = gfx.createGraphics();
+                panel.roundRect(panelX, panelY, panelWidth, panelHeight, 20);
+                panel.fill(colors.panelBg);
+                stage.addChild(panel);
+
+                // Panel highlight - roundRect()
+                const panelHighlight = gfx.createGraphics();
+                panelHighlight.roundRect(panelX + 8, panelY + 5, panelWidth - 16, 6, 3);
+                panelHighlight.fill({ color: 0xffffff, alpha: 0.1 });
+                stage.addChild(panelHighlight);
+
+                // Rewards title - createText()
                 const rewardsTitle = gfx.createText('REWARDS', {
-                    fontSize: 22,
+                    fontSize: 16,
                     fontWeight: 'bold',
-                    fill: colors.textWhite,
-                    stroke: { color: colors.textOutline, width: 5 }
+                    fill: colors.textMuted
                 });
                 rewardsTitle.anchor.set(0.5);
                 rewardsTitle.x = centerX;
-                rewardsTitle.y = rewardsY;
+                rewardsTitle.y = panelY + 25;
                 stage.addChild(rewardsTitle);
 
-                // Reward panel
-                const rewardPanelY = rewardsY + 25;
-                const rewardPanelWidth = 260;
-                const rewardPanelHeight = 140;
-                const rewardPanelX = centerX - rewardPanelWidth / 2;
+                // Reward coin background - using radial gradient
+                const coinBgY = panelY + 80;
+                const coinBg = gfx.createGraphics();
+                const coinBgGradient = Gradients.radial.centered(colors.panelBg, colors.rewardBg);
+                coinBg.circle(centerX, coinBgY, 45);
+                coinBg.fill({ fill: coinBgGradient, alpha: 1 });
+                stage.addChild(coinBg);
 
-                const rewardBorder = gfx.createGraphics();
-                rewardBorder.roundRect(rewardPanelX - 3, rewardPanelY - 3, rewardPanelWidth + 6, rewardPanelHeight + 6, 18);
-                rewardBorder.fill(colors.rewardPanelBorder);
-                stage.addChild(rewardBorder);
-
-                const rewardPanel = gfx.createGraphics();
-                rewardPanel.roundRect(rewardPanelX, rewardPanelY, rewardPanelWidth, rewardPanelHeight, 15);
-                rewardPanel.fill(colors.rewardPanelBg);
-                stage.addChild(rewardPanel);
-
-                // Coin rays
+                // Coin rays with segmented alpha fade
                 const coinRays = createLightRays(gfx, {
-                    rayCount: 18,
-                    innerRadius: 10,
-                    outerRadius: 90,
-                    innerWidth: 0.05,
-                    outerWidth: 0.10
+                    rayCount: 10,
+                    innerRadius: 15,
+                    outerRadius: 60,
+                    rayWidth: 0.3,
+                    color: colors.trophyLight,
+                    alpha: 0.7,
+                    segments: 8
                 });
                 coinRays.x = centerX;
-                coinRays.y = rewardPanelY + 55;
+                coinRays.y = coinBgY;
                 stage.addChild(coinRays);
 
                 game.on('update', () => {
-                    coinRays.rotation -= 0.003;
+                    coinRays.rotation -= 0.004;
                 });
 
-                // Reward coin
-                const rewardCoinContainer = gfx.createContainer();
-                rewardCoinContainer.x = centerX;
-                rewardCoinContainer.y = rewardPanelY + 50;
-                stage.addChild(rewardCoinContainer);
+                // Coin icon - drawn with graphics primitives
+                const coinContainer = gfx.createContainer();
+                coinContainer.x = centerX;
+                coinContainer.y = coinBgY;
+                stage.addChild(coinContainer);
 
-                const rewardCoin = gfx.createText('\u{1FA99}', { fontSize: 56 });
-                rewardCoin.anchor.set(0.5);
-                rewardCoinContainer.addChild(rewardCoin);
+                // Coin outer circle
+                const coinOuter = gfx.createGraphics();
+                coinOuter.circle(0, 0, 32);
+                coinOuter.fill(colors.coinGold);
+                coinOuter.stroke({ color: colors.trophyDark, width: 3 });
+                coinContainer.addChild(coinOuter);
 
-                setTimeout(() => {
-                    celebration.addShimmer(rewardCoinContainer, 'gold');
-                }, 500);
+                // Coin inner circle
+                const coinInner = gfx.createGraphics();
+                coinInner.circle(0, 0, 24);
+                coinInner.fill(colors.trophyLight);
+                coinContainer.addChild(coinInner);
 
-                // Reward amount
-                const rewardAmount = gfx.createText('40', {
-                    fontSize: 40,
+                // Coin center with $ symbol area
+                const coinCenter = gfx.createGraphics();
+                coinCenter.circle(0, 0, 20);
+                coinCenter.fill(colors.coinGold);
+                coinContainer.addChild(coinCenter);
+
+                // Dollar sign using text
+                const dollarSign = gfx.createText('$', {
+                    fontSize: 28,
                     fontWeight: 'bold',
-                    fill: colors.textWhite,
-                    stroke: { color: colors.textOutline, width: 5 }
+                    fill: colors.trophyDark
                 });
-                rewardAmount.anchor.set(0.5);
-                rewardAmount.x = centerX;
-                rewardAmount.y = rewardPanelY + 112;
-                stage.addChild(rewardAmount);
+                dollarSign.anchor.set(0.5);
+                dollarSign.x = 0;
+                dollarSign.y = 0;
+                coinContainer.addChild(dollarSign);
 
-                // Buttons
-                const btnY = rewardPanelY + rewardPanelHeight + 30;
-                const btnWidth = 120;
-                const btnHeight = 50;
+                // Coin shine highlight
+                const coinShine = gfx.createGraphics();
+                coinShine.circle(-10, -10, 8);
+                coinShine.fill({ color: 0xffffff, alpha: 0.4 });
+                coinContainer.addChild(coinShine);
+
+                // Coin sparkles
+                const coinSparkles = createSparkles(gfx, 6, 40, colors.coinGold);
+                coinSparkles.x = centerX;
+                coinSparkles.y = coinBgY;
+                stage.addChild(coinSparkles);
+
+                // Coin amount - createText()
+                const coinAmount = gfx.createText('+50', {
+                    fontSize: 32,
+                    fontWeight: 'bold',
+                    fill: colors.textGold,
+                    dropShadow: true,
+                    dropShadowColor: 0x000000,
+                    dropShadowDistance: 1,
+                    dropShadowBlur: 2
+                });
+                coinAmount.anchor.set(0.5);
+                coinAmount.x = centerX;
+                coinAmount.y = panelY + 145;
+                stage.addChild(coinAmount);
+
+                // ===== BUTTONS =====
+                const btnY = panelY + panelHeight + 30;
+                const btnWidth = 130;
+                const btnHeight = 55;
                 const btnGap = 20;
 
-                const continueBtn = create3DButton(gfx, centerX - btnWidth - btnGap/2, btnY, btnWidth, btnHeight, {
+                // Continue button - text inside container for proper hover
+                const continueBtnX = centerX - btnWidth - btnGap/2;
+                const continueBtn = create3DButton(gfx, 0, 0, btnWidth, btnHeight, {
                     mainColor: colors.greenBtn,
                     shadowColor: colors.greenBtnShadow,
                     highlightColor: colors.greenBtnHighlight
                 });
-                stage.addChild(continueBtn);
+                continueBtn.x = continueBtnX;
+                continueBtn.y = btnY;
 
-                const continueText = gfx.createText('Continue', {
+                const continueText = gfx.createText('CONTINUE', {
                     fontSize: 18,
                     fontWeight: 'bold',
                     fill: colors.textWhite,
                     dropShadow: true,
                     dropShadowColor: 0x000000,
                     dropShadowDistance: 1,
-                    dropShadowBlur: 1
+                    dropShadowBlur: 2
                 });
                 continueText.anchor.set(0.5);
-                continueText.x = centerX - btnWidth/2 - btnGap/2;
-                continueText.y = btnY + btnHeight/2;
-                stage.addChild(continueText);
+                continueText.x = btnWidth / 2;
+                continueText.y = btnHeight / 2;
+                continueBtn.addChild(continueText);
+                stage.addChild(continueBtn);
 
-                const adBtn = create3DButton(gfx, centerX + btnGap/2, btnY, btnWidth, btnHeight, {
-                    mainColor: colors.orangeBtn,
-                    shadowColor: colors.orangeBtnShadow,
-                    highlightColor: colors.orangeBtnHighlight
+                // Double reward button - all content inside container
+                const doubleBtnX = centerX + btnGap/2;
+                const doubleBtn = create3DButton(gfx, 0, 0, btnWidth, btnHeight, {
+                    mainColor: colors.purpleBtn,
+                    shadowColor: colors.purpleBtnShadow,
+                    highlightColor: colors.purpleBtnHighlight
                 });
-                stage.addChild(adBtn);
+                doubleBtn.x = doubleBtnX;
+                doubleBtn.y = btnY;
 
-                const videoIcon = gfx.createText('\u{1F3AC}', { fontSize: 18 });
-                videoIcon.anchor.set(0.5);
-                videoIcon.x = centerX + btnGap/2 + 20;
-                videoIcon.y = btnY + btnHeight/2;
-                stage.addChild(videoIcon);
+                // Video play icon - drawn with graphics (triangle)
+                const playIcon = gfx.createGraphics();
+                playIcon.poly([
+                    20, btnHeight/2 - 10,
+                    20, btnHeight/2 + 10,
+                    35, btnHeight/2
+                ]);
+                playIcon.fill(colors.textWhite);
+                doubleBtn.addChild(playIcon);
 
-                const adAmountText = gfx.createText('80', {
-                    fontSize: 18,
+                // x2 text
+                const x2Text = gfx.createText('x2', {
+                    fontSize: 22,
                     fontWeight: 'bold',
-                    fill: colors.textDark
+                    fill: colors.textWhite,
+                    dropShadow: true,
+                    dropShadowColor: 0x000000,
+                    dropShadowDistance: 1,
+                    dropShadowBlur: 2
                 });
-                adAmountText.anchor.set(0.5);
-                adAmountText.x = centerX + btnGap/2 + 55;
-                adAmountText.y = btnY + btnHeight/2 - 3;
-                stage.addChild(adAmountText);
+                x2Text.anchor.set(0.5);
+                x2Text.x = btnWidth - 35;
+                x2Text.y = btnHeight / 2;
+                doubleBtn.addChild(x2Text);
+                stage.addChild(doubleBtn);
 
-                const smallCoin = gfx.createText('\u{1FA99}', { fontSize: 14 });
-                smallCoin.anchor.set(0.5);
-                smallCoin.x = centerX + btnGap/2 + 82;
-                smallCoin.y = btnY + btnHeight/2 - 3;
-                stage.addChild(smallCoin);
-
-                const x2Badge = gfx.createText('x2', {
-                    fontSize: 11,
-                    fontWeight: 'bold',
-                    fill: 0xe85050
-                });
-                x2Badge.anchor.set(0.5);
-                x2Badge.x = centerX + btnGap/2 + 100;
-                x2Badge.y = btnY + btnHeight/2 + 8;
-                stage.addChild(x2Badge);
-
-                // Victory confetti
+                // ===== CELEBRATION (CelebrationManager) =====
                 setTimeout(() => {
                     celebration.victory();
                 }, 300);
 
-                // Button hover effects
-                continueBtn.mainBtn.on('pointerover', () => continueBtn.mainBtn.tint = 0xccffcc);
-                continueBtn.mainBtn.on('pointerout', () => continueBtn.mainBtn.tint = 0xffffff);
-                adBtn.mainBtn.on('pointerover', () => adBtn.mainBtn.tint = 0xffffee);
-                adBtn.mainBtn.on('pointerout', () => adBtn.mainBtn.tint = 0xffffff);
+                // Button hover effects - scale entire container (includes all children)
+                continueBtn.mainBtn.on('pointerover', () => {
+                    continueBtn.scale.set(1.05);
+                });
+                continueBtn.mainBtn.on('pointerout', () => {
+                    continueBtn.scale.set(1);
+                });
+                doubleBtn.mainBtn.on('pointerover', () => {
+                    doubleBtn.scale.set(1.05);
+                });
+                doubleBtn.mainBtn.on('pointerout', () => {
+                    doubleBtn.scale.set(1);
+                });
             }
 
             window.createVictoryScreen = createVictoryScreen;

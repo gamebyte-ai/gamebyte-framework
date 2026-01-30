@@ -356,8 +356,9 @@ export class GameStyleButton extends EventEmitter {
     const g = (color >> 8) & 0xFF;
     const b = color & 0xFF;
     // Using relative luminance formula
+    // Threshold 0.75 ensures game colors (green, blue, etc.) get drop shadows
     const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return luminance > 0.6;
+    return luminance > 0.75;
   }
 
   /** Press animation scale factor */

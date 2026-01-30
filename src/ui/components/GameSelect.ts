@@ -96,7 +96,7 @@ export class GameSelect extends EventEmitter {
   private _isOpen: boolean = false;
   private isPressed: boolean = false;
   private hoveredIndex: number = -1;
-  private globalClickHandler: ((event: any) => void) | null = null;
+  private backdrop: IGraphics | null = null;
 
   constructor(config: GameSelectConfig = {}) {
     super();
@@ -394,48 +394,39 @@ export class GameSelect extends EventEmitter {
     return current;
   }
 
-  /** Check if a display object is a descendant of this component */
-  private isDescendant(target: any): boolean {
-    let current = target;
-    while (current) {
-      if (current === this.container) return true;
-      current = current.parent;
-    }
-    return false;
-  }
-
-  /** Add global click listener to close dropdown when clicking outside */
-  private addGlobalClickListener(): void {
-    if (this.globalClickHandler) return;
+  /** Create invisible backdrop to catch outside clicks */
+  private createBackdrop(): void {
+    if (this.backdrop) return;
 
     const stage = this.getStage();
     if (!stage) return;
 
-    this.globalClickHandler = (event: any) => {
-      // Check if click was outside this component
-      if (!this.isDescendant(event.target)) {
-        this.close();
-      }
-    };
+    const factory = graphics();
+    this.backdrop = factory.createGraphics();
 
-    // Use setTimeout to avoid closing immediately from the same click that opened
-    setTimeout(() => {
-      if (stage.eventMode === 'none') {
-        stage.eventMode = 'static';
-      }
-      stage.on('pointerdown', this.globalClickHandler);
-    }, 0);
+    // Large invisible rect covering entire stage area
+    this.backdrop.rect(-5000, -5000, 10000, 10000);
+    this.backdrop.fill({ color: 0x000000, alpha: 0.001 }); // Nearly invisible but interactive
+
+    this.backdrop.eventMode = 'static';
+    this.backdrop.cursor = 'default';
+
+    this.backdrop.on('pointerdown', () => {
+      this.close();
+    });
+
+    // Add backdrop at the beginning of stage (behind everything)
+    // Then bring our container to front
+    stage.addChildAt(this.backdrop, 0);
+    this.bringToFront();
   }
 
-  /** Remove global click listener */
-  private removeGlobalClickListener(): void {
-    if (!this.globalClickHandler) return;
+  /** Remove backdrop */
+  private removeBackdrop(): void {
+    if (!this.backdrop) return;
 
-    const stage = this.getStage();
-    if (stage) {
-      stage.off('pointerdown', this.globalClickHandler);
-    }
-    this.globalClickHandler = null;
+    this.backdrop.destroy();
+    this.backdrop = null;
   }
 
   private selectOption(option: GameSelectOption): void {
@@ -451,8 +442,7 @@ export class GameSelect extends EventEmitter {
     if (!this._isOpen) {
       this._isOpen = true;
       this.dropdownContainer.visible = true;
-      this.bringToFront();
-      this.addGlobalClickListener();
+      this.createBackdrop();
       this.emit('open');
     }
   }
@@ -462,7 +452,7 @@ export class GameSelect extends EventEmitter {
     if (this._isOpen) {
       this._isOpen = false;
       this.dropdownContainer.visible = false;
-      this.removeGlobalClickListener();
+      this.removeBackdrop();
       this.emit('close');
     }
   }
@@ -528,7 +518,7 @@ export class GameSelect extends EventEmitter {
 
   /** Destroy the component */
   public destroy(): void {
-    this.removeGlobalClickListener();
+    this.removeBackdrop();
     this.dropdownItems = [];
     this.container.destroy({ children: true });
     this.removeAllListeners();

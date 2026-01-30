@@ -1,39 +1,7 @@
 import { EventEmitter } from 'eventemitter3';
 import { graphics } from '../../graphics/GraphicsEngine';
-import { IContainer, IGraphics, ISprite } from '../../contracts/Graphics';
-import { lightenColor, darkenColor } from '../themes/GameStyleUITheme';
-
-/**
- * Creates a horizontal gradient texture for toggle track
- * @internal
- */
-function createTrackGradient(
-  width: number,
-  height: number,
-  colorLeft: number,
-  colorRight: number,
-  borderRadius: number
-): HTMLCanvasElement {
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext('2d')!;
-
-  const leftHex = '#' + colorLeft.toString(16).padStart(6, '0');
-  const rightHex = '#' + colorRight.toString(16).padStart(6, '0');
-
-  // Vertical gradient (top lighter, bottom darker)
-  const gradient = ctx.createLinearGradient(0, 0, 0, height);
-  gradient.addColorStop(0, leftHex);
-  gradient.addColorStop(1, rightHex);
-
-  ctx.beginPath();
-  ctx.roundRect(0, 0, width, height, borderRadius);
-  ctx.fillStyle = gradient;
-  ctx.fill();
-
-  return canvas;
-}
+import { IContainer, IGraphics } from '../../contracts/Graphics';
+import { Gradients } from '../../graphics/GradientFactory';
 
 /**
  * Toggle color scheme - enhanced for game style
@@ -87,7 +55,6 @@ export class GameToggle extends EventEmitter {
   private borderGraphics: IGraphics;
   private trackGraphics: IGraphics;
   private thumbGraphics: IGraphics;
-  private trackGradientSprite?: ISprite;
 
   private config: Required<GameToggleConfig>;
   private _value: boolean;
@@ -157,12 +124,6 @@ export class GameToggle extends EventEmitter {
     this.trackGraphics.clear();
     this.thumbGraphics.clear();
 
-    // Remove old gradient sprite
-    if (this.trackGradientSprite) {
-      this.container.removeChild(this.trackGradientSprite);
-      this.trackGradientSprite = undefined;
-    }
-
     const alpha = disabled ? 0.5 : 1;
     const thumbScale = this.isPressed ? 0.9 : 1.0;
 
@@ -178,35 +139,24 @@ export class GameToggle extends EventEmitter {
     this.borderGraphics.roundRect(0, 0, width, height, radius);
     this.borderGraphics.fill({ color: colorScheme.border, alpha });
 
-    // Layer 3: Track fill with gradient
+    // Layer 3: Track fill with native FillGradient
     const trackX = borderWidth;
     const trackY = borderWidth;
     const trackWidth = width - borderWidth * 2;
     const trackHeight = height - borderWidth * 2;
     const trackRadius = radius - borderWidth;
 
-    // Create gradient sprite for track
-    const gradientCanvas = createTrackGradient(
-      trackWidth,
-      trackHeight,
-      trackTopColor,
-      trackBottomColor,
-      trackRadius
-    );
-    const gradientTexture = graphics().createTexture(gradientCanvas);
-    this.trackGradientSprite = graphics().createSprite(gradientTexture);
-    this.trackGradientSprite.x = trackX;
-    this.trackGradientSprite.y = trackY;
-    if (disabled) this.trackGradientSprite.alpha = alpha;
+    // Use native FillGradient for track background
+    const trackGradient = Gradients.linear.vertical(trackTopColor, trackBottomColor);
+    this.trackGraphics.roundRect(trackX, trackY, trackWidth, trackHeight, trackRadius);
+    this.trackGraphics.fill(trackGradient as any);
+    if (disabled) this.trackGraphics.alpha = alpha;
 
-    // Insert gradient sprite after trackGraphics
-    const trackIndex = this.container.getChildIndex(this.trackGraphics);
-    this.container.addChild(this.trackGradientSprite);
-    this.container.setChildIndex(this.trackGradientSprite, trackIndex + 1);
-
-    // Inner shadow on track (subtle)
-    this.trackGraphics.roundRect(trackX + 2, trackY + 1, trackWidth - 4, 4, 2);
-    this.trackGraphics.fill({ color: 0x000000, alpha: 0.15 * alpha });
+    // Inner shadow on track (subtle) - draw as separate graphics on top
+    const innerShadow = graphics().createGraphics();
+    innerShadow.roundRect(trackX + 2, trackY + 1, trackWidth - 4, 4, 2);
+    innerShadow.fill({ color: 0x000000, alpha: 0.15 * alpha });
+    this.container.addChild(innerShadow);
 
     // Layer 4: Thumb
     const thumbBaseRadius = (height - 10) / 2;

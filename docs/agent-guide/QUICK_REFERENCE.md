@@ -77,6 +77,22 @@ inputManager.on('keydown', (event) => { /* ... */ });
 inputManager.on('swipe', (direction) => { /* ... */ });
 ```
 
+### Reactive State
+
+```typescript
+import { createState, computed } from 'gamebyte-framework';
+
+const state = createState({ score: 0, health: 100 });
+state.score += 100;                                    // Direct update
+state.on('score', (newVal, oldVal) => { /* ... */ }); // Subscribe
+state.batch(s => { s.score++; s.health--; });         // Batch updates
+state.reset();                                         // Reset to initial
+const snapshot = state.value;                          // Plain object
+
+const total = computed(() => state.score * 2);         // Computed value
+console.log(total.value);                              // Access computed
+```
+
 ---
 
 ## Pre-built Components
@@ -178,4 +194,5 @@ grep -r "CelebrationManager\|Confetti\|Shimmer\|StarBurst" docs/
 
 ---
 
-*Estimated reading: 2 minutes*
+*Last updated: 2026-01-30*
+*Estimated reading: 2-3 minutes*

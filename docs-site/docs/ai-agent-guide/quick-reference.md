@@ -52,6 +52,26 @@ input.touch.on('tap', (e) => {});
 input.keyboard.isPressed('KeyW');
 ```
 
+## Layout (Flexbox)
+
+```typescript
+// Enable flexbox on container
+container.layout = {
+  flexDirection: 'row',
+  justifyContent: 'center',
+  alignItems: 'center',
+  gap: 20
+};
+
+// Use presets
+container.layout = LayoutPresets.center;
+hud.layout = GameLayoutPresets.gameScreen;
+
+// Create flex row/column
+createFlexRow({ gap: 20, justify: 'space-between' });
+createFlexColumn({ gap: 10, align: 'stretch' });
+```
+
 ## Physics
 
 ```typescript
@@ -85,3 +105,18 @@ Assets.get('tex');
 | `audio` | AudioManager |
 | `assets` | AssetManager |
 | `physics` | PhysicsManager |
+| `layout` | LayoutManager |
+
+## Layout Presets
+
+| Preset | Use Case |
+|--------|----------|
+| `LayoutPresets.center` | Center content |
+| `LayoutPresets.row` | Horizontal items |
+| `LayoutPresets.column` | Vertical stack |
+| `LayoutPresets.grid` | Wrapping grid |
+| `LayoutPresets.topBar` | Top HUD bar |
+| `LayoutPresets.bottomBar` | Bottom nav |
+| `GameLayoutPresets.gameScreen` | Full game HUD |
+| `GameLayoutPresets.touchButton` | 44pt min touch |
+| `GameLayoutPresets.levelButton` | Level select btn |

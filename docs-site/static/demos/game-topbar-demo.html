@@ -25,7 +25,7 @@
         // - graphics() abstraction instead of direct PIXI usage
         // =====================================================
 
-        const { createGame, GameTopBar, graphics, loadFrameworkFont } = GameByteFramework;
+        const { createGame, GameTopBar, graphics, loadFrameworkFont, Gradients } = GameByteFramework;
 
         const CONFIG = { width: 400, height: 200 };
 
@@ -77,13 +77,13 @@
         // ===== THEME COLOR PALETTES =====
         const THEME_COLORS = {
             dark: {
-                gradientTop: '#4DA6FF',
-                gradientBottom: '#7DD3FF',
+                gradientTop: 0x4DA6FF,
+                gradientBottom: 0x7DD3FF,
                 textColor: 0xffffff
             },
             light: {
-                gradientTop: '#87CEEB',
-                gradientBottom: '#B0E0E6',
+                gradientTop: 0x87CEEB,
+                gradientBottom: 0xB0E0E6,
                 textColor: 0x333333
             }
         };
@@ -110,20 +110,11 @@
                 stage.removeChildAt(0);
             }
 
-            // ===== SKY GRADIENT BACKGROUND =====
+            // ===== SKY GRADIENT BACKGROUND (Native FillGradient) =====
             const bg = gfx.createGraphics();
-            const gradCanvas = document.createElement('canvas');
-            gradCanvas.width = CONFIG.width;
-            gradCanvas.height = CONFIG.height;
-            const ctx = gradCanvas.getContext('2d');
-            const gradient = ctx.createLinearGradient(0, 0, 0, CONFIG.height);
-            gradient.addColorStop(0, colors.gradientTop);
-            gradient.addColorStop(1, colors.gradientBottom);
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
-            bg.texture(gfx.createTexture(gradCanvas));
+            const skyGradient = Gradients.linear.vertical(colors.gradientTop, colors.gradientBottom);
             bg.rect(0, 0, CONFIG.width, CONFIG.height);
-            bg.fill();
+            bg.fill(skyGradient);
             stage.addChild(bg);
 
             // ===== TOPBAR WITH ALL RESOURCES =====

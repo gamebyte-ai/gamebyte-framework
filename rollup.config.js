@@ -24,6 +24,7 @@ const mainConfig = {
   ],
   external: [
     'pixi.js',
+    '@pixi/layout',
     'three',
     'matter-js',
     'cannon-es',
@@ -53,7 +54,7 @@ const pixi2DConfig = {
     sourcemap: true,
     exports: 'named'
   },
-  external: ['pixi.js', /^three\/examples\/jsm\//],
+  external: ['pixi.js', '@pixi/layout', /^three\/examples\/jsm\//],
   plugins: [
     nodeResolve({
       preferBuiltins: false,

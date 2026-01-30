@@ -369,7 +369,8 @@ export class MergeCell extends EventEmitter<MergeCellEvents> {
    * Setup cell interaction
    */
   private setupInteraction(): void {
-    this.container.interactive = true;
+    this.container.eventMode = 'static';
+    this.container.cursor = 'pointer';
 
     this.container.on('pointerover', () => {
       if (this._isDestroyed) return;

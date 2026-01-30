@@ -109,6 +109,27 @@ input.touch.on('tap', (e) => handleTap(e.x, e.y));
 if (input.keyboard.isPressed('KeyW')) moveForward();
 ```
 
+## Layout (Flexbox)
+
+```typescript
+import { LayoutPresets, GameLayoutPresets, createFlexRow } from '@gamebyte/framework';
+
+// Enable flexbox on container
+container.layout = {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 20
+};
+
+// Use presets
+topBar.layout = LayoutPresets.topBar;
+screen.layout = GameLayoutPresets.gameScreen;
+
+// Helper functions
+row.layout = createFlexRow({ gap: 16, justify: 'space-between' });
+```
+
 ## Physics
 
 ```typescript

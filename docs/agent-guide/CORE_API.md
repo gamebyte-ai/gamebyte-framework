@@ -10,9 +10,10 @@
 
 1. [Initialization Patterns](#initialization-patterns)
 2. [Core Services](#core-services)
-3. [Common Patterns](#common-patterns)
-4. [Mobile-First Defaults](#mobile-first-defaults)
-5. [Anti-Patterns](#anti-patterns)
+3. [Reactive State](#reactive-state)
+4. [Common Patterns](#common-patterns)
+5. [Mobile-First Defaults](#mobile-first-defaults)
+6. [Anti-Patterns](#anti-patterns)
 
 ---
 
@@ -153,6 +154,94 @@ await audioManager.playMusic('bgm', { loop: true, volume: 0.5 });
 const inputManager = game.make('input');
 inputManager.on('pointerdown', (event) => { /* ... */ });
 ```
+
+---
+
+## Reactive State
+
+Vue/Svelte-inspired reactive state management for automatic UI updates.
+
+### Basic Usage
+
+```typescript
+import { createState } from 'gamebyte-framework';
+
+// Create reactive state
+const gameState = createState({
+  score: 0,
+  health: 100,
+  level: 1
+});
+
+// Direct property access/modification
+gameState.score += 100;
+console.log(gameState.score); // 100
+
+// Subscribe to specific property changes
+const unsubscribe = gameState.on('score', (newVal, oldVal, key) => {
+  updateScoreDisplay(newVal);
+});
+
+// Subscribe to any change
+gameState.onChange((state) => {
+  console.log('State changed:', state);
+});
+
+// Later: unsubscribe
+unsubscribe();
+```
+
+### Batch Updates
+
+```typescript
+// Multiple updates with single notification
+gameState.batch(state => {
+  state.score += 50;
+  state.health -= 10;
+  state.level++;
+});
+// Listeners notified once at end, not 3 times
+```
+
+### Reset State
+
+```typescript
+// Reset to initial values
+gameState.reset();
+// score: 0, health: 100, level: 1
+```
+
+### Computed Values
+
+```typescript
+import { createState, computed } from 'gamebyte-framework';
+
+const state = createState({ base: 10, bonus: 5 });
+const total = computed(() => state.base + state.bonus);
+
+console.log(total.value); // 15
+state.bonus = 10;
+console.log(total.value); // 20 (auto-updates)
+```
+
+### Helper Functions
+
+```typescript
+import { isReactive, resolveValue } from 'gamebyte-framework';
+
+// Check if value is a reactive getter
+const maybeReactive = () => gameState.score;
+if (isReactive(maybeReactive)) {
+  console.log('Is reactive');
+}
+
+// Resolve potentially reactive values
+const value = resolveValue(maybeReactive); // Returns actual value
+```
+
+**When to use:** Game state (score, health, inventory), UI state, settings
+
+---
 
 ## Common Patterns
 
@@ -477,12 +566,12 @@ const sprite = PIXI.Sprite.from(assetManager.get('player').data);
 ### ❌ DON'T: Build UI from scratch
 
 ```typescript
-// ❌ Bad - 670 lines of custom UI code
+// ❌ Bad - manual UI code instead of using components
 const button = new PIXI.Container();
 const bg = new PIXI.Graphics();
-bg.beginFill(0x4CAF50);
-bg.drawRoundedRect(0, 0, 200, 60, 8);
-// ... 665 more lines
+bg.roundRect(0, 0, 200, 60, 8);
+bg.fill({ color: 0x4CAF50 });
+// ... many more lines for hover, click, text, etc.
 ```
 
 ```typescript
@@ -553,6 +642,6 @@ class GameScene extends BaseScene {
 
 ---
 
-*Last updated: 2026-01-15*
+*Last updated: 2026-01-30*
 *Target audience: AI agents, autonomous game builders*
-*Estimated reading: 5-7 minutes*
+*Estimated reading: 6-8 minutes*

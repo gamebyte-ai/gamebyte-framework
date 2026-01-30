@@ -5,6 +5,7 @@
  * - ConfettiSystem: Particle-based confetti effects
  * - ShineEffect: Shimmer and sparkle effects for valuable items
  * - StarBurstEffect: Continuous sparkle particles around valuable items
+ * - SunburstEffect: Rotating ray/sunburst background effect
  * - CelebrationManager: Orchestrates effects for common celebration scenarios
  */
 
@@ -19,3 +20,6 @@ export type { StarBurstConfig, StarBurstInstance } from './StarBurstEffect.js';
 
 export { CelebrationManager, CelebrationPresets } from './CelebrationManager.js';
 export type { CelebrationConfig, ICelebrationAudioManager } from './CelebrationManager.js';
+
+export { SunburstEffect } from './SunburstEffect.js';
+export type { SunburstConfig } from './SunburstEffect.js';

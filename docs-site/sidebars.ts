@@ -34,6 +34,16 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
+      label: 'Layout System',
+      items: [
+        'layout/overview',
+        'layout/presets',
+        'layout/layout-manager',
+        'layout/examples',
+      ],
+    },
+    {
+      type: 'category',
       label: 'Scenes',
       items: [
         'scenes/scene-management',

@@ -287,11 +287,12 @@ const cube = new THREE.Mesh(
 );
 scene.add(cube);
 
-// Pixi.js - sadece 2D UI
+// Pixi.js v8 - sadece 2D UI
 const button = new PIXI.Graphics();
-button.beginFill(0xFFD700);
-button.drawRoundedRect(0, 0, 200, 80, 10);
-button.interactive = true;
+button.roundRect(0, 0, 200, 80, 10);
+button.fill(0xFFD700);
+button.eventMode = 'static';
+button.cursor = 'pointer';
 button.on('pointerdown', () => {
     console.log('Clicked!'); // Built-in event system
 });

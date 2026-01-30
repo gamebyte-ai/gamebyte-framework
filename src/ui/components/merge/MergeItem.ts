@@ -357,7 +357,7 @@ export class MergeItem extends EventEmitter<MergeItemEvents> {
    * Setup drag interaction
    */
   private setupDragInteraction(): void {
-    this.container.interactive = true;
+    this.container.eventMode = 'static';
     this.container.cursor = 'pointer';
 
     // Pointer down

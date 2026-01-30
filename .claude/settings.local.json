@@ -61,7 +61,13 @@
       "Bash(unalias:*)",
       "Bash(gh repo view:*)",
       "mcp__plugin_episodic-memory_episodic-memory__search",
-      "mcp__plugin_episodic-memory_episodic-memory__read"
+      "mcp__plugin_episodic-memory_episodic-memory__read",
+      "WebFetch(domain:pixijs.com)",
+      "WebFetch(domain:layout.pixijs.io)",
+      "WebFetch(domain:www.npmjs.com)",
+      "WebFetch(domain:cdn.jsdelivr.net)",
+      "WebFetch(domain:pixijs.io)",
+      "WebFetch(domain:)"
     ],
     "deny": [],
     "ask": []

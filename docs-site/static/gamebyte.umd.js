@@ -43202,8 +43202,9 @@
 	        const g = (color >> 8) & 0xFF;
 	        const b = color & 0xFF;
 	        // Using relative luminance formula
+	        // Threshold 0.75 ensures game colors (green, blue, etc.) get drop shadows
 	        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-	        return luminance > 0.6;
+	        return luminance > 0.75;
 	    }
 	    /**
 	     * Get scale offset for press animation (centers the scale transform)
@@ -53716,7 +53717,7 @@
 	        this._isOpen = false;
 	        this.isPressed = false;
 	        this.hoveredIndex = -1;
-	        this.globalClickHandler = null;
+	        this.backdrop = null;
 	        loadFrameworkFont();
 	        this.config = {
 	            width: config.width || 200,
@@ -53963,46 +53964,34 @@
 	        }
 	        return current;
 	    }
-	    /** Check if a display object is a descendant of this component */
-	    isDescendant(target) {
-	        let current = target;
-	        while (current) {
-	            if (current === this.container)
-	                return true;
-	            current = current.parent;
-	        }
-	        return false;
-	    }
-	    /** Add global click listener to close dropdown when clicking outside */
-	    addGlobalClickListener() {
-	        if (this.globalClickHandler)
+	    /** Create invisible backdrop to catch outside clicks */
+	    createBackdrop() {
+	        if (this.backdrop)
 	            return;
 	        const stage = this.getStage();
 	        if (!stage)
 	            return;
-	        this.globalClickHandler = (event) => {
-	            // Check if click was outside this component
-	            if (!this.isDescendant(event.target)) {
-	                this.close();
-	            }
-	        };
-	        // Use setTimeout to avoid closing immediately from the same click that opened
-	        setTimeout(() => {
-	            if (stage.eventMode === 'none') {
-	                stage.eventMode = 'static';
-	            }
-	            stage.on('pointerdown', this.globalClickHandler);
-	        }, 0);
+	        const factory = graphics();
+	        this.backdrop = factory.createGraphics();
+	        // Large invisible rect covering entire stage area
+	        this.backdrop.rect(-5e3, -5e3, 10000, 10000);
+	        this.backdrop.fill({ color: 0x000000, alpha: 0.001 }); // Nearly invisible but interactive
+	        this.backdrop.eventMode = 'static';
+	        this.backdrop.cursor = 'default';
+	        this.backdrop.on('pointerdown', () => {
+	            this.close();
+	        });
+	        // Add backdrop at the beginning of stage (behind everything)
+	        // Then bring our container to front
+	        stage.addChildAt(this.backdrop, 0);
+	        this.bringToFront();
 	    }
-	    /** Remove global click listener */
-	    removeGlobalClickListener() {
-	        if (!this.globalClickHandler)
+	    /** Remove backdrop */
+	    removeBackdrop() {
+	        if (!this.backdrop)
 	            return;
-	        const stage = this.getStage();
-	        if (stage) {
-	            stage.off('pointerdown', this.globalClickHandler);
-	        }
-	        this.globalClickHandler = null;
+	        this.backdrop.destroy();
+	        this.backdrop = null;
 	    }
 	    selectOption(option) {
 	        this._selectedValue = option.value;
@@ -54016,8 +54005,7 @@
 	        if (!this._isOpen) {
 	            this._isOpen = true;
 	            this.dropdownContainer.visible = true;
-	            this.bringToFront();
-	            this.addGlobalClickListener();
+	            this.createBackdrop();
 	            this.emit('open');
 	        }
 	    }
@@ -54026,7 +54014,7 @@
 	        if (this._isOpen) {
 	            this._isOpen = false;
 	            this.dropdownContainer.visible = false;
-	            this.removeGlobalClickListener();
+	            this.removeBackdrop();
 	            this.emit('close');
 	        }
 	    }
@@ -54082,7 +54070,7 @@
 	    }
 	    /** Destroy the component */
 	    destroy() {
-	        this.removeGlobalClickListener();
+	        this.removeBackdrop();
 	        this.dropdownItems = [];
 	        this.container.destroy({ children: true });
 	        this.removeAllListeners();

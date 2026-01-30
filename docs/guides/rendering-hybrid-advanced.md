@@ -395,9 +395,10 @@ Always handle interactions on the **Pixi.js layer** (top layer):
 // ❌ Wrong: Three.js layer has pointer-events: none
 threeCanvas.addEventListener('click', handleClick);
 
-// ✅ Correct: Pixi.js layer handles all interactions
+// ✅ Correct: Pixi.js v8 layer handles all interactions
 const button = new PIXI.Sprite(texture);
-button.interactive = true;
+button.eventMode = 'static';
+button.cursor = 'pointer';
 button.on('pointerdown', handleClick);
 ```
 

@@ -470,9 +470,8 @@ class MyCustomMenu extends ArcheroMenu {
   private addCustomBadge(buttonData: ButtonData, index: number): void {
     // Add notification badge
     const badge = graphics().createGraphics();
-    badge.beginFill(0xFF0000);
-    badge.drawCircle(0, 0, 20);
-    badge.endFill();
+    badge.circle(0, 0, 20);
+    badge.fill(0xFF0000);
 
     buttonData.container.addChild(badge);
   }
@@ -522,9 +521,8 @@ class MenuWithBadges extends ArcheroMenu {
 
     // Badge circle
     const circle = graphics().createGraphics();
-    circle.beginFill(0xFF0000);
-    circle.drawCircle(0, 0, 25);
-    circle.endFill();
+    circle.circle(0, 0, 25);
+    circle.fill(0xFF0000);
 
     // Badge text
     const text = graphics().createText(count.toString(), {

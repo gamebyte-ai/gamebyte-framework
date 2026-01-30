@@ -24,7 +24,7 @@
         // - graphics() abstraction instead of direct PIXI usage
         // =====================================================
 
-        const { createGame, graphics, loadFrameworkFont } = GameByteFramework;
+        const { createGame, graphics, loadFrameworkFont, Gradients } = GameByteFramework;
 
         const CONFIG = { width: 400, height: 330 };
 
@@ -86,8 +86,8 @@
                 glassBorderAlpha: 0.3,
                 borderedBg: 0x1e293b,
                 borderedStroke: 0x6366f1,
-                gradientTop: '#818cf8',
-                gradientBottom: '#4f46e5'
+                gradientTop: 0x818cf8,
+                gradientBottom: 0x4f46e5
             },
             light: {
                 background: 0xe8eef5,
@@ -100,8 +100,8 @@
                 glassBorderAlpha: 0.2,
                 borderedBg: 0xffffff,
                 borderedStroke: 0x818cf8,
-                gradientTop: '#a5b4fc',
-                gradientBottom: '#6366f1'
+                gradientTop: 0xa5b4fc,
+                gradientBottom: 0x6366f1
             }
         };
 
@@ -175,22 +175,11 @@
             glassLabel.y = 95;
             stage.addChild(glassLabel);
 
-            // ===== GRADIENT HEADER PANEL =====
-            const gradientCanvas = document.createElement('canvas');
-            gradientCanvas.width = 360;
-            gradientCanvas.height = 60;
-            const ctx = gradientCanvas.getContext('2d');
-            const gradient = ctx.createLinearGradient(0, 0, 0, 60);
-            gradient.addColorStop(0, colors.gradientTop);
-            gradient.addColorStop(1, colors.gradientBottom);
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.roundRect(0, 0, 360, 60, 12);
-            ctx.fill();
-
-            const gradPanel = gfx.createSprite(gfx.createTexture(gradientCanvas));
-            gradPanel.x = 20;
-            gradPanel.y = 175;
+            // ===== GRADIENT HEADER PANEL (Native FillGradient) =====
+            const gradPanel = gfx.createGraphics();
+            const gradient = Gradients.linear.vertical(colors.gradientTop, colors.gradientBottom);
+            gradPanel.roundRect(20, 175, 360, 60, 12);
+            gradPanel.fill(gradient);
             stage.addChild(gradPanel);
 
             const gradLabel = gfx.createText('Gradient Header', {

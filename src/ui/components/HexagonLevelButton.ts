@@ -1,7 +1,8 @@
 import { EventEmitter } from 'eventemitter3';
 import { IContainer, IGraphics, IText } from '../../contracts/Graphics';
 import { graphics } from '../../graphics/GraphicsEngine';
-import { GameStyleColors, numberToHex, darkenColor } from '../themes/GameStyleUITheme';
+import { Gradients } from '../../graphics/GradientFactory';
+import { GameStyleColors, darkenColor } from '../themes/GameStyleUITheme';
 
 /**
  * Level button state
@@ -334,37 +335,13 @@ export class HexagonLevelButton extends EventEmitter {
     const fillTop = colorScheme.fill;
     const fillBottom = colorScheme.fillBottom || darkenColor(colorScheme.fill, 0.15);
 
-    // Draw hexagon shape
+    // Draw hexagon shape with native FillGradient
     this.drawHexagon(this.fillGraphics, 0, pressOffset, fillSize);
 
-    // Create gradient texture for fill
-    const textureSize = Math.ceil(fillSize);
-    const gradientTexture = graphics().createCanvasTexture(
-      textureSize,
-      textureSize,
-      (ctx: CanvasRenderingContext2D) => {
-        const gradient = ctx.createLinearGradient(0, 0, 0, textureSize);
-        gradient.addColorStop(0, numberToHex(fillTop));
-        gradient.addColorStop(0.35, numberToHex(fillTop));
-        gradient.addColorStop(1, numberToHex(fillBottom));
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, textureSize, textureSize);
-      }
-    );
-
-    // Apply texture fill with matrix transform to center it
-    try {
-      const matrix = {
-        a: 1, b: 0, c: 0, d: 1,
-        tx: -fillSize / 2,
-        ty: pressOffset - fillSize / 2
-      };
-      this.fillGraphics.fill({ texture: gradientTexture as any, matrix: matrix as any });
-    } catch (_e) {
-      // Fallback to solid color if texture fill not supported
-      // This can happen with older browsers or certain renderer configurations
-      this.fillGraphics.fill({ color: colorScheme.fill });
-    }
+    // Create native FillGradient (Pixi.js v8)
+    // textureSpace: 'local' ensures gradient fits the hexagon shape bounds
+    const fillGradient = Gradients.linear.verticalSoft(fillTop, fillBottom, 0.35);
+    this.fillGraphics.fill(fillGradient as any);
 
     // 3.5 Inner bevel effect for 3D look
     if (colorScheme.outerBorder) {

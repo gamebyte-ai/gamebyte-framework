@@ -19,6 +19,7 @@ A comprehensive JavaScript game framework that unifies 2D and 3D game developmen
 ## ✨ Features
 
 - 🎨 **Modern UI System** - Beautiful components with gradients, glow, shadows, animations
+- 🔄 **Reactive State** - Vue/Svelte-inspired state management with auto-updates
 - 🚀 **Laravel Architecture** - Service providers, dependency injection, facades
 - 🎬 **Scene Management** - Smooth transitions & lifecycle management
 - ⚡ **Physics Integration** - Matter.js (2D) & Cannon.js (3D)
@@ -257,6 +258,56 @@ Audio.playMusic('background');
 
 ---
 
+## 🔄 Reactive State Management
+
+Vue/Svelte-inspired reactive state system for automatic UI updates.
+
+```typescript
+import { createState } from 'gamebyte-framework';
+
+// Create reactive game state
+const gameState = createState({
+  score: 0,
+  health: 100,
+  level: 1
+});
+
+// Direct property access - UI auto-updates
+gameState.score += 100;
+
+// Subscribe to changes
+const unsubscribe = gameState.on('score', (newVal, oldVal) => {
+  console.log(`Score: ${oldVal} → ${newVal}`);
+});
+
+// Batch updates (single notification)
+gameState.batch(state => {
+  state.score += 50;
+  state.health -= 10;
+});
+
+// Reset to initial values
+gameState.reset();
+
+// Get plain object snapshot
+const snapshot = gameState.value;
+```
+
+### Computed Values
+
+```typescript
+import { createState, computed } from 'gamebyte-framework';
+
+const state = createState({ base: 10, bonus: 5 });
+const total = computed(() => state.base + state.bonus);
+
+console.log(total.value); // 15
+state.bonus = 10;
+console.log(total.value); // 20
+```
+
+---
+
 ## 🎮 Core Systems
 
 ### Physics
@@ -407,24 +458,32 @@ npx http-server -p 8080
 
 ## 🎯 Roadmap
 
-### ✅ v1.0 - Core Framework (Current)
+### ✅ v1.0 - Core Framework (Complete)
 - ✅ Service container & providers
 - ✅ 2D rendering (Pixi.js v8)
 - ✅ 3D rendering (Three.js)
 - ✅ Scene management
-- ✅ Modern UI components
+- ✅ Modern UI components (15+ components)
 - ✅ Physics (Matter.js, Cannon.js)
 - ✅ Audio system
 - ✅ Input handling
 - ✅ Asset management
 
-### 🚧 v1.1 - Enhanced UI (In Progress)
-- Enhanced animations
-- More components (Slider, Toggle, Modal)
-- Visual effects system
+### ✅ v1.1 - Enhanced UI & State (Complete)
+- ✅ Reactive state management (Vue/Svelte-inspired)
+- ✅ Game-specific components (HexagonButton, MergeGrid, TopBar)
+- ✅ Celebration effects (Confetti, Shimmer, Starburst)
+- ✅ GameStyle buttons (Candy Crush/Brawl Stars style)
+- ✅ Modal panels & bottom sheets
+
+### 🚧 v1.2 - Game Boilerplates (In Progress)
+- Hyper-casual game templates
+- Puzzle game mechanics
+- Idle/clicker systems
+- Match-3 mechanics
 
 ### 📋 v2.0 - Tools & Services (Planned)
-- Level editor
+- Visual level editor
 - Analytics integration
 - Cloud save system
 - A/B testing framework

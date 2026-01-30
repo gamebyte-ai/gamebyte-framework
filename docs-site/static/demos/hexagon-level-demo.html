@@ -30,7 +30,8 @@
             HexagonLevelButton,
             GameStyleColors,
             graphics,
-            loadFrameworkFont
+            loadFrameworkFont,
+            Gradients
         } = GameByteFramework;
 
         const CONFIG = { width: 400, height: 450 };
@@ -83,13 +84,13 @@
         // ===== THEME COLOR PALETTES =====
         const THEME_COLORS = {
             dark: {
-                gradientTop: '#4DA6FF',
-                gradientBottom: '#7DD3FF',
+                gradientTop: 0x4DA6FF,
+                gradientBottom: 0x7DD3FF,
                 textWhite: 0xffffff
             },
             light: {
-                gradientTop: '#87CEEB',
-                gradientBottom: '#B0E0E6',
+                gradientTop: 0x87CEEB,
+                gradientBottom: 0xB0E0E6,
                 textWhite: 0x333333
             }
         };
@@ -135,18 +136,11 @@
                     stage.removeChildAt(0);
                 }
 
-                // Sky gradient background using framework abstraction
+                // Sky gradient background using native FillGradient
                 const bg = gfx.createGraphics();
-                const gradTexture = gfx.createCanvasTexture(CONFIG.width, CONFIG.height, (ctx) => {
-                    const gradient = ctx.createLinearGradient(0, 0, 0, CONFIG.height);
-                    gradient.addColorStop(0, colors.gradientTop);
-                    gradient.addColorStop(1, colors.gradientBottom);
-                    ctx.fillStyle = gradient;
-                    ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
-                });
-                bg.texture(gradTexture);
+                const skyGradient = Gradients.linear.vertical(colors.gradientTop, colors.gradientBottom);
                 bg.rect(0, 0, CONFIG.width, CONFIG.height);
-                bg.fill();
+                bg.fill(skyGradient);
                 stage.addChild(bg);
 
                 // Title

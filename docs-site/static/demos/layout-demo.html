@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte Layout System Demo - @pixi/layout</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            font-family: system-ui, sans-serif;
+            color: #fff;
+            padding: 20px;
+        }
+        h1 { text-align: center; margin-bottom: 10px; color: #4ecca3; }
+        .subtitle { text-align: center; color: #a0a0a0; margin-bottom: 20px; font-size: 14px; }
+        .note {
+            max-width: 800px;
+            margin: 0 auto 20px;
+            padding: 12px 16px;
+            background: rgba(78, 204, 163, 0.1);
+            border: 1px solid rgba(78, 204, 163, 0.3);
+            border-radius: 8px;
+            font-size: 13px;
+            color: #a0aec0;
+        }
+        .note strong { color: #4ecca3; }
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .demo-item {
+            background: #2d3748;
+            border-radius: 12px;
+            padding: 15px;
+        }
+        .demo-item h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+            color: #ffd700;
+        }
+        .demo-item p {
+            font-size: 12px;
+            color: #a0aec0;
+            margin-bottom: 10px;
+        }
+        canvas {
+            display: block;
+            background: #1a202c;
+            border-radius: 8px;
+            width: 100%;
+        }
+        .code-hint {
+            font-family: monospace;
+            font-size: 11px;
+            background: #1a202c;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 10px;
+            color: #68d391;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #a0aec0;
+        }
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #ff6b6b;
+        }
+    </style>
+</head>
+<body>
+    <h1>GameByte Layout System Demo</h1>
+    <p class="subtitle">Powered by @pixi/layout (Yoga Flexbox Engine)</p>
+
+    <div class="note">
+        <strong>Note:</strong> This demo uses ESM modules because @pixi/layout requires them.
+        The GameByte framework integrates @pixi/layout for responsive flexbox layouts in games.
+    </div>
+
+    <div id="demo-container" class="demo-grid">
+        <div class="loading">Loading layout demos...</div>
+    </div>
+
+    <!-- ESM Import Map for dependencies -->
+    <script type="importmap">
+    {
+        "imports": {
+            "pixi.js": "https://esm.sh/pixi.js@8.15.0?bundle-deps",
+            "@pixi/layout": "https://esm.sh/@pixi/layout@3.2.0?external=pixi.js"
+        }
+    }
+    </script>
+
+    <script type="module">
+        // Import pixi.js first (with bundled deps to avoid conflicts)
+        import * as PIXI from 'pixi.js';
+        // Then import @pixi/layout which uses the same pixi.js instance via import map
+        import '@pixi/layout';
+
+        const { Application, Container, Graphics, Text } = PIXI;
+
+        // Demo container element
+        const demoContainer = document.getElementById('demo-container');
+
+        // Helper to create a colored box with optional label
+        function createBox(width, height, color, label = '') {
+            const container = new Container();
+
+            const bg = new Graphics();
+            bg.roundRect(0, 0, width, height, 8);
+            bg.fill({ color });
+            container.addChild(bg);
+
+            if (label) {
+                const text = new Text({
+                    text: label,
+                    style: { fontSize: 12, fill: 0xffffff, fontFamily: 'system-ui' }
+                });
+                text.anchor.set(0.5);
+                text.x = width / 2;
+                text.y = height / 2;
+                container.addChild(text);
+            }
+
+            // Enable layout on this container with fixed size
+            container.layout = { width, height };
+            return container;
+        }
+
+        // Create demo HTML structure
+        function createDemoHTML() {
+            demoContainer.innerHTML = `
+                <!-- Demo 1: Centered Content -->
+                <div class="demo-item">
+                    <h3>Centered Content</h3>
+                    <p>justifyContent: 'center', alignItems: 'center'</p>
+                    <canvas id="demo-center" width="380" height="250"></canvas>
+                    <div class="code-hint">container.layout = { justifyContent: 'center', alignItems: 'center' }</div>
+                </div>
+
+                <!-- Demo 2: Row Layout with Gap -->
+                <div class="demo-item">
+                    <h3>Row Layout with Gap</h3>
+                    <p>flexDirection: 'row', gap: 20</p>
+                    <canvas id="demo-row" width="380" height="250"></canvas>
+                    <div class="code-hint">container.layout = { flexDirection: 'row', gap: 20, alignItems: 'center' }</div>
+                </div>
+
+                <!-- Demo 3: Column Layout -->
+                <div class="demo-item">
+                    <h3>Column Layout</h3>
+                    <p>flexDirection: 'column', alignItems: 'stretch'</p>
+                    <canvas id="demo-column" width="380" height="250"></canvas>
+                    <div class="code-hint">container.layout = { flexDirection: 'column', gap: 10, alignItems: 'stretch' }</div>
+                </div>
+
+                <!-- Demo 4: Grid with Wrap -->
+                <div class="demo-item">
+                    <h3>Grid Layout (Flex Wrap)</h3>
+                    <p>flexWrap: 'wrap' for grid-like layout</p>
+                    <canvas id="demo-grid" width="380" height="250"></canvas>
+                    <div class="code-hint">container.layout = { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }</div>
+                </div>
+
+                <!-- Demo 5: Space Between -->
+                <div class="demo-item">
+                    <h3>Space Between</h3>
+                    <p>justifyContent: 'space-between' for even spacing</p>
+                    <canvas id="demo-space" width="380" height="250"></canvas>
+                    <div class="code-hint">container.layout = { justifyContent: 'space-between', alignItems: 'center' }</div>
+                </div>
+
+                <!-- Demo 6: Nested Layouts -->
+                <div class="demo-item">
+                    <h3>Nested Layouts</h3>
+                    <p>Combine row and column layouts</p>
+                    <canvas id="demo-nested" width="380" height="250"></canvas>
+                    <div class="code-hint">parent: column, children: row layouts</div>
+                </div>
+
+                <!-- Demo 7: Percentage Sizing -->
+                <div class="demo-item">
+                    <h3>Percentage Sizing</h3>
+                    <p>width: '50%', height: '80%'</p>
+                    <canvas id="demo-percent" width="380" height="250"></canvas>
+                    <div class="code-hint">child.layout = { width: '60%', height: '70%' }</div>
+                </div>
+
+                <!-- Demo 8: Game HUD Layout -->
+                <div class="demo-item">
+                    <h3>Game HUD Layout</h3>
+                    <p>Typical game UI with top bar, content, and bottom bar</p>
+                    <canvas id="demo-hud" width="380" height="250"></canvas>
+                    <div class="code-hint">Full game HUD with header, content area, and footer</div>
+                </div>
+            `;
+        }
+
+        // Demo 1: Centered Content
+        async function demo1() {
+            const app = new Application();
+            await app.init({
+                canvas: document.getElementById('demo-center'),
+                width: 380,
+                height: 250,
+                backgroundColor: 0x1a202c
+            });
+
+            // Set stage layout for centering
+            app.stage.layout = {
+                width: 380,
+                height: 250,
+                justifyContent: 'center',
+                alignItems: 'center'
+            };
+
+            const box = createBox(100, 100, 0x4ecca3, 'Centered');
+            app.stage.addChild(box);
+        }
+
+        // Demo 2: Row Layout
+        async function demo2() {
+            const app = new Application();
+            await app.init({
+                canvas: document.getElementById('demo-row'),
+                width: 380,
+                height: 250,
+                backgroundColor: 0x1a202c
+            });
+
+            app.stage.layout = {
+                width: 380,
+                height: 250,
+                flexDirection: 'row',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: 20
+            };
+
+            const colors = [0xff6b6b, 0x4ecdc4, 0xffe66d];
+            colors.forEach((color, i) => {
+                const box = createBox(80, 80, color, `${i + 1}`);
+                app.stage.addChild(box);
+            });
+        }
+
+        // Demo 3: Column Layout
+        async function demo3() {
+            const app = new Application();
+            await app.init({
+                canvas: document.getElementById('demo-column'),
+                width: 380,
+                height: 250,
+                backgroundColor: 0x1a202c
+            });
+
+            app.stage.layout = {
+                width: 380,
+                height: 250,
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: 10
+            };
+
+            const colors = [0x6c5ce7, 0x00b894, 0xfdcb6e];
+            colors.forEach((color, i) => {
+                const box = createBox(200, 50, color, `Item ${i + 1}`);
+                app.stage.addChild(box);
+            });
+        }
+
+        // Demo 4: Grid Layout
+        async function demo4() {
+            const app = new Application();
+            await app.init({
+                canvas: document.getElementById('demo-grid'),
+                width: 380,
+                height: 250,
+                backgroundColor: 0x1a202c
+            });
+
+            app.stage.layout = {
+                width: 380,
+                height: 250,
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                justifyContent: 'center',
+                alignContent: 'center',
+                gap: 8,
+                padding: 20
+            };
+
+            const colors = [0xe17055, 0x00cec9, 0x6c5ce7, 0xfdcb6e, 0x00b894, 0xff7675];
+            colors.forEach((color, i) => {
+                const box = createBox(60, 60, color, `${i + 1}`);
+                app.stage.addChild(box);
+            });
+        }
+
+        // Demo 5: Space Between
+        async function demo5() {
+            const app = new Application();
+            await app.init({
+                canvas: document.getElementById('demo-space'),
+                width: 380,
+                height: 250,
+                backgroundColor: 0x1a202c
+            });
+
+            app.stage.layout = {
+                width: 380,
+                height: 250,
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: 30
+            };
+
+            const items = ['Home', 'Shop', 'Play', 'Profile'];
+            const colors = [0x74b9ff, 0x55efc4, 0xffeaa7, 0xfd79a8];
+            items.forEach((item, i) => {
+                const box = createBox(70, 70, colors[i], item);
+                app.stage.addChild(box);
+            });
+        }
+
+        // Demo 6: Nested Layouts
+        async function demo6() {
+            const app = new Application();
+            await app.init({
+                canvas: document.getElementById('demo-nested'),
+                width: 380,
+                height: 250,
+                backgroundColor: 0x1a202c
+            });
+
+            app.stage.layout = {
+                width: 380,
+                height: 250,
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: 15
+            };
+
+            // Row 1
+            const row1 = new Container();
+            row1.layout = {
+                flexDirection: 'row',
+                gap: 10
+            };
+            [0x00cec9, 0x6c5ce7].forEach(color => {
+                row1.addChild(createBox(80, 50, color));
+            });
+
+            // Row 2
+            const row2 = new Container();
+            row2.layout = {
+                flexDirection: 'row',
+                gap: 10
+            };
+            [0xfdcb6e, 0xe17055, 0x00b894].forEach(color => {
+                row2.addChild(createBox(50, 50, color));
+            });
+
+            // Row 3
+            const row3 = new Container();
+            row3.layout = {
+                flexDirection: 'row',
+                gap: 10
+            };
+            [0xff7675].forEach(color => {
+                row3.addChild(createBox(170, 40, color));
+            });
+
+            app.stage.addChild(row1);
+            app.stage.addChild(row2);
+            app.stage.addChild(row3);
+        }
+
+        // Demo 7: Percentage Sizing
+        async function demo7() {
+            const app = new Application();
+            await app.init({
+                canvas: document.getElementById('demo-percent'),
+                width: 380,
+                height: 250,
+                backgroundColor: 0x1a202c
+            });
+
+            app.stage.layout = {
+                width: 380,
+                height: 250,
+                justifyContent: 'center',
+                alignItems: 'center'
+            };
+
+            // Parent container with background
+            const parent = new Container();
+            parent.layout = {
+                width: 300,
+                height: 180,
+                justifyContent: 'center',
+                alignItems: 'center'
+            };
+
+            // Draw parent background
+            const parentBg = new Graphics();
+            parentBg.roundRect(0, 0, 300, 180, 8);
+            parentBg.fill({ color: 0x2d3748 });
+            parent.addChild(parentBg);
+
+            // Child with percentage size
+            const child = new Container();
+            child.layout = {
+                width: '60%',
+                height: '70%'
+            };
+
+            const childBg = new Graphics();
+            childBg.roundRect(0, 0, 180, 126, 8);
+            childBg.fill({ color: 0x4ecca3 });
+            child.addChild(childBg);
+
+            const text = new Text({
+                text: '60% x 70%',
+                style: { fontSize: 14, fill: 0xffffff, fontFamily: 'system-ui' }
+            });
+            text.anchor.set(0.5);
+            text.x = 90;
+            text.y = 63;
+            child.addChild(text);
+
+            parent.addChild(child);
+            app.stage.addChild(parent);
+        }
+
+        // Demo 8: Game HUD Layout
+        async function demo8() {
+            const app = new Application();
+            await app.init({
+                canvas: document.getElementById('demo-hud'),
+                width: 380,
+                height: 250,
+                backgroundColor: 0x1a202c
+            });
+
+            app.stage.layout = {
+                width: 380,
+                height: 250,
+                flexDirection: 'column',
+                justifyContent: 'space-between'
+            };
+
+            // Top Bar
+            const topBar = new Container();
+            topBar.layout = {
+                width: '100%',
+                height: 45,
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: 8
+            };
+
+            const topBg = new Graphics();
+            topBg.rect(0, 0, 380, 45);
+            topBg.fill({ color: 0x2d3748, alpha: 0.9 });
+            topBar.addChild(topBg);
+
+            // Coins, Level, Settings
+            topBar.addChild(createBox(80, 30, 0xffd700, '💰 1234'));
+            topBar.addChild(createBox(60, 30, 0x6c5ce7, 'Lv.12'));
+            topBar.addChild(createBox(35, 30, 0x636e72, '⚙️'));
+
+            // Content Area
+            const content = new Container();
+            content.layout = {
+                flexGrow: 1,
+                justifyContent: 'center',
+                alignItems: 'center'
+            };
+
+            const playBtn = createBox(120, 60, 0x00b894, '▶ PLAY');
+            content.addChild(playBtn);
+
+            // Bottom Bar
+            const bottomBar = new Container();
+            bottomBar.layout = {
+                width: '100%',
+                height: 55,
+                flexDirection: 'row',
+                justifyContent: 'space-around',
+                alignItems: 'center',
+                padding: 8
+            };
+
+            const bottomBg = new Graphics();
+            bottomBg.rect(0, 0, 380, 55);
+            bottomBg.fill({ color: 0x2d3748, alpha: 0.9 });
+            bottomBar.addChild(bottomBg);
+
+            const navItems = ['🏠', '🛒', '🎮', '👤'];
+            const navColors = [0x74b9ff, 0x55efc4, 0xffeaa7, 0xfd79a8];
+            navItems.forEach((item, i) => {
+                const btn = createBox(50, 40, navColors[i], item);
+                bottomBar.addChild(btn);
+            });
+
+            app.stage.addChild(topBar);
+            app.stage.addChild(content);
+            app.stage.addChild(bottomBar);
+        }
+
+        // Initialize all demos
+        async function init() {
+            try {
+                createDemoHTML();
+
+                // Run demos sequentially to avoid extension registration conflicts
+                await demo1();
+                await demo2();
+                await demo3();
+                await demo4();
+                await demo5();
+                await demo6();
+                await demo7();
+                await demo8();
+
+                console.log('✅ All layout demos initialized!');
+            } catch (error) {
+                console.error('Failed to initialize demos:', error);
+                demoContainer.innerHTML = `
+                    <div class="error">
+                        <h3>Failed to load demos</h3>
+                        <p>${error.message}</p>
+                        <p style="margin-top: 10px; font-size: 12px;">
+                            Note: @pixi/layout requires ESM modules. Make sure you're viewing this demo via a web server.
+                        </p>
+                    </div>
+                `;
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

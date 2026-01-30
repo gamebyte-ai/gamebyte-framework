@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reactive State Demo - GameByte Framework</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #1a1a2e;
+      font-family: system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      color: #fff;
+    }
+    h1 { margin-bottom: 10px; }
+    .subtitle { color: #9ca3af; margin-bottom: 20px; }
+    #game-container {
+      width: 100%;
+      max-width: 400px;
+      aspect-ratio: 9/16;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #0d0d1a;
+    }
+    canvas { display: block; }
+    .code-block {
+      background: #0d0d1a;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 20px;
+      max-width: 600px;
+      overflow-x: auto;
+    }
+    pre { color: #9ca3af; font-size: 13px; line-height: 1.5; }
+    .keyword { color: #c792ea; }
+    .string { color: #c3e88d; }
+    .number { color: #f78c6c; }
+    .comment { color: #546e7a; }
+  </style>
+</head>
+<body>
+  <h1>Reactive State Demo</h1>
+  <p class="subtitle">Vue/Svelte-inspired state management for GameByte UI</p>
+
+  <div id="game-container"></div>
+
+  <div class="code-block">
+    <pre><code><span class="comment">// Define reactive state</span>
+<span class="keyword">const</span> state = createState({
+  coins: <span class="number">1250</span>,
+  health: <span class="number">75</span>,
+  level: <span class="number">3</span>
+});
+
+<span class="comment">// Create UI with declarative config</span>
+UI.screen(<span class="string">'game-hud'</span>, {
+  layout: <span class="string">'column'</span>,
+  children: [
+    { type: <span class="string">'resource'</span>, icon: <span class="string">'coin'</span>, value: () => state.coins },
+    { type: <span class="string">'progress'</span>, value: () => state.health },
+    { type: <span class="string">'button'</span>, text: <span class="string">'Add Coins'</span>, onTap: () => state.coins += <span class="number">100</span> }
+  ]
+});
+
+<span class="comment">// State changes auto-update UI</span>
+state.coins += <span class="number">100</span>;</code></pre>
+  </div>
+
+  <script type="module">
+    import { Application, Container, Graphics, Text } from 'https://esm.sh/pixi.js@8.6.5?bundle-deps';
+
+    async function createDemo() {
+      const container = document.getElementById('game-container');
+
+      // Create Pixi Application
+      const app = new Application();
+      await app.init({
+        width: 400,
+        height: 711,
+        backgroundColor: 0x1a1a2e,
+        resolution: window.devicePixelRatio || 1,
+        autoDensity: true
+      });
+      container.appendChild(app.canvas);
+
+      // Simulate reactive state
+      const state = {
+        coins: 1250,
+        health: 75,
+        level: 3
+      };
+
+      // Create HUD container
+      const hud = new Container();
+      hud.x = 20;
+      hud.y = 40;
+      app.stage.addChild(hud);
+
+      // ========================================
+      // Resource Display (Coins)
+      // ========================================
+      const coinContainer = new Container();
+      hud.addChild(coinContainer);
+
+      // Coin icon (placeholder circle)
+      const coinIcon = new Graphics();
+      coinIcon.circle(12, 12, 12);
+      coinIcon.fill({ color: 0xfbbf24 });
+      coinContainer.addChild(coinIcon);
+
+      // Coin text
+      const coinText = new Text({
+        text: formatNumber(state.coins),
+        style: {
+          fontFamily: 'system-ui, sans-serif',
+          fontSize: 18,
+          fontWeight: 'bold',
+          fill: 0xffffff
+        }
+      });
+      coinText.x = 32;
+      coinText.y = 4;
+      coinContainer.addChild(coinText);
+
+      // ========================================
+      // Health Bar
+      // ========================================
+      const healthContainer = new Container();
+      healthContainer.y = 50;
+      hud.addChild(healthContainer);
+
+      // Health label
+      const healthLabel = new Text({
+        text: 'Health',
+        style: {
+          fontFamily: 'system-ui, sans-serif',
+          fontSize: 12,
+          fill: 0x9ca3af
+        }
+      });
+      healthContainer.addChild(healthLabel);
+
+      // Health bar track
+      const healthTrack = new Graphics();
+      healthTrack.roundRect(0, 0, 200, 16, 8);
+      healthTrack.fill({ color: 0x2d3748 });
+      healthTrack.y = 20;
+      healthContainer.addChild(healthTrack);
+
+      // Health bar fill
+      const healthFill = new Graphics();
+      healthFill.y = 20;
+      healthContainer.addChild(healthFill);
+
+      function updateHealthBar() {
+        healthFill.clear();
+        const fillWidth = Math.max(16, (state.health / 100) * 200);
+        healthFill.roundRect(0, 0, fillWidth, 16, 8);
+        healthFill.fill({ color: state.health > 50 ? 0x22c55e : (state.health > 25 ? 0xff9800 : 0xf44336) });
+      }
+      updateHealthBar();
+
+      // Health percentage text
+      const healthText = new Text({
+        text: `${state.health}%`,
+        style: {
+          fontFamily: 'system-ui, sans-serif',
+          fontSize: 11,
+          fontWeight: 'bold',
+          fill: 0xffffff
+        }
+      });
+      healthText.x = 90;
+      healthText.y = 22;
+      healthContainer.addChild(healthText);
+
+      // ========================================
+      // Level Badge
+      // ========================================
+      const levelContainer = new Container();
+      levelContainer.y = 100;
+      hud.addChild(levelContainer);
+
+      const levelBadge = new Graphics();
+      levelBadge.roundRect(0, 0, 80, 32, 8);
+      levelBadge.fill({ color: 0x3b82f6 });
+      levelContainer.addChild(levelBadge);
+
+      const levelText = new Text({
+        text: `Level ${state.level}`,
+        style: {
+          fontFamily: 'system-ui, sans-serif',
+          fontSize: 14,
+          fontWeight: 'bold',
+          fill: 0xffffff
+        }
+      });
+      levelText.x = 15;
+      levelText.y = 8;
+      levelContainer.addChild(levelText);
+
+      // ========================================
+      // Buttons
+      // ========================================
+      const buttonContainer = new Container();
+      buttonContainer.x = 100;
+      buttonContainer.y = 550;
+      app.stage.addChild(buttonContainer);
+
+      function createButton(text, color, y, onClick) {
+        const btn = new Container();
+        btn.y = y;
+
+        const bg = new Graphics();
+        bg.roundRect(0, 0, 200, 48, 10);
+        bg.fill({ color });
+        btn.addChild(bg);
+
+        const label = new Text({
+          text,
+          style: {
+            fontFamily: 'system-ui, sans-serif',
+            fontSize: 16,
+            fontWeight: 'bold',
+            fill: 0xffffff
+          }
+        });
+        label.x = (200 - label.width) / 2;
+        label.y = (48 - label.height) / 2;
+        btn.addChild(label);
+
+        btn.eventMode = 'static';
+        btn.cursor = 'pointer';
+        btn.on('pointertap', () => {
+          // Scale feedback
+          btn.scale.set(0.95);
+          setTimeout(() => btn.scale.set(1), 100);
+          onClick();
+        });
+
+        buttonContainer.addChild(btn);
+        return btn;
+      }
+
+      createButton('+100 Coins', 0x4CAF50, 0, () => {
+        state.coins += 100;
+        updateUI();
+      });
+
+      createButton('-10 Health', 0xf44336, 60, () => {
+        state.health = Math.max(0, state.health - 10);
+        updateUI();
+      });
+
+      createButton('+25 Health', 0x22c55e, 120, () => {
+        state.health = Math.min(100, state.health + 25);
+        updateUI();
+      });
+
+      // ========================================
+      // Update Function (simulates reactive updates)
+      // ========================================
+      let animatedCoins = state.coins;
+
+      function updateUI() {
+        // Animate coin value
+        const diff = state.coins - animatedCoins;
+        animatedCoins += diff * 0.2;
+        if (Math.abs(diff) < 1) animatedCoins = state.coins;
+        coinText.text = formatNumber(Math.floor(animatedCoins));
+
+        // Update health
+        updateHealthBar();
+        healthText.text = `${state.health}%`;
+      }
+
+      // Animation loop
+      app.ticker.add(() => {
+        if (Math.abs(state.coins - animatedCoins) > 0.5) {
+          updateUI();
+        }
+      });
+
+      // ========================================
+      // Helper Functions
+      // ========================================
+      function formatNumber(num) {
+        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+        if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+        return num.toLocaleString();
+      }
+
+      // Title
+      const title = new Text({
+        text: 'Reactive State Demo',
+        style: {
+          fontFamily: 'system-ui, sans-serif',
+          fontSize: 14,
+          fill: 0x9ca3af
+        }
+      });
+      title.x = (400 - title.width) / 2;
+      title.y = 10;
+      app.stage.addChild(title);
+    }
+
+    createDemo().catch(console.error);
+  </script>
+</body>
+</html>

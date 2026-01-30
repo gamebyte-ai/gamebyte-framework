@@ -26,11 +26,16 @@ src/
 ├── contracts/      # TypeScript interfaces (Graphics, Audio, Physics, etc.)
 ├── facades/        # Static facades (Renderer, Scenes, UI, Audio, Input, etc.)
 ├── rendering/      # PixiRenderer, ThreeRenderer, HybridRenderer
-├── ui/             # UI components, screens, panels, themes
+├── layout/         # @pixi/layout integration (Yoga flexbox)
+│   ├── types.ts    # LayoutConfig, FlexDirection, etc.
+│   ├── LayoutStyles.ts  # LayoutPresets, GameLayoutPresets, helpers
+│   └── LayoutManager.ts # Core layout management
+├── ui/             # UI components, screens, panels, themes, state
 │   ├── components/ # UIButton, UIPanel, GameStyleButton, TopBar, etc.
 │   ├── screens/    # BaseUIScreen, HubScreen, ResultScreen
 │   ├── panels/     # GameModalPanel, GameBottomSheet
-│   └── themes/     # DefaultUITheme, GameStyleUITheme
+│   ├── themes/     # DefaultUITheme, GameStyleUITheme
+│   └── state/      # Reactive state management (createState, computed)
 ├── scenes/         # BaseScene, scene management
 ├── physics/        # Matter.js (2D) & Cannon.js (3D) integration
 ├── audio/          # Audio system (music, SFX, spatial)
@@ -74,6 +79,31 @@ const text = factory.createText('Hello', { fontSize: 24 });
 const gfx = factory.createGraphics();
 gfx.roundRect(0, 0, 100, 50, 10).fill({ color: 0x4CAF50 });
 ```
+
+### Reactive State Management
+
+Vue/Svelte-inspired reactive state system for automatic UI updates:
+
+```typescript
+import { createState, computed } from 'gamebyte-framework';
+
+// Create reactive state
+const gameState = createState({ score: 0, health: 100 });
+
+// Direct property access triggers updates
+gameState.score += 100;
+
+// Subscribe to changes
+gameState.on('score', (newVal, oldVal) => updateUI(newVal));
+
+// Batch updates (single notification)
+gameState.batch(s => { s.score += 50; s.health -= 10; });
+
+// Computed values
+const total = computed(() => gameState.score * 2);
+```
+
+**State exports**: `createState`, `computed`, `isReactive`, `resolveValue`, `StateListener`, `ReactiveState`
 
 ## Testing
 
@@ -150,6 +180,52 @@ graphics.endFill();            // Don't use
 - `moveTo()`, `lineTo()`, `arc()`, `closePath()`
 - `clear()`
 
+## Layout System (@pixi/layout)
+
+The framework integrates @pixi/layout for Yoga-powered flexbox layouts:
+
+```typescript
+import {
+  LayoutManager, getLayoutManager,
+  LayoutPresets, GameLayoutPresets,
+  createFlexRow, createFlexColumn
+} from 'gamebyte-framework';
+
+// Enable flexbox on any container
+container.layout = {
+  flexDirection: 'row',
+  justifyContent: 'center',
+  alignItems: 'center',
+  gap: 20
+};
+
+// Use presets for common patterns
+topBar.layout = LayoutPresets.topBar;
+gameScreen.layout = GameLayoutPresets.gameScreen;
+
+// Helper functions
+row.layout = createFlexRow({ gap: 16, justify: 'space-between' });
+column.layout = createFlexColumn({ gap: 10, align: 'stretch' });
+```
+
+### Key Layout Presets
+
+| Preset | Use Case |
+|--------|----------|
+| `LayoutPresets.center` | Center content |
+| `LayoutPresets.row` | Horizontal row |
+| `LayoutPresets.column` | Vertical column |
+| `LayoutPresets.grid` | Wrapping grid |
+| `LayoutPresets.topBar` | Top HUD bar |
+| `LayoutPresets.bottomBar` | Bottom navigation |
+| `GameLayoutPresets.gameScreen` | Full game HUD |
+| `GameLayoutPresets.touchButton` | 44pt min touch target |
+| `GameLayoutPresets.levelButton` | Level select button |
+
+### Note on ESM
+
+@pixi/layout requires ESM modules (no UMD build). For bundled projects (Vite, Webpack), it works automatically. For HTML demos, use ESM imports with import maps.
+
 ## Important Notes
 
 ### Breaking Changes
@@ -185,6 +261,41 @@ For browser usage without bundlers, use `dist/gamebyte.umd.js`. It exposes `wind
 ## Documentation
 
 - Main README: `README.md`
-- Agent-specific docs: `docs/agent-guide/CORE_API.md`
+- Agent-specific docs: `docs/agent-guide/CORE_API.md` - includes reactive state
+- Quick reference: `docs/agent-guide/QUICK_REFERENCE.md`
+- **Pixi.js v8 Reference**: `docs/PIXI_V8_REFERENCE.md` - **MUST READ** for all rendering code
 - 3D setup guide: `docs/guides/rendering-3d-setup.md`
 - Live demos: `docs-site/static/demos/`
+
+### Pixi.js v8 Quick Reference
+
+**CRITICAL**: Always use Pixi.js v8 API, never legacy v7 patterns. Key differences:
+
+```typescript
+// ✅ v8 Modern API
+graphics.rect(0, 0, 100, 50);
+graphics.fill({ color: 0xFF0000, alpha: 0.8 });
+graphics.stroke({ color: 0x000000, width: 2 });
+
+// ❌ v7 Legacy API (DO NOT USE)
+graphics.beginFill(0xFF0000);
+graphics.drawRect(0, 0, 100, 50);
+graphics.endFill();
+```
+
+**FillGradient** (v8 native gradients):
+```typescript
+import { FillGradient } from 'pixi.js';
+
+const gradient = new FillGradient({
+    type: 'linear',
+    colorStops: [
+        { offset: 0, color: 'red' },
+        { offset: 1, color: 'blue' }
+    ],
+    textureSpace: 'local'  // IMPORTANT for shape-relative gradients
+});
+graphics.rect(0, 0, 100, 100).fill(gradient);
+```
+
+See `docs/PIXI_V8_REFERENCE.md` for complete API reference, migration guide, and best practices.

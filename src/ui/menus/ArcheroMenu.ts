@@ -735,16 +735,20 @@ export class ArcheroMenu extends EventEmitter {
     const yPosition = isActive ? this.style.activeIconYOffset : this.style.iconYOffset;
 
     // Direct PIXI.Text creation (bypass framework abstraction for predictable sizing)
-    const icon = new PIXI.Text(typeof section.icon === 'string' ? section.icon : '', {
-      fontSize: fontSize,
-      fontFamily: 'system-ui',
-      stroke: { color: this.style.iconStrokeColor, width: this.style.iconStrokeWidth },
-      dropShadow: {
-        angle: 0.523599,
-        distance: this.style.iconShadowDistance,
-        alpha: 0.8,
-        blur: this.style.iconShadowBlur,
-        color: this.style.iconStrokeColor
+    // Pixi v8 format: new PIXI.Text({ text, style })
+    const icon = new PIXI.Text({
+      text: typeof section.icon === 'string' ? section.icon : '',
+      style: {
+        fontSize: fontSize,
+        fontFamily: 'system-ui',
+        stroke: { color: this.style.iconStrokeColor, width: this.style.iconStrokeWidth },
+        dropShadow: {
+          angle: 0.523599,
+          distance: this.style.iconShadowDistance,
+          alpha: 0.8,
+          blur: this.style.iconShadowBlur,
+          color: this.style.iconStrokeColor
+        }
       }
     }) as any;
 
@@ -769,17 +773,21 @@ export class ArcheroMenu extends EventEmitter {
     const labelStrokeColor = section.customStyle?.labelStrokeColor ?? this.style.labelStrokeColor;
 
     // Direct PIXI.Text creation (bypass framework abstraction for predictable sizing)
-    const label = new PIXI.Text(section.name, {
-      fontSize: this.style.labelSize,
-      fill: labelColor,
-      fontWeight: this.style.labelFontWeight as any,
-      stroke: { color: labelStrokeColor, width: this.style.labelStrokeWidth },
-      dropShadow: {
-        angle: 0.523599,
-        distance: this.style.labelShadowDistance,
-        alpha: 0.6,
-        blur: this.style.labelShadowBlur,
-        color: 0x000000
+    // Pixi v8 format: new PIXI.Text({ text, style })
+    const label = new PIXI.Text({
+      text: section.name,
+      style: {
+        fontSize: this.style.labelSize,
+        fill: labelColor,
+        fontWeight: this.style.labelFontWeight as any,
+        stroke: { color: labelStrokeColor, width: this.style.labelStrokeWidth },
+        dropShadow: {
+          angle: 0.523599,
+          distance: this.style.labelShadowDistance,
+          alpha: 0.6,
+          blur: this.style.labelShadowBlur,
+          color: 0x000000
+        }
       }
     }) as any;
 

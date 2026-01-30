@@ -627,20 +627,9 @@ export type {
   SpacingConfig,
 } from './layout/index';
 
-// UI2 System (Modern Declarative UI)
-export { UI as UI2, UINode, createState, computed, reactive, resolveValue, isReactive } from './ui2/index';
-export { setTheme as setUI2Theme, setThemeMode as setUI2ThemeMode, getTheme as getUI2Theme } from './ui2/index';
-export { createNode as createUI2Node, registerComponent as registerUI2Component } from './ui2/index';
-export type {
-  // UI2 Types
-  UINodeConfig as UI2NodeConfig,
-  UINodeConfigBase as UI2NodeConfigBase,
-  ScreenConfig as UI2ScreenConfig,
-  PanelConfig as UI2PanelConfig,
-  ThemeConfig as UI2ThemeConfig,
-  ReactiveState as UI2ReactiveState,
-  UIRef as UI2Ref
-} from './ui2/index';
+// Reactive State Management
+export { createState, computed, isReactive, resolveValue } from './ui/state';
+export type { StateListener, ReactiveState } from './ui/state';
 
 // Types
 export type {

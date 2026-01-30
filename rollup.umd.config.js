@@ -6,6 +6,8 @@ import commonjs from '@rollup/plugin-commonjs';
 const require = createRequire(import.meta.url);
 
 // UMD bundle configuration for browser globals
+// Note: @pixi/layout cannot be bundled into UMD due to its use of dynamic imports
+// Demos that need layout must use ESM modules
 const umdConfig = {
   input: 'src/index.ts',
   output: {
@@ -14,6 +16,7 @@ const umdConfig = {
     name: 'GameByteFramework',
     globals: {
       'pixi.js': 'PIXI',
+      '@pixi/layout': 'PIXI',
       'three': 'THREE',
       'matter-js': 'Matter',
       'cannon-es': 'CANNON',
@@ -24,6 +27,7 @@ const umdConfig = {
   },
   external: [
     'pixi.js',
+    '@pixi/layout',
     'three',
     'matter-js',
     'cannon-es',
