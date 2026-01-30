@@ -160,8 +160,7 @@ export class GameHUDScreen extends SimpleScreen {
         fontSize: 22,
         fontWeight: 'bold',
         fill: 0xFFFFFF,
-        stroke: 0x000000,
-        strokeThickness: 2,
+        stroke: { color: 0x000000, width: 2 },
       });
       if (this.scoreText.anchor) this.scoreText.anchor.set(0, 0.5);
       this.scoreText.x = leftX;
@@ -178,8 +177,7 @@ export class GameHUDScreen extends SimpleScreen {
         fontSize: 22,
         fontWeight: 'bold',
         fill: 0xFFFFFF,
-        stroke: 0x000000,
-        strokeThickness: 2,
+        stroke: { color: 0x000000, width: 2 },
       });
       if (this.timerText.anchor) this.timerText.anchor.set(0.5, 0.5);
       this.timerText.x = width / 2;
@@ -345,8 +343,7 @@ export class GameHUDScreen extends SimpleScreen {
       fontSize: 48,
       fontWeight: 'bold',
       fill: 0xFFFFFF,
-      stroke: 0x000000,
-      strokeThickness: 4,
+      stroke: { color: 0x000000, width: 4 },
     });
     if (pausedText.anchor) pausedText.anchor.set(0.5, 0.5);
     pausedText.x = width / 2;

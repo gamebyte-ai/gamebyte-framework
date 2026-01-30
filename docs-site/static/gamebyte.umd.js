@@ -717,8 +717,7 @@
 	    }
 	    /**
 	     * Convert framework text style to Pixi v8 style object format
-	     * Pixi v8 uses object format for stroke and dropShadow in Text constructor
-	     * Supports both legacy format and modern Pixi v8 format
+	     * Pixi v8 uses object format for stroke and dropShadow
 	     */
 	    static convertToPixiV8Style(style) {
 	        const config = {
@@ -731,51 +730,16 @@
 	            wordWrapWidth: style.wordWrapWidth,
 	            lineHeight: style.lineHeight,
 	        };
-	        // Copy fontStyle if present
 	        if (style.fontStyle) {
 	            config.fontStyle = style.fontStyle;
 	        }
 	        // Pixi v8 stroke format: { color: number, width: number }
-	        // Handle both legacy (stroke as color number) and modern (stroke as object) formats
-	        if (style.stroke !== undefined) {
-	            const strokeValue = style.stroke;
-	            if (typeof strokeValue === 'object' && strokeValue !== null && 'color' in strokeValue) {
-	                // Modern Pixi v8 format: { color, width }
-	                config.stroke = strokeValue;
-	            }
-	            else if (typeof strokeValue === 'number' || typeof strokeValue === 'string') {
-	                // Legacy format: stroke is a color number/string
-	                config.stroke = {
-	                    color: strokeValue,
-	                    width: style.strokeThickness ?? 0
-	                };
-	            }
-	        }
-	        else if (style.strokeThickness !== undefined && style.strokeThickness > 0) {
-	            // Legacy format with only strokeThickness
-	            config.stroke = {
-	                color: 0x000000,
-	                width: style.strokeThickness
-	            };
+	        if (style.stroke) {
+	            config.stroke = style.stroke;
 	        }
 	        // Pixi v8 dropShadow format: { alpha, angle, blur, color, distance }
-	        // Handle both legacy (dropShadow as boolean) and modern (dropShadow as object) formats
-	        if (style.dropShadow !== undefined) {
-	            const dropShadowValue = style.dropShadow;
-	            if (typeof dropShadowValue === 'object' && dropShadowValue !== null) {
-	                // Modern Pixi v8 format: { alpha, angle, blur, color, distance }
-	                config.dropShadow = dropShadowValue;
-	            }
-	            else if (dropShadowValue === true) {
-	                // Legacy format: dropShadow is boolean, use individual properties
-	                config.dropShadow = {
-	                    alpha: style.dropShadowAlpha ?? 0.8,
-	                    angle: style.dropShadowAngle ?? 0.523599, // ~30 degrees
-	                    blur: style.dropShadowBlur ?? 0,
-	                    color: style.dropShadowColor ?? 0x000000,
-	                    distance: style.dropShadowDistance ?? 5
-	                };
-	            }
+	        if (style.dropShadow) {
+	            config.dropShadow = style.dropShadow;
 	        }
 	        return config;
 	    }
@@ -7590,11 +7554,14 @@
 	            if (baseStyle.fontSize !== undefined) {
 	                text.style.fontSize = baseStyle.fontSize * scale;
 	            }
-	            if (baseStyle.strokeThickness !== undefined) {
-	                text.style.strokeThickness = baseStyle.strokeThickness * scale;
-	            }
+	            // Pixi v8: stroke is an object with { color, width }
 	            if (baseStyle.stroke && baseStyle.stroke.width !== undefined) {
-	                text.style.stroke.width = baseStyle.stroke.width * scale;
+	                if (!text.style.stroke) {
+	                    text.style.stroke = { width: baseStyle.stroke.width * scale };
+	                }
+	                else {
+	                    text.style.stroke.width = baseStyle.stroke.width * scale;
+	                }
 	            }
 	            if (baseStyle.dropShadow) {
 	                if (baseStyle.dropShadow.distance !== undefined) {
@@ -41657,8 +41624,7 @@
 	            fontSize: 18,
 	            fontWeight: 'bold',
 	            fill: 0xFFFFFF,
-	            stroke: 0x000000,
-	            strokeThickness: 2
+	            stroke: { color: 0x000000, width: 2 }
 	        });
 	        if (valueText.anchor)
 	            valueText.anchor.set(0, 0.5);
@@ -42486,8 +42452,7 @@
 	                fontSize: 12,
 	                fontWeight: 'bold',
 	                fill: 0xFFFFFF,
-	                stroke: 0x1A237E,
-	                strokeThickness: 2
+	                stroke: { color: 0x1A237E, width: 2 }
 	            });
 	            if (label.anchor)
 	                label.anchor.set(0.5, 0);
@@ -43038,27 +43003,29 @@
 	     */
 	    createText() {
 	        const { colorScheme, fontSize, fontFamily, width, height, horizontalPadding } = this.config;
-	        // Determine if we need dark text (for light backgrounds like cream)
+	        // Determine stroke thickness based on background brightness
 	        const isLightBackground = this.isLightColor(colorScheme.gradientTop);
 	        const textColor = colorScheme.text;
 	        const strokeColor = colorScheme.textStroke;
 	        const strokeThickness = isLightBackground
 	            ? Math.max(2, fontSize / 12)
 	            : Math.max(3, fontSize / 8);
+	        // Drop shadow uses stroke color for light backgrounds, black for dark
+	        const shadowColor = isLightBackground ? strokeColor : 0x000000;
 	        this.textField = graphics().createText(this.config.text, {
 	            fontFamily: fontFamily,
 	            fontSize: fontSize,
 	            fontWeight: '700', // Bold - Fredoka's max weight
 	            fill: textColor,
-	            stroke: strokeColor,
-	            strokeThickness: strokeThickness,
+	            stroke: { color: strokeColor, width: strokeThickness },
 	            align: 'center',
-	            dropShadow: !isLightBackground,
-	            dropShadowAlpha: 0.5,
-	            dropShadowAngle: Math.PI / 2,
-	            dropShadowBlur: 2,
-	            dropShadowColor: 0x000000,
-	            dropShadowDistance: 2
+	            dropShadow: {
+	                alpha: 0.5,
+	                angle: Math.PI / 2,
+	                blur: 2,
+	                color: shadowColor,
+	                distance: 2
+	            }
 	        });
 	        if (this.textField.anchor)
 	            this.textField.anchor.set(0.5, 0.5);
@@ -43302,8 +43269,7 @@
 	        this.render();
 	        if (this.textField) {
 	            this.textField.style.fill = colorScheme.text;
-	            this.textField.style.stroke = colorScheme.textStroke;
-	            this.textField.style.strokeThickness = this.config.fontSize / 8;
+	            this.textField.style.stroke = { color: colorScheme.textStroke, width: this.config.fontSize / 8 };
 	        }
 	        return this;
 	    }
@@ -43591,8 +43557,7 @@
 	                fontSize: 22,
 	                fontWeight: 'bold',
 	                fill: 0xFFFFFF,
-	                stroke: 0x000000,
-	                strokeThickness: 2,
+	                stroke: { color: 0x000000, width: 2 },
 	            });
 	            if (this.scoreText.anchor)
 	                this.scoreText.anchor.set(0, 0.5);
@@ -43608,8 +43573,7 @@
 	                fontSize: 22,
 	                fontWeight: 'bold',
 	                fill: 0xFFFFFF,
-	                stroke: 0x000000,
-	                strokeThickness: 2,
+	                stroke: { color: 0x000000, width: 2 },
 	            });
 	            if (this.timerText.anchor)
 	                this.timerText.anchor.set(0.5, 0.5);
@@ -43753,8 +43717,7 @@
 	            fontSize: 48,
 	            fontWeight: 'bold',
 	            fill: 0xFFFFFF,
-	            stroke: 0x000000,
-	            strokeThickness: 4,
+	            stroke: { color: 0x000000, width: 4 },
 	        });
 	        if (pausedText.anchor)
 	            pausedText.anchor.set(0.5, 0.5);
@@ -44000,8 +43963,7 @@
 	            fontSize: 48,
 	            fontWeight: 'bold',
 	            fill: isVictory ? 0x4CAF50 : 0xE84C4C,
-	            stroke: 0x000000,
-	            strokeThickness: 4,
+	            stroke: { color: 0x000000, width: 4 },
 	        });
 	        if (title.anchor)
 	            title.anchor.set(0.5, 0.5);
@@ -44097,8 +44059,7 @@
 	            fontSize: 56,
 	            fontWeight: 'bold',
 	            fill: 0xFFFFFF,
-	            stroke: 0x000000,
-	            strokeThickness: 3,
+	            stroke: { color: 0x000000, width: 3 },
 	        });
 	        if (scoreValue.anchor)
 	            scoreValue.anchor.set(0.5, 0.5);
@@ -44171,8 +44132,7 @@
 	                fontSize: 16,
 	                fontWeight: 'bold',
 	                fill: 0xFFFFFF,
-	                stroke: 0x000000,
-	                strokeThickness: 2,
+	                stroke: { color: 0x000000, width: 2 },
 	            });
 	            if (amountText.anchor)
 	                amountText.anchor.set(0.5, 0.5);
@@ -44633,14 +44593,14 @@
 	            fontSize: fontSize,
 	            fontWeight: 'bold',
 	            fill: colorScheme.text,
-	            stroke: colorScheme.textStroke,
-	            strokeThickness: Math.max(2, fontSize / 10),
-	            dropShadow: true,
-	            dropShadowAlpha: 0.4,
-	            dropShadowAngle: Math.PI / 2,
-	            dropShadowBlur: 2,
-	            dropShadowColor: 0x000000,
-	            dropShadowDistance: 2
+	            stroke: { color: colorScheme.textStroke, width: Math.max(2, fontSize / 10) },
+	            dropShadow: {
+	                alpha: 0.4,
+	                angle: Math.PI / 2,
+	                blur: 2,
+	                color: 0x000000,
+	                distance: 2
+	            }
 	        });
 	        if (text.anchor)
 	            text.anchor.set(0.5, 0.5);
@@ -45421,15 +45381,15 @@
 	            fontSize: titleFontSize,
 	            fontWeight: '900',
 	            fill: colorScheme.titleColor,
-	            stroke: colorScheme.titleStroke,
-	            strokeThickness: Math.max(3, titleFontSize * 0.12),
+	            stroke: { color: colorScheme.titleStroke, width: Math.max(3, titleFontSize * 0.12) },
 	            align: 'center',
-	            dropShadow: true,
-	            dropShadowColor: 0x000000,
-	            dropShadowBlur: 0,
-	            dropShadowDistance: Math.max(2, titleFontSize * 0.06),
-	            dropShadowAngle: Math.PI / 2,
-	            dropShadowAlpha: 0.5,
+	            dropShadow: {
+	                color: 0x000000,
+	                blur: 0,
+	                distance: Math.max(2, titleFontSize * 0.06),
+	                angle: Math.PI / 2,
+	                alpha: 0.5
+	            }
 	        });
 	        // Center title in header
 	        const titleWidth = this.titleText.width || 100;
@@ -46599,8 +46559,7 @@
 	            wordWrap: true,
 	            wordWrapWidth: maxWidth - padding * 2,
 	            ...(hasStroke && {
-	                stroke: colorScheme.textStroke,
-	                strokeThickness: Math.max(2, fontSize * 0.1),
+	                stroke: { color: colorScheme.textStroke, width: Math.max(2, fontSize * 0.1) },
 	            }),
 	        });
 	    }
@@ -54715,8 +54674,7 @@
 	            fontSize: 24,
 	            fontWeight: 'bold',
 	            fill: this.theme.title || 0xFFFFFF,
-	            stroke: this.theme.titleStroke || 0x1A1A2A,
-	            strokeThickness: 3,
+	            stroke: { color: this.theme.titleStroke || 0x1A1A2A, width: 3 },
 	            align: 'center',
 	        });
 	        if (this.titleText.anchor) {
@@ -58948,11 +58906,15 @@
 	            this.element.style.whiteSpace = 'normal';
 	        if (style.wordWrapWidth)
 	            this.element.style.maxWidth = `${style.wordWrapWidth}px`;
-	        if (style.dropShadow && style.dropShadowColor && style.dropShadowDistance) {
-	            const color = typeof style.dropShadowColor === 'number'
-	                ? '#' + style.dropShadowColor.toString(16).padStart(6, '0')
-	                : style.dropShadowColor;
-	            this.element.style.textShadow = `${style.dropShadowDistance}px ${style.dropShadowDistance}px ${style.dropShadowBlur || 0}px ${color}`;
+	        // Handle Pixi v8 dropShadow object format
+	        if (style.dropShadow && typeof style.dropShadow === 'object') {
+	            const shadow = style.dropShadow;
+	            if (shadow.color !== undefined && shadow.distance !== undefined) {
+	                const color = typeof shadow.color === 'number'
+	                    ? '#' + shadow.color.toString(16).padStart(6, '0')
+	                    : shadow.color;
+	                this.element.style.textShadow = `${shadow.distance}px ${shadow.distance}px ${shadow.blur || 0}px ${color}`;
+	            }
 	        }
 	    }
 	}

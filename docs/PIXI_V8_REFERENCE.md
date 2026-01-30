@@ -39,14 +39,6 @@ graphics.fill({ color: 0xFF0000, alpha: 0.5 });
 graphics.stroke({ color: 0x000000, width: 2 });
 ```
 
-```javascript
-// ❌ WRONG - Legacy v7 style (DO NOT USE)
-graphics.beginFill(0xFF0000);      // DEPRECATED
-graphics.drawRect(0, 0, 100, 50);  // DEPRECATED
-graphics.drawCircle(50, 50, 25);   // DEPRECATED
-graphics.endFill();                 // DEPRECATED
-```
-
 ### Complete Shape Drawing Pattern
 
 ```javascript
@@ -288,25 +280,6 @@ const style = new TextStyle({
 const text = new Text({ text: 'Styled Text', style });
 ```
 
-### v8 Text Style Changes
-
-```javascript
-// ✅ v8 - Object format for stroke
-stroke: { color: 0x000000, width: 4 }
-
-// ❌ v7 - Separate properties (DEPRECATED)
-stroke: 0x000000,
-strokeThickness: 4
-
-// ✅ v8 - Object format for dropShadow
-dropShadow: { color: 0x000000, blur: 4, distance: 2 }
-
-// ❌ v7 - Separate properties (DEPRECATED)
-dropShadow: true,
-dropShadowColor: 0x000000,
-dropShadowBlur: 4
-```
-
 ---
 
 ## Container
@@ -346,22 +319,17 @@ container.label = 'myContainer';
 const found = parent.getChildByLabel('myContainer');
 ```
 
-### v8 Container Changes
+### v8 Container Features
 
 ```javascript
-// ✅ v8 - Use 'label' property
+// Use 'label' property for naming
 container.label = 'playerSprite';
+const found = parent.getChildByLabel('playerSprite');
 
-// ❌ v7 - 'name' property (DEPRECATED)
-container.name = 'playerSprite';
-
-// ✅ v8 - cacheAsTexture method
+// Cache as texture for performance
 container.cacheAsTexture();
 container.updateCacheTexture();
 container.cacheAsTexture(false);  // Disable
-
-// ❌ v7 - cacheAsBitmap property (DEPRECATED)
-container.cacheAsBitmap = true;
 ```
 
 ---
@@ -394,48 +362,35 @@ const sprite = new Sprite(PIXI.Texture.from('myTexture'));
 
 ---
 
-## Migration from v7
+## API Reference
 
-### Key Changes
+### Graphics Methods
 
-| v7 (DEPRECATED) | v8 (USE THIS) |
-|-----------------|---------------|
-| `beginFill(color)` | `fill(color)` after shape |
-| `drawRect(x,y,w,h)` | `rect(x,y,w,h)` |
-| `drawRoundedRect(x,y,w,h,r)` | `roundRect(x,y,w,h,r)` |
-| `drawCircle(x,y,r)` | `circle(x,y,r)` |
-| `drawEllipse(x,y,w,h)` | `ellipse(x,y,w,h)` |
-| `drawPolygon(points)` | `poly(points)` |
-| `endFill()` | Not needed |
-| `lineStyle(width, color)` | `stroke({ width, color })` |
-| `container.name` | `container.label` |
-| `cacheAsBitmap` | `cacheAsTexture()` |
-| `DisplayObject` | `Container` |
+| Method | Description |
+|--------|-------------|
+| `rect(x, y, w, h)` | Draw rectangle |
+| `roundRect(x, y, w, h, r)` | Draw rounded rectangle |
+| `circle(x, y, r)` | Draw circle |
+| `ellipse(x, y, w, h)` | Draw ellipse |
+| `poly(points)` | Draw polygon |
+| `fill(color)` | Fill shape with color |
+| `stroke({ width, color })` | Stroke shape outline |
 
-### Async Initialization
+### Application Initialization
 
 ```javascript
-// ✅ v8 - Must await init
+// Async initialization required
 const app = new PIXI.Application();
 await app.init({ width: 800, height: 600 });
-
-// ❌ v7 - Sync constructor (DEPRECATED)
-const app = new PIXI.Application({ width: 800, height: 600 });
 ```
 
-### Graphics Pattern Change
+### Graphics Pattern
 
 ```javascript
-// ✅ v8 - Draw first, then style
+// Draw shape first, then apply fill/stroke
 graphics.rect(0, 0, 100, 50);
 graphics.fill(0xFF0000);
 graphics.stroke({ color: 0x000000, width: 2 });
-
-// ❌ v7 - Style first, then draw (DEPRECATED)
-graphics.beginFill(0xFF0000);
-graphics.lineStyle(2, 0x000000);
-graphics.drawRect(0, 0, 100, 50);
-graphics.endFill();
 ```
 
 ---

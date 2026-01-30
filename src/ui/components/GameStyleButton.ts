@@ -147,7 +147,7 @@ export class GameStyleButton extends EventEmitter {
   private createText(): void {
     const { colorScheme, fontSize, fontFamily, width, height, horizontalPadding } = this.config;
 
-    // Determine if we need dark text (for light backgrounds like cream)
+    // Determine stroke thickness based on background brightness
     const isLightBackground = this.isLightColor(colorScheme.gradientTop);
     const textColor = colorScheme.text;
     const strokeColor = colorScheme.textStroke;
@@ -155,20 +155,23 @@ export class GameStyleButton extends EventEmitter {
       ? Math.max(2, fontSize / 12)
       : Math.max(3, fontSize / 8);
 
+    // Drop shadow uses stroke color for light backgrounds, black for dark
+    const shadowColor = isLightBackground ? strokeColor : 0x000000;
+
     this.textField = graphics().createText(this.config.text, {
       fontFamily: fontFamily,
       fontSize: fontSize,
       fontWeight: '700',  // Bold - Fredoka's max weight
       fill: textColor,
-      stroke: strokeColor,
-      strokeThickness: strokeThickness,
+      stroke: { color: strokeColor, width: strokeThickness },
       align: 'center',
-      dropShadow: !isLightBackground,
-      dropShadowAlpha: 0.5,
-      dropShadowAngle: Math.PI / 2,
-      dropShadowBlur: 2,
-      dropShadowColor: 0x000000,
-      dropShadowDistance: 2
+      dropShadow: {
+        alpha: 0.5,
+        angle: Math.PI / 2,
+        blur: 2,
+        color: shadowColor,
+        distance: 2
+      }
     });
 
     if (this.textField.anchor) this.textField.anchor.set(0.5, 0.5);
@@ -474,8 +477,7 @@ export class GameStyleButton extends EventEmitter {
     this.render();
     if (this.textField) {
       this.textField.style.fill = colorScheme.text;
-      this.textField.style.stroke = colorScheme.textStroke;
-      this.textField.style.strokeThickness = this.config.fontSize / 8;
+      this.textField.style.stroke = { color: colorScheme.textStroke, width: this.config.fontSize / 8 };
     }
     return this;
   }

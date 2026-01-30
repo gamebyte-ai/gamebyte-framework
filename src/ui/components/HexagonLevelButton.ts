@@ -158,14 +158,14 @@ export class HexagonLevelButton extends EventEmitter {
       fontSize: fontSize,
       fontWeight: 'bold',
       fill: colorScheme.text,
-      stroke: colorScheme.textStroke,
-      strokeThickness: Math.max(2, fontSize / 10),
-      dropShadow: true,
-      dropShadowAlpha: 0.4,
-      dropShadowAngle: Math.PI / 2,
-      dropShadowBlur: 2,
-      dropShadowColor: 0x000000,
-      dropShadowDistance: 2
+      stroke: { color: colorScheme.textStroke, width: Math.max(2, fontSize / 10) },
+      dropShadow: {
+        alpha: 0.4,
+        angle: Math.PI / 2,
+        blur: 2,
+        color: 0x000000,
+        distance: 2
+      }
     });
 
     if (text.anchor) text.anchor.set(0.5, 0.5);

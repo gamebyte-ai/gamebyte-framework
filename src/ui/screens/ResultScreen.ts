@@ -151,8 +151,7 @@ export class ResultScreen extends SimpleScreen {
       fontSize: 48,
       fontWeight: 'bold',
       fill: isVictory ? 0x4CAF50 : 0xE84C4C,
-      stroke: 0x000000,
-      strokeThickness: 4,
+      stroke: { color: 0x000000, width: 4 },
     });
     if (title.anchor) title.anchor.set(0.5, 0.5);
     title.x = width / 2;
@@ -267,8 +266,7 @@ export class ResultScreen extends SimpleScreen {
       fontSize: 56,
       fontWeight: 'bold',
       fill: 0xFFFFFF,
-      stroke: 0x000000,
-      strokeThickness: 3,
+      stroke: { color: 0x000000, width: 3 },
     });
     if (scoreValue.anchor) scoreValue.anchor.set(0.5, 0.5);
     scoreValue.x = width / 2;
@@ -346,8 +344,7 @@ export class ResultScreen extends SimpleScreen {
         fontSize: 16,
         fontWeight: 'bold',
         fill: 0xFFFFFF,
-        stroke: 0x000000,
-        strokeThickness: 2,
+        stroke: { color: 0x000000, width: 2 },
       });
       if (amountText.anchor) amountText.anchor.set(0.5, 0.5);
       amountText.y = 22;

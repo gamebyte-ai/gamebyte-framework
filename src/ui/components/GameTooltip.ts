@@ -222,8 +222,7 @@ export class GameTooltip extends EventEmitter {
       wordWrap: true,
       wordWrapWidth: maxWidth - padding * 2,
       ...(hasStroke && {
-        stroke: colorScheme.textStroke,
-        strokeThickness: Math.max(2, fontSize * 0.1),
+        stroke: { color: colorScheme.textStroke, width: Math.max(2, fontSize * 0.1) },
       }),
     });
   }

@@ -199,8 +199,7 @@ export abstract class GamePanel extends EventEmitter {
       fontSize: 24,
       fontWeight: 'bold',
       fill: this.theme.title || 0xFFFFFF,
-      stroke: this.theme.titleStroke || 0x1A1A2A,
-      strokeThickness: 3,
+      stroke: { color: this.theme.titleStroke || 0x1A1A2A, width: 3 },
       align: 'center',
     });
 

@@ -416,13 +416,17 @@ class ThreeTextWrapper extends ThreeDisplayObjectBase implements IText {
     if (style.wordWrap) this.element.style.whiteSpace = 'normal';
     if (style.wordWrapWidth) this.element.style.maxWidth = `${style.wordWrapWidth}px`;
 
-    if (style.dropShadow && style.dropShadowColor && style.dropShadowDistance) {
-      const color =
-        typeof style.dropShadowColor === 'number'
-          ? '#' + style.dropShadowColor.toString(16).padStart(6, '0')
-          : style.dropShadowColor;
+    // Handle Pixi v8 dropShadow object format
+    if (style.dropShadow && typeof style.dropShadow === 'object') {
+      const shadow = style.dropShadow as { color?: number | string; distance?: number; blur?: number };
+      if (shadow.color !== undefined && shadow.distance !== undefined) {
+        const color =
+          typeof shadow.color === 'number'
+            ? '#' + shadow.color.toString(16).padStart(6, '0')
+            : shadow.color;
 
-      this.element.style.textShadow = `${style.dropShadowDistance}px ${style.dropShadowDistance}px ${style.dropShadowBlur || 0}px ${color}`;
+        this.element.style.textShadow = `${shadow.distance}px ${shadow.distance}px ${shadow.blur || 0}px ${color}`;
+      }
     }
   }
 }

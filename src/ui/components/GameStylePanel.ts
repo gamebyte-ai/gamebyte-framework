@@ -214,15 +214,15 @@ export class GameStylePanel extends EventEmitter {
       fontSize: titleFontSize,
       fontWeight: '900',
       fill: colorScheme.titleColor,
-      stroke: colorScheme.titleStroke,
-      strokeThickness: Math.max(3, titleFontSize * 0.12),
+      stroke: { color: colorScheme.titleStroke, width: Math.max(3, titleFontSize * 0.12) },
       align: 'center',
-      dropShadow: true,
-      dropShadowColor: 0x000000,
-      dropShadowBlur: 0,
-      dropShadowDistance: Math.max(2, titleFontSize * 0.06),
-      dropShadowAngle: Math.PI / 2,
-      dropShadowAlpha: 0.5,
+      dropShadow: {
+        color: 0x000000,
+        blur: 0,
+        distance: Math.max(2, titleFontSize * 0.06),
+        angle: Math.PI / 2,
+        alpha: 0.5
+      }
     });
 
     // Center title in header

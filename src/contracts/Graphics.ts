@@ -112,17 +112,10 @@ export interface ITextStyle {
   wordWrap?: boolean;
   wordWrapWidth?: number;
   lineHeight?: number;
-  // Supports both legacy (number) and modern Pixi v8 (object) formats
-  stroke?: number | string | IStrokeStyle;
-  strokeThickness?: number; // Legacy format
-  // Supports both legacy (boolean) and modern Pixi v8 (object) formats
-  dropShadow?: boolean | IDropShadowStyle;
-  // Legacy format properties
-  dropShadowColor?: number | string;
-  dropShadowBlur?: number;
-  dropShadowAngle?: number;
-  dropShadowDistance?: number;
-  dropShadowAlpha?: number;
+  // Pixi v8 object format only
+  stroke?: IStrokeStyle;
+  // Pixi v8 object format only
+  dropShadow?: IDropShadowStyle;
 }
 
 /**

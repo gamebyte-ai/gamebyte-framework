@@ -104,8 +104,7 @@ export class PixiGraphicsFactory implements IGraphicsFactory {
 
   /**
    * Convert framework text style to Pixi v8 style object format
-   * Pixi v8 uses object format for stroke and dropShadow in Text constructor
-   * Supports both legacy format and modern Pixi v8 format
+   * Pixi v8 uses object format for stroke and dropShadow
    */
   static convertToPixiV8Style(style: ITextStyle): any {
     const config: any = {
@@ -119,50 +118,18 @@ export class PixiGraphicsFactory implements IGraphicsFactory {
       lineHeight: style.lineHeight,
     };
 
-    // Copy fontStyle if present
     if (style.fontStyle) {
       config.fontStyle = style.fontStyle;
     }
 
     // Pixi v8 stroke format: { color: number, width: number }
-    // Handle both legacy (stroke as color number) and modern (stroke as object) formats
-    if (style.stroke !== undefined) {
-      const strokeValue = style.stroke as any;
-      if (typeof strokeValue === 'object' && strokeValue !== null && 'color' in strokeValue) {
-        // Modern Pixi v8 format: { color, width }
-        config.stroke = strokeValue;
-      } else if (typeof strokeValue === 'number' || typeof strokeValue === 'string') {
-        // Legacy format: stroke is a color number/string
-        config.stroke = {
-          color: strokeValue,
-          width: style.strokeThickness ?? 0
-        };
-      }
-    } else if (style.strokeThickness !== undefined && style.strokeThickness > 0) {
-      // Legacy format with only strokeThickness
-      config.stroke = {
-        color: 0x000000,
-        width: style.strokeThickness
-      };
+    if (style.stroke) {
+      config.stroke = style.stroke;
     }
 
     // Pixi v8 dropShadow format: { alpha, angle, blur, color, distance }
-    // Handle both legacy (dropShadow as boolean) and modern (dropShadow as object) formats
-    if (style.dropShadow !== undefined) {
-      const dropShadowValue = style.dropShadow as any;
-      if (typeof dropShadowValue === 'object' && dropShadowValue !== null) {
-        // Modern Pixi v8 format: { alpha, angle, blur, color, distance }
-        config.dropShadow = dropShadowValue;
-      } else if (dropShadowValue === true) {
-        // Legacy format: dropShadow is boolean, use individual properties
-        config.dropShadow = {
-          alpha: style.dropShadowAlpha ?? 0.8,
-          angle: style.dropShadowAngle ?? 0.523599, // ~30 degrees
-          blur: style.dropShadowBlur ?? 0,
-          color: style.dropShadowColor ?? 0x000000,
-          distance: style.dropShadowDistance ?? 5
-        };
-      }
+    if (style.dropShadow) {
+      config.dropShadow = style.dropShadow;
     }
 
     return config;

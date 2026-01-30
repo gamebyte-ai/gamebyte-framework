@@ -55,12 +55,9 @@ interface UITextConfig {
     maxWidth?: number;         // Word wrap if exceeded
     maxLines?: number;         // Truncate with ellipsis
 
-    // Effects
-    stroke?: number;           // Outline color
-    strokeThickness?: number;
-    dropShadow?: boolean;
-    dropShadowColor?: number;
-    dropShadowDistance?: number;
+    // Effects (Pixi v8 object format)
+    stroke?: { color: number; width: number };
+    dropShadow?: { color: number; distance: number; blur?: number; alpha?: number };
 }
 ```
 
@@ -74,8 +71,7 @@ const heading = new UIText({
     fontSize: 48,
     fontWeight: 'bold',
     color: 0xffffff,
-    dropShadow: true,
-    dropShadowDistance: 3
+    dropShadow: { color: 0x000000, distance: 3, blur: 2, alpha: 0.5 }
 });
 ```
 
@@ -98,8 +94,7 @@ const score = new UIText({
     fontSize: 36,
     fontWeight: 'bold',
     color: 0xffd700,
-    stroke: 0x000000,
-    strokeThickness: 4
+    stroke: { color: 0x000000, width: 4 }
 });
 ```
 

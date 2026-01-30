@@ -234,12 +234,13 @@ export class ResponsiveContainer {
         text.style.fontSize = baseStyle.fontSize * scale;
       }
 
-      if (baseStyle.strokeThickness !== undefined) {
-        text.style.strokeThickness = baseStyle.strokeThickness * scale;
-      }
-
+      // Pixi v8: stroke is an object with { color, width }
       if (baseStyle.stroke && baseStyle.stroke.width !== undefined) {
-        text.style.stroke.width = baseStyle.stroke.width * scale;
+        if (!text.style.stroke) {
+          text.style.stroke = { width: baseStyle.stroke.width * scale };
+        } else {
+          text.style.stroke.width = baseStyle.stroke.width * scale;
+        }
       }
 
       if (baseStyle.dropShadow) {

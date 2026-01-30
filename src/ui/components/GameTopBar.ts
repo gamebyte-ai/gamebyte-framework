@@ -258,8 +258,7 @@ export class GameTopBar extends EventEmitter {
       fontSize: 18,
       fontWeight: 'bold',
       fill: 0xFFFFFF,
-      stroke: 0x000000,
-      strokeThickness: 2
+      stroke: { color: 0x000000, width: 2 }
     });
     if (valueText.anchor) valueText.anchor.set(0, 0.5);
     valueText.x = iconX + 25;

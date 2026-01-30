@@ -185,8 +185,7 @@ export class GameBottomNav extends EventEmitter {
         fontSize: 12,
         fontWeight: 'bold',
         fill: 0xFFFFFF,
-        stroke: 0x1A237E,
-        strokeThickness: 2
+        stroke: { color: 0x1A237E, width: 2 }
       });
       if (label.anchor) label.anchor.set(0.5, 0);
       label.y = isCenter ? size / 2 - 5 : size / 2 + 5;
