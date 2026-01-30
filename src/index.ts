@@ -393,6 +393,9 @@ export type { GameStylePanelConfig, GamePanelColorScheme } from './ui/components
 export { GameToggle, GameToggleColors } from './ui/components/GameToggle';
 export type { GameToggleConfig, GameToggleColorScheme } from './ui/components/GameToggle';
 
+export { GameCheckBox, GameCheckBoxColors } from './ui/components/GameCheckBox';
+export type { GameCheckBoxConfig, GameCheckBoxColorScheme } from './ui/components/GameCheckBox';
+
 export { GameSlider, GameSliderColors } from './ui/components/GameSlider';
 export type { GameSliderConfig, GameSliderColorScheme } from './ui/components/GameSlider';
 
@@ -426,6 +429,10 @@ export { ShineEffect } from './ui/effects/ShineEffect';
 export type { ShimmerConfig, SparkleConfig, ShimmerInstance } from './ui/effects/ShineEffect';
 export { CelebrationManager, CelebrationPresets } from './ui/effects/CelebrationManager';
 export type { CelebrationConfig, ICelebrationAudioManager } from './ui/effects/CelebrationManager';
+export { StarBurstEffect } from './ui/effects/StarBurstEffect';
+export type { StarBurstConfig, StarBurstInstance } from './ui/effects/StarBurstEffect';
+export { SunburstEffect } from './ui/effects/SunburstEffect';
+export type { SunburstConfig } from './ui/effects/SunburstEffect';
 
 // UI Input System
 export { GameByteUIInputSystem } from './ui/input/UIInputSystem';
@@ -539,6 +546,84 @@ export type { DrawToTextureOptions } from './graphics/GraphicsEngine';
 export { PixiGraphicsFactory } from './graphics/PixiGraphicsFactory';
 export { ThreeGraphicsFactory } from './graphics/ThreeGraphicsFactory';
 
+// Gradient System (Native Pixi.js v8 FillGradient)
+export {
+  Gradients,
+  createLinearGradient,
+  createRadialGradient,
+  linearGradient,
+  radialGradient
+} from './graphics/GradientFactory';
+export type {
+  GradientFill,
+  GradientColorStop,
+  LinearGradientOptions,
+  RadialGradientOptions
+} from './graphics/GradientFactory';
+
+// Layout System (@pixi/layout - Yoga-powered flexbox)
+export {
+  // Layout Manager
+  LayoutManager as PixiLayoutManager,
+  getLayoutManager,
+  setLayoutManager,
+  // Layout Presets
+  LayoutPresets,
+  GameLayoutPresets,
+  // Layout Helpers
+  createFlexRow,
+  createFlexColumn,
+  createCentered,
+  createGrid,
+  createStack,
+  createAbsolute,
+  createSpacing,
+  createMargin,
+  createPadding,
+  createSized,
+  percent,
+  mergeLayouts,
+  createResponsiveLayout,
+  scaleLayout,
+} from './layout/index';
+export type {
+  // Layout Types
+  LayoutConfig,
+  LayoutSystemConfig,
+  ResponsiveLayoutConfig,
+  ResponsiveBreakpoint,
+  LayoutPreset,
+  LayoutManagerEvents,
+  // Flexbox Types
+  FlexDirection,
+  FlexWrap,
+  JustifyContent,
+  AlignItems,
+  AlignContent,
+  AlignSelf,
+  PositionType,
+  Overflow,
+  ObjectFit,
+  SizeValue,
+  StackDirection,
+  SpacingConfig,
+} from './layout/index';
+
+// UI2 System (Modern Declarative UI)
+export { UI as UI2, UINode, createState, computed, reactive, resolveValue, isReactive } from './ui2/index';
+export { setTheme as setUI2Theme, setThemeMode as setUI2ThemeMode, getTheme as getUI2Theme } from './ui2/index';
+export { createNode as createUI2Node, registerComponent as registerUI2Component } from './ui2/index';
+export type {
+  // UI2 Types
+  UINodeConfig as UI2NodeConfig,
+  UINodeConfigBase as UI2NodeConfigBase,
+  ScreenConfig as UI2ScreenConfig,
+  PanelConfig as UI2PanelConfig,
+  ThemeConfig as UI2ThemeConfig,
+  ReactiveState as UI2ReactiveState,
+  UIRef as UI2Ref
+} from './ui2/index';
+
 // Types
 export type {
   GameConfig,
@@ -577,6 +662,7 @@ import { Merge as MergeFacadeExport } from './facades/Merge';
 
 // Import QuickGameConfig for the createGame function
 import type { QuickGameConfig } from './core/GameByte';
+import { Gradients } from './graphics/GradientFactory';
 
 /**
  * Create and configure a GameByte instance.
@@ -668,6 +754,7 @@ const GameByteFramework = {
   RenderingMode,
   ServiceContainer,
   Assets,
+  Gradients,
 
   // Facades for static access
   Renderer: null as any, // Will be set after app initialization
