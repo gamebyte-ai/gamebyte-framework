@@ -1,7 +1,7 @@
 {
   "name": "@gamebyte/framework",
   "type": "module",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "A comprehensive JavaScript game engine framework that unifies 2D and 3D game development with Laravel-inspired architecture",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -42,7 +42,11 @@
     "prepublishOnly": "npm run clean && npm run build",
     "validate:agent-docs": "bash scripts/validate-agent-docs.sh",
     "docs:agent": "echo 'Agent docs: docs/agent-guide/CORE_API.md'",
-    "examples:list": "find examples/ -name '*.html' -type f"
+    "examples:list": "find examples/ -name '*.html' -type f",
+    "release:patch": "npm version patch && git push && git push --tags",
+    "release:minor": "npm version minor && git push && git push --tags",
+    "release:major": "npm version major && git push && git push --tags",
+    "release:tag": "git tag -a v$(node -p \"require('./package.json').version\") -m \"Release v$(node -p \"require('./package.json').version\")\" && git push --tags"
   },
   "keywords": [
     "game-engine",

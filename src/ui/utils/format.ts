@@ -23,13 +23,3 @@ export function formatTime(seconds: number): string {
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
-
-/**
- * Darken a color by a given amount (0-1)
- */
-export function darkenColor(color: number, amount: number): number {
-  const r = Math.max(0, ((color >> 16) & 0xff) - Math.floor(255 * amount));
-  const g = Math.max(0, ((color >> 8) & 0xff) - Math.floor(255 * amount));
-  const b = Math.max(0, (color & 0xff) - Math.floor(255 * amount));
-  return (r << 16) | (g << 8) | b;
-}

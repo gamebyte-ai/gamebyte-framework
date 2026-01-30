@@ -373,7 +373,7 @@ export {
 
 // Game Style UI Components
 export { GameStyleButton, GameButtons } from './ui/components/GameStyleButton';
-export type { GameStyleButtonConfig, GameButtonColorScheme, GameButtonStyle } from './ui/components/GameStyleButton';
+export type { GameStyleButtonConfig, GameButtonColorScheme } from './ui/components/GameStyleButton';
 
 export { HexagonLevelButton } from './ui/components/HexagonLevelButton';
 export type { HexagonLevelButtonConfig, HexagonColorScheme, LevelState } from './ui/components/HexagonLevelButton';
@@ -557,7 +557,13 @@ export type {
   ISprite,
   ITexture,
   IGraphicsFactory,
-  IGraphicsEngine
+  IGraphicsEngine,
+  IFillGradient,
+  ILinearGradientConfig,
+  IRadialGradientConfig,
+  IColorStop,
+  IStrokeStyle,
+  IDropShadowStyle
 } from './contracts/Graphics';
 export { GraphicsEngine, graphics, drawToTexture } from './graphics/GraphicsEngine';
 export type { DrawToTextureOptions } from './graphics/GraphicsEngine';

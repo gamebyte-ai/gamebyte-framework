@@ -1,7 +1,7 @@
 import { EventEmitter } from 'eventemitter3';
 import { IContainer, IGraphics, IText } from '../../contracts/Graphics';
 import { graphics } from '../../graphics/GraphicsEngine';
-import { numberToHex, darkenColor, lightenColor } from '../themes/GameStyleUITheme';
+import { darkenColor, lightenColor } from '../themes/GameStyleUITheme';
 import { getFrameworkFontFamily } from '../utils/FontLoader';
 
 /**

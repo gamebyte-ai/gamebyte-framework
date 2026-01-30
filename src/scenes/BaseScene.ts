@@ -2,6 +2,8 @@ import { EventEmitter } from 'eventemitter3';
 import { Scene } from '../contracts/Scene';
 import * as PIXI from 'pixi.js';
 import * as THREE from 'three';
+import { graphics } from '../graphics/GraphicsEngine';
+import { IContainer } from '../contracts/Graphics';
 
 /**
  * Base scene implementation for 2D games (Pixi.js)
@@ -44,7 +46,8 @@ export class BaseScene extends EventEmitter implements Scene {
     super();
     this.id = id;
     this.name = name;
-    this.container = new PIXI.Container();
+    // Use graphics abstraction but cast to PIXI.Container for type compatibility
+    this.container = graphics().createContainer() as unknown as PIXI.Container;
   }
 
   /**

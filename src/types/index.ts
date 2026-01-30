@@ -35,14 +35,6 @@ export enum PerformanceTier {
   PREMIUM = 'premium'
 }
 
-// Asset Loading States (deprecated - use contracts/AssetManager)
-export enum AssetLoadingState {
-  PENDING = 'pending',
-  LOADING = 'loading',
-  LOADED = 'loaded',
-  FAILED = 'failed'
-}
-
 // Re-export asset management types for convenience
 export type {
   AssetConfig,

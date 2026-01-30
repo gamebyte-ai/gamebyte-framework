@@ -62,7 +62,6 @@
  */
 
 import { EventEmitter } from 'eventemitter3';
-import * as PIXI from 'pixi.js';
 import { graphics } from '../../graphics/GraphicsEngine';
 import { IContainer, IGraphics, IText } from '../../contracts/Graphics';
 import { ResponsiveScaleCalculator, ResponsiveConfig } from '../../utils/ResponsiveHelper';
@@ -268,18 +267,18 @@ export interface ArcheroMenuOptions {
   /** Enable responsive scaling (default: false) */
   responsive?: boolean | ResponsiveConfig;
 
-  // Deprecated options (kept for backward compatibility)
-  /** @deprecated Use style.enableParticles instead */
+  // Shorthand options (alternative to style.* and callbacks.*)
+  /** Enable particle effects (shorthand for style.enableParticles) */
   enableParticles?: boolean;
-  /** @deprecated Use style.navHeight instead */
+  /** Navigation bar height (shorthand for style.navHeight) */
   navHeight?: number;
-  /** @deprecated Use style.buttonSize instead */
+  /** Inactive button size (shorthand for style.buttonSize) */
   buttonSize?: number;
-  /** @deprecated Use style.activeButtonSize instead */
+  /** Active button size (shorthand for style.activeButtonSize) */
   activeButtonSize?: number;
-  /** @deprecated Use style.padding instead */
+  /** Edge padding (shorthand for style.padding) */
   padding?: number;
-  /** @deprecated Use callbacks.onSectionChange instead */
+  /** Section change callback (shorthand for callbacks.onSectionChange) */
   onSectionChange?: (index: number, section: MenuSection) => void;
 }
 
@@ -455,7 +454,7 @@ export class ArcheroMenu extends EventEmitter {
     // Merge style configuration with defaults
     this.style = this.mergeStyleConfig(options);
 
-    // Handle backward compatibility for deprecated options
+    // Merge callbacks (support both callbacks.onSectionChange and shorthand onSectionChange)
     this.callbacks = {
       ...options.callbacks,
       onSectionChange: options.callbacks?.onSectionChange || options.onSectionChange
@@ -519,17 +518,17 @@ export class ArcheroMenu extends EventEmitter {
   protected mergeStyleConfig(options: ArcheroMenuOptions): Required<ArcheroMenuStyleConfig> {
     const style = options.style || {};
 
-    // Handle backward compatibility
-    const legacyOverrides: Partial<ArcheroMenuStyleConfig> = {};
-    if (options.enableParticles !== undefined) legacyOverrides.enableParticles = options.enableParticles;
-    if (options.navHeight !== undefined) legacyOverrides.navHeight = options.navHeight;
-    if (options.buttonSize !== undefined) legacyOverrides.buttonSize = options.buttonSize;
-    if (options.activeButtonSize !== undefined) legacyOverrides.activeButtonSize = options.activeButtonSize;
-    if (options.padding !== undefined) legacyOverrides.padding = options.padding;
+    // Apply shorthand options (top-level options override style.*)
+    const shorthandOverrides: Partial<ArcheroMenuStyleConfig> = {};
+    if (options.enableParticles !== undefined) shorthandOverrides.enableParticles = options.enableParticles;
+    if (options.navHeight !== undefined) shorthandOverrides.navHeight = options.navHeight;
+    if (options.buttonSize !== undefined) shorthandOverrides.buttonSize = options.buttonSize;
+    if (options.activeButtonSize !== undefined) shorthandOverrides.activeButtonSize = options.activeButtonSize;
+    if (options.padding !== undefined) shorthandOverrides.padding = options.padding;
 
     return {
       ...DEFAULT_STYLE,
-      ...legacyOverrides,
+      ...shorthandOverrides,
       ...style,
       buttonGradient: {
         ...DEFAULT_STYLE.buttonGradient,
@@ -734,11 +733,10 @@ export class ArcheroMenu extends EventEmitter {
     const fontSize = isActive ? this.style.activeIconSize : this.style.iconSize;
     const yPosition = isActive ? this.style.activeIconYOffset : this.style.iconYOffset;
 
-    // Direct PIXI.Text creation (bypass framework abstraction for predictable sizing)
-    // Pixi v8 format: new PIXI.Text({ text, style })
-    const icon = new PIXI.Text({
-      text: typeof section.icon === 'string' ? section.icon : '',
-      style: {
+    // Create icon text using graphics abstraction
+    const icon = graphics().createText(
+      typeof section.icon === 'string' ? section.icon : '',
+      {
         fontSize: fontSize,
         fontFamily: 'system-ui',
         stroke: { color: this.style.iconStrokeColor, width: this.style.iconStrokeWidth },
@@ -750,9 +748,9 @@ export class ArcheroMenu extends EventEmitter {
           color: this.style.iconStrokeColor
         }
       }
-    }) as any;
+    );
 
-    icon.anchor.set(0.5);
+    icon.anchor?.set(0.5);
     icon.y = yPosition;
 
     return icon;
@@ -772,14 +770,13 @@ export class ArcheroMenu extends EventEmitter {
     const labelColor = section.customStyle?.labelColor ?? this.style.labelColor;
     const labelStrokeColor = section.customStyle?.labelStrokeColor ?? this.style.labelStrokeColor;
 
-    // Direct PIXI.Text creation (bypass framework abstraction for predictable sizing)
-    // Pixi v8 format: new PIXI.Text({ text, style })
-    const label = new PIXI.Text({
-      text: section.name,
-      style: {
+    // Create label text using graphics abstraction
+    const label = graphics().createText(
+      section.name,
+      {
         fontSize: this.style.labelSize,
         fill: labelColor,
-        fontWeight: this.style.labelFontWeight as any,
+        fontWeight: this.style.labelFontWeight,
         stroke: { color: labelStrokeColor, width: this.style.labelStrokeWidth },
         dropShadow: {
           angle: 0.523599,
@@ -789,9 +786,9 @@ export class ArcheroMenu extends EventEmitter {
           color: 0x000000
         }
       }
-    }) as any;
+    );
 
-    label.anchor.set(0.5);
+    label.anchor?.set(0.5);
     label.y = this.style.labelYOffset;
 
     return label;
@@ -826,9 +823,8 @@ export class ArcheroMenu extends EventEmitter {
       const middleColor = gradientConfig.middleColor ?? 0xFFD700;
       const bottomColor = gradientConfig.bottomColor ?? 0xFF8C00;
 
-      // PixiJS v8 FillGradient API (EXACT vanilla syntax)
-      const fillGradient = new PIXI.FillGradient({
-        type: 'linear',
+      // Create linear gradient using graphics factory abstraction
+      const fillGradient = graphics().createLinearGradient({
         start: { x: 0, y: 0 },
         end: { x: 0, y: 1 },
         colorStops: [
@@ -839,7 +835,7 @@ export class ArcheroMenu extends EventEmitter {
       });
 
       bg.roundRect(-size/2, -size/2, size, size, this.getScaledValue(this.style.buttonRadius));
-      bg.fill(fillGradient);
+      bg.fill(fillGradient.native);
     } else {
       // Inactive: Transparent
       bg.rect(-size/2, -size/2, size, size);
@@ -863,10 +859,9 @@ export class ArcheroMenu extends EventEmitter {
     const bottomColor = shine.bottomColor ?? 0xFFE55C;
     const alpha = shine.alpha ?? 0.35;
 
-    // PixiJS v8 FillGradient API (EXACT vanilla syntax)
+    // Create shine gradient using graphics factory abstraction
     const overlayTop = -size/2 + 8;
-    const shineGradient = new PIXI.FillGradient({
-      type: 'linear',
+    const shineGradient = graphics().createLinearGradient({
       start: { x: 0, y: 0 },
       end: { x: 0, y: 1 },
       colorStops: [
@@ -877,7 +872,7 @@ export class ArcheroMenu extends EventEmitter {
     });
 
     overlay.roundRect(-overlayWidth/2, overlayTop, overlayWidth, overlayHeight, this.getScaledValue(25));
-    overlay.fill(shineGradient);
+    overlay.fill(shineGradient.native);
     overlay.alpha = alpha; // Vanilla: simple alpha, no mask
 
     return overlay;

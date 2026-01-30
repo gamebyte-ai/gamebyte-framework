@@ -1,7 +1,8 @@
 import { EventEmitter } from 'eventemitter3';
-import { IContainer, IGraphics, IText, ITexture } from '../../contracts/Graphics';
+import { IContainer, IGraphics, IText } from '../../contracts/Graphics';
 import { graphics } from '../../graphics/GraphicsEngine';
 import { getFrameworkFontFamily } from '../utils/FontLoader';
+import { lightenColor, darkenColor, numberToHex } from '../themes/GameStyleUITheme';
 
 /**
  * UIButton configuration
@@ -256,14 +257,14 @@ export class UIButton extends EventEmitter {
     const { width, height, borderRadius, gradient } = this.config;
 
     // Determine gradient colors
-    const colorTop = gradient.colorTop !== undefined ? gradient.colorTop : this.lightenColor(baseColor, 0.2);
-    const colorBottom = gradient.colorBottom !== undefined ? gradient.colorBottom : this.darkenColor(baseColor, 0.2);
+    const colorTop = gradient.colorTop !== undefined ? gradient.colorTop : lightenColor(baseColor, 0.2);
+    const colorBottom = gradient.colorBottom !== undefined ? gradient.colorBottom : darkenColor(baseColor, 0.2);
 
     // Create gradient texture using framework abstraction
     const texture = graphics().createCanvasTexture(width, height, (ctx: CanvasRenderingContext2D) => {
       const gradientFill = ctx.createLinearGradient(0, 0, 0, height);
-      gradientFill.addColorStop(0, this.numberToHex(colorTop));
-      gradientFill.addColorStop(1, this.numberToHex(colorBottom));
+      gradientFill.addColorStop(0, numberToHex(colorTop));
+      gradientFill.addColorStop(1, numberToHex(colorBottom));
 
       ctx.fillStyle = gradientFill;
       this.roundRect(ctx, 0, 0, width, height, borderRadius);
@@ -466,30 +467,6 @@ export class UIButton extends EventEmitter {
     this.activeRipples = [];
     this.container.destroy({ children: true });
     this.removeAllListeners();
-  }
-
-  /**
-   * Utility methods
-   */
-
-  private lightenColor(color: number, amount: number): number {
-    const r = ((color >> 16) & 0xFF) + Math.floor(255 * amount);
-    const g = ((color >> 8) & 0xFF) + Math.floor(255 * amount);
-    const b = (color & 0xFF) + Math.floor(255 * amount);
-
-    return ((Math.min(255, r) << 16) | (Math.min(255, g) << 8) | Math.min(255, b));
-  }
-
-  private darkenColor(color: number, amount: number): number {
-    const r = ((color >> 16) & 0xFF) - Math.floor(255 * amount);
-    const g = ((color >> 8) & 0xFF) - Math.floor(255 * amount);
-    const b = (color & 0xFF) - Math.floor(255 * amount);
-
-    return ((Math.max(0, r) << 16) | (Math.max(0, g) << 8) | Math.max(0, b));
-  }
-
-  private numberToHex(num: number): string {
-    return `#${num.toString(16).padStart(6, '0')}`;
   }
 
   private roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number): void {

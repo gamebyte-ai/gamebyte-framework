@@ -1,5 +1,5 @@
 import { EventEmitter } from 'eventemitter3';
-import { IContainer, IGraphics, IText, ISprite } from '../../contracts/Graphics';
+import { IContainer, IGraphics, IText } from '../../contracts/Graphics';
 import { graphics } from '../../graphics/GraphicsEngine';
 import { GameStyleColors } from '../themes/GameStyleUITheme';
 import { getFrameworkFontFamily, loadFrameworkFont } from '../utils/FontLoader';
@@ -19,13 +19,6 @@ export interface GameButtonColorScheme {
 }
 
 /**
- * Button visual style presets
- * - 'raised': Classic 3D with drop shadow (Candy Crush style)
- * - 'flat': No shadow, thick bottom edge creates depth (modern mobile style)
- */
-export type GameButtonStyle = 'raised' | 'flat';
-
-/**
  * GameStyleButton configuration
  */
 export interface GameStyleButtonConfig {
@@ -35,10 +28,9 @@ export interface GameStyleButtonConfig {
   fontSize?: number;
   fontFamily?: string;
   colorScheme?: GameButtonColorScheme;
-  buttonStyle?: GameButtonStyle;  // 'raised' (shadow) or 'flat' (edge)
   borderRadius?: number;
   borderWidth?: number;
-  shadowOffset?: number;          // Only used in 'raised' style
+  shadowOffset?: number;
   horizontalPadding?: number;     // Safe padding from left/right edges (default: 12)
   disabled?: boolean;
   icon?: string;
@@ -100,7 +92,6 @@ export class GameStyleButton extends EventEmitter {
       fontSize: config.fontSize || 28,
       fontFamily: config.fontFamily || getFrameworkFontFamily(),
       colorScheme: config.colorScheme || GameStyleColors.GREEN_BUTTON,
-      buttonStyle: config.buttonStyle || 'raised',  // 'raised' or 'flat'
       borderRadius: config.borderRadius || 14,
       borderWidth: config.borderWidth || 1,
       shadowOffset: config.shadowOffset || 3,
@@ -196,12 +187,10 @@ export class GameStyleButton extends EventEmitter {
 
   /**
    * Render all button graphics - Mobile game style with 3D effect
-   * Supports two styles:
-   * - 'raised': Drop shadow style (Candy Crush)
-   * - 'flat': Bottom edge style (modern mobile games)
+   * Uses raised style: Drop shadow style (Candy Crush)
    */
   private render(): void {
-    const { width, height, borderRadius, borderWidth, shadowOffset, colorScheme, buttonStyle, disabled } = this.config;
+    const { width, height, borderRadius, borderWidth, shadowOffset, colorScheme, disabled } = this.config;
 
     // Clear all graphics
     this.borderGraphics.clear();

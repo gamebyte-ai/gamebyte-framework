@@ -67,7 +67,8 @@
       "WebFetch(domain:www.npmjs.com)",
       "WebFetch(domain:cdn.jsdelivr.net)",
       "WebFetch(domain:pixijs.io)",
-      "WebFetch(domain:)"
+      "WebFetch(domain:)",
+      "Bash(gh release create:*)"
     ],
     "deny": [],
     "ask": []

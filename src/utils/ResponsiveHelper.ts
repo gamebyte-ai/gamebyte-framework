@@ -89,44 +89,10 @@ export class ResponsiveScaleCalculator {
 
   /**
    * Scale a base value by the current scale factor
+   * Use this method for all responsive scaling (size, font, position, padding, stroke, etc.)
    */
   scale(baseValue: number): number {
     return baseValue * this.currentSize.scale;
-  }
-
-  /**
-   * Scale a size value (width, height, radius, etc.)
-   */
-  scaleSize(baseSize: number): number {
-    return this.scale(baseSize);
-  }
-
-  /**
-   * Scale a font size
-   */
-  scaleFont(baseFontSize: number): number {
-    return this.scale(baseFontSize);
-  }
-
-  /**
-   * Scale a position value (x, y)
-   */
-  scalePosition(basePosition: number): number {
-    return this.scale(basePosition);
-  }
-
-  /**
-   * Scale a padding/margin value
-   */
-  scalePadding(basePadding: number): number {
-    return this.scale(basePadding);
-  }
-
-  /**
-   * Scale a stroke width
-   */
-  scaleStroke(baseStroke: number): number {
-    return this.scale(baseStroke);
   }
 
   /**

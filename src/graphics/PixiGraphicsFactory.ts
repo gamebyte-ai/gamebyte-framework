@@ -14,6 +14,9 @@ import {
   ITextStyle,
   ISprite,
   ITexture,
+  IFillGradient,
+  ILinearGradientConfig,
+  IRadialGradientConfig,
 } from '../contracts/Graphics';
 import { getFrameworkFontFamily } from '../ui/utils/FontLoader';
 
@@ -37,6 +40,28 @@ class PixiGraphicsWrapper extends PIXI.Graphics implements IGraphics {
 }
 
 // No wrapper needed - use PIXI.Text directly
+
+/**
+ * Pixi.js FillGradient Wrapper
+ */
+class PixiFillGradientWrapper implements IFillGradient {
+  private gradient: PIXI.FillGradient;
+  readonly type: 'linear' | 'radial';
+
+  constructor(gradient: PIXI.FillGradient, type: 'linear' | 'radial') {
+    this.gradient = gradient;
+    this.type = type;
+  }
+
+  /** Get the native PIXI.FillGradient for use with graphics.fill() */
+  get native(): PIXI.FillGradient {
+    return this.gradient;
+  }
+
+  destroy(): void {
+    this.gradient.destroy();
+  }
+}
 
 /**
  * Pixi.js Sprite Wrapper
@@ -100,6 +125,30 @@ export class PixiGraphicsFactory implements IGraphicsFactory {
     }
 
     return PIXI.Texture.from(canvas);
+  }
+
+  createLinearGradient(config: ILinearGradientConfig): IFillGradient {
+    const gradient = new PIXI.FillGradient({
+      type: 'linear',
+      start: config.start,
+      end: config.end,
+      colorStops: config.colorStops,
+      textureSpace: config.textureSpace || 'local',
+    });
+    return new PixiFillGradientWrapper(gradient, 'linear');
+  }
+
+  createRadialGradient(config: IRadialGradientConfig): IFillGradient {
+    const gradient = new PIXI.FillGradient({
+      type: 'radial',
+      center: config.center,
+      innerRadius: config.innerRadius,
+      outerCenter: config.outerCenter || config.center,
+      outerRadius: config.outerRadius,
+      colorStops: config.colorStops,
+      textureSpace: config.textureSpace || 'local',
+    });
+    return new PixiFillGradientWrapper(gradient, 'radial');
   }
 
   /**

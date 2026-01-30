@@ -1,7 +1,7 @@
 import { EventEmitter } from 'eventemitter3';
 import { IContainer, IGraphics, IText } from '../../contracts/Graphics';
 import { graphics } from '../../graphics/GraphicsEngine';
-import { numberToHex } from '../themes/GameStyleUITheme';
+import { darkenColor } from '../themes/GameStyleUITheme';
 import { getFrameworkFontFamily } from '../utils/FontLoader';
 
 /**
@@ -230,7 +230,7 @@ export class GameTopBar extends EventEmitter {
     // Background pill shape with configurable colors
     const bg = graphics().createGraphics();
     const bgColor = res.backgroundColor || this.getDefaultBgColor(res.type);
-    const borderColor = res.borderColor || this.darkenColor(bgColor, 0.3);
+    const borderColor = res.borderColor || darkenColor(bgColor, 0.3);
 
     // Outer shadow for depth
     bg.roundRect(-halfWidth - 1, -halfHeight + 2, actualWidth + 2, height, height / 2);
@@ -268,7 +268,7 @@ export class GameTopBar extends EventEmitter {
 
     // Max label (e.g., "MAX")
     if (res.label) {
-      const labelBgColor = res.labelBackgroundColor || this.darkenColor(bgColor, 0.2);
+      const labelBgColor = res.labelBackgroundColor || darkenColor(bgColor, 0.2);
       const labelBg = graphics().createGraphics();
       labelBg.roundRect(valueText.x + valueText.width + 5, -10, 36, 20, 5);
       labelBg.fill({ color: labelBgColor });
@@ -361,7 +361,7 @@ export class GameTopBar extends EventEmitter {
 
     g.poly(vertices);
     g.fill({ color: color });
-    g.stroke({ color: this.darkenColor(color, 0.3), width: 1.5 });
+    g.stroke({ color: darkenColor(color, 0.3), width: 1.5 });
   }
 
   /**
@@ -371,7 +371,7 @@ export class GameTopBar extends EventEmitter {
     // Outer circle
     g.circle(0, 0, size);
     g.fill({ color: color });
-    g.stroke({ color: this.darkenColor(color, 0.3), width: 2 });
+    g.stroke({ color: darkenColor(color, 0.3), width: 2 });
 
     // Inner highlight
     g.circle(-size * 0.2, -size * 0.2, size * 0.3);
@@ -391,7 +391,7 @@ export class GameTopBar extends EventEmitter {
     ];
     g.poly(vertices);
     g.fill({ color: color });
-    g.stroke({ color: this.darkenColor(color, 0.3), width: 1.5 });
+    g.stroke({ color: darkenColor(color, 0.3), width: 1.5 });
 
     // Highlight
     const highlightVertices = [
@@ -418,7 +418,7 @@ export class GameTopBar extends EventEmitter {
     ];
     g.poly(vertices);
     g.fill({ color: color });
-    g.stroke({ color: this.darkenColor(color, 0.3), width: 1 });
+    g.stroke({ color: darkenColor(color, 0.3), width: 1 });
   }
 
   /**
@@ -433,7 +433,7 @@ export class GameTopBar extends EventEmitter {
     const bg = graphics().createGraphics();
     bg.roundRect(-size / 2, -size / 2, size, size, 6);
     bg.fill({ color: addBtnColor });
-    bg.stroke({ color: this.darkenColor(addBtnColor, 0.3), width: 2 });
+    bg.stroke({ color: darkenColor(addBtnColor, 0.3), width: 2 });
     container.addChild(bg);
 
     // Plus sign
@@ -488,16 +488,6 @@ export class GameTopBar extends EventEmitter {
       default:
         return 0x2C3E50;
     }
-  }
-
-  /**
-   * Darken a color
-   */
-  private darkenColor(color: number, amount: number): number {
-    const r = Math.max(0, ((color >> 16) & 0xFF) - Math.floor(255 * amount));
-    const g = Math.max(0, ((color >> 8) & 0xFF) - Math.floor(255 * amount));
-    const b = Math.max(0, (color & 0xFF) - Math.floor(255 * amount));
-    return (r << 16) | (g << 8) | b;
   }
 
   /**

@@ -4,6 +4,17 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.2.0)'
+        required: true
+        type: string
+      skip_tests:
+        description: 'Skip tests (use with caution)'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   release:
@@ -27,6 +38,7 @@ jobs:
       run: npm ci
       
     - name: Run tests
+      if: ${{ !inputs.skip_tests }}
       run: npm run test
       
     - name: Build framework
@@ -35,16 +47,49 @@ jobs:
     - name: Build demo
       run: npm run demo:build
       
-    - name: Generate changelog
+    - name: Extract release notes from CHANGELOG.md
       id: changelog
       run: |
+        # Get version from tag or manual input
+        if [ -n "${{ inputs.version }}" ]; then
+          VERSION="${{ inputs.version }}"
+        else
+          VERSION=${GITHUB_REF_NAME#v}
+        fi
+
+        # Extract section for this version from CHANGELOG.md
+        # Looks for ## [VERSION] and captures until next ## [ or end
+        NOTES=$(awk -v ver="$VERSION" '
+          /^## \[/ {
+            if (found) exit
+            if ($0 ~ "\\[" ver "\\]") found=1
+          }
+          found { print }
+        ' CHANGELOG.md)
+
+        # If no notes found in CHANGELOG, fall back to conventional-changelog
+        if [ -z "$NOTES" ]; then
+          echo "No CHANGELOG entry found for $VERSION, generating from commits..."
+          NOTES=$(npx conventional-changelog-cli -p angular -r 2)
+        fi
+
+        # Output for GitHub release
         echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
-        npx conventional-changelog-cli -p angular -r 2 >> $GITHUB_OUTPUT
+        echo "$NOTES" >> $GITHUB_OUTPUT
         echo "EOF" >> $GITHUB_OUTPUT
         
+    - name: Create tag for manual dispatch
+      if: ${{ inputs.version }}
+      run: |
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+        git tag -a "v${{ inputs.version }}" -m "Release v${{ inputs.version }}"
+        git push origin "v${{ inputs.version }}"
+
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
       with:
+        tag_name: ${{ inputs.version && format('v{0}', inputs.version) || github.ref_name }}
         body: ${{ steps.changelog.outputs.CHANGELOG }}
         files: |
           dist/*.js

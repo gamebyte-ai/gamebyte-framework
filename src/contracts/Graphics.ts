@@ -141,6 +141,46 @@ export interface ITexture {
 }
 
 /**
+ * Color stop for gradients
+ */
+export interface IColorStop {
+  offset: number;
+  color: number | string;
+}
+
+/**
+ * Linear gradient configuration
+ */
+export interface ILinearGradientConfig {
+  start: { x: number; y: number };
+  end: { x: number; y: number };
+  colorStops: IColorStop[];
+  textureSpace?: 'local' | 'global';
+}
+
+/**
+ * Radial gradient configuration
+ */
+export interface IRadialGradientConfig {
+  center: { x: number; y: number };
+  innerRadius: number;
+  outerCenter?: { x: number; y: number };
+  outerRadius: number;
+  colorStops: IColorStop[];
+  textureSpace?: 'local' | 'global';
+}
+
+/**
+ * Fill gradient interface (Pixi v8 FillGradient abstraction)
+ */
+export interface IFillGradient {
+  readonly type: 'linear' | 'radial';
+  /** Get the native gradient object for use with graphics.fill() */
+  readonly native: any;
+  destroy(): void;
+}
+
+/**
  * Graphics Factory interface
  * Creates renderer-agnostic graphics objects
  */
@@ -153,6 +193,10 @@ export interface IGraphicsFactory {
 
   // Helper to create canvas texture
   createCanvasTexture(width: number, height: number, draw: (ctx: CanvasRenderingContext2D) => void): ITexture;
+
+  // Gradient creation (Pixi v8 FillGradient)
+  createLinearGradient(config: ILinearGradientConfig): IFillGradient;
+  createRadialGradient(config: IRadialGradientConfig): IFillGradient;
 }
 
 /**

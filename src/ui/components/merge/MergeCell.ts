@@ -2,6 +2,7 @@ import { EventEmitter } from 'eventemitter3';
 import { IContainer, IGraphics } from '../../../contracts/Graphics';
 import { graphics } from '../../../graphics/GraphicsEngine';
 import { MergeItem } from './MergeItem';
+import { lightenColor } from '../../themes/GameStyleUITheme';
 
 /**
  * MergeCell configuration
@@ -402,7 +403,7 @@ export class MergeCell extends EventEmitter<MergeCellEvents> {
       alpha = 0.5;
     } else if (this._item) {
       // Slightly lighter when occupied
-      bgColor = this.lightenColor(backgroundColor, 0.1);
+      bgColor = lightenColor(backgroundColor, 0.1);
     }
 
     // Draw background using Pixi v8 modern API
@@ -489,15 +490,6 @@ export class MergeCell extends EventEmitter<MergeCellEvents> {
       .stroke({ color: 0x555555, width: 2, alpha: 0.5 });
   }
 
-  /**
-   * Lighten a color
-   */
-  private lightenColor(color: number, amount: number): number {
-    const r = Math.min(255, ((color >> 16) & 0xFF) + 255 * amount);
-    const g = Math.min(255, ((color >> 8) & 0xFF) + 255 * amount);
-    const b = Math.min(255, (color & 0xFF) + 255 * amount);
-    return (r << 16) | (g << 8) | b;
-  }
 }
 
 export default MergeCell;

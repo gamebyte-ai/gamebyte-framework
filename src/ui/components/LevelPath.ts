@@ -2,7 +2,7 @@ import { EventEmitter } from 'eventemitter3';
 import { IContainer, IGraphics } from '../../contracts/Graphics';
 import { graphics } from '../../graphics/GraphicsEngine';
 import { HexagonLevelButton, LevelState } from './HexagonLevelButton';
-import { numberToHex } from '../themes/GameStyleUITheme';
+import { lightenColor } from '../themes/GameStyleUITheme';
 
 /**
  * Level data configuration
@@ -216,7 +216,7 @@ export class LevelPath extends EventEmitter {
     // Highlight
     this.pathGraphics.moveTo(x1, y1 - 2);
     this.pathGraphics.lineTo(x2, y2 - 2);
-    this.pathGraphics.stroke({ color: this.lightenColor(color, 0.3), width: width * 0.4, cap: 'round' });
+    this.pathGraphics.stroke({ color: lightenColor(color, 0.3), width: width * 0.4, cap: 'round' });
   }
 
   /**
@@ -369,16 +369,6 @@ export class LevelPath extends EventEmitter {
     };
 
     requestAnimationFrame(animate);
-  }
-
-  /**
-   * Lighten a color
-   */
-  private lightenColor(color: number, amount: number): number {
-    const r = Math.min(255, ((color >> 16) & 0xFF) + Math.floor(255 * amount));
-    const g = Math.min(255, ((color >> 8) & 0xFF) + Math.floor(255 * amount));
-    const b = Math.min(255, (color & 0xFF) + Math.floor(255 * amount));
-    return (r << 16) | (g << 8) | b;
   }
 
   /**

@@ -26,6 +26,7 @@ import { EventEmitter } from 'eventemitter3';
 import * as PIXI from 'pixi.js';
 import { LayoutConfig, LayoutSystemConfig, ResponsiveLayoutConfig, ResponsiveBreakpoint } from './types.js';
 import { LayoutPresets, GameLayoutPresets, scaleLayout } from './LayoutStyles.js';
+import { graphics } from '../graphics/GraphicsEngine.js';
 
 /**
  * Layout Manager Events
@@ -300,7 +301,7 @@ export class LayoutManager extends EventEmitter<LayoutManagerEvents> {
    * Create a layout-enabled container
    */
   createContainer(layout: LayoutConfig = {}): PIXI.Container {
-    const container = new PIXI.Container();
+    const container = graphics().createContainer() as unknown as PIXI.Container;
     (container as any).layout = layout;
     return container;
   }

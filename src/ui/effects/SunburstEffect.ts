@@ -1,5 +1,4 @@
 import { EventEmitter } from 'eventemitter3';
-import * as PIXI from 'pixi.js';
 import { IContainer, IGraphics } from '../../contracts/Graphics.js';
 import { getGraphicsFactory } from './graphics-utils.js';
 
@@ -128,10 +127,10 @@ export class SunburstEffect extends EventEmitter {
     const { innerRadius, outerRadius, rayCount, rayWidth, color, alphaCenter, alphaEdge } = this.config;
 
     // Create radial gradient circle
-    const gradientCircle = factory.createGraphics() as unknown as PIXI.Graphics;
+    const gradientCircle = factory.createGraphics();
 
-    const circleGradient = new PIXI.FillGradient({
-      type: 'radial',
+    // Create radial gradient using graphics factory abstraction
+    const circleGradient = factory.createRadialGradient({
       center: { x: 0.5, y: 0.5 },
       innerRadius: innerRadius / (outerRadius * 2),
       outerCenter: { x: 0.5, y: 0.5 },
@@ -144,10 +143,10 @@ export class SunburstEffect extends EventEmitter {
       ]
     });
 
-    gradientCircle.circle(0, 0, outerRadius).fill(circleGradient);
+    gradientCircle.circle(0, 0, outerRadius).fill(circleGradient.native);
 
     // Create ray mask
-    const rayMask = factory.createGraphics() as unknown as PIXI.Graphics;
+    const rayMask = factory.createGraphics();
 
     for (let i = 0; i < rayCount; i++) {
       const angle = (i / rayCount) * Math.PI * 2;
@@ -167,14 +166,14 @@ export class SunburstEffect extends EventEmitter {
     }
     rayMask.fill(0xffffff);
 
-    // Apply mask
-    gradientCircle.mask = rayMask;
+    // Apply mask - need to cast to any for mask property access
+    (gradientCircle as any).mask = rayMask;
 
-    this.container.addChild(rayMask as unknown as IGraphics);
-    this.container.addChild(gradientCircle as unknown as IGraphics);
+    this.container.addChild(rayMask);
+    this.container.addChild(gradientCircle);
 
-    this.gradientCircle = gradientCircle as unknown as IGraphics;
-    this.rayMask = rayMask as unknown as IGraphics;
+    this.gradientCircle = gradientCircle;
+    this.rayMask = rayMask;
   }
 
   /**
@@ -185,9 +184,8 @@ export class SunburstEffect extends EventEmitter {
     const factory = getGraphicsFactory();
     const { innerRadius, outerRadius, rayCount, rayWidth, color, alphaCenter, alphaEdge } = this.config;
 
-    // Global radial gradient centered at origin
-    const radialGradient = new PIXI.FillGradient({
-      type: 'radial',
+    // Create radial gradient using graphics factory abstraction (global texture space)
+    const radialGradient = factory.createRadialGradient({
       center: { x: 0, y: 0 },
       innerRadius: 0,
       outerCenter: { x: 0, y: 0 },
@@ -202,7 +200,7 @@ export class SunburstEffect extends EventEmitter {
     });
 
     // Draw ALL rays in ONE Graphics object
-    const rays = factory.createGraphics() as unknown as PIXI.Graphics;
+    const rays = factory.createGraphics();
 
     for (let i = 0; i < rayCount; i++) {
       const angle = (i / rayCount) * Math.PI * 2;
@@ -227,10 +225,10 @@ export class SunburstEffect extends EventEmitter {
       );
       rays.closePath();
     }
-    rays.fill(radialGradient);
+    rays.fill(radialGradient.native);
 
-    this.container.addChild(rays as unknown as IGraphics);
-    this.raysGraphics = rays as unknown as IGraphics;
+    this.container.addChild(rays);
+    this.raysGraphics = rays;
   }
 
   /**

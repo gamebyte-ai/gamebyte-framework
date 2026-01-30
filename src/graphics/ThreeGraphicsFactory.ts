@@ -17,6 +17,9 @@ import {
   ISprite,
   ITexture,
   IDisplayObject,
+  IFillGradient,
+  ILinearGradientConfig,
+  IRadialGradientConfig,
 } from '../contracts/Graphics';
 
 /**
@@ -584,5 +587,15 @@ export class ThreeGraphicsFactory implements IGraphicsFactory {
     }
 
     return new ThreeTextureWrapper(canvas);
+  }
+
+  createLinearGradient(_config: ILinearGradientConfig): IFillGradient {
+    console.warn('ThreeGraphicsFactory: Gradients not supported in 3D renderer, use CSS gradients instead');
+    return { type: 'linear', native: null, destroy: () => {} };
+  }
+
+  createRadialGradient(_config: IRadialGradientConfig): IFillGradient {
+    console.warn('ThreeGraphicsFactory: Gradients not supported in 3D renderer, use CSS gradients instead');
+    return { type: 'radial', native: null, destroy: () => {} };
   }
 }

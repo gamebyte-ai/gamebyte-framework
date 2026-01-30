@@ -4,7 +4,8 @@ import { graphics } from '../../graphics/GraphicsEngine.js';
 import { GameStyleButton } from '../components/GameStyleButton.js';
 import { GameStyleColors } from '../themes/GameStyleUITheme.js';
 import { animate, Easing, lerp } from '../utils/animation.js';
-import { formatNumber, darkenColor } from '../utils/format.js';
+import { formatNumber } from '../utils/format.js';
+import { darkenColor } from '../themes/GameStyleUITheme.js';
 import { getFrameworkFontFamily } from '../utils/FontLoader.js';
 
 /**

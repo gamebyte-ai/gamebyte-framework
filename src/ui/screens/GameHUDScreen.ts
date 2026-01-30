@@ -203,7 +203,6 @@ export class GameHUDScreen extends SimpleScreen {
         width: 44,
         height: 44,
         fontSize: 18,
-        buttonStyle: 'flat',
         colorScheme: GameStyleColors.BLUE_BUTTON,
       });
       this.pauseButton.setPosition(width - 44 - this.HUD_PADDING, (this.HUD_HEIGHT - 44) / 2);

@@ -147,20 +147,24 @@ export class SafeAreaLayout {
 
   /**
    * Initialize the layout system with PIXI
-   * @param PIXI - The PIXI namespace object
+   * @param PIXI - The PIXI namespace object (kept for backward compatibility)
    */
-  initialize(PIXI: any): void {
+  initialize(PIXI?: any): void {
     this.PIXI = PIXI;
 
+    // Use graphics abstraction for container creation
+    const { graphics } = require('../graphics/GraphicsEngine');
+    const factory = graphics();
+
     // Create main container that holds everything
-    this.mainContainer = new PIXI.Container();
+    this.mainContainer = factory.createContainer();
 
     // Create graphics for letterbox background
-    this.letterboxGraphics = new PIXI.Graphics();
+    this.letterboxGraphics = factory.createGraphics();
     this.mainContainer.addChild(this.letterboxGraphics);
 
     // Create game container that will be positioned in the safe area
-    this.gameContainer = new PIXI.Container();
+    this.gameContainer = factory.createContainer();
     this.mainContainer.addChild(this.gameContainer);
 
     // Set up resize handler
