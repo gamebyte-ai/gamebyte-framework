@@ -361,6 +361,80 @@ export const GameStyleColors = {
     itemActive: 0x5C6BC0,
     textColor: 0xFFFFFF,
     lockedColor: 0x757575
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // @pixi/ui Wrapper Component Colors (Jellybean Style)
+  // ═══════════════════════════════════════════════════════════════
+
+  // Input field colors
+  GAME_INPUT: {
+    background: 0x2A3A4A,
+    backgroundFocus: 0x3A4A5A,
+    border: 0x000000,
+    borderInner: 0x1A2A3A,
+    shadow: 0x1A2530,
+    text: 0xFFFFFF,
+    placeholder: 0x8A9AAA,
+    cursor: 0xFFFFFF,
+    selection: 0x4DA6FF,
+    highlight: 0xFFFFFF
+  },
+
+  // ScrollBox colors
+  GAME_SCROLLBOX: {
+    background: 0x2A3A4A,
+    border: 0x000000,
+    borderInner: 0x1A2A3A,
+    shadow: 0x1A2530,
+    scrollbarTrack: 0x1A2A3A,
+    scrollbarThumb: 0x5A6A7A,
+    scrollbarThumbHover: 0x7A8A9A,
+    highlight: 0xFFFFFF
+  },
+
+  // Select/Dropdown colors
+  GAME_SELECT: {
+    triggerBg: 0x4DA6FF,
+    triggerBorder: 0x000000,
+    triggerShadow: 0x2E7BC9,
+    triggerHighlight: 0xFFFFFF,
+    dropdownBg: 0x2A3A4A,
+    dropdownBorder: 0x000000,
+    dropdownShadow: 0x1A2530,
+    itemHover: 0x3A4A5A,
+    itemSelected: 0x4DA6FF,
+    text: 0xFFFFFF,
+    arrow: 0xFFFFFF
+  },
+
+  // CheckBox colors
+  GAME_CHECKBOX: {
+    boxBg: 0x2A3A4A,
+    boxBorder: 0x000000,
+    boxShadow: 0x1A2530,
+    boxChecked: 0x4DA6FF,
+    checkmark: 0xFFFFFF,
+    highlight: 0xFFFFFF,
+    text: 0xFFFFFF
+  },
+
+  // RadioGroup colors
+  GAME_RADIO: {
+    circleBg: 0x2A3A4A,
+    circleBorder: 0x000000,
+    circleShadow: 0x1A2530,
+    circleSelected: 0x4DA6FF,
+    dot: 0xFFFFFF,
+    highlight: 0xFFFFFF,
+    text: 0xFFFFFF
+  },
+
+  // List colors (minimal - mostly container)
+  GAME_LIST: {
+    background: 0x2A3A4A,
+    border: 0x000000,
+    divider: 0x3A4A5A
   }
 };
 
