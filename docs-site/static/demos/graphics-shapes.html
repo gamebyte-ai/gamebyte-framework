@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - Graphics Shapes Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
+        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
+        #game-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        canvas { display: block; }
+        .info { color: #8892b0; margin-top: 20px; font-size: 12px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Graphics API - Shapes</h1>
+    <p>Pixi.js v8 Graphics API demonstration</p>
+    <div id="game-container"></div>
+    <div class="info">
+        Rectangles, circles, polygons, and more with Pixi.js v8 modern API
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+
+    <script>
+        const CONFIG = { width: 500, height: 400 };
+
+        async function init() {
+            const app = new PIXI.Application();
+            await app.init({
+                width: CONFIG.width,
+                height: CONFIG.height,
+                backgroundColor: 0x1a1a2e,
+                antialias: true
+            });
+            document.getElementById('game-container').appendChild(app.canvas);
+
+            // Title
+            const title = new PIXI.Text({
+                text: 'Pixi.js v8 Graphics Shapes',
+                style: { fontSize: 22, fill: 0xFFFFFF, fontWeight: 'bold' }
+            });
+            title.anchor.set(0.5, 0);
+            title.x = CONFIG.width / 2;
+            title.y = 10;
+            app.stage.addChild(title);
+
+            // Rectangle
+            const rect = new PIXI.Graphics();
+            rect.roundRect(0, 0, 80, 60, 8);
+            rect.fill({ color: 0xE74C3C });
+            rect.stroke({ color: 0xC0392B, width: 3 });
+            rect.x = 50;
+            rect.y = 60;
+            app.stage.addChild(rect);
+
+            const rectLabel = new PIXI.Text({ text: 'roundRect', style: { fontSize: 12, fill: 0x8892b0 } });
+            rectLabel.anchor.set(0.5, 0);
+            rectLabel.x = 90;
+            rectLabel.y = 125;
+            app.stage.addChild(rectLabel);
+
+            // Circle
+            const circle = new PIXI.Graphics();
+            circle.circle(0, 0, 35);
+            circle.fill({ color: 0x3498DB });
+            circle.stroke({ color: 0x2980B9, width: 3 });
+            circle.x = 200;
+            circle.y = 90;
+            app.stage.addChild(circle);
+
+            const circleLabel = new PIXI.Text({ text: 'circle', style: { fontSize: 12, fill: 0x8892b0 } });
+            circleLabel.anchor.set(0.5, 0);
+            circleLabel.x = 200;
+            circleLabel.y = 125;
+            app.stage.addChild(circleLabel);
+
+            // Ellipse
+            const ellipse = new PIXI.Graphics();
+            ellipse.ellipse(0, 0, 50, 30);
+            ellipse.fill({ color: 0x2ECC71 });
+            ellipse.stroke({ color: 0x27AE60, width: 3 });
+            ellipse.x = 320;
+            ellipse.y = 90;
+            app.stage.addChild(ellipse);
+
+            const ellipseLabel = new PIXI.Text({ text: 'ellipse', style: { fontSize: 12, fill: 0x8892b0 } });
+            ellipseLabel.anchor.set(0.5, 0);
+            ellipseLabel.x = 320;
+            ellipseLabel.y = 125;
+            app.stage.addChild(ellipseLabel);
+
+            // Polygon (Star)
+            const star = new PIXI.Graphics();
+            const points = [];
+            for (let i = 0; i < 10; i++) {
+                const radius = i % 2 === 0 ? 35 : 18;
+                const angle = (i * Math.PI / 5) - Math.PI / 2;
+                points.push(Math.cos(angle) * radius, Math.sin(angle) * radius);
+            }
+            star.poly(points);
+            star.fill({ color: 0xF39C12 });
+            star.stroke({ color: 0xE67E22, width: 2 });
+            star.x = 440;
+            star.y = 90;
+            app.stage.addChild(star);
+
+            const starLabel = new PIXI.Text({ text: 'poly (star)', style: { fontSize: 12, fill: 0x8892b0 } });
+            starLabel.anchor.set(0.5, 0);
+            starLabel.x = 440;
+            starLabel.y = 125;
+            app.stage.addChild(starLabel);
+
+            // Row 2
+
+            // Triangle
+            const triangle = new PIXI.Graphics();
+            triangle.poly([0, -35, 35, 25, -35, 25]);
+            triangle.fill({ color: 0x9B59B6 });
+            triangle.stroke({ color: 0x8E44AD, width: 3 });
+            triangle.x = 90;
+            triangle.y = 200;
+            app.stage.addChild(triangle);
+
+            const triLabel = new PIXI.Text({ text: 'poly (triangle)', style: { fontSize: 12, fill: 0x8892b0 } });
+            triLabel.anchor.set(0.5, 0);
+            triLabel.x = 90;
+            triLabel.y = 235;
+            app.stage.addChild(triLabel);
+
+            // Arc
+            const arc = new PIXI.Graphics();
+            arc.moveTo(0, 0);
+            arc.arc(0, 0, 40, 0, Math.PI * 1.5);
+            arc.lineTo(0, 0);
+            arc.fill({ color: 0x1ABC9C });
+            arc.stroke({ color: 0x16A085, width: 3 });
+            arc.x = 200;
+            arc.y = 200;
+            app.stage.addChild(arc);
+
+            const arcLabel = new PIXI.Text({ text: 'arc (pie)', style: { fontSize: 12, fill: 0x8892b0 } });
+            arcLabel.anchor.set(0.5, 0);
+            arcLabel.x = 200;
+            arcLabel.y = 235;
+            app.stage.addChild(arcLabel);
+
+            // Lines
+            const lines = new PIXI.Graphics();
+            lines.moveTo(-30, -25);
+            lines.lineTo(30, -25);
+            lines.lineTo(30, 25);
+            lines.lineTo(-30, 25);
+            lines.stroke({ color: 0xE91E63, width: 4 });
+            lines.x = 320;
+            lines.y = 200;
+            app.stage.addChild(lines);
+
+            const linesLabel = new PIXI.Text({ text: 'lines', style: { fontSize: 12, fill: 0x8892b0 } });
+            linesLabel.anchor.set(0.5, 0);
+            linesLabel.x = 320;
+            linesLabel.y = 235;
+            app.stage.addChild(linesLabel);
+
+            // Bezier Curve
+            const curve = new PIXI.Graphics();
+            curve.moveTo(-40, 20);
+            curve.bezierCurveTo(-40, -40, 40, -40, 40, 20);
+            curve.stroke({ color: 0x00BCD4, width: 4 });
+            curve.x = 440;
+            curve.y = 200;
+            app.stage.addChild(curve);
+
+            const curveLabel = new PIXI.Text({ text: 'bezierCurve', style: { fontSize: 12, fill: 0x8892b0 } });
+            curveLabel.anchor.set(0.5, 0);
+            curveLabel.x = 440;
+            curveLabel.y = 235;
+            app.stage.addChild(curveLabel);
+
+            // Row 3 - Gradients and Alpha
+
+            // With alpha
+            const alphaRect = new PIXI.Graphics();
+            alphaRect.roundRect(0, 0, 80, 50, 6);
+            alphaRect.fill({ color: 0xFF5722, alpha: 0.6 });
+            alphaRect.stroke({ color: 0xE64A19, width: 2 });
+            alphaRect.x = 50;
+            alphaRect.y = 290;
+            app.stage.addChild(alphaRect);
+
+            const alphaLabel = new PIXI.Text({ text: 'alpha: 0.6', style: { fontSize: 12, fill: 0x8892b0 } });
+            alphaLabel.anchor.set(0.5, 0);
+            alphaLabel.x = 90;
+            alphaLabel.y = 345;
+            app.stage.addChild(alphaLabel);
+
+            // Multiple fills
+            const multi = new PIXI.Graphics();
+            multi.circle(0, 0, 30);
+            multi.fill({ color: 0x673AB7 });
+            multi.circle(0, 0, 20);
+            multi.fill({ color: 0x9575CD });
+            multi.circle(0, 0, 10);
+            multi.fill({ color: 0xD1C4E9 });
+            multi.x = 200;
+            multi.y = 315;
+            app.stage.addChild(multi);
+
+            const multiLabel = new PIXI.Text({ text: 'stacked', style: { fontSize: 12, fill: 0x8892b0 } });
+            multiLabel.anchor.set(0.5, 0);
+            multiLabel.x = 200;
+            multiLabel.y = 345;
+            app.stage.addChild(multiLabel);
+
+            // Dashed stroke simulation
+            const dashed = new PIXI.Graphics();
+            for (let i = 0; i < 8; i++) {
+                const angle = (i * Math.PI / 4);
+                const x1 = Math.cos(angle) * 15;
+                const y1 = Math.sin(angle) * 15;
+                const x2 = Math.cos(angle) * 30;
+                const y2 = Math.sin(angle) * 30;
+                dashed.moveTo(x1, y1);
+                dashed.lineTo(x2, y2);
+            }
+            dashed.stroke({ color: 0x795548, width: 3 });
+            dashed.x = 320;
+            dashed.y = 315;
+            app.stage.addChild(dashed);
+
+            const dashedLabel = new PIXI.Text({ text: 'pattern', style: { fontSize: 12, fill: 0x8892b0 } });
+            dashedLabel.anchor.set(0.5, 0);
+            dashedLabel.x = 320;
+            dashedLabel.y = 345;
+            app.stage.addChild(dashedLabel);
+
+            // Hexagon
+            const hex = new PIXI.Graphics();
+            const hexPoints = [];
+            for (let i = 0; i < 6; i++) {
+                const angle = (i * Math.PI / 3) - Math.PI / 6;
+                hexPoints.push(Math.cos(angle) * 30, Math.sin(angle) * 30);
+            }
+            hex.poly(hexPoints);
+            hex.fill({ color: 0x607D8B });
+            hex.stroke({ color: 0x455A64, width: 3 });
+            hex.x = 440;
+            hex.y = 315;
+            app.stage.addChild(hex);
+
+            const hexLabel = new PIXI.Text({ text: 'hexagon', style: { fontSize: 12, fill: 0x8892b0 } });
+            hexLabel.anchor.set(0.5, 0);
+            hexLabel.x = 440;
+            hexLabel.y = 345;
+            app.stage.addChild(hexLabel);
+
+            // Animate some shapes
+            app.ticker.add((ticker) => {
+                const time = ticker.lastTime / 1000;
+                star.rotation = time * 0.5;
+                circle.scale.set(1 + Math.sin(time * 2) * 0.1);
+                hex.rotation = -time * 0.3;
+            });
+
+            console.log('Graphics shapes demo initialized!');
+        }
+
+        init().catch(console.error);
+    </script>
+</body>
+</html>

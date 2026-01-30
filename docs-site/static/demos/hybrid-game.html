@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - Hybrid 2D/3D Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
+        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
+        #game-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            position: relative;
+        }
+        #canvas-3d, #canvas-2d {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        #canvas-2d {
+            pointer-events: none;
+        }
+        .info { color: #8892b0; margin-top: 20px; font-size: 12px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Hybrid 2D/3D Rendering</h1>
+    <p>3D scene with 2D UI overlay using Pixi.js + Three.js</p>
+    <div id="game-container">
+        <canvas id="canvas-3d"></canvas>
+        <canvas id="canvas-2d"></canvas>
+    </div>
+    <div class="info">
+        Click to collect coins! 3D world rendered with Three.js, UI with Pixi.js
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+
+    <script>
+        const CONFIG = { width: 500, height: 400 };
+
+        const container = document.getElementById('game-container');
+        container.style.width = CONFIG.width + 'px';
+        container.style.height = CONFIG.height + 'px';
+
+        const canvas3d = document.getElementById('canvas-3d');
+        const canvas2d = document.getElementById('canvas-2d');
+
+        // Game state
+        let score = 0;
+        let coins = [];
+
+        // ============ THREE.JS (3D WORLD) ============
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a2e);
+
+        const camera = new THREE.PerspectiveCamera(60, CONFIG.width / CONFIG.height, 0.1, 1000);
+        camera.position.set(0, 8, 10);
+        camera.lookAt(0, 0, 0);
+
+        const renderer3d = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true });
+        renderer3d.setSize(CONFIG.width, CONFIG.height);
+
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(5, 10, 5);
+        scene.add(directionalLight);
+
+        // Ground
+        const ground = new THREE.Mesh(
+            new THREE.PlaneGeometry(15, 15),
+            new THREE.MeshStandardMaterial({ color: 0x2a2a4e, roughness: 0.8 })
+        );
+        ground.rotation.x = -Math.PI / 2;
+        scene.add(ground);
+
+        // Grid
+        const grid = new THREE.GridHelper(15, 15, 0x5D6D7E, 0x3D4F5F);
+        grid.position.y = 0.01;
+        scene.add(grid);
+
+        // Player (3D cube)
+        const player = new THREE.Mesh(
+            new THREE.BoxGeometry(0.8, 0.8, 0.8),
+            new THREE.MeshStandardMaterial({ color: 0x3498DB, roughness: 0.4 })
+        );
+        player.position.y = 0.4;
+        scene.add(player);
+
+        // Coins (3D cylinders)
+        function spawnCoin() {
+            const coin = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.3, 0.3, 0.1, 32),
+                new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 0.8, roughness: 0.2 })
+            );
+            coin.rotation.x = Math.PI / 2;
+            coin.position.x = (Math.random() - 0.5) * 10;
+            coin.position.z = (Math.random() - 0.5) * 10;
+            coin.position.y = 0.5;
+            scene.add(coin);
+            coins.push(coin);
+        }
+
+        // Spawn initial coins
+        for (let i = 0; i < 5; i++) spawnCoin();
+
+        // ============ PIXI.JS (2D UI OVERLAY) ============
+        let pixiApp;
+        let scoreText, comboText, healthBar;
+
+        async function initPixi() {
+            pixiApp = new PIXI.Application();
+            await pixiApp.init({
+                canvas: canvas2d,
+                width: CONFIG.width,
+                height: CONFIG.height,
+                backgroundAlpha: 0
+            });
+
+            // Score display
+            const scoreBg = new PIXI.Graphics();
+            scoreBg.roundRect(10, 10, 150, 40, 8);
+            scoreBg.fill({ color: 0x000000, alpha: 0.5 });
+            pixiApp.stage.addChild(scoreBg);
+
+            scoreText = new PIXI.Text({
+                text: '🪙 Score: 0',
+                style: { fontSize: 20, fill: 0xFFD700, fontWeight: 'bold' }
+            });
+            scoreText.x = 20;
+            scoreText.y = 18;
+            pixiApp.stage.addChild(scoreText);
+
+            // Combo text (hidden by default)
+            comboText = new PIXI.Text({
+                text: '',
+                style: { fontSize: 32, fill: 0xFFFFFF, fontWeight: 'bold' }
+            });
+            comboText.anchor.set(0.5);
+            comboText.x = CONFIG.width / 2;
+            comboText.y = CONFIG.height / 2;
+            comboText.alpha = 0;
+            pixiApp.stage.addChild(comboText);
+
+            // Health bar
+            const healthBg = new PIXI.Graphics();
+            healthBg.roundRect(CONFIG.width - 160, 10, 150, 20, 5);
+            healthBg.fill({ color: 0x000000, alpha: 0.5 });
+            pixiApp.stage.addChild(healthBg);
+
+            healthBar = new PIXI.Graphics();
+            updateHealthBar(100);
+            pixiApp.stage.addChild(healthBar);
+
+            const healthLabel = new PIXI.Text({
+                text: '❤️',
+                style: { fontSize: 16 }
+            });
+            healthLabel.x = CONFIG.width - 175;
+            healthLabel.y = 10;
+            pixiApp.stage.addChild(healthLabel);
+
+            // Instructions
+            const instructions = new PIXI.Text({
+                text: 'Click to move • Collect coins!',
+                style: { fontSize: 12, fill: 0x8892b0 }
+            });
+            instructions.anchor.set(0.5, 1);
+            instructions.x = CONFIG.width / 2;
+            instructions.y = CONFIG.height - 10;
+            pixiApp.stage.addChild(instructions);
+
+            // Mini-map
+            const miniMapBg = new PIXI.Graphics();
+            miniMapBg.roundRect(CONFIG.width - 110, CONFIG.height - 110, 100, 100, 5);
+            miniMapBg.fill({ color: 0x000000, alpha: 0.5 });
+            miniMapBg.stroke({ color: 0x5D6D7E, width: 1 });
+            pixiApp.stage.addChild(miniMapBg);
+
+            window.miniMapContainer = new PIXI.Container();
+            window.miniMapContainer.x = CONFIG.width - 60;
+            window.miniMapContainer.y = CONFIG.height - 60;
+            pixiApp.stage.addChild(window.miniMapContainer);
+        }
+
+        function updateHealthBar(health) {
+            healthBar.clear();
+            healthBar.roundRect(CONFIG.width - 158, 12, 146 * (health / 100), 16, 4);
+            healthBar.fill({ color: health > 50 ? 0x2ECC71 : (health > 25 ? 0xF39C12 : 0xE74C3C) });
+        }
+
+        function showCombo(text) {
+            comboText.text = text;
+            comboText.alpha = 1;
+            comboText.scale.set(0.5);
+
+            // Animate
+            let frame = 0;
+            const animate = () => {
+                frame++;
+                comboText.scale.set(0.5 + frame * 0.05);
+                comboText.alpha = 1 - frame * 0.03;
+                if (frame < 30) requestAnimationFrame(animate);
+            };
+            animate();
+        }
+
+        function updateMiniMap() {
+            if (!window.miniMapContainer) return;
+            window.miniMapContainer.removeChildren();
+
+            // Player dot
+            const playerDot = new PIXI.Graphics();
+            playerDot.circle(player.position.x * 5, player.position.z * 5, 4);
+            playerDot.fill({ color: 0x3498DB });
+            window.miniMapContainer.addChild(playerDot);
+
+            // Coin dots
+            coins.forEach(coin => {
+                const coinDot = new PIXI.Graphics();
+                coinDot.circle(coin.position.x * 5, coin.position.z * 5, 3);
+                coinDot.fill({ color: 0xFFD700 });
+                window.miniMapContainer.addChild(coinDot);
+            });
+        }
+
+        // ============ INTERACTION ============
+        let targetPosition = null;
+
+        canvas3d.addEventListener('click', (e) => {
+            const rect = canvas3d.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / CONFIG.width) * 2 - 1;
+            const y = -((e.clientY - rect.top) / CONFIG.height) * 2 + 1;
+
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(new THREE.Vector2(x, y), camera);
+
+            const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+            const point = new THREE.Vector3();
+            raycaster.ray.intersectPlane(plane, point);
+
+            if (point) {
+                targetPosition = { x: point.x, z: point.z };
+            }
+        });
+
+        // ============ GAME LOOP ============
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const time = Date.now() / 1000;
+
+            // Move player towards target
+            if (targetPosition) {
+                const dx = targetPosition.x - player.position.x;
+                const dz = targetPosition.z - player.position.z;
+                const dist = Math.sqrt(dx * dx + dz * dz);
+
+                if (dist > 0.1) {
+                    player.position.x += (dx / dist) * 0.1;
+                    player.position.z += (dz / dist) * 0.1;
+                    player.rotation.y = Math.atan2(dx, dz);
+                } else {
+                    targetPosition = null;
+                }
+            }
+
+            // Animate player
+            player.position.y = 0.4 + Math.sin(time * 5) * 0.05;
+
+            // Rotate coins
+            coins.forEach(coin => {
+                coin.rotation.z = time * 3;
+                coin.position.y = 0.5 + Math.sin(time * 2 + coin.position.x) * 0.1;
+            });
+
+            // Check coin collection
+            for (let i = coins.length - 1; i >= 0; i--) {
+                const coin = coins[i];
+                const dx = coin.position.x - player.position.x;
+                const dz = coin.position.z - player.position.z;
+                const dist = Math.sqrt(dx * dx + dz * dz);
+
+                if (dist < 1) {
+                    scene.remove(coin);
+                    coins.splice(i, 1);
+                    score += 10;
+                    scoreText.text = `🪙 Score: ${score}`;
+                    showCombo('+10');
+                    spawnCoin();
+                }
+            }
+
+            updateMiniMap();
+            renderer3d.render(scene, camera);
+        }
+
+        // Initialize
+        initPixi().then(() => {
+            animate();
+            console.log('Hybrid 2D/3D demo initialized!');
+        });
+    </script>
+</body>
+</html>

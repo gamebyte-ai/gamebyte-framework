@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - Scene Transitions Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
+        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
+        #game-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        canvas { display: block; }
+        .info { color: #8892b0; margin-top: 20px; font-size: 12px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Scene Transitions</h1>
+    <p>Different transition effects between game scenes</p>
+    <div id="game-container"></div>
+    <div class="info">
+        Click buttons to see different transition effects
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="../gamebyte.umd.js"></script>
+
+    <script>
+        const {
+            createGame,
+            GameStyleButton,
+            GameStyleColors,
+            loadFrameworkFont,
+            getFrameworkFontFamily,
+            graphics
+        } = window.GameByteFramework;
+
+        const CONFIG = { width: 500, height: 500 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.getElementById('game-container').appendChild(canvas);
+
+        const game = createGame();
+        let renderer, stage, factory;
+
+        // Scene management
+        let currentScene = 0;
+        let isTransitioning = false;
+        let sceneContainer;
+        let transitionOverlay;
+
+        const scenes = [
+            { name: 'Menu', color: 0x3498DB, icon: '🏠' },
+            { name: 'Game', color: 0x2ECC71, icon: '🎮' },
+            { name: 'Settings', color: 0x9B59B6, icon: '⚙️' },
+            { name: 'Shop', color: 0xF39C12, icon: '🛒' }
+        ];
+
+        async function init() {
+            await loadFrameworkFont();
+            await game.initialize(canvas, '2d');
+            renderer = game.make('renderer');
+            stage = renderer.getStage();
+            factory = graphics();
+
+            // Background
+            const bg = factory.createGraphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill({ color: 0x1a1a2e });
+            stage.addChild(bg);
+
+            // Scene container
+            sceneContainer = factory.createContainer();
+            stage.addChild(sceneContainer);
+
+            // Transition overlay (for effects)
+            transitionOverlay = factory.createGraphics();
+            transitionOverlay.rect(0, 0, CONFIG.width, CONFIG.height);
+            transitionOverlay.fill({ color: 0x000000 });
+            transitionOverlay.alpha = 0;
+            stage.addChild(transitionOverlay);
+
+            // Title
+            const title = factory.createText('Scene Transitions', {
+                fontFamily: getFrameworkFontFamily(),
+                fontSize: 28,
+                fill: 0xFFFFFF
+            });
+            title.x = CONFIG.width / 2;
+            title.y = 15;
+            if (title.anchor) title.anchor.set(0.5, 0);
+            stage.addChild(title);
+
+            // Current scene indicator
+            window.sceneIndicator = factory.createText('Current: Menu 🏠', {
+                fontSize: 16,
+                fill: 0xFFFFFF
+            });
+            window.sceneIndicator.x = CONFIG.width / 2;
+            window.sceneIndicator.y = 50;
+            if (window.sceneIndicator.anchor) window.sceneIndicator.anchor.set(0.5, 0);
+            stage.addChild(window.sceneIndicator);
+
+            // Render initial scene
+            renderScene(currentScene);
+
+            // Transition buttons
+            const transitionTypes = [
+                { name: 'Fade', type: 'fade' },
+                { name: 'Slide Left', type: 'slideLeft' },
+                { name: 'Slide Up', type: 'slideUp' },
+                { name: 'Zoom', type: 'zoom' },
+                { name: 'Wipe', type: 'wipe' },
+                { name: 'Circle', type: 'circle' }
+            ];
+
+            const colors = [
+                GameStyleColors.BLUE_BUTTON,
+                GameStyleColors.GREEN_BUTTON,
+                GameStyleColors.PURPLE_BUTTON,
+                GameStyleColors.YELLOW_BUTTON,
+                GameStyleColors.RED_BUTTON,
+                GameStyleColors.BLUE_BUTTON
+            ];
+
+            transitionTypes.forEach((trans, i) => {
+                const btn = new GameStyleButton({
+                    text: trans.name,
+                    width: 140,
+                    height: 45,
+                    fontSize: 14,
+                    colorScheme: colors[i]
+                });
+                const col = i % 3;
+                const row = Math.floor(i / 3);
+                btn.setPosition(40 + col * 150, 380 + row * 55);
+                btn.on('click', () => {
+                    if (!isTransitioning) {
+                        const nextScene = (currentScene + 1) % scenes.length;
+                        transition(trans.type, nextScene);
+                    }
+                });
+                stage.addChild(btn.getContainer());
+            });
+
+            game.start();
+            console.log('Scene transitions demo initialized!');
+        }
+
+        function renderScene(index) {
+            sceneContainer.removeChildren();
+
+            const scene = scenes[index];
+
+            // Scene background
+            const bg = factory.createGraphics();
+            bg.roundRect(30, 90, 440, 270, 15);
+            bg.fill({ color: scene.color, alpha: 0.3 });
+            bg.stroke({ color: scene.color, width: 3 });
+            sceneContainer.addChild(bg);
+
+            // Scene icon
+            const icon = factory.createText(scene.icon, {
+                fontSize: 80
+            });
+            icon.x = CONFIG.width / 2;
+            icon.y = 150;
+            if (icon.anchor) icon.anchor.set(0.5, 0);
+            sceneContainer.addChild(icon);
+
+            // Scene name
+            const name = factory.createText(scene.name + ' Scene', {
+                fontFamily: getFrameworkFontFamily(),
+                fontSize: 32,
+                fill: scene.color
+            });
+            name.x = CONFIG.width / 2;
+            name.y = 260;
+            if (name.anchor) name.anchor.set(0.5, 0);
+            sceneContainer.addChild(name);
+
+            // Decorative elements
+            for (let i = 0; i < 5; i++) {
+                const dec = factory.createGraphics();
+                dec.circle(0, 0, 10 + i * 5);
+                dec.stroke({ color: scene.color, width: 2, alpha: 0.3 });
+                dec.x = 80 + i * 30;
+                dec.y = 320;
+                sceneContainer.addChild(dec);
+            }
+
+            window.sceneIndicator.text = `Current: ${scene.name} ${scene.icon}`;
+        }
+
+        function transition(type, toScene) {
+            isTransitioning = true;
+            const duration = 500;
+            const startTime = Date.now();
+
+            const animate = () => {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const eased = easeInOutCubic(progress);
+
+                switch (type) {
+                    case 'fade':
+                        if (progress < 0.5) {
+                            transitionOverlay.alpha = eased * 2;
+                        } else {
+                            if (progress >= 0.5 && currentScene !== toScene) {
+                                currentScene = toScene;
+                                renderScene(currentScene);
+                            }
+                            transitionOverlay.alpha = 2 - eased * 2;
+                        }
+                        break;
+
+                    case 'slideLeft':
+                        if (progress < 0.5) {
+                            sceneContainer.x = -eased * CONFIG.width;
+                        } else {
+                            if (currentScene !== toScene) {
+                                currentScene = toScene;
+                                renderScene(currentScene);
+                                sceneContainer.x = CONFIG.width;
+                            }
+                            sceneContainer.x = CONFIG.width - eased * CONFIG.width;
+                        }
+                        break;
+
+                    case 'slideUp':
+                        if (progress < 0.5) {
+                            sceneContainer.y = -eased * CONFIG.height;
+                        } else {
+                            if (currentScene !== toScene) {
+                                currentScene = toScene;
+                                renderScene(currentScene);
+                                sceneContainer.y = CONFIG.height;
+                            }
+                            sceneContainer.y = CONFIG.height - eased * CONFIG.height;
+                        }
+                        break;
+
+                    case 'zoom':
+                        if (progress < 0.5) {
+                            sceneContainer.scale.set(1 - eased);
+                            sceneContainer.alpha = 1 - eased * 2;
+                        } else {
+                            if (currentScene !== toScene) {
+                                currentScene = toScene;
+                                renderScene(currentScene);
+                            }
+                            sceneContainer.scale.set(eased);
+                            sceneContainer.alpha = (eased - 0.5) * 2;
+                        }
+                        sceneContainer.x = (1 - sceneContainer.scale.x) * CONFIG.width / 2;
+                        sceneContainer.y = (1 - sceneContainer.scale.y) * CONFIG.height / 2;
+                        break;
+
+                    case 'wipe':
+                        transitionOverlay.clear();
+                        if (progress < 0.5) {
+                            transitionOverlay.rect(0, 0, eased * CONFIG.width * 2, CONFIG.height);
+                        } else {
+                            if (currentScene !== toScene) {
+                                currentScene = toScene;
+                                renderScene(currentScene);
+                            }
+                            transitionOverlay.rect(eased * CONFIG.width * 2 - CONFIG.width, 0, CONFIG.width, CONFIG.height);
+                        }
+                        transitionOverlay.fill({ color: 0x000000 });
+                        break;
+
+                    case 'circle':
+                        transitionOverlay.clear();
+                        const maxRadius = Math.sqrt(CONFIG.width * CONFIG.width + CONFIG.height * CONFIG.height) / 2;
+                        if (progress < 0.5) {
+                            const radius = maxRadius - (eased * 2 * maxRadius);
+                            transitionOverlay.rect(0, 0, CONFIG.width, CONFIG.height);
+                            transitionOverlay.fill({ color: 0x000000 });
+                            transitionOverlay.circle(CONFIG.width / 2, CONFIG.height / 2, Math.max(0, radius));
+                            transitionOverlay.cut();
+                        } else {
+                            if (currentScene !== toScene) {
+                                currentScene = toScene;
+                                renderScene(currentScene);
+                            }
+                            const radius = (eased * 2 - 1) * maxRadius;
+                            transitionOverlay.rect(0, 0, CONFIG.width, CONFIG.height);
+                            transitionOverlay.fill({ color: 0x000000 });
+                            transitionOverlay.circle(CONFIG.width / 2, CONFIG.height / 2, radius);
+                            transitionOverlay.cut();
+                        }
+                        break;
+                }
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    // Reset
+                    sceneContainer.x = 0;
+                    sceneContainer.y = 0;
+                    sceneContainer.scale.set(1);
+                    sceneContainer.alpha = 1;
+                    transitionOverlay.clear();
+                    transitionOverlay.alpha = 0;
+                    isTransitioning = false;
+                }
+            };
+
+            animate();
+        }
+
+        function easeInOutCubic(t) {
+            return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        }
+
+        init().catch(console.error);
+    </script>
+</body>
+</html>

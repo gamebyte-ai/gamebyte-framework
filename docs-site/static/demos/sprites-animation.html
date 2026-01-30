@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - Sprite Animation Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
+        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
+        #game-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        canvas { display: block; }
+        .info { color: #8892b0; margin-top: 20px; font-size: 12px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Sprite Animation</h1>
+    <p>Animated sprites with frame-based animation</p>
+    <div id="game-container"></div>
+    <div class="info">
+        Click to change animation speed
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+
+    <script>
+        const CONFIG = { width: 500, height: 300 };
+
+        async function init() {
+            const app = new PIXI.Application();
+            await app.init({
+                width: CONFIG.width,
+                height: CONFIG.height,
+                backgroundColor: 0x1a1a2e,
+                antialias: true
+            });
+            document.getElementById('game-container').appendChild(app.canvas);
+
+            // Create animated character frames using graphics
+            const frames = [];
+            const colors = [0x3498DB, 0x2980B9, 0x3498DB, 0x5DADE2];
+
+            for (let i = 0; i < 4; i++) {
+                const graphics = new PIXI.Graphics();
+
+                // Body
+                graphics.circle(32, 32, 25);
+                graphics.fill({ color: colors[i] });
+
+                // Eyes
+                const eyeOffset = Math.sin(i * Math.PI / 2) * 3;
+                graphics.circle(24, 26 + eyeOffset, 5);
+                graphics.fill({ color: 0xFFFFFF });
+                graphics.circle(40, 26 + eyeOffset, 5);
+                graphics.fill({ color: 0xFFFFFF });
+
+                // Pupils
+                graphics.circle(25, 27 + eyeOffset, 2);
+                graphics.fill({ color: 0x000000 });
+                graphics.circle(41, 27 + eyeOffset, 2);
+                graphics.fill({ color: 0x000000 });
+
+                // Smile
+                const smileWidth = 8 + Math.sin(i * Math.PI / 2) * 4;
+                graphics.arc(32, 36, smileWidth, 0.2, Math.PI - 0.2);
+                graphics.stroke({ color: 0xFFFFFF, width: 2 });
+
+                // Legs animation
+                const legOffset = Math.sin(i * Math.PI / 2) * 8;
+                graphics.moveTo(24, 55);
+                graphics.lineTo(20 - legOffset, 70);
+                graphics.stroke({ color: colors[i], width: 4 });
+                graphics.moveTo(40, 55);
+                graphics.lineTo(44 + legOffset, 70);
+                graphics.stroke({ color: colors[i], width: 4 });
+
+                const texture = app.renderer.generateTexture(graphics);
+                frames.push(texture);
+            }
+
+            // Create multiple animated sprites
+            const sprites = [];
+            const positions = [
+                { x: 100, y: 150 },
+                { x: 250, y: 120 },
+                { x: 400, y: 180 },
+                { x: 180, y: 220 },
+                { x: 350, y: 100 }
+            ];
+
+            positions.forEach((pos, index) => {
+                const animatedSprite = new PIXI.AnimatedSprite(frames);
+                animatedSprite.anchor.set(0.5);
+                animatedSprite.x = pos.x;
+                animatedSprite.y = pos.y;
+                animatedSprite.animationSpeed = 0.1 + index * 0.03;
+                animatedSprite.scale.set(0.8 + index * 0.1);
+                animatedSprite.play();
+                app.stage.addChild(animatedSprite);
+                sprites.push(animatedSprite);
+            });
+
+            // Title
+            const title = new PIXI.Text({
+                text: 'Animated Sprites',
+                style: {
+                    fontSize: 24,
+                    fill: 0xFFFFFF,
+                    fontWeight: 'bold'
+                }
+            });
+            title.anchor.set(0.5, 0);
+            title.x = CONFIG.width / 2;
+            title.y = 10;
+            app.stage.addChild(title);
+
+            // Speed indicator
+            const speedText = new PIXI.Text({
+                text: 'Speed: Normal',
+                style: {
+                    fontSize: 14,
+                    fill: 0x8892b0
+                }
+            });
+            speedText.anchor.set(0.5, 1);
+            speedText.x = CONFIG.width / 2;
+            speedText.y = CONFIG.height - 10;
+            app.stage.addChild(speedText);
+
+            // Click to change speed
+            let speedMode = 0;
+            const speeds = [
+                { name: 'Normal', value: 1 },
+                { name: 'Fast', value: 2 },
+                { name: 'Slow', value: 0.5 },
+                { name: 'Super Fast', value: 4 }
+            ];
+
+            app.canvas.addEventListener('click', () => {
+                speedMode = (speedMode + 1) % speeds.length;
+                const speed = speeds[speedMode];
+                speedText.text = `Speed: ${speed.name}`;
+                sprites.forEach((sprite, i) => {
+                    sprite.animationSpeed = (0.1 + i * 0.03) * speed.value;
+                });
+            });
+
+            // Add bobbing motion
+            app.ticker.add((ticker) => {
+                const time = ticker.lastTime / 1000;
+                sprites.forEach((sprite, i) => {
+                    sprite.y = positions[i].y + Math.sin(time * 2 + i) * 10;
+                });
+            });
+
+            console.log('Sprite animation demo initialized!');
+        }
+
+        init().catch(console.error);
+    </script>
+</body>
+</html>

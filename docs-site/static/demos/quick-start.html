@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - Quick Start Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
+        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
+        #game-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        canvas { display: block; }
+        .info { color: #8892b0; margin-top: 20px; font-size: 12px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Quick Start Demo</h1>
+    <p>A minimal GameByte game setup example</p>
+    <div id="game-container"></div>
+    <div class="info">
+        This shows the basic setup: canvas, game loop, input handling, and UI
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="../gamebyte.umd.js"></script>
+
+    <script>
+        const {
+            createGame,
+            GameStyleButton,
+            GameStyleColors,
+            loadFrameworkFont,
+            getFrameworkFontFamily,
+            graphics
+        } = window.GameByteFramework;
+
+        const CONFIG = { width: 500, height: 400 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.getElementById('game-container').appendChild(canvas);
+
+        const game = createGame();
+        let renderer, stage, factory;
+
+        // Game objects
+        let player;
+        let stars = [];
+        let score = 0;
+        let scoreText;
+
+        async function init() {
+            await loadFrameworkFont();
+            await game.initialize(canvas, '2d');
+            renderer = game.make('renderer');
+            stage = renderer.getStage();
+            factory = graphics();
+
+            // Background
+            const bg = factory.createGraphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill({ color: 0x1a1a2e });
+            stage.addChild(bg);
+
+            // Title
+            const title = factory.createText('Quick Start Game', {
+                fontFamily: getFrameworkFontFamily(),
+                fontSize: 28,
+                fill: 0xFFFFFF
+            });
+            title.x = CONFIG.width / 2;
+            title.y = 15;
+            if (title.anchor) title.anchor.set(0.5, 0);
+            stage.addChild(title);
+
+            // Instructions
+            const instructions = factory.createText('Click/tap to move the player and collect stars!', {
+                fontSize: 12,
+                fill: 0x8892b0
+            });
+            instructions.x = CONFIG.width / 2;
+            instructions.y = 50;
+            if (instructions.anchor) instructions.anchor.set(0.5, 0);
+            stage.addChild(instructions);
+
+            // Game area
+            const gameArea = factory.createGraphics();
+            gameArea.roundRect(20, 80, 460, 260, 10);
+            gameArea.fill({ color: 0x0a0a1a, alpha: 0.5 });
+            gameArea.stroke({ color: 0x3D4F5F, width: 2 });
+            stage.addChild(gameArea);
+
+            // Create player
+            player = factory.createGraphics();
+            player.circle(0, 0, 20);
+            player.fill({ color: 0x3498DB });
+            player.stroke({ color: 0x2980B9, width: 3 });
+            player.x = 250;
+            player.y = 200;
+            stage.addChild(player);
+
+            // Create initial stars
+            for (let i = 0; i < 5; i++) {
+                spawnStar();
+            }
+
+            // Score
+            scoreText = factory.createText('⭐ Score: 0', {
+                fontFamily: getFrameworkFontFamily(),
+                fontSize: 20,
+                fill: 0xFFD700
+            });
+            scoreText.x = 30;
+            scoreText.y = 350;
+            stage.addChild(scoreText);
+
+            // Restart button
+            const restartBtn = new GameStyleButton({
+                text: '🔄 Restart',
+                width: 120,
+                height: 45,
+                fontSize: 16,
+                colorScheme: GameStyleColors.BLUE_BUTTON
+            });
+            restartBtn.setPosition(350, 350);
+            restartBtn.on('click', restart);
+            stage.addChild(restartBtn.getContainer());
+
+            // Click to move
+            stage.eventMode = 'static';
+            stage.hitArea = { contains: () => true };
+            stage.on('pointerdown', (e) => {
+                const pos = e.global || e.data?.global;
+                if (pos && pos.y > 80 && pos.y < 340) {
+                    player.targetX = Math.max(40, Math.min(460, pos.x));
+                    player.targetY = Math.max(100, Math.min(320, pos.y));
+                }
+            });
+
+            // Game loop
+            game.on('update', (deltaTime) => {
+                update(deltaTime);
+            });
+
+            game.start();
+            console.log('Quick start demo initialized!');
+        }
+
+        function spawnStar() {
+            const star = factory.createGraphics();
+
+            // Draw star shape
+            const points = [];
+            for (let i = 0; i < 10; i++) {
+                const radius = i % 2 === 0 ? 15 : 7;
+                const angle = (i * Math.PI / 5) - Math.PI / 2;
+                points.push(Math.cos(angle) * radius, Math.sin(angle) * radius);
+            }
+            star.poly(points);
+            star.fill({ color: 0xFFD700 });
+            star.stroke({ color: 0xFFA500, width: 2 });
+
+            star.x = 50 + Math.random() * 400;
+            star.y = 100 + Math.random() * 220;
+            star.rotation = Math.random() * Math.PI;
+
+            stage.addChild(star);
+            stars.push(star);
+        }
+
+        function update(deltaTime) {
+            // Move player towards target
+            if (player.targetX !== undefined) {
+                const dx = player.targetX - player.x;
+                const dy = player.targetY - player.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist > 5) {
+                    const speed = 5 * (deltaTime / 16.67);
+                    player.x += (dx / dist) * speed;
+                    player.y += (dy / dist) * speed;
+                }
+            }
+
+            // Animate player
+            const time = Date.now() / 1000;
+            player.scale.set(1 + Math.sin(time * 5) * 0.05);
+
+            // Animate stars
+            stars.forEach(star => {
+                star.rotation += 0.02 * (deltaTime / 16.67);
+            });
+
+            // Check collision with stars
+            for (let i = stars.length - 1; i >= 0; i--) {
+                const star = stars[i];
+                const dx = star.x - player.x;
+                const dy = star.y - player.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < 35) {
+                    // Collect star
+                    stage.removeChild(star);
+                    stars.splice(i, 1);
+                    score += 10;
+                    scoreText.text = `⭐ Score: ${score}`;
+
+                    // Spawn new star
+                    spawnStar();
+
+                    // Flash effect on player
+                    player.tint = 0xFFD700;
+                    setTimeout(() => { player.tint = 0xFFFFFF; }, 100);
+                }
+            }
+        }
+
+        function restart() {
+            score = 0;
+            scoreText.text = '⭐ Score: 0';
+            player.x = 250;
+            player.y = 200;
+            player.targetX = undefined;
+            player.targetY = undefined;
+
+            // Remove existing stars
+            stars.forEach(star => stage.removeChild(star));
+            stars = [];
+
+            // Spawn new stars
+            for (let i = 0; i < 5; i++) {
+                spawnStar();
+            }
+        }
+
+        init().catch(console.error);
+    </script>
+</body>
+</html>

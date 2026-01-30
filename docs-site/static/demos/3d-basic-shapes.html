@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - 3D Basic Shapes Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
+        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
+        #game-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        canvas { display: block; }
+        .info { color: #8892b0; margin-top: 20px; font-size: 12px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>3D Basic Shapes</h1>
+    <p>Three.js geometry and materials demonstration</p>
+    <div id="game-container"></div>
+    <div class="info">
+        Drag to rotate camera • Scroll to zoom
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
+    <script>
+        const CONFIG = { width: 500, height: 400 };
+
+        const container = document.getElementById('game-container');
+
+        // Scene
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a2e);
+
+        // Camera
+        const camera = new THREE.PerspectiveCamera(60, CONFIG.width / CONFIG.height, 0.1, 1000);
+        camera.position.set(5, 4, 8);
+        camera.lookAt(0, 0, 0);
+
+        // Renderer
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(CONFIG.width, CONFIG.height);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(5, 10, 7);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 1024;
+        directionalLight.shadow.mapSize.height = 1024;
+        scene.add(directionalLight);
+
+        const pointLight = new THREE.PointLight(0x3498DB, 0.5, 20);
+        pointLight.position.set(-3, 3, 3);
+        scene.add(pointLight);
+
+        // Ground
+        const groundGeometry = new THREE.PlaneGeometry(15, 15);
+        const groundMaterial = new THREE.MeshStandardMaterial({
+            color: 0x2a2a4e,
+            roughness: 0.8
+        });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -1;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // Grid
+        const gridHelper = new THREE.GridHelper(15, 15, 0x5D6D7E, 0x3D4F5F);
+        gridHelper.position.y = -0.99;
+        scene.add(gridHelper);
+
+        // Shapes
+        const shapes = [];
+
+        // Box
+        const box = new THREE.Mesh(
+            new THREE.BoxGeometry(1.2, 1.2, 1.2),
+            new THREE.MeshStandardMaterial({ color: 0xE74C3C, roughness: 0.4 })
+        );
+        box.position.set(-3, 0, 0);
+        box.castShadow = true;
+        scene.add(box);
+        shapes.push({ mesh: box, speed: 0.5 });
+
+        // Sphere
+        const sphere = new THREE.Mesh(
+            new THREE.SphereGeometry(0.7, 32, 32),
+            new THREE.MeshStandardMaterial({ color: 0x3498DB, roughness: 0.3, metalness: 0.2 })
+        );
+        sphere.position.set(-1, 0, 0);
+        sphere.castShadow = true;
+        scene.add(sphere);
+        shapes.push({ mesh: sphere, speed: 0.7 });
+
+        // Cylinder
+        const cylinder = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.5, 0.5, 1.4, 32),
+            new THREE.MeshStandardMaterial({ color: 0x2ECC71, roughness: 0.5 })
+        );
+        cylinder.position.set(1, 0, 0);
+        cylinder.castShadow = true;
+        scene.add(cylinder);
+        shapes.push({ mesh: cylinder, speed: 0.6 });
+
+        // Cone
+        const cone = new THREE.Mesh(
+            new THREE.ConeGeometry(0.6, 1.2, 32),
+            new THREE.MeshStandardMaterial({ color: 0xF39C12, roughness: 0.4 })
+        );
+        cone.position.set(3, 0, 0);
+        cone.castShadow = true;
+        scene.add(cone);
+        shapes.push({ mesh: cone, speed: 0.8 });
+
+        // Torus
+        const torus = new THREE.Mesh(
+            new THREE.TorusGeometry(0.5, 0.2, 16, 32),
+            new THREE.MeshStandardMaterial({ color: 0x9B59B6, roughness: 0.3 })
+        );
+        torus.position.set(-2, 0, 2.5);
+        torus.castShadow = true;
+        scene.add(torus);
+        shapes.push({ mesh: torus, speed: 1.0 });
+
+        // TorusKnot
+        const torusKnot = new THREE.Mesh(
+            new THREE.TorusKnotGeometry(0.4, 0.15, 64, 8),
+            new THREE.MeshStandardMaterial({ color: 0x1ABC9C, roughness: 0.3, metalness: 0.3 })
+        );
+        torusKnot.position.set(0, 0, 2.5);
+        torusKnot.castShadow = true;
+        scene.add(torusKnot);
+        shapes.push({ mesh: torusKnot, speed: 0.4 });
+
+        // Dodecahedron
+        const dodecahedron = new THREE.Mesh(
+            new THREE.DodecahedronGeometry(0.6),
+            new THREE.MeshStandardMaterial({ color: 0xE91E63, roughness: 0.4 })
+        );
+        dodecahedron.position.set(2, 0, 2.5);
+        dodecahedron.castShadow = true;
+        scene.add(dodecahedron);
+        shapes.push({ mesh: dodecahedron, speed: 0.55 });
+
+        // Camera controls
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let cameraAngle = { theta: 0.5, phi: 0.4 };
+        let cameraRadius = 10;
+
+        renderer.domElement.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+        });
+
+        renderer.domElement.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const deltaX = e.clientX - previousMousePosition.x;
+                const deltaY = e.clientY - previousMousePosition.y;
+
+                cameraAngle.theta -= deltaX * 0.01;
+                cameraAngle.phi = Math.max(0.1, Math.min(Math.PI / 2 - 0.1, cameraAngle.phi - deltaY * 0.01));
+
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            }
+        });
+
+        renderer.domElement.addEventListener('mouseup', () => { isDragging = false; });
+
+        renderer.domElement.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            cameraRadius = Math.max(5, Math.min(20, cameraRadius + e.deltaY * 0.01));
+        });
+
+        // Animation
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const time = Date.now() / 1000;
+
+            // Rotate shapes
+            shapes.forEach(({ mesh, speed }) => {
+                mesh.rotation.y = time * speed;
+                mesh.rotation.x = Math.sin(time * speed * 0.5) * 0.3;
+                mesh.position.y = Math.sin(time * speed + mesh.position.x) * 0.2;
+            });
+
+            // Update camera
+            camera.position.x = Math.sin(cameraAngle.theta) * Math.cos(cameraAngle.phi) * cameraRadius;
+            camera.position.y = Math.sin(cameraAngle.phi) * cameraRadius;
+            camera.position.z = Math.cos(cameraAngle.theta) * Math.cos(cameraAngle.phi) * cameraRadius;
+            camera.lookAt(0, 0, 1);
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+        console.log('3D basic shapes demo initialized!');
+    </script>
+</body>
+</html>

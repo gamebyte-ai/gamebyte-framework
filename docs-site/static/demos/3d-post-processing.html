@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - 3D Post-Processing Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
+        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
+        #game-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            position: relative;
+        }
+        canvas { display: block; }
+        .controls {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 10;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            background: #2a2a4e;
+            color: #fff;
+            border: 1px solid #5D6D7E;
+            transition: all 0.2s;
+        }
+        .btn:hover { background: #3a3a5e; }
+        .btn.active { background: #3498DB; border-color: #3498DB; }
+        .info { color: #8892b0; margin-top: 20px; font-size: 12px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>3D Post-Processing Effects</h1>
+    <p>Visual effects applied after rendering</p>
+    <div id="game-container">
+        <div class="controls">
+            <button class="btn" id="btn-none">None</button>
+            <button class="btn" id="btn-vignette">Vignette</button>
+            <button class="btn" id="btn-bloom">Bloom</button>
+            <button class="btn" id="btn-grayscale">Grayscale</button>
+            <button class="btn" id="btn-sepia">Sepia</button>
+        </div>
+    </div>
+    <div class="info">
+        Click buttons to toggle post-processing effects
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
+    <script>
+        const CONFIG = { width: 500, height: 400 };
+
+        const container = document.getElementById('game-container');
+
+        // Scene
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a2e);
+
+        // Camera
+        const camera = new THREE.PerspectiveCamera(60, CONFIG.width / CONFIG.height, 0.1, 1000);
+        camera.position.set(4, 3, 6);
+        camera.lookAt(0, 0, 0);
+
+        // Renderer
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(CONFIG.width, CONFIG.height);
+        container.insertBefore(renderer.domElement, container.firstChild);
+
+        // Post-processing canvas overlay
+        const effectCanvas = document.createElement('canvas');
+        effectCanvas.width = CONFIG.width;
+        effectCanvas.height = CONFIG.height;
+        effectCanvas.style.position = 'absolute';
+        effectCanvas.style.top = '0';
+        effectCanvas.style.left = '0';
+        effectCanvas.style.pointerEvents = 'none';
+        container.insertBefore(effectCanvas, container.querySelector('.controls'));
+        const effectCtx = effectCanvas.getContext('2d');
+
+        // Current effect
+        let currentEffect = 'none';
+
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(5, 10, 7);
+        scene.add(directionalLight);
+
+        const pointLight1 = new THREE.PointLight(0x3498DB, 1, 15);
+        pointLight1.position.set(-3, 2, 2);
+        scene.add(pointLight1);
+
+        const pointLight2 = new THREE.PointLight(0xE74C3C, 1, 15);
+        pointLight2.position.set(3, 2, -2);
+        scene.add(pointLight2);
+
+        // Ground
+        const ground = new THREE.Mesh(
+            new THREE.PlaneGeometry(12, 12),
+            new THREE.MeshStandardMaterial({ color: 0x2a2a4e, roughness: 0.8 })
+        );
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -1;
+        scene.add(ground);
+
+        // Objects
+        const objects = [];
+
+        // Central sphere
+        const sphere = new THREE.Mesh(
+            new THREE.SphereGeometry(1, 32, 32),
+            new THREE.MeshStandardMaterial({ color: 0x3498DB, roughness: 0.2, metalness: 0.5 })
+        );
+        scene.add(sphere);
+        objects.push(sphere);
+
+        // Orbiting cubes
+        const colors = [0xE74C3C, 0x2ECC71, 0xF39C12, 0x9B59B6];
+        for (let i = 0; i < 4; i++) {
+            const cube = new THREE.Mesh(
+                new THREE.BoxGeometry(0.5, 0.5, 0.5),
+                new THREE.MeshStandardMaterial({ color: colors[i], roughness: 0.4 })
+            );
+            cube.userData = { orbitAngle: (i * Math.PI / 2), orbitRadius: 2.5, orbitSpeed: 0.5 + i * 0.1 };
+            scene.add(cube);
+            objects.push(cube);
+        }
+
+        // Floating rings
+        for (let i = 0; i < 3; i++) {
+            const ring = new THREE.Mesh(
+                new THREE.TorusGeometry(0.3 + i * 0.2, 0.05, 16, 32),
+                new THREE.MeshStandardMaterial({ color: 0x1ABC9C, roughness: 0.3 })
+            );
+            ring.position.y = 1.5;
+            ring.rotation.x = Math.PI / 2;
+            ring.userData = { ring: true, index: i };
+            scene.add(ring);
+            objects.push(ring);
+        }
+
+        // Button handlers
+        document.getElementById('btn-none').addEventListener('click', () => setEffect('none'));
+        document.getElementById('btn-vignette').addEventListener('click', () => setEffect('vignette'));
+        document.getElementById('btn-bloom').addEventListener('click', () => setEffect('bloom'));
+        document.getElementById('btn-grayscale').addEventListener('click', () => setEffect('grayscale'));
+        document.getElementById('btn-sepia').addEventListener('click', () => setEffect('sepia'));
+
+        function setEffect(effect) {
+            currentEffect = effect;
+            document.querySelectorAll('.btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn-${effect}`).classList.add('active');
+        }
+
+        function applyEffect() {
+            effectCtx.clearRect(0, 0, CONFIG.width, CONFIG.height);
+
+            switch (currentEffect) {
+                case 'vignette':
+                    const gradient = effectCtx.createRadialGradient(
+                        CONFIG.width / 2, CONFIG.height / 2, CONFIG.height * 0.3,
+                        CONFIG.width / 2, CONFIG.height / 2, CONFIG.height * 0.7
+                    );
+                    gradient.addColorStop(0, 'rgba(0,0,0,0)');
+                    gradient.addColorStop(1, 'rgba(0,0,0,0.7)');
+                    effectCtx.fillStyle = gradient;
+                    effectCtx.fillRect(0, 0, CONFIG.width, CONFIG.height);
+                    break;
+
+                case 'bloom':
+                    // Simulate bloom with a soft glow overlay
+                    effectCtx.globalCompositeOperation = 'screen';
+                    const bloomGradient = effectCtx.createRadialGradient(
+                        CONFIG.width / 2, CONFIG.height / 2, 0,
+                        CONFIG.width / 2, CONFIG.height / 2, CONFIG.height * 0.5
+                    );
+                    bloomGradient.addColorStop(0, 'rgba(100,180,255,0.15)');
+                    bloomGradient.addColorStop(0.5, 'rgba(100,180,255,0.05)');
+                    bloomGradient.addColorStop(1, 'rgba(0,0,0,0)');
+                    effectCtx.fillStyle = bloomGradient;
+                    effectCtx.fillRect(0, 0, CONFIG.width, CONFIG.height);
+                    effectCtx.globalCompositeOperation = 'source-over';
+                    break;
+
+                case 'grayscale':
+                    effectCtx.fillStyle = 'rgba(128,128,128,0.3)';
+                    effectCtx.globalCompositeOperation = 'saturation';
+                    effectCtx.fillRect(0, 0, CONFIG.width, CONFIG.height);
+                    effectCtx.globalCompositeOperation = 'source-over';
+                    break;
+
+                case 'sepia':
+                    effectCtx.fillStyle = 'rgba(112,66,20,0.2)';
+                    effectCtx.fillRect(0, 0, CONFIG.width, CONFIG.height);
+                    break;
+            }
+        }
+
+        // Camera rotation
+        let cameraAngle = 0;
+
+        // Animation
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const time = Date.now() / 1000;
+
+            // Rotate central sphere
+            sphere.rotation.y = time * 0.5;
+
+            // Orbit cubes
+            objects.forEach(obj => {
+                if (obj.userData.orbitAngle !== undefined) {
+                    const angle = obj.userData.orbitAngle + time * obj.userData.orbitSpeed;
+                    obj.position.x = Math.cos(angle) * obj.userData.orbitRadius;
+                    obj.position.z = Math.sin(angle) * obj.userData.orbitRadius;
+                    obj.position.y = Math.sin(time * 2 + obj.userData.orbitAngle) * 0.5;
+                    obj.rotation.x = time;
+                    obj.rotation.y = time * 1.5;
+                }
+                if (obj.userData.ring) {
+                    obj.rotation.z = time * (0.5 + obj.userData.index * 0.2);
+                    obj.scale.setScalar(1 + Math.sin(time * 2 + obj.userData.index) * 0.1);
+                }
+            });
+
+            // Slow camera orbit
+            cameraAngle += 0.002;
+            camera.position.x = Math.sin(cameraAngle) * 7;
+            camera.position.z = Math.cos(cameraAngle) * 7;
+            camera.lookAt(0, 0, 0);
+
+            // Move point lights
+            pointLight1.position.x = Math.sin(time) * 3;
+            pointLight1.position.z = Math.cos(time) * 3;
+            pointLight2.position.x = Math.sin(time + Math.PI) * 3;
+            pointLight2.position.z = Math.cos(time + Math.PI) * 3;
+
+            renderer.render(scene, camera);
+            applyEffect();
+        }
+
+        animate();
+        console.log('3D post-processing demo initialized!');
+    </script>
+</body>
+</html>

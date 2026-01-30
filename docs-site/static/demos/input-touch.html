@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>GameByte - Touch Input Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            touch-action: none;
+        }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
+        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
+        #game-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        canvas { display: block; touch-action: none; }
+        .info { color: #8892b0; margin-top: 20px; font-size: 12px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Touch Input System</h1>
+    <p>Tap, swipe, pinch, and multi-touch gestures</p>
+    <div id="game-container"></div>
+    <div class="info">
+        Try: Tap • Double-tap • Long press • Swipe • Two-finger pinch
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+
+    <script>
+        const CONFIG = { width: 500, height: 500 };
+
+        async function init() {
+            const app = new PIXI.Application();
+            await app.init({
+                width: CONFIG.width,
+                height: CONFIG.height,
+                backgroundColor: 0x1a1a2e,
+                antialias: true
+            });
+            document.getElementById('game-container').appendChild(app.canvas);
+
+            // Title
+            const title = new PIXI.Text({
+                text: 'Touch Gesture Demo',
+                style: { fontSize: 24, fill: 0xFFFFFF, fontWeight: 'bold' }
+            });
+            title.anchor.set(0.5, 0);
+            title.x = CONFIG.width / 2;
+            title.y = 10;
+            app.stage.addChild(title);
+
+            // Touch area
+            const touchArea = new PIXI.Graphics();
+            touchArea.roundRect(30, 60, 440, 340, 10);
+            touchArea.fill({ color: 0x0a0a1a, alpha: 0.6 });
+            touchArea.stroke({ color: 0x3D4F5F, width: 2 });
+            app.stage.addChild(touchArea);
+
+            // Touch visualization container
+            const touchContainer = new PIXI.Container();
+            app.stage.addChild(touchContainer);
+
+            // Gesture feedback text
+            const gestureText = new PIXI.Text({
+                text: 'Touch the area above',
+                style: { fontSize: 20, fill: 0xFFFFFF }
+            });
+            gestureText.anchor.set(0.5, 0);
+            gestureText.x = CONFIG.width / 2;
+            gestureText.y = 420;
+            app.stage.addChild(gestureText);
+
+            // Event log
+            const eventLog = new PIXI.Text({
+                text: 'Events will appear here...',
+                style: { fontSize: 12, fill: 0x8892b0 }
+            });
+            eventLog.anchor.set(0.5, 0);
+            eventLog.x = CONFIG.width / 2;
+            eventLog.y = 460;
+            app.stage.addChild(eventLog);
+
+            // Touch state
+            const activeTouches = new Map();
+            let lastTapTime = 0;
+            let longPressTimer = null;
+            let touchStartPos = null;
+            let initialPinchDistance = null;
+
+            // Visual feedback functions
+            function showTouchPoint(id, x, y, color = 0x3498DB) {
+                let point = activeTouches.get(id);
+                if (!point) {
+                    point = new PIXI.Graphics();
+                    touchContainer.addChild(point);
+                    activeTouches.set(id, point);
+                }
+                point.clear();
+                point.circle(0, 0, 30);
+                point.fill({ color, alpha: 0.5 });
+                point.stroke({ color: 0xFFFFFF, width: 2 });
+                point.x = x;
+                point.y = y;
+
+                // Ripple effect
+                const ripple = new PIXI.Graphics();
+                ripple.circle(0, 0, 30);
+                ripple.stroke({ color, width: 2 });
+                ripple.x = x;
+                ripple.y = y;
+                ripple.alpha = 1;
+                touchContainer.addChild(ripple);
+
+                let scale = 1;
+                const animateRipple = () => {
+                    scale += 0.1;
+                    ripple.scale.set(scale);
+                    ripple.alpha -= 0.05;
+                    if (ripple.alpha > 0) {
+                        requestAnimationFrame(animateRipple);
+                    } else {
+                        touchContainer.removeChild(ripple);
+                    }
+                };
+                animateRipple();
+            }
+
+            function removeTouchPoint(id) {
+                const point = activeTouches.get(id);
+                if (point) {
+                    touchContainer.removeChild(point);
+                    activeTouches.delete(id);
+                }
+            }
+
+            function showGesture(text, color = 0x2ECC71) {
+                gestureText.text = text;
+                gestureText.style.fill = color;
+
+                // Flash effect
+                gestureText.alpha = 1;
+                gestureText.scale.set(1.2);
+                const fadeBack = () => {
+                    gestureText.scale.x -= 0.02;
+                    gestureText.scale.y -= 0.02;
+                    if (gestureText.scale.x > 1) {
+                        requestAnimationFrame(fadeBack);
+                    } else {
+                        gestureText.scale.set(1);
+                    }
+                };
+                fadeBack();
+            }
+
+            function logEvent(text) {
+                eventLog.text = text;
+            }
+
+            function getDistance(t1, t2) {
+                const dx = t1.clientX - t2.clientX;
+                const dy = t1.clientY - t2.clientY;
+                return Math.sqrt(dx * dx + dy * dy);
+            }
+
+            // Touch event handlers
+            app.canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const rect = app.canvas.getBoundingClientRect();
+
+                Array.from(e.changedTouches).forEach(touch => {
+                    const x = touch.clientX - rect.left;
+                    const y = touch.clientY - rect.top;
+
+                    if (y > 60 && y < 400) {
+                        showTouchPoint(touch.identifier, x, y);
+                    }
+                });
+
+                if (e.touches.length === 1) {
+                    const touch = e.touches[0];
+                    touchStartPos = {
+                        x: touch.clientX - rect.left,
+                        y: touch.clientY - rect.top,
+                        time: Date.now()
+                    };
+
+                    // Long press detection
+                    longPressTimer = setTimeout(() => {
+                        showGesture('👆 Long Press!', 0x9B59B6);
+                        logEvent('hold event fired');
+                    }, 500);
+
+                } else if (e.touches.length === 2) {
+                    clearTimeout(longPressTimer);
+                    initialPinchDistance = getDistance(e.touches[0], e.touches[1]);
+                    showTouchPoint(e.touches[1].identifier,
+                        e.touches[1].clientX - rect.left,
+                        e.touches[1].clientY - rect.top, 0xE74C3C);
+                }
+            }, { passive: false });
+
+            app.canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                const rect = app.canvas.getBoundingClientRect();
+
+                Array.from(e.changedTouches).forEach(touch => {
+                    const x = touch.clientX - rect.left;
+                    const y = touch.clientY - rect.top;
+
+                    const point = activeTouches.get(touch.identifier);
+                    if (point) {
+                        point.x = x;
+                        point.y = y;
+                    }
+                });
+
+                // Cancel long press on move
+                if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                    longPressTimer = null;
+                }
+
+                // Pinch detection
+                if (e.touches.length === 2 && initialPinchDistance) {
+                    const currentDistance = getDistance(e.touches[0], e.touches[1]);
+                    const scale = currentDistance / initialPinchDistance;
+
+                    if (scale > 1.2) {
+                        showGesture('🔍 Pinch Out (Zoom In)', 0x1ABC9C);
+                        logEvent(`pinch: scale ${scale.toFixed(2)}`);
+                    } else if (scale < 0.8) {
+                        showGesture('🔍 Pinch In (Zoom Out)', 0x1ABC9C);
+                        logEvent(`pinch: scale ${scale.toFixed(2)}`);
+                    }
+                }
+            }, { passive: false });
+
+            app.canvas.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                const rect = app.canvas.getBoundingClientRect();
+
+                Array.from(e.changedTouches).forEach(touch => {
+                    removeTouchPoint(touch.identifier);
+                });
+
+                clearTimeout(longPressTimer);
+
+                if (e.touches.length === 0 && touchStartPos) {
+                    const touch = e.changedTouches[0];
+                    const endX = touch.clientX - rect.left;
+                    const endY = touch.clientY - rect.top;
+                    const duration = Date.now() - touchStartPos.time;
+
+                    const dx = endX - touchStartPos.x;
+                    const dy = endY - touchStartPos.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    // Swipe detection
+                    if (distance > 50 && duration < 500) {
+                        let direction;
+                        if (Math.abs(dx) > Math.abs(dy)) {
+                            direction = dx > 0 ? 'Right ➡️' : 'Left ⬅️';
+                        } else {
+                            direction = dy > 0 ? 'Down ⬇️' : 'Up ⬆️';
+                        }
+                        showGesture(`👆 Swipe ${direction}`, 0xF39C12);
+                        logEvent(`swipe: direction=${direction.split(' ')[0].toLowerCase()}`);
+                    }
+                    // Tap detection
+                    else if (distance < 20 && duration < 300) {
+                        const now = Date.now();
+                        if (now - lastTapTime < 300) {
+                            showGesture('👆👆 Double Tap!', 0xE74C3C);
+                            logEvent('doubletap event fired');
+                            lastTapTime = 0;
+                        } else {
+                            showGesture('👆 Tap', 0x3498DB);
+                            logEvent(`tap at (${Math.round(endX)}, ${Math.round(endY)})`);
+                            lastTapTime = now;
+                        }
+                    }
+
+                    touchStartPos = null;
+                    initialPinchDistance = null;
+                }
+            }, { passive: false });
+
+            // Also support mouse for desktop testing
+            let mouseDown = false;
+            let mouseStartPos = null;
+
+            app.canvas.addEventListener('mousedown', (e) => {
+                const rect = app.canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                if (y > 60 && y < 400) {
+                    mouseDown = true;
+                    showTouchPoint('mouse', x, y);
+                    mouseStartPos = { x, y, time: Date.now() };
+
+                    longPressTimer = setTimeout(() => {
+                        showGesture('👆 Long Press!', 0x9B59B6);
+                        logEvent('hold event fired');
+                    }, 500);
+                }
+            });
+
+            app.canvas.addEventListener('mousemove', (e) => {
+                if (mouseDown) {
+                    const rect = app.canvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+
+                    const point = activeTouches.get('mouse');
+                    if (point) {
+                        point.x = x;
+                        point.y = y;
+                    }
+
+                    clearTimeout(longPressTimer);
+                }
+            });
+
+            app.canvas.addEventListener('mouseup', (e) => {
+                if (mouseDown && mouseStartPos) {
+                    const rect = app.canvas.getBoundingClientRect();
+                    const endX = e.clientX - rect.left;
+                    const endY = e.clientY - rect.top;
+                    const duration = Date.now() - mouseStartPos.time;
+
+                    const dx = endX - mouseStartPos.x;
+                    const dy = endY - mouseStartPos.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance > 50 && duration < 500) {
+                        let direction;
+                        if (Math.abs(dx) > Math.abs(dy)) {
+                            direction = dx > 0 ? 'Right ➡️' : 'Left ⬅️';
+                        } else {
+                            direction = dy > 0 ? 'Down ⬇️' : 'Up ⬆️';
+                        }
+                        showGesture(`👆 Swipe ${direction}`, 0xF39C12);
+                        logEvent(`swipe: direction=${direction.split(' ')[0].toLowerCase()}`);
+                    } else if (distance < 20 && duration < 300) {
+                        const now = Date.now();
+                        if (now - lastTapTime < 300) {
+                            showGesture('👆👆 Double Tap!', 0xE74C3C);
+                            logEvent('doubletap event fired');
+                            lastTapTime = 0;
+                        } else {
+                            showGesture('👆 Tap', 0x3498DB);
+                            logEvent(`tap at (${Math.round(endX)}, ${Math.round(endY)})`);
+                            lastTapTime = now;
+                        }
+                    }
+                }
+
+                clearTimeout(longPressTimer);
+                removeTouchPoint('mouse');
+                mouseDown = false;
+                mouseStartPos = null;
+            });
+
+            console.log('Touch input demo initialized!');
+        }
+
+        init().catch(console.error);
+    </script>
+</body>
+</html>

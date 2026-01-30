@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - Filters & Effects Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
+        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
+        #game-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        canvas { display: block; }
+        .info { color: #8892b0; margin-top: 20px; font-size: 12px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Filters & Visual Effects</h1>
+    <p>Pixi.js built-in filters demonstration</p>
+    <div id="game-container"></div>
+    <div class="info">
+        Click on any shape to toggle its filter effect
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+
+    <script>
+        const CONFIG = { width: 500, height: 450 };
+
+        async function init() {
+            const app = new PIXI.Application();
+            await app.init({
+                width: CONFIG.width,
+                height: CONFIG.height,
+                backgroundColor: 0x1a1a2e,
+                antialias: true
+            });
+            document.getElementById('game-container').appendChild(app.canvas);
+
+            // Title
+            const title = new PIXI.Text({
+                text: 'Built-in Pixi.js Filters',
+                style: { fontSize: 22, fill: 0xFFFFFF, fontWeight: 'bold' }
+            });
+            title.anchor.set(0.5, 0);
+            title.x = CONFIG.width / 2;
+            title.y = 10;
+            app.stage.addChild(title);
+
+            const filterData = [
+                { name: 'Blur', color: 0x3498DB, createFilter: () => new PIXI.BlurFilter({ strength: 8 }) },
+                { name: 'Alpha', color: 0xE74C3C, createFilter: () => new PIXI.AlphaFilter({ alpha: 0.5 }) },
+                { name: 'Color Matrix\n(Saturate)', color: 0x2ECC71, createFilter: () => {
+                    const f = new PIXI.ColorMatrixFilter();
+                    f.saturate(2);
+                    return f;
+                }},
+                { name: 'Color Matrix\n(Grayscale)', color: 0xF39C12, createFilter: () => {
+                    const f = new PIXI.ColorMatrixFilter();
+                    f.greyscale(1);
+                    return f;
+                }},
+                { name: 'Color Matrix\n(Negative)', color: 0x9B59B6, createFilter: () => {
+                    const f = new PIXI.ColorMatrixFilter();
+                    f.negative();
+                    return f;
+                }},
+                { name: 'Color Matrix\n(Sepia)', color: 0x1ABC9C, createFilter: () => {
+                    const f = new PIXI.ColorMatrixFilter();
+                    f.sepia();
+                    return f;
+                }},
+                { name: 'Color Matrix\n(Hue +90)', color: 0xE91E63, createFilter: () => {
+                    const f = new PIXI.ColorMatrixFilter();
+                    f.hue(90);
+                    return f;
+                }},
+                { name: 'Color Matrix\n(Brightness)', color: 0x00BCD4, createFilter: () => {
+                    const f = new PIXI.ColorMatrixFilter();
+                    f.brightness(1.5, false);
+                    return f;
+                }},
+                { name: 'Noise', color: 0xFF5722, createFilter: () => new PIXI.NoiseFilter({ noise: 0.5 }) }
+            ];
+
+            const containers = [];
+            const cols = 3;
+            const startX = 85;
+            const startY = 70;
+            const spacingX = 160;
+            const spacingY = 130;
+
+            filterData.forEach((data, index) => {
+                const col = index % cols;
+                const row = Math.floor(index / cols);
+                const x = startX + col * spacingX;
+                const y = startY + row * spacingY;
+
+                const container = new PIXI.Container();
+                container.x = x;
+                container.y = y;
+
+                // Shape
+                const shape = new PIXI.Graphics();
+                shape.roundRect(-40, -40, 80, 80, 10);
+                shape.fill({ color: data.color });
+                shape.stroke({ color: 0xFFFFFF, width: 2 });
+                container.addChild(shape);
+
+                // Inner icon/pattern
+                const inner = new PIXI.Graphics();
+                inner.circle(0, -10, 12);
+                inner.fill({ color: 0xFFFFFF, alpha: 0.3 });
+                inner.rect(-15, 5, 30, 8);
+                inner.fill({ color: 0xFFFFFF, alpha: 0.3 });
+                inner.rect(-10, 18, 20, 5);
+                inner.fill({ color: 0xFFFFFF, alpha: 0.3 });
+                container.addChild(inner);
+
+                // Label
+                const label = new PIXI.Text({
+                    text: data.name,
+                    style: { fontSize: 11, fill: 0xCCCCCC, align: 'center' }
+                });
+                label.anchor.set(0.5, 0);
+                label.y = 50;
+                container.addChild(label);
+
+                // Status indicator
+                const status = new PIXI.Text({
+                    text: 'OFF',
+                    style: { fontSize: 10, fill: 0x8892b0 }
+                });
+                status.anchor.set(0.5, 0);
+                status.y = 75;
+                container.addChild(status);
+
+                // Make interactive
+                container.eventMode = 'static';
+                container.cursor = 'pointer';
+
+                let filterOn = false;
+                const filter = data.createFilter();
+
+                container.on('pointerdown', () => {
+                    filterOn = !filterOn;
+                    if (filterOn) {
+                        shape.filters = [filter];
+                        inner.filters = [filter];
+                        status.text = 'ON';
+                        status.style.fill = 0x2ECC71;
+                    } else {
+                        shape.filters = [];
+                        inner.filters = [];
+                        status.text = 'OFF';
+                        status.style.fill = 0x8892b0;
+                    }
+                });
+
+                app.stage.addChild(container);
+                containers.push({ container, shape, filter, data });
+            });
+
+            // Animate
+            app.ticker.add((ticker) => {
+                const time = ticker.lastTime / 1000;
+                containers.forEach(({ container }, i) => {
+                    container.y = (70 + Math.floor(i / 3) * 130) + Math.sin(time * 2 + i) * 3;
+                });
+            });
+
+            console.log('Filters demo initialized!');
+        }
+
+        init().catch(console.error);
+    </script>
+</body>
+</html>
