@@ -18,9 +18,9 @@ GameScrollBox is a game-style scrollable container with jellybean styling, wrapp
 ## Live Demo
 
 <LiveDemo
-  src="/demos/pixi-ui-components-demo.html"
-  height={600}
-  title="@pixi/ui Components - ScrollBox"
+  src="/demos/scrollbox-demo.html"
+  height={550}
+  title="GameScrollBox Showcase"
 />
 
 ## Features

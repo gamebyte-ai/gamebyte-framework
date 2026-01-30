@@ -18,9 +18,9 @@ GameToggle is a polished game-style toggle switch component with gradient track 
 ## Live Demo
 
 <LiveDemo
-  src="/demos/pixi-ui-components-demo.html"
-  height={600}
-  title="@pixi/ui Components - Toggle"
+  src="/demos/toggle-demo.html"
+  height={550}
+  title="GameToggle Showcase"
 />
 
 ## Features

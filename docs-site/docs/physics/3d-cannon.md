@@ -28,8 +28,8 @@ Physics.create3DWorld({
 ```
 
 <LiveDemo
-  src="/demos/physics-3d.html"
-  height={400}
+  src="/demos/physics-3d-demo.html"
+  height={560}
   title="3D Physics Demo"
 />
 

@@ -9,9 +9,19 @@ llm_summary: "UIText: styled text display. new UIText({ text, fontSize, color, f
 
 <!-- llm-context: ui-text, typography, font, label, styled-text -->
 
+import LiveDemo from '@site/src/components/LiveDemo';
+
 # UIText
 
 A styled text component for labels, titles, and body text.
+
+## Live Demo
+
+<LiveDemo
+  src="/demos/text-styles-demo.html"
+  height={640}
+  title="Text Styles & Typography"
+/>
 
 ## Basic Usage
 

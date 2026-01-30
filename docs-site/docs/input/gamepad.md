@@ -9,9 +9,19 @@ llm_summary: "Gamepad: on('button-a', callback), getAxis('left-stick'). Auto-det
 
 <!-- llm-context: gamepad-input, controller, xbox, playstation, analog-sticks -->
 
+import LiveDemo from '@site/src/components/LiveDemo';
+
 # Gamepad
 
 Support for Xbox, PlayStation, and other controllers.
+
+## Live Demo
+
+<LiveDemo
+  src="/demos/gamepad-demo.html"
+  height={640}
+  title="Gamepad Input Demo"
+/>
 
 ## Basic Usage
 

@@ -25,9 +25,9 @@ A simple platformer with:
 - Game over screen
 
 <LiveDemo
-  src="/demos/platformer-tutorial.html"
-  height={450}
-  title="Complete Platformer"
+  src="/demos/first-game-demo.html"
+  height={590}
+  title="First Game Demo"
 />
 
 :::tip Theme Support

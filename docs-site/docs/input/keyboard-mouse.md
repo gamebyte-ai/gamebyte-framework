@@ -9,7 +9,17 @@ llm_summary: "Keyboard: on('KeyW'), isPressed('Space'). Mouse: on('click'), on('
 
 <!-- llm-context: keyboard-input, mouse-input, desktop-controls, key-codes -->
 
+import LiveDemo from '@site/src/components/LiveDemo';
+
 # Keyboard & Mouse
+
+## Live Demo
+
+<LiveDemo
+  src="/demos/keyboard-demo.html"
+  height={590}
+  title="Keyboard Input Demo"
+/>
 
 ## Keyboard
 

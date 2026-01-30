@@ -9,7 +9,17 @@ llm_summary: "Music: play(), pause(), resume(), stop(), crossFade(). SFX: play()
 
 <!-- llm-context: music, sfx, sound-effects, audio-playback, crossfade -->
 
+import LiveDemo from '@site/src/components/LiveDemo';
+
 # Music & Sound Effects
+
+## Live Demo
+
+<LiveDemo
+  src="/demos/audio-demo.html"
+  height={640}
+  title="Audio System Demo"
+/>
 
 ## Music
 

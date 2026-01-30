@@ -18,9 +18,9 @@ GameSlider is a polished game-style slider component for volume controls, progre
 ## Live Demo
 
 <LiveDemo
-  src="/demos/pixi-ui-components-demo.html"
-  height={600}
-  title="@pixi/ui Components - Slider"
+  src="/demos/slider-demo.html"
+  height={550}
+  title="GameSlider Showcase"
 />
 
 ## Features

@@ -9,9 +9,19 @@ llm_summary: "Game loop runs at 60fps. update(deltaTime) called each frame. delt
 
 <!-- llm-context: game-loop, update-cycle, delta-time, fixed-timestep, fps, requestAnimationFrame -->
 
+import LiveDemo from '@site/src/components/LiveDemo';
+
 # Game Loop
 
 The game loop is the heartbeat of your game, updating logic and rendering frames continuously.
+
+## Live Demo
+
+<LiveDemo
+  src="/demos/game-loop-demo.html"
+  height={590}
+  title="Game Loop Visualizer"
+/>
 
 ## How It Works
 

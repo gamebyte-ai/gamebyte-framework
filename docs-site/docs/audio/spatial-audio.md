@@ -33,8 +33,8 @@ Spatial.play('explosion', {
 ```
 
 <LiveDemo
-  src="/demos/audio-spatial.html"
-  height={400}
+  src="/demos/spatial-audio-demo.html"
+  height={640}
   title="Spatial Audio Demo"
 />
 
