@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - @pixi/ui Components Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 {
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        p {
+            color: #8892b0;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        #game-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        canvas { display: block; }
+        .info {
+            color: #8892b0;
+            margin-top: 20px;
+            font-size: 12px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>@pixi/ui Wrapper Components</h1>
+    <p>Game-styled UI components wrapping @pixi/ui library</p>
+    <div id="game-container"></div>
+    <div class="info">
+        Components: GameInput, GameCheckBox, GameRadioGroup, GameSelect, GameList
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="../gamebyte.umd.js"></script>
+
+    <script>
+        // =====================================================
+        // @pixi/ui Components Demo - Using Framework Abstractions
+        // =====================================================
+        // This demo showcases:
+        // - GameInput with placeholder text
+        // - GameCheckBox with toggle functionality
+        // - GameRadioGroup with horizontal layout
+        // - GameSelect dropdown component
+        // - GameList with game-styled buttons
+        // =====================================================
+
+        const {
+            createGame,
+            GameCheckBox,
+            GameRadioGroup,
+            GameInput,
+            GameSelect,
+            GameList,
+            GameStyleButton,
+            GameStyleColors,
+            loadFrameworkFont,
+            graphics
+        } = window.GameByteFramework;
+
+        const CONFIG = { width: 500, height: 600 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.getElementById('game-container').appendChild(canvas);
+
+        const game = createGame();
+        let renderer, stage;
+
+        async function init() {
+            // Load font first
+            await loadFrameworkFont();
+
+            // Initialize game
+            await game.initialize(canvas, '2d');
+            renderer = game.make('renderer');
+            stage = renderer.getStage();
+
+            const factory = graphics();
+            let yOffset = 30;
+
+            // Background
+            const bg = factory.createGraphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill({ color: 0x1a1a2e });
+            stage.addChild(bg);
+
+            // Title
+            const title = factory.createText('@pixi/ui Components', {
+                fontFamily: 'Lilita One, Arial Black, sans-serif',
+                fontSize: 28,
+                fill: 0xFFFFFF
+            });
+            title.x = CONFIG.width / 2;
+            title.y = yOffset;
+            if (title.anchor) title.anchor.set(0.5, 0);
+            stage.addChild(title);
+            yOffset += 60;
+
+            // GameInput
+            const inputLabel = factory.createText('GameInput:', {
+                fontSize: 16,
+                fill: 0x8892b0
+            });
+            inputLabel.x = 30;
+            inputLabel.y = yOffset;
+            stage.addChild(inputLabel);
+            yOffset += 30;
+
+            const input = new GameInput({
+                width: 300,
+                placeholder: 'Enter your name...',
+                onChange: (value) => console.log('Input:', value)
+            });
+            input.setPosition(30, yOffset);
+            stage.addChild(input.getContainer());
+            yOffset += 70;
+
+            // GameCheckBox
+            const checkLabel = factory.createText('GameCheckBox:', {
+                fontSize: 16,
+                fill: 0x8892b0
+            });
+            checkLabel.x = 30;
+            checkLabel.y = yOffset;
+            stage.addChild(checkLabel);
+            yOffset += 30;
+
+            const checkbox1 = new GameCheckBox({
+                label: 'Enable Sound',
+                checked: true,
+                onChange: (checked) => console.log('Sound:', checked)
+            });
+            checkbox1.setPosition(30, yOffset);
+            stage.addChild(checkbox1.getContainer());
+
+            const checkbox2 = new GameCheckBox({
+                label: 'Enable Music',
+                checked: false,
+                onChange: (checked) => console.log('Music:', checked)
+            });
+            checkbox2.setPosition(250, yOffset);
+            stage.addChild(checkbox2.getContainer());
+            yOffset += 60;
+
+            // GameRadioGroup
+            const radioLabel = factory.createText('GameRadioGroup:', {
+                fontSize: 16,
+                fill: 0x8892b0
+            });
+            radioLabel.x = 30;
+            radioLabel.y = yOffset;
+            stage.addChild(radioLabel);
+            yOffset += 30;
+
+            const radioGroup = new GameRadioGroup({
+                options: [
+                    { label: 'Easy', value: 'easy' },
+                    { label: 'Medium', value: 'medium' },
+                    { label: 'Hard', value: 'hard' }
+                ],
+                selectedValue: 'medium',
+                direction: 'horizontal',
+                gap: 20,
+                onChange: (value) => console.log('Difficulty:', value)
+            });
+            radioGroup.setPosition(30, yOffset);
+            stage.addChild(radioGroup.getContainer());
+            yOffset += 60;
+
+            // GameSelect
+            const selectLabel = factory.createText('GameSelect:', {
+                fontSize: 16,
+                fill: 0x8892b0
+            });
+            selectLabel.x = 30;
+            selectLabel.y = yOffset;
+            stage.addChild(selectLabel);
+            yOffset += 30;
+
+            const select = new GameSelect({
+                width: 200,
+                placeholder: 'Select Level',
+                options: [
+                    { label: 'Level 1 - Tutorial', value: '1' },
+                    { label: 'Level 2 - Forest', value: '2' },
+                    { label: 'Level 3 - Castle', value: '3' },
+                    { label: 'Level 4 - Boss', value: '4' }
+                ],
+                onChange: (value) => console.log('Level:', value)
+            });
+            select.setPosition(30, yOffset);
+            stage.addChild(select.getContainer());
+            yOffset += 80;
+
+            // GameList with buttons
+            const listLabel = factory.createText('GameList:', {
+                fontSize: 16,
+                fill: 0x8892b0
+            });
+            listLabel.x = 30;
+            listLabel.y = yOffset;
+            stage.addChild(listLabel);
+            yOffset += 30;
+
+            const list = new GameList({
+                direction: 'horizontal',
+                gap: 12
+            });
+            list.setPosition(30, yOffset);
+
+            const btn1 = new GameStyleButton({
+                text: 'Play',
+                width: 100,
+                height: 44,
+                colorScheme: GameStyleColors.GREEN_BUTTON
+            });
+            const btn2 = new GameStyleButton({
+                text: 'Shop',
+                width: 100,
+                height: 44,
+                colorScheme: GameStyleColors.BLUE_BUTTON
+            });
+            const btn3 = new GameStyleButton({
+                text: 'Settings',
+                width: 100,
+                height: 44,
+                colorScheme: GameStyleColors.PURPLE_BUTTON
+            });
+
+            list.addItem(btn1.getContainer());
+            list.addItem(btn2.getContainer());
+            list.addItem(btn3.getContainer());
+            stage.addChild(list.getContainer());
+
+            // Start the game loop
+            game.start();
+            console.log('Demo initialized!');
+        }
+
+        init().catch(console.error);
+    </script>
+</body>
+</html>
