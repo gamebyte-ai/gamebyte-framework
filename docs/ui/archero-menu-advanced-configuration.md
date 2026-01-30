@@ -383,8 +383,7 @@ const callbacks: ArcheroMenuCallbacks = {
       {
         fontSize: isActive ? 150 : 100,
         fill: section.iconColor,
-        stroke: 0x000000,
-        strokeThickness: 8
+        stroke: { color: 0x000000, width: 8 }
       }
     );
 
@@ -408,8 +407,7 @@ const callbacks: ArcheroMenuCallbacks = {
         fontSize: 45,
         fill: 0xFFFFFF,
         fontWeight: 'bold',
-        stroke: section.iconColor || 0xFFD700,
-        strokeThickness: 5
+        stroke: { color: section.iconColor || 0xFFD700, width: 5 }
       }
     );
 

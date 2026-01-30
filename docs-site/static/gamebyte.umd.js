@@ -42998,32 +42998,24 @@
 	        this.setupInteractivity();
 	    }
 	    /**
-	     * Create styled text with stroke
+	     * Create styled text with stroke and drop shadow
 	     * Text is automatically scaled down if it exceeds available width
 	     */
 	    createText() {
 	        const { colorScheme, fontSize, fontFamily, width, height, horizontalPadding } = this.config;
-	        // Determine stroke thickness based on background brightness
-	        const isLightBackground = this.isLightColor(colorScheme.gradientTop);
-	        const textColor = colorScheme.text;
-	        const strokeColor = colorScheme.textStroke;
-	        const strokeThickness = isLightBackground
-	            ? Math.max(2, fontSize / 12)
-	            : Math.max(3, fontSize / 8);
-	        // Drop shadow uses stroke color for light backgrounds, black for dark
-	        const shadowColor = isLightBackground ? strokeColor : 0x000000;
+	        const strokeThickness = Math.max(3, fontSize / 8);
 	        this.textField = graphics().createText(this.config.text, {
 	            fontFamily: fontFamily,
 	            fontSize: fontSize,
-	            fontWeight: '700', // Bold - Fredoka's max weight
-	            fill: textColor,
-	            stroke: { color: strokeColor, width: strokeThickness },
+	            fontWeight: '700',
+	            fill: colorScheme.text,
+	            stroke: { color: colorScheme.textStroke, width: strokeThickness },
 	            align: 'center',
 	            dropShadow: {
 	                alpha: 0.5,
 	                angle: Math.PI / 2,
 	                blur: 2,
-	                color: shadowColor,
+	                color: 0x000000,
 	                distance: 2
 	            }
 	        });
@@ -43160,18 +43152,6 @@
 	            text: 0xE0E0E0,
 	            textStroke: 0x616161
 	        };
-	    }
-	    /**
-	     * Check if a color is light (for determining text contrast)
-	     */
-	    isLightColor(color) {
-	        const r = (color >> 16) & 0xFF;
-	        const g = (color >> 8) & 0xFF;
-	        const b = color & 0xFF;
-	        // Using relative luminance formula
-	        // Threshold 0.75 ensures game colors (green, blue, etc.) get drop shadows
-	        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-	        return luminance > 0.75;
 	    }
 	    /**
 	     * Get scale offset for press animation (centers the scale transform)

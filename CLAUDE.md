@@ -162,15 +162,10 @@ const style = { fontFamily: getFrameworkFontFamily() };
 Use the modern Pixi v8 API, NOT the legacy API:
 
 ```typescript
-// CORRECT - Pixi v8 style
+// Pixi v8 API
 graphics.roundRect(x, y, width, height, radius);
 graphics.fill({ color: 0xFF0000, alpha: 0.8 });
 graphics.stroke({ color: 0x000000, width: 2 });
-
-// WRONG - Legacy Pixi v7 style
-graphics.beginFill(0xFF0000);  // Don't use
-graphics.drawRoundedRect(...); // Don't use
-graphics.endFill();            // Don't use
 ```
 
 ### IGraphics Interface Methods
@@ -272,15 +267,10 @@ For browser usage without bundlers, use `dist/gamebyte.umd.js`. It exposes `wind
 **CRITICAL**: Always use Pixi.js v8 API, never legacy v7 patterns. Key differences:
 
 ```typescript
-// ✅ v8 Modern API
+// Pixi v8 API
 graphics.rect(0, 0, 100, 50);
 graphics.fill({ color: 0xFF0000, alpha: 0.8 });
 graphics.stroke({ color: 0x000000, width: 2 });
-
-// ❌ v7 Legacy API (DO NOT USE)
-graphics.beginFill(0xFF0000);
-graphics.drawRect(0, 0, 100, 50);
-graphics.endFill();
 ```
 
 **FillGradient** (v8 native gradients):
