@@ -159,3 +159,9 @@ class LoadingScreen extends SimpleScreen {
   }
 }
 ```
+
+## Live Demo
+
+import LiveDemo from '@site/src/components/LiveDemo';
+
+<LiveDemo src="/demos/screen-manager-demo.html" height="600" title="Screen Management Demo" />

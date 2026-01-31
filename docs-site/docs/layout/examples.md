@@ -434,10 +434,6 @@ window.addEventListener('resize', () => {
 
 See all these patterns in action:
 
-<iframe
-  src="/demos/layout-demo.html"
-  width="100%"
-  height="800"
-  style={{border: '1px solid #333', borderRadius: '8px'}}
-  title="Layout Examples Demo"
-/>
+import LiveDemo from '@site/src/components/LiveDemo';
+
+<LiveDemo src="/demos/layout-demo.html" height="800" title="Layout Examples Demo" />

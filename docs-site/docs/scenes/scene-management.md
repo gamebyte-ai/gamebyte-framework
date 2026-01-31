@@ -231,3 +231,9 @@ await sceneManager.switchTo('game'); // Instant switch
 // Or preload multiple
 await sceneManager.preloadAll(['game', 'settings', 'shop']);
 ```
+
+## Live Demo
+
+import LiveDemo from '@site/src/components/LiveDemo';
+
+<LiveDemo src="/demos/screen-manager-demo.html" height="600" title="Scene Management Demo" />

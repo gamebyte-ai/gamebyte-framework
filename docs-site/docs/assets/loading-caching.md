@@ -117,3 +117,9 @@ if (Assets.isBundleLoaded('level-2')) {
     proceedToLevel2();
 }
 ```
+
+## Live Demo
+
+import LiveDemo from '@site/src/components/LiveDemo';
+
+<LiveDemo src="/demos/asset-loading-demo.html" height="500" title="Asset Loading Demo" />

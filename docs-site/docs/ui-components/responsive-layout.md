@@ -235,3 +235,9 @@ layout.on('orientationchange', (orientation) => {
 // Lock orientation (if supported)
 layout.lockOrientation('landscape');
 ```
+
+## Live Demo
+
+import LiveDemo from '@site/src/components/LiveDemo';
+
+<LiveDemo src="/demos/layout-demo.html" height="700" title="Responsive Layout Demo" />

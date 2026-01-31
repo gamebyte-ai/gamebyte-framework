@@ -285,3 +285,9 @@ import { scaleLayout, LayoutPresets } from 'gamebyte-framework';
 const scaledLayout = scaleLayout(LayoutPresets.card, 1.5);
 container.layout = scaledLayout;
 ```
+
+## Live Demo
+
+import LiveDemo from '@site/src/components/LiveDemo';
+
+<LiveDemo src="/demos/layout-demo.html" height="700" title="Layout Presets Demo" />
