@@ -71,3 +71,9 @@ Audio.mute();
 Audio.unmute();
 Audio.toggle();
 ```
+
+## Live Demo
+
+import LiveDemo from '@site/src/components/LiveDemo';
+
+<LiveDemo src="/demos/audio-demo.html" height="550" title="Audio System Demo" />

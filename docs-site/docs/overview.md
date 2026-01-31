@@ -93,3 +93,9 @@ GameByte is optimized for AI-driven development:
 - **Type-rich**: Full TypeScript support with JSDoc
 
 See the [AI Agent Guide](/ai-agent-guide) for integration details.
+
+## Live Demo
+
+import LiveDemo from '@site/src/components/LiveDemo';
+
+<LiveDemo src="/demos/game-ui-showcase.html" height="600" title="GameByte UI Showcase" />

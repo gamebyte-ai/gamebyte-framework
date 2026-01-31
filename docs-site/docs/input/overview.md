@@ -60,3 +60,9 @@ function update(deltaTime: number) {
     }
 }
 ```
+
+## Live Demo
+
+import LiveDemo from '@site/src/components/LiveDemo';
+
+<LiveDemo src="/demos/keyboard-demo.html" height="500" title="Keyboard Input Demo" />

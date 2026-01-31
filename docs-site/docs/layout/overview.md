@@ -117,13 +117,9 @@ hudContainer.layout = GameLayoutPresets.gameScreen;
 
 Interactive examples of all layout features:
 
-<iframe
-  src="/demos/layout-demo.html"
-  width="100%"
-  height="800"
-  style={{border: '1px solid #333', borderRadius: '8px'}}
-  title="Layout System Demo"
-/>
+import LiveDemo from '@site/src/components/LiveDemo';
+
+<LiveDemo src="/demos/layout-demo.html" height="800" title="Layout System Demo" />
 
 ## Next Steps
 

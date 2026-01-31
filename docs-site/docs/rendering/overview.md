@@ -195,3 +195,9 @@ renderer.add(mesh);
 - [2D Rendering](/rendering/2d-pixi) - Deep dive into Pixi.js
 - [3D Rendering](/rendering/3d-three) - Deep dive into Three.js
 - [Hybrid Mode](/rendering/hybrid-mode) - Combining 2D and 3D
+
+## Live Demo
+
+import LiveDemo from '@site/src/components/LiveDemo';
+
+<LiveDemo src="/demos/hybrid-game.html" height="450" title="Hybrid Rendering Demo" />

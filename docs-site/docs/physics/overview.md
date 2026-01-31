@@ -83,3 +83,9 @@ Physics.onCollision('player', 'enemy', (playerBody, enemyBody) => {
 - **Racing games**: 3D (Cannon.js)
 - **FPS/TPS**: 3D (Cannon.js)
 - **Hybrid (3D world, 2D gameplay)**: Either based on gameplay needs
+
+## Live Demo
+
+import LiveDemo from '@site/src/components/LiveDemo';
+
+<LiveDemo src="/demos/physics-2d-demo.html" height="550" title="2D Physics Demo" />
