@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - Flappy Game Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
+        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
+        #game-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        canvas { display: block; }
+        .info { color: #8892b0; margin-top: 20px; font-size: 12px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Flappy Bird</h1>
+    <p>Click, tap, or press Space to flap</p>
+    <div id="game-container"></div>
+    <div class="info">
+        Fly through the gaps! Don't hit the pipes!
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+
+    <script>
+        const CONFIG = { width: 400, height: 600 };
+        const GRAVITY = 0.5;
+        const FLAP_FORCE = -9;
+        const PIPE_SPEED = 3;
+        const PIPE_GAP = 150;
+        const PIPE_SPAWN_INTERVAL = 90;
+
+        let app, bird, ground;
+        let pipes = [];
+        let clouds = [];
+        let particles = [];
+        let score = 0, highScore = 0;
+        let gameStarted = false, gameOver = false;
+        let frameCount = 0;
+        let scoreText, highScoreText, messageText;
+        let birdVelocity = 0;
+        let birdRotation = 0;
+        let wingAngle = 0;
+
+        async function init() {
+            app = new PIXI.Application();
+            await app.init({
+                width: CONFIG.width,
+                height: CONFIG.height,
+                backgroundColor: 0x70C5CE,
+                antialias: true
+            });
+            document.getElementById('game-container').appendChild(app.canvas);
+
+            createBackground();
+            createBird();
+            createGround();
+            createUI();
+            setupInput();
+
+            app.ticker.add(gameLoop);
+        }
+
+        function createBackground() {
+            // Gradient sky
+            const sky = new PIXI.Graphics();
+            sky.rect(0, 0, CONFIG.width, CONFIG.height);
+            sky.fill({ color: 0x70C5CE });
+            app.stage.addChild(sky);
+
+            // Sun
+            const sun = new PIXI.Graphics();
+            sun.circle(CONFIG.width - 60, 60, 40);
+            sun.fill({ color: 0xFFD93D });
+            sun.circle(CONFIG.width - 60, 60, 35);
+            sun.fill({ color: 0xFFE873 });
+            app.stage.addChild(sun);
+
+            // Clouds
+            for (let i = 0; i < 5; i++) {
+                createCloud(Math.random() * CONFIG.width, 50 + Math.random() * 150);
+            }
+        }
+
+        function createCloud(x, y) {
+            const cloud = new PIXI.Container();
+
+            const parts = [
+                { x: 0, y: 0, r: 25 },
+                { x: 20, y: -10, r: 30 },
+                { x: 45, y: -5, r: 25 },
+                { x: 60, y: 5, r: 20 }
+            ];
+
+            parts.forEach(part => {
+                const circle = new PIXI.Graphics();
+                circle.circle(part.x, part.y, part.r);
+                circle.fill({ color: 0xFFFFFF, alpha: 0.8 });
+                cloud.addChild(circle);
+            });
+
+            cloud.x = x;
+            cloud.y = y;
+            cloud.speed = 0.3 + Math.random() * 0.3;
+            app.stage.addChild(cloud);
+            clouds.push(cloud);
+        }
+
+        function createBird() {
+            bird = new PIXI.Container();
+
+            // Body
+            const body = new PIXI.Graphics();
+            body.ellipse(0, 0, 20, 15);
+            body.fill({ color: 0xF9D71C });
+            body.stroke({ color: 0xE6C419, width: 2 });
+            bird.addChild(body);
+
+            // Wing
+            const wing = new PIXI.Graphics();
+            wing.ellipse(-5, 5, 12, 8);
+            wing.fill({ color: 0xE6C419 });
+            wing.pivot.set(-5, 5);
+            bird.wing = wing;
+            bird.addChild(wing);
+
+            // Eye
+            const eye = new PIXI.Graphics();
+            eye.circle(8, -5, 6);
+            eye.fill({ color: 0xFFFFFF });
+            eye.circle(9, -5, 3);
+            eye.fill({ color: 0x000000 });
+            bird.addChild(eye);
+
+            // Beak
+            const beak = new PIXI.Graphics();
+            beak.poly([15, 0, 25, 3, 15, 6]);
+            beak.fill({ color: 0xE67E22 });
+            bird.addChild(beak);
+
+            bird.x = 80;
+            bird.y = CONFIG.height / 2;
+            app.stage.addChild(bird);
+        }
+
+        function createGround() {
+            ground = new PIXI.Container();
+
+            // Dirt
+            const dirt = new PIXI.Graphics();
+            dirt.rect(0, 0, CONFIG.width + 50, 80);
+            dirt.fill({ color: 0xDEB887 });
+            ground.addChild(dirt);
+
+            // Grass
+            const grass = new PIXI.Graphics();
+            grass.rect(0, 0, CONFIG.width + 50, 20);
+            grass.fill({ color: 0x4CAF50 });
+            ground.addChild(grass);
+
+            // Grass details
+            for (let i = 0; i < CONFIG.width + 50; i += 10) {
+                const blade = new PIXI.Graphics();
+                blade.poly([i, 20, i + 5, 0, i + 10, 20]);
+                blade.fill({ color: 0x388E3C });
+                ground.addChild(blade);
+            }
+
+            ground.y = CONFIG.height - 80;
+            app.stage.addChild(ground);
+        }
+
+        function createUI() {
+            scoreText = new PIXI.Text({
+                text: '0',
+                style: {
+                    fontSize: 48,
+                    fill: 0xFFFFFF,
+                    fontWeight: 'bold',
+                    stroke: { color: 0x000000, width: 4 }
+                }
+            });
+            scoreText.anchor.set(0.5, 0);
+            scoreText.x = CONFIG.width / 2;
+            scoreText.y = 50;
+            app.stage.addChild(scoreText);
+
+            highScoreText = new PIXI.Text({
+                text: 'Best: 0',
+                style: { fontSize: 16, fill: 0xFFFFFF }
+            });
+            highScoreText.anchor.set(0.5, 0);
+            highScoreText.x = CONFIG.width / 2;
+            highScoreText.y = 100;
+            highScoreText.visible = false;
+            app.stage.addChild(highScoreText);
+
+            messageText = new PIXI.Text({
+                text: 'Tap to Start',
+                style: {
+                    fontSize: 28,
+                    fill: 0xFFFFFF,
+                    fontWeight: 'bold',
+                    stroke: { color: 0x000000, width: 3 }
+                }
+            });
+            messageText.anchor.set(0.5);
+            messageText.x = CONFIG.width / 2;
+            messageText.y = CONFIG.height / 2 + 100;
+            app.stage.addChild(messageText);
+        }
+
+        function setupInput() {
+            const flap = () => {
+                if (gameOver) {
+                    restart();
+                    return;
+                }
+                if (!gameStarted) {
+                    gameStarted = true;
+                    messageText.visible = false;
+                }
+                birdVelocity = FLAP_FORCE;
+                createFlapParticles();
+            };
+
+            window.addEventListener('keydown', (e) => {
+                if (e.code === 'Space') {
+                    e.preventDefault();
+                    flap();
+                }
+            });
+
+            app.canvas.addEventListener('pointerdown', flap);
+        }
+
+        function createPipe() {
+            const gapY = 150 + Math.random() * (CONFIG.height - 350);
+
+            const pipeContainer = new PIXI.Container();
+            pipeContainer.x = CONFIG.width + 30;
+            pipeContainer.gapY = gapY;
+            pipeContainer.scored = false;
+
+            // Top pipe
+            const topPipe = createPipeGraphics(gapY - PIPE_GAP / 2, true);
+            pipeContainer.addChild(topPipe);
+            pipeContainer.topPipe = topPipe;
+
+            // Bottom pipe
+            const bottomPipe = createPipeGraphics(CONFIG.height - 80 - (gapY + PIPE_GAP / 2), false);
+            bottomPipe.y = gapY + PIPE_GAP / 2;
+            pipeContainer.addChild(bottomPipe);
+            pipeContainer.bottomPipe = bottomPipe;
+
+            // Add behind bird but in front of background
+            const birdIndex = app.stage.children.indexOf(bird);
+            app.stage.addChildAt(pipeContainer, birdIndex);
+            pipes.push(pipeContainer);
+        }
+
+        function createPipeGraphics(height, isTop) {
+            const pipe = new PIXI.Container();
+            const pipeWidth = 60;
+            const capHeight = 30;
+            const capWidth = 70;
+
+            // Pipe body
+            const body = new PIXI.Graphics();
+            if (isTop) {
+                body.rect(0, 0, pipeWidth, height - capHeight);
+            } else {
+                body.rect(0, capHeight, pipeWidth, height - capHeight);
+            }
+            body.fill({ color: 0x73BF2E });
+            body.stroke({ color: 0x5A9A24, width: 2 });
+
+            // Highlight
+            const highlight = new PIXI.Graphics();
+            if (isTop) {
+                highlight.rect(5, 0, 10, height - capHeight);
+            } else {
+                highlight.rect(5, capHeight, 10, height - capHeight);
+            }
+            highlight.fill({ color: 0x8FD93A, alpha: 0.5 });
+
+            // Pipe cap
+            const cap = new PIXI.Graphics();
+            const capY = isTop ? height - capHeight : 0;
+            cap.roundRect(-5, capY, capWidth, capHeight, 5);
+            cap.fill({ color: 0x73BF2E });
+            cap.stroke({ color: 0x5A9A24, width: 2 });
+
+            // Cap highlight
+            const capHighlight = new PIXI.Graphics();
+            capHighlight.roundRect(0, capY + 3, 15, capHeight - 6, 3);
+            capHighlight.fill({ color: 0x8FD93A, alpha: 0.5 });
+
+            pipe.addChild(body);
+            pipe.addChild(highlight);
+            pipe.addChild(cap);
+            pipe.addChild(capHighlight);
+
+            return pipe;
+        }
+
+        function createFlapParticles() {
+            for (let i = 0; i < 5; i++) {
+                const particle = new PIXI.Graphics();
+                particle.circle(0, 0, 3);
+                particle.fill({ color: 0xFFFFFF });
+                particle.x = bird.x - 15;
+                particle.y = bird.y + 10;
+                particle.vx = -2 - Math.random() * 2;
+                particle.vy = (Math.random() - 0.5) * 3;
+                particle.life = 1;
+                app.stage.addChildAt(particle, app.stage.children.indexOf(bird));
+                particles.push(particle);
+            }
+        }
+
+        function gameLoop() {
+            frameCount++;
+
+            // Animate clouds
+            clouds.forEach(cloud => {
+                cloud.x -= cloud.speed;
+                if (cloud.x < -100) cloud.x = CONFIG.width + 50;
+            });
+
+            // Animate bird wing
+            wingAngle += 0.3;
+            bird.wing.rotation = Math.sin(wingAngle) * 0.5;
+
+            if (!gameStarted) {
+                // Idle animation
+                bird.y = CONFIG.height / 2 + Math.sin(frameCount / 20) * 10;
+                return;
+            }
+
+            if (gameOver) return;
+
+            // Bird physics
+            birdVelocity += GRAVITY;
+            bird.y += birdVelocity;
+
+            // Bird rotation
+            const targetRotation = Math.min(Math.max(birdVelocity * 0.1, -0.5), 1.2);
+            birdRotation += (targetRotation - birdRotation) * 0.1;
+            bird.rotation = birdRotation;
+
+            // Spawn pipes
+            if (frameCount % PIPE_SPAWN_INTERVAL === 0) {
+                createPipe();
+            }
+
+            // Update pipes
+            for (let i = pipes.length - 1; i >= 0; i--) {
+                const pipe = pipes[i];
+                pipe.x -= PIPE_SPEED;
+
+                // Score
+                if (!pipe.scored && pipe.x + 30 < bird.x) {
+                    pipe.scored = true;
+                    score++;
+                    scoreText.text = score.toString();
+                }
+
+                // Remove off-screen pipes
+                if (pipe.x < -80) {
+                    app.stage.removeChild(pipe);
+                    pipes.splice(i, 1);
+                    continue;
+                }
+
+                // Collision detection
+                const birdLeft = bird.x - 18;
+                const birdRight = bird.x + 18;
+                const birdTop = bird.y - 12;
+                const birdBottom = bird.y + 12;
+
+                const pipeLeft = pipe.x;
+                const pipeRight = pipe.x + 60;
+                const gapTop = pipe.gapY - PIPE_GAP / 2;
+                const gapBottom = pipe.gapY + PIPE_GAP / 2;
+
+                if (birdRight > pipeLeft && birdLeft < pipeRight) {
+                    if (birdTop < gapTop || birdBottom > gapBottom) {
+                        endGame();
+                        return;
+                    }
+                }
+            }
+
+            // Ground collision
+            if (bird.y > CONFIG.height - 95) {
+                bird.y = CONFIG.height - 95;
+                endGame();
+                return;
+            }
+
+            // Ceiling collision
+            if (bird.y < 15) {
+                bird.y = 15;
+                birdVelocity = 0;
+            }
+
+            // Update particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= 0.05;
+                p.alpha = p.life;
+
+                if (p.life <= 0) {
+                    app.stage.removeChild(p);
+                    particles.splice(i, 1);
+                }
+            }
+        }
+
+        function endGame() {
+            gameOver = true;
+
+            if (score > highScore) {
+                highScore = score;
+            }
+
+            highScoreText.text = `Best: ${highScore}`;
+            highScoreText.visible = true;
+            messageText.text = `Game Over!\nScore: ${score}\nTap to Restart`;
+            messageText.visible = true;
+
+            // Death animation
+            birdVelocity = -5;
+        }
+
+        function restart() {
+            // Remove pipes
+            pipes.forEach(pipe => app.stage.removeChild(pipe));
+            pipes = [];
+
+            // Remove particles
+            particles.forEach(p => app.stage.removeChild(p));
+            particles = [];
+
+            // Reset state
+            score = 0;
+            frameCount = 0;
+            gameStarted = false;
+            gameOver = false;
+            birdVelocity = 0;
+            birdRotation = 0;
+
+            // Reset bird
+            bird.x = 80;
+            bird.y = CONFIG.height / 2;
+            bird.rotation = 0;
+
+            // Reset UI
+            scoreText.text = '0';
+            highScoreText.visible = false;
+            messageText.text = 'Tap to Start';
+            messageText.visible = true;
+        }
+
+        init().catch(console.error);
+    </script>
+</body>
+</html>

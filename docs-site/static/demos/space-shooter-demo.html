@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - Space Shooter Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
+        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
+        #game-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        canvas { display: block; }
+        .info { color: #8892b0; margin-top: 20px; font-size: 12px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Space Shooter</h1>
+    <p>Arrow keys to move, Space to shoot</p>
+    <div id="game-container"></div>
+    <div class="info">
+        Destroy all enemies! Avoid their bullets!
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+
+    <script>
+        const CONFIG = { width: 500, height: 600 };
+
+        let app, player;
+        let bullets = [], enemyBullets = [], enemies = [], particles = [], powerups = [];
+        let score = 0, lives = 3, wave = 1, gameOver = false;
+        let scoreText, livesText, waveText, messageText;
+        let keys = {};
+        let lastShot = 0, lastEnemySpawn = 0;
+        let playerInvincible = 0;
+
+        async function init() {
+            app = new PIXI.Application();
+            await app.init({
+                width: CONFIG.width,
+                height: CONFIG.height,
+                backgroundColor: 0x0a0a20,
+                antialias: true
+            });
+            document.getElementById('game-container').appendChild(app.canvas);
+
+            createStars();
+            createPlayer();
+            createUI();
+            setupInput();
+            spawnWave();
+
+            app.ticker.add(gameLoop);
+        }
+
+        function createStars() {
+            for (let i = 0; i < 100; i++) {
+                const star = new PIXI.Graphics();
+                const size = Math.random() * 2 + 0.5;
+                star.circle(0, 0, size);
+                star.fill({ color: 0xFFFFFF, alpha: Math.random() * 0.5 + 0.3 });
+                star.x = Math.random() * CONFIG.width;
+                star.y = Math.random() * CONFIG.height;
+                star.speed = Math.random() * 1 + 0.5;
+                app.stage.addChild(star);
+                particles.push({ type: 'star', obj: star });
+            }
+        }
+
+        function createPlayer() {
+            player = new PIXI.Container();
+
+            // Ship body
+            const body = new PIXI.Graphics();
+            body.poly([0, -20, -15, 15, 0, 8, 15, 15]);
+            body.fill({ color: 0x3498DB });
+            body.stroke({ color: 0x2980B9, width: 2 });
+            player.addChild(body);
+
+            // Cockpit
+            const cockpit = new PIXI.Graphics();
+            cockpit.ellipse(0, -5, 5, 8);
+            cockpit.fill({ color: 0x5DADE2 });
+            player.addChild(cockpit);
+
+            // Engine glow
+            const engine = new PIXI.Graphics();
+            engine.poly([-8, 15, 0, 25, 8, 15]);
+            engine.fill({ color: 0xF39C12 });
+            player.addChild(engine);
+            player.engine = engine;
+
+            player.x = CONFIG.width / 2;
+            player.y = CONFIG.height - 60;
+            app.stage.addChild(player);
+        }
+
+        function createUI() {
+            scoreText = new PIXI.Text({
+                text: 'Score: 0',
+                style: { fontSize: 18, fill: 0xFFFFFF }
+            });
+            scoreText.x = 10;
+            scoreText.y = 10;
+            app.stage.addChild(scoreText);
+
+            livesText = new PIXI.Text({
+                text: '❤️❤️❤️',
+                style: { fontSize: 18 }
+            });
+            livesText.x = CONFIG.width - 80;
+            livesText.y = 10;
+            app.stage.addChild(livesText);
+
+            waveText = new PIXI.Text({
+                text: 'Wave 1',
+                style: { fontSize: 16, fill: 0xF39C12 }
+            });
+            waveText.anchor.set(0.5, 0);
+            waveText.x = CONFIG.width / 2;
+            waveText.y = 10;
+            app.stage.addChild(waveText);
+
+            messageText = new PIXI.Text({
+                text: '',
+                style: { fontSize: 32, fill: 0xFFFFFF, fontWeight: 'bold' }
+            });
+            messageText.anchor.set(0.5);
+            messageText.x = CONFIG.width / 2;
+            messageText.y = CONFIG.height / 2;
+            app.stage.addChild(messageText);
+        }
+
+        function setupInput() {
+            window.addEventListener('keydown', (e) => {
+                keys[e.code] = true;
+                if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+                    e.preventDefault();
+                }
+            });
+            window.addEventListener('keyup', (e) => keys[e.code] = false);
+        }
+
+        function spawnWave() {
+            const enemyCount = 3 + wave * 2;
+            const rows = Math.ceil(enemyCount / 5);
+
+            for (let row = 0; row < rows; row++) {
+                const enemiesInRow = Math.min(5, enemyCount - row * 5);
+                const startX = (CONFIG.width - (enemiesInRow - 1) * 80) / 2;
+
+                for (let col = 0; col < enemiesInRow; col++) {
+                    const enemy = createEnemy(
+                        startX + col * 80,
+                        -50 - row * 50,
+                        row % 3  // Different types
+                    );
+                    enemies.push(enemy);
+                }
+            }
+        }
+
+        function createEnemy(x, y, type) {
+            const enemy = new PIXI.Container();
+            const colors = [0xE74C3C, 0x9B59B6, 0x1ABC9C];
+            const sizes = [15, 18, 22];
+
+            const body = new PIXI.Graphics();
+            if (type === 0) {
+                body.poly([0, sizes[type], -sizes[type], -sizes[type], sizes[type], -sizes[type]]);
+            } else if (type === 1) {
+                body.rect(-sizes[type], -sizes[type]/2, sizes[type]*2, sizes[type]);
+            } else {
+                body.circle(0, 0, sizes[type]);
+            }
+            body.fill({ color: colors[type] });
+            body.stroke({ color: 0xFFFFFF, width: 2, alpha: 0.5 });
+            enemy.addChild(body);
+
+            enemy.x = x;
+            enemy.y = y;
+            enemy.type = type;
+            enemy.health = type + 1;
+            enemy.speed = 1 + wave * 0.2;
+            enemy.shootCooldown = 0;
+            enemy.moveDir = 1;
+            app.stage.addChild(enemy);
+            return enemy;
+        }
+
+        function shoot() {
+            const now = Date.now();
+            if (now - lastShot < 200) return;
+            lastShot = now;
+
+            const bullet = new PIXI.Graphics();
+            bullet.roundRect(-3, -8, 6, 16, 2);
+            bullet.fill({ color: 0x00FF00 });
+            bullet.x = player.x;
+            bullet.y = player.y - 20;
+            app.stage.addChild(bullet);
+            bullets.push(bullet);
+        }
+
+        function enemyShoot(enemy) {
+            const bullet = new PIXI.Graphics();
+            bullet.circle(0, 0, 5);
+            bullet.fill({ color: 0xFF0000 });
+            bullet.x = enemy.x;
+            bullet.y = enemy.y + 20;
+            app.stage.addChild(bullet);
+            enemyBullets.push(bullet);
+        }
+
+        function createExplosion(x, y, color) {
+            for (let i = 0; i < 12; i++) {
+                const particle = new PIXI.Graphics();
+                particle.circle(0, 0, Math.random() * 4 + 2);
+                particle.fill({ color });
+                particle.x = x;
+                particle.y = y;
+                particle.vx = (Math.random() - 0.5) * 8;
+                particle.vy = (Math.random() - 0.5) * 8;
+                particle.life = 1;
+                app.stage.addChild(particle);
+                particles.push({ type: 'explosion', obj: particle });
+            }
+        }
+
+        function gameLoop(ticker) {
+            if (gameOver) return;
+
+            const delta = ticker.deltaTime;
+
+            // Player movement
+            if (keys['ArrowLeft'] || keys['KeyA']) player.x -= 6;
+            if (keys['ArrowRight'] || keys['KeyD']) player.x += 6;
+            if (keys['ArrowUp'] || keys['KeyW']) player.y -= 4;
+            if (keys['ArrowDown'] || keys['KeyS']) player.y += 4;
+            if (keys['Space']) shoot();
+
+            player.x = Math.max(20, Math.min(CONFIG.width - 20, player.x));
+            player.y = Math.max(CONFIG.height / 2, Math.min(CONFIG.height - 30, player.y));
+
+            // Engine animation
+            player.engine.scale.y = 0.8 + Math.sin(Date.now() / 50) * 0.3;
+
+            // Invincibility flash
+            if (playerInvincible > 0) {
+                playerInvincible -= delta;
+                player.alpha = Math.sin(Date.now() / 50) > 0 ? 1 : 0.3;
+            } else {
+                player.alpha = 1;
+            }
+
+            // Update bullets
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                bullets[i].y -= 10;
+                if (bullets[i].y < -20) {
+                    app.stage.removeChild(bullets[i]);
+                    bullets.splice(i, 1);
+                }
+            }
+
+            // Update enemy bullets
+            for (let i = enemyBullets.length - 1; i >= 0; i--) {
+                enemyBullets[i].y += 5;
+                if (enemyBullets[i].y > CONFIG.height + 20) {
+                    app.stage.removeChild(enemyBullets[i]);
+                    enemyBullets.splice(i, 1);
+                    continue;
+                }
+
+                // Hit player
+                if (playerInvincible <= 0) {
+                    const dx = enemyBullets[i].x - player.x;
+                    const dy = enemyBullets[i].y - player.y;
+                    if (Math.sqrt(dx * dx + dy * dy) < 20) {
+                        app.stage.removeChild(enemyBullets[i]);
+                        enemyBullets.splice(i, 1);
+                        hitPlayer();
+                    }
+                }
+            }
+
+            // Update enemies
+            enemies.forEach(enemy => {
+                // Move down initially
+                if (enemy.y < 80 + enemy.type * 30) {
+                    enemy.y += 2;
+                } else {
+                    // Side movement
+                    enemy.x += enemy.moveDir * enemy.speed;
+                    if (enemy.x < 30 || enemy.x > CONFIG.width - 30) {
+                        enemy.moveDir *= -1;
+                        enemy.y += 20;
+                    }
+                }
+
+                // Shooting
+                enemy.shootCooldown -= delta;
+                if (enemy.shootCooldown <= 0 && Math.random() < 0.02) {
+                    enemyShoot(enemy);
+                    enemy.shootCooldown = 60;
+                }
+
+                // Rotation
+                enemy.rotation += 0.02;
+            });
+
+            // Bullet-enemy collision
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                for (let j = enemies.length - 1; j >= 0; j--) {
+                    const dx = bullets[i].x - enemies[j].x;
+                    const dy = bullets[i].y - enemies[j].y;
+                    if (Math.sqrt(dx * dx + dy * dy) < 25) {
+                        app.stage.removeChild(bullets[i]);
+                        bullets.splice(i, 1);
+
+                        enemies[j].health--;
+                        if (enemies[j].health <= 0) {
+                            createExplosion(enemies[j].x, enemies[j].y, 0xE74C3C);
+                            app.stage.removeChild(enemies[j]);
+                            enemies.splice(j, 1);
+                            score += 100 * wave;
+                            scoreText.text = `Score: ${score}`;
+                        } else {
+                            enemies[j].scale.set(1.2);
+                            setTimeout(() => { if (enemies[j]) enemies[j].scale.set(1); }, 100);
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // Enemy-player collision
+            if (playerInvincible <= 0) {
+                for (let enemy of enemies) {
+                    const dx = enemy.x - player.x;
+                    const dy = enemy.y - player.y;
+                    if (Math.sqrt(dx * dx + dy * dy) < 30) {
+                        hitPlayer();
+                        break;
+                    }
+
+                    // Enemy reached bottom
+                    if (enemy.y > CONFIG.height - 50) {
+                        endGame();
+                        return;
+                    }
+                }
+            }
+
+            // Update particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                if (p.type === 'star') {
+                    p.obj.y += p.obj.speed;
+                    if (p.obj.y > CONFIG.height) p.obj.y = 0;
+                } else if (p.type === 'explosion') {
+                    p.obj.x += p.obj.vx;
+                    p.obj.y += p.obj.vy;
+                    p.obj.life -= 0.03;
+                    p.obj.alpha = p.obj.life;
+                    if (p.obj.life <= 0) {
+                        app.stage.removeChild(p.obj);
+                        particles.splice(i, 1);
+                    }
+                }
+            }
+
+            // Next wave
+            if (enemies.length === 0) {
+                wave++;
+                waveText.text = `Wave ${wave}`;
+                spawnWave();
+            }
+        }
+
+        function hitPlayer() {
+            lives--;
+            livesText.text = '❤️'.repeat(lives);
+            playerInvincible = 120;
+            createExplosion(player.x, player.y, 0x3498DB);
+
+            if (lives <= 0) {
+                endGame();
+            }
+        }
+
+        function endGame() {
+            gameOver = true;
+            messageText.text = `GAME OVER\nScore: ${score}\nWave: ${wave}\nClick to restart`;
+            messageText.style.fill = 0xFF0000;
+            app.canvas.addEventListener('click', restart, { once: true });
+        }
+
+        function restart() {
+            // Clear everything
+            bullets.forEach(b => app.stage.removeChild(b));
+            enemyBullets.forEach(b => app.stage.removeChild(b));
+            enemies.forEach(e => app.stage.removeChild(e));
+            particles.filter(p => p.type === 'explosion').forEach(p => app.stage.removeChild(p.obj));
+
+            bullets = [];
+            enemyBullets = [];
+            enemies = [];
+            particles = particles.filter(p => p.type === 'star');
+
+            score = 0;
+            lives = 3;
+            wave = 1;
+            gameOver = false;
+            playerInvincible = 0;
+
+            player.x = CONFIG.width / 2;
+            player.y = CONFIG.height - 60;
+            player.alpha = 1;
+
+            scoreText.text = 'Score: 0';
+            livesText.text = '❤️❤️❤️';
+            waveText.text = 'Wave 1';
+            messageText.text = '';
+
+            spawnWave();
+        }
+
+        init().catch(console.error);
+    </script>
+</body>
+</html>

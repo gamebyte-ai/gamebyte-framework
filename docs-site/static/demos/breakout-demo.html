@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - Breakout Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
+        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
+        #game-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        canvas { display: block; }
+        .info { color: #8892b0; margin-top: 20px; font-size: 12px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Breakout</h1>
+    <p>Mouse or Arrow keys to move paddle, Space to launch ball</p>
+    <div id="game-container"></div>
+    <div class="info">
+        Break all the bricks! Don't let the ball fall!
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+
+    <script>
+        const CONFIG = { width: 600, height: 500 };
+
+        let app, paddle, ball;
+        let bricks = [];
+        let particles = [];
+        let powerups = [];
+        let score = 0, lives = 3, level = 1;
+        let ballLaunched = false, gameOver = false, gameWon = false;
+        let scoreText, livesText, levelText, messageText;
+        let keys = {};
+        let mouseX = CONFIG.width / 2;
+
+        const PADDLE_WIDTH = 100;
+        const PADDLE_HEIGHT = 15;
+        const BALL_RADIUS = 8;
+        const BRICK_ROWS = 5;
+        const BRICK_COLS = 10;
+        const BRICK_WIDTH = 54;
+        const BRICK_HEIGHT = 20;
+        const BRICK_PADDING = 4;
+
+        async function init() {
+            app = new PIXI.Application();
+            await app.init({
+                width: CONFIG.width,
+                height: CONFIG.height,
+                backgroundColor: 0x1a1a2e,
+                antialias: true
+            });
+            document.getElementById('game-container').appendChild(app.canvas);
+
+            createPaddle();
+            createBall();
+            createBricks();
+            createUI();
+            setupInput();
+
+            app.ticker.add(gameLoop);
+        }
+
+        function createPaddle() {
+            paddle = new PIXI.Graphics();
+            paddle.roundRect(0, 0, PADDLE_WIDTH, PADDLE_HEIGHT, 8);
+            paddle.fill({ color: 0x3498DB });
+            paddle.stroke({ color: 0x2980B9, width: 2 });
+
+            // Highlight
+            paddle.roundRect(5, 3, PADDLE_WIDTH - 10, 5, 3);
+            paddle.fill({ color: 0x5DADE2, alpha: 0.5 });
+
+            paddle.x = (CONFIG.width - PADDLE_WIDTH) / 2;
+            paddle.y = CONFIG.height - 40;
+            app.stage.addChild(paddle);
+        }
+
+        function createBall() {
+            ball = new PIXI.Graphics();
+            ball.circle(0, 0, BALL_RADIUS);
+            ball.fill({ color: 0xFFFFFF });
+
+            // Shine
+            ball.circle(-2, -2, 3);
+            ball.fill({ color: 0xFFFFFF, alpha: 0.3 });
+
+            ball.x = CONFIG.width / 2;
+            ball.y = CONFIG.height - 55;
+            ball.vx = 0;
+            ball.vy = 0;
+            app.stage.addChild(ball);
+        }
+
+        function createBricks() {
+            const colors = [0xE74C3C, 0xE67E22, 0xF1C40F, 0x2ECC71, 0x3498DB];
+            const startX = (CONFIG.width - (BRICK_COLS * (BRICK_WIDTH + BRICK_PADDING))) / 2;
+            const startY = 60;
+
+            for (let row = 0; row < BRICK_ROWS; row++) {
+                for (let col = 0; col < BRICK_COLS; col++) {
+                    const brick = new PIXI.Graphics();
+                    brick.roundRect(0, 0, BRICK_WIDTH, BRICK_HEIGHT, 4);
+                    brick.fill({ color: colors[row] });
+                    brick.stroke({ color: 0x000000, width: 1, alpha: 0.3 });
+
+                    // Highlight
+                    brick.roundRect(3, 3, BRICK_WIDTH - 6, 6, 2);
+                    brick.fill({ color: 0xFFFFFF, alpha: 0.2 });
+
+                    brick.x = startX + col * (BRICK_WIDTH + BRICK_PADDING);
+                    brick.y = startY + row * (BRICK_HEIGHT + BRICK_PADDING);
+                    brick.row = row;
+                    brick.health = row < 2 ? 2 : 1; // Top rows need 2 hits
+                    brick.color = colors[row];
+                    app.stage.addChild(brick);
+                    bricks.push(brick);
+                }
+            }
+        }
+
+        function createUI() {
+            scoreText = new PIXI.Text({
+                text: 'Score: 0',
+                style: { fontSize: 18, fill: 0xFFFFFF }
+            });
+            scoreText.x = 10;
+            scoreText.y = 10;
+            app.stage.addChild(scoreText);
+
+            livesText = new PIXI.Text({
+                text: '❤️❤️❤️',
+                style: { fontSize: 18 }
+            });
+            livesText.x = CONFIG.width - 80;
+            livesText.y = 10;
+            app.stage.addChild(livesText);
+
+            levelText = new PIXI.Text({
+                text: 'Level 1',
+                style: { fontSize: 16, fill: 0xF39C12 }
+            });
+            levelText.anchor.set(0.5, 0);
+            levelText.x = CONFIG.width / 2;
+            levelText.y = 10;
+            app.stage.addChild(levelText);
+
+            messageText = new PIXI.Text({
+                text: 'Press SPACE to launch',
+                style: { fontSize: 20, fill: 0x8892b0 }
+            });
+            messageText.anchor.set(0.5);
+            messageText.x = CONFIG.width / 2;
+            messageText.y = CONFIG.height / 2 + 50;
+            app.stage.addChild(messageText);
+        }
+
+        function setupInput() {
+            window.addEventListener('keydown', (e) => {
+                keys[e.code] = true;
+                if (e.code === 'Space') {
+                    e.preventDefault();
+                    if (!ballLaunched && !gameOver && !gameWon) {
+                        launchBall();
+                    } else if (gameOver || gameWon) {
+                        restart();
+                    }
+                }
+            });
+            window.addEventListener('keyup', (e) => keys[e.code] = false);
+
+            app.canvas.addEventListener('mousemove', (e) => {
+                const rect = app.canvas.getBoundingClientRect();
+                mouseX = e.clientX - rect.left;
+            });
+
+            app.canvas.addEventListener('click', () => {
+                if (!ballLaunched && !gameOver && !gameWon) {
+                    launchBall();
+                } else if (gameOver || gameWon) {
+                    restart();
+                }
+            });
+        }
+
+        function launchBall() {
+            ballLaunched = true;
+            const angle = (Math.random() - 0.5) * Math.PI / 3 - Math.PI / 2;
+            const speed = 6 + level;
+            ball.vx = Math.cos(angle) * speed;
+            ball.vy = Math.sin(angle) * speed;
+            messageText.text = '';
+        }
+
+        function gameLoop(ticker) {
+            if (gameOver || gameWon) return;
+
+            // Paddle movement
+            if (keys['ArrowLeft'] || keys['KeyA']) {
+                paddle.x -= 8;
+            }
+            if (keys['ArrowRight'] || keys['KeyD']) {
+                paddle.x += 8;
+            }
+
+            // Mouse control
+            paddle.x += (mouseX - PADDLE_WIDTH / 2 - paddle.x) * 0.2;
+
+            // Paddle bounds
+            paddle.x = Math.max(0, Math.min(CONFIG.width - PADDLE_WIDTH, paddle.x));
+
+            // Ball on paddle before launch
+            if (!ballLaunched) {
+                ball.x = paddle.x + PADDLE_WIDTH / 2;
+                ball.y = CONFIG.height - 55;
+                return;
+            }
+
+            // Ball movement
+            ball.x += ball.vx;
+            ball.y += ball.vy;
+
+            // Wall collision
+            if (ball.x - BALL_RADIUS < 0) {
+                ball.x = BALL_RADIUS;
+                ball.vx *= -1;
+            }
+            if (ball.x + BALL_RADIUS > CONFIG.width) {
+                ball.x = CONFIG.width - BALL_RADIUS;
+                ball.vx *= -1;
+            }
+            if (ball.y - BALL_RADIUS < 0) {
+                ball.y = BALL_RADIUS;
+                ball.vy *= -1;
+            }
+
+            // Ball fell
+            if (ball.y > CONFIG.height + 50) {
+                loseLife();
+                return;
+            }
+
+            // Paddle collision
+            if (ball.vy > 0 &&
+                ball.y + BALL_RADIUS > paddle.y &&
+                ball.y + BALL_RADIUS < paddle.y + PADDLE_HEIGHT + 10 &&
+                ball.x > paddle.x - BALL_RADIUS &&
+                ball.x < paddle.x + PADDLE_WIDTH + BALL_RADIUS) {
+
+                // Calculate bounce angle based on where ball hit paddle
+                const hitPos = (ball.x - paddle.x) / PADDLE_WIDTH; // 0 to 1
+                const angle = (hitPos - 0.5) * Math.PI * 0.7 - Math.PI / 2;
+                const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
+
+                ball.vx = Math.cos(angle) * speed;
+                ball.vy = Math.sin(angle) * speed;
+                ball.y = paddle.y - BALL_RADIUS;
+
+                // Ensure ball goes up
+                if (ball.vy > 0) ball.vy *= -1;
+
+                createHitParticles(ball.x, ball.y, 0x3498DB);
+            }
+
+            // Brick collision
+            for (let i = bricks.length - 1; i >= 0; i--) {
+                const brick = bricks[i];
+
+                if (ball.x + BALL_RADIUS > brick.x &&
+                    ball.x - BALL_RADIUS < brick.x + BRICK_WIDTH &&
+                    ball.y + BALL_RADIUS > brick.y &&
+                    ball.y - BALL_RADIUS < brick.y + BRICK_HEIGHT) {
+
+                    // Determine which side was hit
+                    const overlapLeft = ball.x + BALL_RADIUS - brick.x;
+                    const overlapRight = brick.x + BRICK_WIDTH - (ball.x - BALL_RADIUS);
+                    const overlapTop = ball.y + BALL_RADIUS - brick.y;
+                    const overlapBottom = brick.y + BRICK_HEIGHT - (ball.y - BALL_RADIUS);
+
+                    const minOverlapX = Math.min(overlapLeft, overlapRight);
+                    const minOverlapY = Math.min(overlapTop, overlapBottom);
+
+                    if (minOverlapX < minOverlapY) {
+                        ball.vx *= -1;
+                    } else {
+                        ball.vy *= -1;
+                    }
+
+                    brick.health--;
+
+                    if (brick.health <= 0) {
+                        createHitParticles(brick.x + BRICK_WIDTH / 2, brick.y + BRICK_HEIGHT / 2, brick.color);
+                        app.stage.removeChild(brick);
+                        bricks.splice(i, 1);
+                        score += (BRICK_ROWS - brick.row) * 10;
+                        scoreText.text = `Score: ${score}`;
+
+                        // Check win
+                        if (bricks.length === 0) {
+                            nextLevel();
+                        }
+
+                        // Random powerup
+                        if (Math.random() < 0.15) {
+                            spawnPowerup(brick.x + BRICK_WIDTH / 2, brick.y + BRICK_HEIGHT / 2);
+                        }
+                    } else {
+                        // Visual feedback for damaged brick
+                        brick.alpha = 0.6;
+                    }
+
+                    break; // Only one brick collision per frame
+                }
+            }
+
+            // Update powerups
+            for (let i = powerups.length - 1; i >= 0; i--) {
+                const powerup = powerups[i];
+                powerup.y += 3;
+                powerup.rotation += 0.05;
+
+                // Collect powerup
+                if (powerup.y > paddle.y &&
+                    powerup.y < paddle.y + PADDLE_HEIGHT + 20 &&
+                    powerup.x > paddle.x &&
+                    powerup.x < paddle.x + PADDLE_WIDTH) {
+
+                    applyPowerup(powerup.type);
+                    app.stage.removeChild(powerup);
+                    powerups.splice(i, 1);
+                    continue;
+                }
+
+                // Remove if off screen
+                if (powerup.y > CONFIG.height) {
+                    app.stage.removeChild(powerup);
+                    powerups.splice(i, 1);
+                }
+            }
+
+            // Update particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.2; // gravity
+                p.life -= 0.02;
+                p.alpha = p.life;
+
+                if (p.life <= 0) {
+                    app.stage.removeChild(p);
+                    particles.splice(i, 1);
+                }
+            }
+        }
+
+        function createHitParticles(x, y, color) {
+            for (let i = 0; i < 8; i++) {
+                const particle = new PIXI.Graphics();
+                particle.rect(-3, -3, 6, 6);
+                particle.fill({ color });
+                particle.x = x;
+                particle.y = y;
+                particle.vx = (Math.random() - 0.5) * 6;
+                particle.vy = (Math.random() - 0.5) * 6;
+                particle.life = 1;
+                app.stage.addChild(particle);
+                particles.push(particle);
+            }
+        }
+
+        function spawnPowerup(x, y) {
+            const types = ['expand', 'shrink', 'fast', 'slow', 'extraLife'];
+            const colors = [0x2ECC71, 0xE74C3C, 0xE67E22, 0x3498DB, 0xFF69B4];
+            const typeIndex = Math.floor(Math.random() * types.length);
+
+            const powerup = new PIXI.Graphics();
+            powerup.circle(0, 0, 12);
+            powerup.fill({ color: colors[typeIndex] });
+            powerup.stroke({ color: 0xFFFFFF, width: 2 });
+            powerup.x = x;
+            powerup.y = y;
+            powerup.type = types[typeIndex];
+            app.stage.addChild(powerup);
+            powerups.push(powerup);
+        }
+
+        function applyPowerup(type) {
+            switch (type) {
+                case 'expand':
+                    paddle.scale.x = Math.min(paddle.scale.x + 0.3, 1.5);
+                    break;
+                case 'shrink':
+                    paddle.scale.x = Math.max(paddle.scale.x - 0.2, 0.6);
+                    break;
+                case 'fast':
+                    const speedUp = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy) * 1.2;
+                    const angleUp = Math.atan2(ball.vy, ball.vx);
+                    ball.vx = Math.cos(angleUp) * Math.min(speedUp, 12);
+                    ball.vy = Math.sin(angleUp) * Math.min(speedUp, 12);
+                    break;
+                case 'slow':
+                    const speedDown = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy) * 0.8;
+                    const angleDown = Math.atan2(ball.vy, ball.vx);
+                    ball.vx = Math.cos(angleDown) * Math.max(speedDown, 4);
+                    ball.vy = Math.sin(angleDown) * Math.max(speedDown, 4);
+                    break;
+                case 'extraLife':
+                    lives = Math.min(lives + 1, 5);
+                    livesText.text = '❤️'.repeat(lives);
+                    break;
+            }
+        }
+
+        function loseLife() {
+            lives--;
+            livesText.text = '❤️'.repeat(lives);
+            ballLaunched = false;
+            ball.vx = 0;
+            ball.vy = 0;
+
+            if (lives <= 0) {
+                gameOver = true;
+                messageText.text = `GAME OVER\nScore: ${score}\nClick to restart`;
+                messageText.style.fill = 0xE74C3C;
+            } else {
+                messageText.text = 'Press SPACE to launch';
+                messageText.style.fill = 0x8892b0;
+            }
+        }
+
+        function nextLevel() {
+            level++;
+            levelText.text = `Level ${level}`;
+            ballLaunched = false;
+            ball.vx = 0;
+            ball.vy = 0;
+
+            // Clear powerups
+            powerups.forEach(p => app.stage.removeChild(p));
+            powerups = [];
+
+            // Reset paddle
+            paddle.scale.x = 1;
+
+            // Create new bricks
+            createBricks();
+
+            messageText.text = `Level ${level}!\nPress SPACE`;
+            messageText.style.fill = 0x2ECC71;
+        }
+
+        function restart() {
+            // Clear everything
+            bricks.forEach(b => app.stage.removeChild(b));
+            particles.forEach(p => app.stage.removeChild(p));
+            powerups.forEach(p => app.stage.removeChild(p));
+            bricks = [];
+            particles = [];
+            powerups = [];
+
+            score = 0;
+            lives = 3;
+            level = 1;
+            gameOver = false;
+            gameWon = false;
+            ballLaunched = false;
+
+            paddle.x = (CONFIG.width - PADDLE_WIDTH) / 2;
+            paddle.scale.x = 1;
+            ball.vx = 0;
+            ball.vy = 0;
+
+            scoreText.text = 'Score: 0';
+            livesText.text = '❤️❤️❤️';
+            levelText.text = 'Level 1';
+            messageText.text = 'Press SPACE to launch';
+            messageText.style.fill = 0x8892b0;
+
+            createBricks();
+        }
+
+        init().catch(console.error);
+    </script>
+</body>
+</html>

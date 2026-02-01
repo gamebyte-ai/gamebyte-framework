@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - Snake Game Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
+        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
+        #game-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        canvas { display: block; }
+        .info { color: #8892b0; margin-top: 20px; font-size: 12px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Snake Game</h1>
+    <p>Arrow keys to change direction</p>
+    <div id="game-container"></div>
+    <div class="info">
+        Eat food to grow! Don't hit the walls or yourself!
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+
+    <script>
+        const CONFIG = { width: 500, height: 500 };
+        const GRID_SIZE = 20;
+        const GRID_WIDTH = CONFIG.width / GRID_SIZE;
+        const GRID_HEIGHT = CONFIG.height / GRID_SIZE;
+
+        let app;
+        let snake = [];
+        let snakeGraphics = [];
+        let direction = { x: 1, y: 0 };
+        let nextDirection = { x: 1, y: 0 };
+        let food = { x: 0, y: 0 };
+        let foodGraphic;
+        let specialFood = null;
+        let specialFoodGraphic = null;
+        let score = 0;
+        let highScore = 0;
+        let speed = 150;
+        let gameOver = false;
+        let paused = false;
+        let lastMove = 0;
+        let scoreText, highScoreText, messageText;
+        let gridContainer;
+
+        async function init() {
+            app = new PIXI.Application();
+            await app.init({
+                width: CONFIG.width,
+                height: CONFIG.height,
+                backgroundColor: 0x1a1a2e,
+                antialias: true
+            });
+            document.getElementById('game-container').appendChild(app.canvas);
+
+            drawGrid();
+            createUI();
+            setupInput();
+            initGame();
+
+            app.ticker.add(gameLoop);
+        }
+
+        function drawGrid() {
+            gridContainer = new PIXI.Container();
+            app.stage.addChild(gridContainer);
+
+            const grid = new PIXI.Graphics();
+            grid.rect(0, 0, CONFIG.width, CONFIG.height);
+            grid.fill({ color: 0x0a0a1a });
+
+            // Grid lines
+            for (let i = 0; i <= GRID_WIDTH; i++) {
+                grid.moveTo(i * GRID_SIZE, 0);
+                grid.lineTo(i * GRID_SIZE, CONFIG.height);
+            }
+            for (let i = 0; i <= GRID_HEIGHT; i++) {
+                grid.moveTo(0, i * GRID_SIZE);
+                grid.lineTo(CONFIG.width, i * GRID_SIZE);
+            }
+            grid.stroke({ color: 0x1a1a3e, width: 1 });
+
+            gridContainer.addChild(grid);
+        }
+
+        function createUI() {
+            const uiBg = new PIXI.Graphics();
+            uiBg.roundRect(5, 5, 180, 30, 5);
+            uiBg.fill({ color: 0x000000, alpha: 0.5 });
+            app.stage.addChild(uiBg);
+
+            scoreText = new PIXI.Text({
+                text: 'Score: 0',
+                style: { fontSize: 16, fill: 0x2ECC71, fontWeight: 'bold' }
+            });
+            scoreText.x = 10;
+            scoreText.y = 10;
+            app.stage.addChild(scoreText);
+
+            highScoreText = new PIXI.Text({
+                text: 'Best: 0',
+                style: { fontSize: 14, fill: 0xF39C12 }
+            });
+            highScoreText.x = 110;
+            highScoreText.y = 12;
+            app.stage.addChild(highScoreText);
+
+            messageText = new PIXI.Text({
+                text: '',
+                style: { fontSize: 28, fill: 0xFFFFFF, fontWeight: 'bold' }
+            });
+            messageText.anchor.set(0.5);
+            messageText.x = CONFIG.width / 2;
+            messageText.y = CONFIG.height / 2;
+            app.stage.addChild(messageText);
+        }
+
+        function setupInput() {
+            window.addEventListener('keydown', (e) => {
+                if (gameOver) {
+                    if (e.code === 'Space') restart();
+                    return;
+                }
+
+                switch (e.code) {
+                    case 'ArrowUp':
+                    case 'KeyW':
+                        if (direction.y !== 1) nextDirection = { x: 0, y: -1 };
+                        break;
+                    case 'ArrowDown':
+                    case 'KeyS':
+                        if (direction.y !== -1) nextDirection = { x: 0, y: 1 };
+                        break;
+                    case 'ArrowLeft':
+                    case 'KeyA':
+                        if (direction.x !== 1) nextDirection = { x: -1, y: 0 };
+                        break;
+                    case 'ArrowRight':
+                    case 'KeyD':
+                        if (direction.x !== -1) nextDirection = { x: 1, y: 0 };
+                        break;
+                    case 'Space':
+                        paused = !paused;
+                        messageText.text = paused ? 'PAUSED' : '';
+                        break;
+                }
+
+                if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+                    e.preventDefault();
+                }
+            });
+        }
+
+        function initGame() {
+            // Clear old snake
+            snakeGraphics.forEach(s => gridContainer.removeChild(s));
+            snakeGraphics = [];
+
+            // Initial snake position
+            snake = [
+                { x: 12, y: 12 },
+                { x: 11, y: 12 },
+                { x: 10, y: 12 }
+            ];
+
+            direction = { x: 1, y: 0 };
+            nextDirection = { x: 1, y: 0 };
+
+            // Draw snake
+            snake.forEach((segment, i) => {
+                const graphic = createSnakeSegment(segment.x, segment.y, i === 0);
+                snakeGraphics.push(graphic);
+            });
+
+            // Spawn food
+            spawnFood();
+        }
+
+        function createSnakeSegment(x, y, isHead) {
+            const segment = new PIXI.Graphics();
+            const padding = 2;
+
+            if (isHead) {
+                segment.roundRect(padding, padding, GRID_SIZE - padding * 2, GRID_SIZE - padding * 2, 5);
+                segment.fill({ color: 0x27AE60 });
+                segment.stroke({ color: 0x2ECC71, width: 2 });
+
+                // Eyes
+                const eyeOffset = direction.x !== 0 ? 5 : 3;
+                segment.circle(direction.x > 0 ? 13 : 7, direction.y > 0 ? 13 : 7, 3);
+                segment.fill({ color: 0xFFFFFF });
+                segment.circle(direction.x > 0 ? 13 : 7, direction.y > 0 ? 13 : 7, 1.5);
+                segment.fill({ color: 0x000000 });
+            } else {
+                segment.roundRect(padding, padding, GRID_SIZE - padding * 2, GRID_SIZE - padding * 2, 4);
+                segment.fill({ color: 0x2ECC71 });
+            }
+
+            segment.x = x * GRID_SIZE;
+            segment.y = y * GRID_SIZE;
+            gridContainer.addChild(segment);
+            return segment;
+        }
+
+        function spawnFood() {
+            let validPosition = false;
+            while (!validPosition) {
+                food.x = Math.floor(Math.random() * GRID_WIDTH);
+                food.y = Math.floor(Math.random() * GRID_HEIGHT);
+                validPosition = !snake.some(s => s.x === food.x && s.y === food.y);
+            }
+
+            if (foodGraphic) gridContainer.removeChild(foodGraphic);
+
+            foodGraphic = new PIXI.Graphics();
+            foodGraphic.circle(GRID_SIZE / 2, GRID_SIZE / 2, GRID_SIZE / 2 - 3);
+            foodGraphic.fill({ color: 0xE74C3C });
+            foodGraphic.stroke({ color: 0xC0392B, width: 2 });
+
+            // Shine effect
+            foodGraphic.circle(GRID_SIZE / 3, GRID_SIZE / 3, 3);
+            foodGraphic.fill({ color: 0xFFFFFF, alpha: 0.5 });
+
+            foodGraphic.x = food.x * GRID_SIZE;
+            foodGraphic.y = food.y * GRID_SIZE;
+            gridContainer.addChild(foodGraphic);
+
+            // Random chance for special food
+            if (Math.random() < 0.2 && !specialFood) {
+                spawnSpecialFood();
+            }
+        }
+
+        function spawnSpecialFood() {
+            let validPosition = false;
+            specialFood = { x: 0, y: 0, timer: 200 };
+
+            while (!validPosition) {
+                specialFood.x = Math.floor(Math.random() * GRID_WIDTH);
+                specialFood.y = Math.floor(Math.random() * GRID_HEIGHT);
+                validPosition = !snake.some(s => s.x === specialFood.x && s.y === specialFood.y) &&
+                               !(specialFood.x === food.x && specialFood.y === food.y);
+            }
+
+            specialFoodGraphic = new PIXI.Graphics();
+            // Star shape
+            const cx = GRID_SIZE / 2;
+            const cy = GRID_SIZE / 2;
+            const points = [];
+            for (let i = 0; i < 10; i++) {
+                const radius = i % 2 === 0 ? 8 : 4;
+                const angle = (i * Math.PI / 5) - Math.PI / 2;
+                points.push(cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius);
+            }
+            specialFoodGraphic.poly(points);
+            specialFoodGraphic.fill({ color: 0xF39C12 });
+            specialFoodGraphic.stroke({ color: 0xE67E22, width: 1 });
+
+            specialFoodGraphic.x = specialFood.x * GRID_SIZE;
+            specialFoodGraphic.y = specialFood.y * GRID_SIZE;
+            gridContainer.addChild(specialFoodGraphic);
+        }
+
+        function gameLoop(ticker) {
+            if (gameOver || paused) return;
+
+            const now = Date.now();
+            if (now - lastMove < speed) return;
+            lastMove = now;
+
+            // Update direction
+            direction = { ...nextDirection };
+
+            // Calculate new head position
+            const head = snake[0];
+            const newHead = {
+                x: head.x + direction.x,
+                y: head.y + direction.y
+            };
+
+            // Check wall collision
+            if (newHead.x < 0 || newHead.x >= GRID_WIDTH ||
+                newHead.y < 0 || newHead.y >= GRID_HEIGHT) {
+                endGame();
+                return;
+            }
+
+            // Check self collision
+            if (snake.some(s => s.x === newHead.x && s.y === newHead.y)) {
+                endGame();
+                return;
+            }
+
+            // Add new head
+            snake.unshift(newHead);
+
+            // Check food collision
+            let ate = false;
+            if (newHead.x === food.x && newHead.y === food.y) {
+                score += 10;
+                ate = true;
+                speed = Math.max(50, speed - 2);
+                spawnFood();
+            }
+
+            // Check special food collision
+            if (specialFood && newHead.x === specialFood.x && newHead.y === specialFood.y) {
+                score += 50;
+                ate = true;
+                // Add extra segments
+                for (let i = 0; i < 2; i++) {
+                    const tail = snake[snake.length - 1];
+                    snake.push({ ...tail });
+                }
+                removeSpecialFood();
+            }
+
+            // Remove tail if didn't eat
+            if (!ate) {
+                snake.pop();
+            }
+
+            // Update graphics
+            updateSnakeGraphics();
+            scoreText.text = `Score: ${score}`;
+
+            // Update special food timer
+            if (specialFood) {
+                specialFood.timer--;
+                if (specialFood.timer <= 0) {
+                    removeSpecialFood();
+                }
+                // Blinking effect
+                if (specialFoodGraphic) {
+                    specialFoodGraphic.alpha = specialFood.timer % 20 < 10 ? 1 : 0.5;
+                }
+            }
+
+            // Animate food
+            if (foodGraphic) {
+                foodGraphic.scale.set(1 + Math.sin(now / 200) * 0.1);
+            }
+        }
+
+        function updateSnakeGraphics() {
+            // Remove old graphics
+            snakeGraphics.forEach(s => gridContainer.removeChild(s));
+            snakeGraphics = [];
+
+            // Create new graphics
+            snake.forEach((segment, i) => {
+                const graphic = createSnakeSegment(segment.x, segment.y, i === 0);
+                snakeGraphics.push(graphic);
+            });
+        }
+
+        function removeSpecialFood() {
+            if (specialFoodGraphic) {
+                gridContainer.removeChild(specialFoodGraphic);
+                specialFoodGraphic = null;
+            }
+            specialFood = null;
+        }
+
+        function endGame() {
+            gameOver = true;
+            if (score > highScore) {
+                highScore = score;
+                highScoreText.text = `Best: ${highScore}`;
+            }
+            messageText.text = `GAME OVER\nScore: ${score}\nPress SPACE to restart`;
+            messageText.style.fill = 0xE74C3C;
+        }
+
+        function restart() {
+            score = 0;
+            speed = 150;
+            gameOver = false;
+            paused = false;
+            messageText.text = '';
+            messageText.style.fill = 0xFFFFFF;
+            scoreText.text = 'Score: 0';
+            removeSpecialFood();
+            initGame();
+        }
+
+        init().catch(console.error);
+    </script>
+</body>
+</html>
