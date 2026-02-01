@@ -17,10 +17,12 @@ The game loop is the heartbeat of your game, updating logic and rendering frames
 
 ## Live Demo
 
+See the game loop in action with this space shooter - the update cycle handles player movement, bullet physics, enemy AI, and collision detection every frame:
+
 <LiveDemo
-  src="/demos/game-loop-demo.html"
-  height={590}
-  title="Game Loop Visualizer"
+  src="/demos/space-shooter-demo.html"
+  height={680}
+  title="Space Shooter - Game Loop in Action"
 />
 
 ## How It Works

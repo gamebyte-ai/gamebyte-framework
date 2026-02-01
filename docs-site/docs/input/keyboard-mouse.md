@@ -15,10 +15,12 @@ import LiveDemo from '@site/src/components/LiveDemo';
 
 ## Live Demo
 
+Try this Breakout game - use arrow keys or mouse to control the paddle:
+
 <LiveDemo
-  src="/demos/keyboard-demo.html"
-  height={590}
-  title="Keyboard Input Demo"
+  src="/demos/breakout-demo.html"
+  height={580}
+  title="Breakout - Keyboard & Mouse Demo"
 />
 
 ## Keyboard

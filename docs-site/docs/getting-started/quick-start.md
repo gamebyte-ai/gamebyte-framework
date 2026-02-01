@@ -106,9 +106,9 @@ npx http-server -p 8080
 ## Live Demo
 
 <LiveDemo
-  src="/demos/quick-start.html"
-  height={400}
-  title="Quick Start Demo"
+  src="/demos/platformer-demo.html"
+  height={480}
+  title="Platformer Game Demo"
 />
 
 :::tip Theme Support
