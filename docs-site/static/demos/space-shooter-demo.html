@@ -2,156 +2,261 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>GameByte - Space Shooter Demo</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-        }
-        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
-        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
-        #game-container {
-            border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            background: #0a0a20;
+            touch-action: none;
         }
         canvas { display: block; }
-        .info { color: #8892b0; margin-top: 20px; font-size: 12px; text-align: center; }
     </style>
 </head>
 <body>
-    <h1>Space Shooter</h1>
-    <p>Arrow keys to move, Space to shoot</p>
-    <div id="game-container"></div>
-    <div class="info">
-        Destroy all enemies! Avoid their bullets!
-    </div>
-
     <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
 
     <script>
-        const CONFIG = { width: 500, height: 600 };
+        // =====================================================
+        // Space Shooter Demo - GameByte Framework Components
+        // =====================================================
+        // Showcases:
+        // - createGame() and graphics() abstraction
+        // - GameTopBar for score/lives/wave display
+        // - GameStyleButton for mobile fire button
+        // - VirtualJoystick for mobile movement
+        // - ResultScreen for game over state
+        // - game.on('update') for game loop
+        // =====================================================
 
-        let app, player;
-        let bullets = [], enemyBullets = [], enemies = [], particles = [], powerups = [];
-        let score = 0, lives = 3, wave = 1, gameOver = false;
-        let scoreText, livesText, waveText, messageText;
-        let keys = {};
-        let lastShot = 0, lastEnemySpawn = 0;
-        let playerInvincible = 0;
+        const {
+            createGame,
+            graphics,
+            loadFrameworkFont,
+            GameTopBar,
+            GameStyleButton,
+            GameStyleColors,
+            ResultScreen,
+            VirtualJoystick
+        } = GameByteFramework;
+
+        const CONFIG = {
+            width: 500,
+            height: 650,
+            playerSpeed: 6,
+            bulletSpeed: 10,
+            enemyBulletSpeed: 5
+        };
+
+        let game, stage, gfx;
+        let mainContainer, worldContainer, uiContainer;
+        let player, playerEngine;
+        let bullets = [], enemyBullets = [], enemies = [], stars = [], explosions = [];
+        let score = 0, lives = 3, wave = 1;
+        let gameState = 'playing';
+        let lastShot = 0, playerInvincible = 0;
+        let keys = { left: false, right: false, up: false, down: false, fire: false };
+
+        // Framework UI Components
+        let topBar, joystick, fireButton, resultScreen;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        document.body.appendChild(canvas);
 
         async function init() {
-            app = new PIXI.Application();
-            await app.init({
-                width: CONFIG.width,
-                height: CONFIG.height,
-                backgroundColor: 0x0a0a20,
-                antialias: true
-            });
-            document.getElementById('game-container').appendChild(app.canvas);
+            await loadFrameworkFont();
 
+            game = createGame();
+            await game.initialize(canvas, '2d');
+
+            const renderer = game.make('renderer');
+            stage = renderer.getStage();
+            gfx = graphics();
+
+            // Responsive scaling
+            const scaleX = window.innerWidth / CONFIG.width;
+            const scaleY = window.innerHeight / CONFIG.height;
+            const scale = Math.min(scaleX, scaleY);
+
+            mainContainer = gfx.createContainer();
+            mainContainer.scale.set(scale);
+            mainContainer.x = (window.innerWidth - CONFIG.width * scale) / 2;
+            mainContainer.y = (window.innerHeight - CONFIG.height * scale) / 2;
+            stage.addChild(mainContainer);
+
+            // World container
+            worldContainer = gfx.createContainer();
+            mainContainer.addChild(worldContainer);
+
+            // Background
+            const bg = gfx.createGraphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill({ color: 0x0a0a20 });
+            worldContainer.addChild(bg);
+
+            // Create stars
             createStars();
+
+            // Create player
             createPlayer();
-            createUI();
+
+            // UI Container
+            uiContainer = gfx.createContainer();
+            mainContainer.addChild(uiContainer);
+
+            // === FRAMEWORK COMPONENT: GameTopBar ===
+            topBar = new GameTopBar({
+                width: CONFIG.width - 20,
+                height: 50,
+                resources: [
+                    { type: 'lives', value: lives, maxValue: 3, icon: 'heart' },
+                    { type: 'coins', value: score, icon: 'star', label: 'Score' }
+                ],
+                showSettings: false,
+                backgroundColor: 0x000000,
+                backgroundAlpha: 0.5
+            });
+            topBar.setPosition(10, 5);
+            uiContainer.addChild(topBar.getContainer());
+
+            // Wave indicator
+            const waveText = gfx.createText(`Wave ${wave}`, {
+                fontSize: 16,
+                fill: 0xF39C12,
+                fontWeight: 'bold'
+            });
+            waveText.anchor.set(0.5, 0);
+            waveText.x = CONFIG.width / 2;
+            waveText.y = 60;
+            uiContainer.addChild(waveText);
+            uiContainer.waveText = waveText;
+
+            // === FRAMEWORK COMPONENT: Mobile Controls ===
+            if ('ontouchstart' in window) {
+                // VirtualJoystick for movement
+                joystick = new VirtualJoystick({
+                    mode: 'fixed',
+                    baseRadius: 50,
+                    stickRadius: 22,
+                    position: { x: 70, y: CONFIG.height - 90 },
+                    style: {
+                        baseColor: 0x333366,
+                        baseAlpha: 0.6,
+                        stickColor: 0x6666FF,
+                        stickAlpha: 0.9
+                    }
+                });
+                uiContainer.addChild(joystick.getContainer());
+
+                joystick.on('move', (data) => {
+                    keys.left = data.vector.x < -0.3;
+                    keys.right = data.vector.x > 0.3;
+                    keys.up = data.vector.y < -0.3;
+                    keys.down = data.vector.y > 0.3;
+                });
+
+                joystick.on('end', () => {
+                    keys.left = keys.right = keys.up = keys.down = false;
+                });
+
+                // GameStyleButton for fire
+                fireButton = new GameStyleButton({
+                    text: 'FIRE',
+                    width: 80,
+                    height: 80,
+                    fontSize: 16,
+                    colorScheme: GameStyleColors.RED_BUTTON,
+                    cornerRadius: 40
+                });
+                fireButton.setPosition(CONFIG.width - 100, CONFIG.height - 110);
+                fireButton.on('pointerdown', () => { keys.fire = true; });
+                fireButton.on('pointerup', () => { keys.fire = false; });
+                fireButton.on('pointerupoutside', () => { keys.fire = false; });
+                uiContainer.addChild(fireButton.getContainer());
+            }
+
+            // Keyboard input
             setupInput();
+
+            // Spawn first wave
             spawnWave();
 
-            app.ticker.add(gameLoop);
+            // Game loop
+            game.on('update', (dt) => {
+                if (gameState === 'playing') {
+                    updateGame(dt);
+                }
+            });
+
+            window.addEventListener('resize', handleResize);
+            game.start();
         }
 
         function createStars() {
-            for (let i = 0; i < 100; i++) {
-                const star = new PIXI.Graphics();
+            for (let i = 0; i < 80; i++) {
+                const star = gfx.createGraphics();
                 const size = Math.random() * 2 + 0.5;
                 star.circle(0, 0, size);
                 star.fill({ color: 0xFFFFFF, alpha: Math.random() * 0.5 + 0.3 });
                 star.x = Math.random() * CONFIG.width;
                 star.y = Math.random() * CONFIG.height;
-                star.speed = Math.random() * 1 + 0.5;
-                app.stage.addChild(star);
-                particles.push({ type: 'star', obj: star });
+                star.speed = Math.random() * 1.5 + 0.5;
+                worldContainer.addChild(star);
+                stars.push(star);
             }
         }
 
         function createPlayer() {
-            player = new PIXI.Container();
+            player = gfx.createContainer();
 
             // Ship body
-            const body = new PIXI.Graphics();
+            const body = gfx.createGraphics();
             body.poly([0, -20, -15, 15, 0, 8, 15, 15]);
             body.fill({ color: 0x3498DB });
             body.stroke({ color: 0x2980B9, width: 2 });
             player.addChild(body);
 
             // Cockpit
-            const cockpit = new PIXI.Graphics();
+            const cockpit = gfx.createGraphics();
             cockpit.ellipse(0, -5, 5, 8);
             cockpit.fill({ color: 0x5DADE2 });
             player.addChild(cockpit);
 
             // Engine glow
-            const engine = new PIXI.Graphics();
-            engine.poly([-8, 15, 0, 25, 8, 15]);
-            engine.fill({ color: 0xF39C12 });
-            player.addChild(engine);
-            player.engine = engine;
+            playerEngine = gfx.createGraphics();
+            playerEngine.poly([-8, 15, 0, 28, 8, 15]);
+            playerEngine.fill({ color: 0xF39C12 });
+            player.addChild(playerEngine);
 
             player.x = CONFIG.width / 2;
-            player.y = CONFIG.height - 60;
-            app.stage.addChild(player);
-        }
-
-        function createUI() {
-            scoreText = new PIXI.Text({
-                text: 'Score: 0',
-                style: { fontSize: 18, fill: 0xFFFFFF }
-            });
-            scoreText.x = 10;
-            scoreText.y = 10;
-            app.stage.addChild(scoreText);
-
-            livesText = new PIXI.Text({
-                text: '❤️❤️❤️',
-                style: { fontSize: 18 }
-            });
-            livesText.x = CONFIG.width - 80;
-            livesText.y = 10;
-            app.stage.addChild(livesText);
-
-            waveText = new PIXI.Text({
-                text: 'Wave 1',
-                style: { fontSize: 16, fill: 0xF39C12 }
-            });
-            waveText.anchor.set(0.5, 0);
-            waveText.x = CONFIG.width / 2;
-            waveText.y = 10;
-            app.stage.addChild(waveText);
-
-            messageText = new PIXI.Text({
-                text: '',
-                style: { fontSize: 32, fill: 0xFFFFFF, fontWeight: 'bold' }
-            });
-            messageText.anchor.set(0.5);
-            messageText.x = CONFIG.width / 2;
-            messageText.y = CONFIG.height / 2;
-            app.stage.addChild(messageText);
+            player.y = CONFIG.height - 80;
+            worldContainer.addChild(player);
         }
 
         function setupInput() {
             window.addEventListener('keydown', (e) => {
-                keys[e.code] = true;
+                if (gameState !== 'playing') return;
+                if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = true;
+                if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = true;
+                if (e.code === 'ArrowUp' || e.code === 'KeyW') keys.up = true;
+                if (e.code === 'ArrowDown' || e.code === 'KeyS') keys.down = true;
+                if (e.code === 'Space') keys.fire = true;
                 if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
                     e.preventDefault();
                 }
             });
-            window.addEventListener('keyup', (e) => keys[e.code] = false);
+
+            window.addEventListener('keyup', (e) => {
+                if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
+                if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
+                if (e.code === 'ArrowUp' || e.code === 'KeyW') keys.up = false;
+                if (e.code === 'ArrowDown' || e.code === 'KeyS') keys.down = false;
+                if (e.code === 'Space') keys.fire = false;
+            });
         }
 
         function spawnWave() {
@@ -159,26 +264,23 @@
             const rows = Math.ceil(enemyCount / 5);
 
             for (let row = 0; row < rows; row++) {
-                const enemiesInRow = Math.min(5, enemyCount - row * 5);
-                const startX = (CONFIG.width - (enemiesInRow - 1) * 80) / 2;
+                const inRow = Math.min(5, enemyCount - row * 5);
+                const startX = (CONFIG.width - (inRow - 1) * 80) / 2;
 
-                for (let col = 0; col < enemiesInRow; col++) {
-                    const enemy = createEnemy(
-                        startX + col * 80,
-                        -50 - row * 50,
-                        row % 3  // Different types
-                    );
-                    enemies.push(enemy);
+                for (let col = 0; col < inRow; col++) {
+                    createEnemy(startX + col * 80, -50 - row * 50, row % 3);
                 }
             }
+
+            uiContainer.waveText.text = `Wave ${wave}`;
         }
 
         function createEnemy(x, y, type) {
-            const enemy = new PIXI.Container();
+            const enemy = gfx.createContainer();
             const colors = [0xE74C3C, 0x9B59B6, 0x1ABC9C];
             const sizes = [15, 18, 22];
 
-            const body = new PIXI.Graphics();
+            const body = gfx.createGraphics();
             if (type === 0) {
                 body.poly([0, sizes[type], -sizes[type], -sizes[type], sizes[type], -sizes[type]]);
             } else if (type === 1) {
@@ -197,37 +299,38 @@
             enemy.speed = 1 + wave * 0.2;
             enemy.shootCooldown = 0;
             enemy.moveDir = 1;
-            app.stage.addChild(enemy);
-            return enemy;
+
+            worldContainer.addChild(enemy);
+            enemies.push(enemy);
         }
 
         function shoot() {
             const now = Date.now();
-            if (now - lastShot < 200) return;
+            if (now - lastShot < 180) return;
             lastShot = now;
 
-            const bullet = new PIXI.Graphics();
+            const bullet = gfx.createGraphics();
             bullet.roundRect(-3, -8, 6, 16, 2);
             bullet.fill({ color: 0x00FF00 });
             bullet.x = player.x;
             bullet.y = player.y - 20;
-            app.stage.addChild(bullet);
+            worldContainer.addChild(bullet);
             bullets.push(bullet);
         }
 
         function enemyShoot(enemy) {
-            const bullet = new PIXI.Graphics();
+            const bullet = gfx.createGraphics();
             bullet.circle(0, 0, 5);
-            bullet.fill({ color: 0xFF0000 });
+            bullet.fill({ color: 0xFF3333 });
             bullet.x = enemy.x;
             bullet.y = enemy.y + 20;
-            app.stage.addChild(bullet);
+            worldContainer.addChild(bullet);
             enemyBullets.push(bullet);
         }
 
         function createExplosion(x, y, color) {
-            for (let i = 0; i < 12; i++) {
-                const particle = new PIXI.Graphics();
+            for (let i = 0; i < 10; i++) {
+                const particle = gfx.createGraphics();
                 particle.circle(0, 0, Math.random() * 4 + 2);
                 particle.fill({ color });
                 particle.x = x;
@@ -235,51 +338,54 @@
                 particle.vx = (Math.random() - 0.5) * 8;
                 particle.vy = (Math.random() - 0.5) * 8;
                 particle.life = 1;
-                app.stage.addChild(particle);
-                particles.push({ type: 'explosion', obj: particle });
+                worldContainer.addChild(particle);
+                explosions.push(particle);
             }
         }
 
-        function gameLoop(ticker) {
-            if (gameOver) return;
-
-            const delta = ticker.deltaTime;
-
+        function updateGame(dt) {
             // Player movement
-            if (keys['ArrowLeft'] || keys['KeyA']) player.x -= 6;
-            if (keys['ArrowRight'] || keys['KeyD']) player.x += 6;
-            if (keys['ArrowUp'] || keys['KeyW']) player.y -= 4;
-            if (keys['ArrowDown'] || keys['KeyS']) player.y += 4;
-            if (keys['Space']) shoot();
+            if (keys.left) player.x -= CONFIG.playerSpeed;
+            if (keys.right) player.x += CONFIG.playerSpeed;
+            if (keys.up) player.y -= CONFIG.playerSpeed * 0.7;
+            if (keys.down) player.y += CONFIG.playerSpeed * 0.7;
+            if (keys.fire) shoot();
 
             player.x = Math.max(20, Math.min(CONFIG.width - 20, player.x));
-            player.y = Math.max(CONFIG.height / 2, Math.min(CONFIG.height - 30, player.y));
+            player.y = Math.max(CONFIG.height / 2, Math.min(CONFIG.height - 40, player.y));
 
             // Engine animation
-            player.engine.scale.y = 0.8 + Math.sin(Date.now() / 50) * 0.3;
+            playerEngine.scale.y = 0.8 + Math.sin(Date.now() / 50) * 0.3;
 
-            // Invincibility flash
+            // Invincibility
             if (playerInvincible > 0) {
-                playerInvincible -= delta;
+                playerInvincible--;
                 player.alpha = Math.sin(Date.now() / 50) > 0 ? 1 : 0.3;
             } else {
                 player.alpha = 1;
             }
 
-            // Update bullets
+            // Update stars
+            stars.forEach(star => {
+                star.y += star.speed;
+                if (star.y > CONFIG.height) star.y = 0;
+            });
+
+            // Update player bullets
             for (let i = bullets.length - 1; i >= 0; i--) {
-                bullets[i].y -= 10;
+                bullets[i].y -= CONFIG.bulletSpeed;
                 if (bullets[i].y < -20) {
-                    app.stage.removeChild(bullets[i]);
+                    worldContainer.removeChild(bullets[i]);
                     bullets.splice(i, 1);
                 }
             }
 
             // Update enemy bullets
             for (let i = enemyBullets.length - 1; i >= 0; i--) {
-                enemyBullets[i].y += 5;
+                enemyBullets[i].y += CONFIG.enemyBulletSpeed;
+
                 if (enemyBullets[i].y > CONFIG.height + 20) {
-                    app.stage.removeChild(enemyBullets[i]);
+                    worldContainer.removeChild(enemyBullets[i]);
                     enemyBullets.splice(i, 1);
                     continue;
                 }
@@ -289,7 +395,7 @@
                     const dx = enemyBullets[i].x - player.x;
                     const dy = enemyBullets[i].y - player.y;
                     if (Math.sqrt(dx * dx + dy * dy) < 20) {
-                        app.stage.removeChild(enemyBullets[i]);
+                        worldContainer.removeChild(enemyBullets[i]);
                         enemyBullets.splice(i, 1);
                         hitPlayer();
                     }
@@ -298,27 +404,28 @@
 
             // Update enemies
             enemies.forEach(enemy => {
-                // Move down initially
                 if (enemy.y < 80 + enemy.type * 30) {
                     enemy.y += 2;
                 } else {
-                    // Side movement
                     enemy.x += enemy.moveDir * enemy.speed;
                     if (enemy.x < 30 || enemy.x > CONFIG.width - 30) {
                         enemy.moveDir *= -1;
-                        enemy.y += 20;
+                        enemy.y += 15;
                     }
                 }
 
-                // Shooting
-                enemy.shootCooldown -= delta;
+                enemy.shootCooldown--;
                 if (enemy.shootCooldown <= 0 && Math.random() < 0.02) {
                     enemyShoot(enemy);
                     enemy.shootCooldown = 60;
                 }
 
-                // Rotation
                 enemy.rotation += 0.02;
+
+                // Enemy reached bottom
+                if (enemy.y > CONFIG.height - 60) {
+                    gameOver();
+                }
             });
 
             // Bullet-enemy collision
@@ -327,16 +434,16 @@
                     const dx = bullets[i].x - enemies[j].x;
                     const dy = bullets[i].y - enemies[j].y;
                     if (Math.sqrt(dx * dx + dy * dy) < 25) {
-                        app.stage.removeChild(bullets[i]);
+                        worldContainer.removeChild(bullets[i]);
                         bullets.splice(i, 1);
 
                         enemies[j].health--;
                         if (enemies[j].health <= 0) {
                             createExplosion(enemies[j].x, enemies[j].y, 0xE74C3C);
-                            app.stage.removeChild(enemies[j]);
+                            worldContainer.removeChild(enemies[j]);
                             enemies.splice(j, 1);
                             score += 100 * wave;
-                            scoreText.text = `Score: ${score}`;
+                            topBar.updateResource('coins', score);
                         } else {
                             enemies[j].scale.set(1.2);
                             setTimeout(() => { if (enemies[j]) enemies[j].scale.set(1); }, 100);
@@ -355,87 +462,121 @@
                         hitPlayer();
                         break;
                     }
-
-                    // Enemy reached bottom
-                    if (enemy.y > CONFIG.height - 50) {
-                        endGame();
-                        return;
-                    }
                 }
             }
 
-            // Update particles
-            for (let i = particles.length - 1; i >= 0; i--) {
-                const p = particles[i];
-                if (p.type === 'star') {
-                    p.obj.y += p.obj.speed;
-                    if (p.obj.y > CONFIG.height) p.obj.y = 0;
-                } else if (p.type === 'explosion') {
-                    p.obj.x += p.obj.vx;
-                    p.obj.y += p.obj.vy;
-                    p.obj.life -= 0.03;
-                    p.obj.alpha = p.obj.life;
-                    if (p.obj.life <= 0) {
-                        app.stage.removeChild(p.obj);
-                        particles.splice(i, 1);
-                    }
+            // Update explosions
+            for (let i = explosions.length - 1; i >= 0; i--) {
+                const p = explosions[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= 0.03;
+                p.alpha = p.life;
+                if (p.life <= 0) {
+                    worldContainer.removeChild(p);
+                    explosions.splice(i, 1);
                 }
             }
 
             // Next wave
             if (enemies.length === 0) {
                 wave++;
-                waveText.text = `Wave ${wave}`;
+                uiContainer.waveText.text = `Wave ${wave}`;
                 spawnWave();
             }
         }
 
         function hitPlayer() {
             lives--;
-            livesText.text = '❤️'.repeat(lives);
+            topBar.updateResource('lives', lives);
             playerInvincible = 120;
             createExplosion(player.x, player.y, 0x3498DB);
 
             if (lives <= 0) {
-                endGame();
+                gameOver();
             }
         }
 
-        function endGame() {
-            gameOver = true;
-            messageText.text = `GAME OVER\nScore: ${score}\nWave: ${wave}\nClick to restart`;
-            messageText.style.fill = 0xFF0000;
-            app.canvas.addEventListener('click', restart, { once: true });
+        function gameOver() {
+            gameState = 'gameover';
+
+            // === FRAMEWORK COMPONENT: ResultScreen ===
+            resultScreen = new ResultScreen({
+                type: 'defeat',
+                title: 'GAME OVER',
+                subtitle: `Wave ${wave} reached`,
+                score: score,
+                stars: Math.min(3, Math.floor(wave / 3)),
+                rewards: [
+                    { icon: '⭐', label: 'Score', value: score },
+                    { icon: '🌊', label: 'Wave', value: wave }
+                ],
+                actions: [
+                    { id: 'replay', label: 'PLAY AGAIN', primary: true }
+                ],
+                onAction: (actionId) => {
+                    if (actionId === 'replay') {
+                        restartGame();
+                    }
+                }
+            });
+
+            resultScreen.setPosition(
+                (CONFIG.width - 320) / 2,
+                (CONFIG.height - 400) / 2
+            );
+            uiContainer.addChild(resultScreen.getContainer());
         }
 
-        function restart() {
-            // Clear everything
-            bullets.forEach(b => app.stage.removeChild(b));
-            enemyBullets.forEach(b => app.stage.removeChild(b));
-            enemies.forEach(e => app.stage.removeChild(e));
-            particles.filter(p => p.type === 'explosion').forEach(p => app.stage.removeChild(p.obj));
+        function restartGame() {
+            if (resultScreen) {
+                resultScreen.getContainer().parent?.removeChild(resultScreen.getContainer());
+                resultScreen = null;
+            }
+
+            // Clear bullets and enemies
+            bullets.forEach(b => worldContainer.removeChild(b));
+            enemyBullets.forEach(b => worldContainer.removeChild(b));
+            enemies.forEach(e => worldContainer.removeChild(e));
+            explosions.forEach(p => worldContainer.removeChild(p));
 
             bullets = [];
             enemyBullets = [];
             enemies = [];
-            particles = particles.filter(p => p.type === 'star');
+            explosions = [];
 
+            // Reset state
             score = 0;
             lives = 3;
             wave = 1;
-            gameOver = false;
+            gameState = 'playing';
             playerInvincible = 0;
 
             player.x = CONFIG.width / 2;
-            player.y = CONFIG.height - 60;
+            player.y = CONFIG.height - 80;
             player.alpha = 1;
 
-            scoreText.text = 'Score: 0';
-            livesText.text = '❤️❤️❤️';
-            waveText.text = 'Wave 1';
-            messageText.text = '';
+            topBar.updateResource('lives', lives);
+            topBar.updateResource('coins', score);
+            uiContainer.waveText.text = 'Wave 1';
 
             spawnWave();
+        }
+
+        function handleResize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const renderer = game.make('renderer');
+            renderer.resize(window.innerWidth, window.innerHeight);
+
+            const scaleX = window.innerWidth / CONFIG.width;
+            const scaleY = window.innerHeight / CONFIG.height;
+            const scale = Math.min(scaleX, scaleY);
+
+            mainContainer.scale.set(scale);
+            mainContainer.x = (window.innerWidth - CONFIG.width * scale) / 2;
+            mainContainer.y = (window.innerHeight - CONFIG.height * scale) / 2;
         }
 
         init().catch(console.error);

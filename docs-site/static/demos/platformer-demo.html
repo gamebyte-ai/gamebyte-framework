@@ -2,276 +2,441 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>GameByte - Platformer Demo</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-        }
-        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
-        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
-        #game-container {
-            border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            background: #1a1a2e;
+            touch-action: none;
+            transition: background 0.3s ease;
         }
+        body.light-theme { background: #87CEEB; }
         canvas { display: block; }
-        .info { color: #8892b0; margin-top: 20px; font-size: 12px; text-align: center; }
     </style>
 </head>
 <body>
-    <h1>Platformer Game</h1>
-    <p>Arrow keys or WASD to move, Space to jump</p>
-    <div id="game-container"></div>
-    <div class="info">
-        Collect coins, avoid spikes, reach the flag!
-    </div>
-
     <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
 
     <script>
-        const CONFIG = { width: 600, height: 400 };
-        const GRAVITY = 0.6;
-        const JUMP_FORCE = -12;
-        const MOVE_SPEED = 5;
+        // =====================================================
+        // Platformer Demo - Using GameByte Framework Components
+        // =====================================================
+        // Showcases:
+        // - createGame() and graphics() abstraction
+        // - GameTopBar for lives/coins UI
+        // - GameStyleButton for mobile controls
+        // - ResultScreen for game over/win states
+        // - VirtualJoystick for mobile movement
+        // - CelebrationManager for win effects
+        // =====================================================
 
-        let app, player, platforms = [], coins = [], spikes = [], flag;
-        let score = 0, lives = 3, gameOver = false, gameWon = false;
-        let scoreText, livesText, messageText;
-        let keys = {};
+        const {
+            createGame,
+            graphics,
+            loadFrameworkFont,
+            GameTopBar,
+            GameStyleButton,
+            GameStyleColors,
+            ResultScreen,
+            CelebrationManager,
+            VirtualJoystick
+        } = GameByteFramework;
+
+        const CONFIG = {
+            width: 600,
+            height: 450,
+            gravity: 0.6,
+            jumpForce: -12,
+            playerSpeed: 5
+        };
+
+        let game, stage, gfx;
+        let mainContainer, worldContainer, uiContainer;
+        let player, platforms = [], coins = [], spikes = [], flag;
         let playerVelY = 0, isGrounded = false;
+        let score = 0, lives = 3;
+        let gameState = 'playing'; // 'playing', 'win', 'lose'
+        let keys = { left: false, right: false };
+
+        // Framework UI Components
+        let topBar, joystick, jumpButton, resultScreen, celebration;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        document.body.appendChild(canvas);
+
+        // Theme detection
+        function detectTheme() {
+            try {
+                if (window.parent && window.parent.document) {
+                    const parentTheme = window.parent.document.documentElement.getAttribute('data-theme');
+                    if (parentTheme) return parentTheme;
+                }
+            } catch (e) {}
+            return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        }
+
+        let currentTheme = detectTheme();
 
         async function init() {
-            app = new PIXI.Application();
-            await app.init({
-                width: CONFIG.width,
-                height: CONFIG.height,
-                backgroundColor: 0x87CEEB,
-                antialias: true
-            });
-            document.getElementById('game-container').appendChild(app.canvas);
+            // Load framework font first
+            await loadFrameworkFont();
 
+            // Initialize game using framework
+            game = createGame();
+            await game.initialize(canvas, '2d');
+
+            const renderer = game.make('renderer');
+            stage = renderer.getStage();
+            gfx = graphics();
+
+            // Calculate responsive scale
+            const scaleX = window.innerWidth / CONFIG.width;
+            const scaleY = window.innerHeight / CONFIG.height;
+            const scale = Math.min(scaleX, scaleY);
+
+            // Main container with scaling
+            mainContainer = gfx.createContainer();
+            mainContainer.scale.set(scale);
+            mainContainer.x = (window.innerWidth - CONFIG.width * scale) / 2;
+            mainContainer.y = (window.innerHeight - CONFIG.height * scale) / 2;
+            stage.addChild(mainContainer);
+
+            // World container for game objects
+            worldContainer = gfx.createContainer();
+            mainContainer.addChild(worldContainer);
+
+            // Background
+            const bg = gfx.createGraphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill({ color: currentTheme === 'light' ? 0x87CEEB : 0x1a1a2e });
+            worldContainer.addChild(bg);
+
+            // Clouds (decorative)
+            for (let i = 0; i < 4; i++) {
+                const cloud = createCloud(50 + i * 150, 30 + Math.random() * 60);
+                worldContainer.addChild(cloud);
+            }
+
+            // Create level elements
             createLevel();
             createPlayer();
-            createUI();
+
+            // UI Container (on top of world)
+            uiContainer = gfx.createContainer();
+            mainContainer.addChild(uiContainer);
+
+            // === FRAMEWORK COMPONENT: GameTopBar ===
+            topBar = new GameTopBar({
+                width: CONFIG.width - 20,
+                height: 45,
+                resources: [
+                    { type: 'lives', value: lives, maxValue: 3, icon: 'heart', label: '' },
+                    { type: 'coins', value: score, icon: 'coin', label: '' }
+                ],
+                showSettings: false,
+                backgroundColor: 0x000000,
+                backgroundAlpha: 0.3
+            });
+            topBar.setPosition(10, 5);
+            uiContainer.addChild(topBar.getContainer());
+
+            // === FRAMEWORK COMPONENT: VirtualJoystick (mobile) ===
+            if ('ontouchstart' in window) {
+                joystick = new VirtualJoystick({
+                    mode: 'fixed',
+                    baseRadius: 45,
+                    stickRadius: 20,
+                    position: { x: 70, y: CONFIG.height - 80 },
+                    style: {
+                        baseColor: 0x000000,
+                        baseAlpha: 0.4,
+                        stickColor: 0xFFFFFF,
+                        stickAlpha: 0.8
+                    }
+                });
+                uiContainer.addChild(joystick.getContainer());
+
+                joystick.on('move', (data) => {
+                    keys.left = data.vector.x < -0.3;
+                    keys.right = data.vector.x > 0.3;
+                });
+
+                joystick.on('end', () => {
+                    keys.left = false;
+                    keys.right = false;
+                });
+
+                // === FRAMEWORK COMPONENT: GameStyleButton (Jump) ===
+                jumpButton = new GameStyleButton({
+                    text: 'JUMP',
+                    width: 70,
+                    height: 70,
+                    fontSize: 14,
+                    colorScheme: GameStyleColors.GREEN_BUTTON,
+                    cornerRadius: 35
+                });
+                jumpButton.setPosition(CONFIG.width - 90, CONFIG.height - 100);
+                jumpButton.on('pointerdown', () => {
+                    if (isGrounded && gameState === 'playing') {
+                        playerVelY = CONFIG.jumpForce;
+                        isGrounded = false;
+                    }
+                });
+                uiContainer.addChild(jumpButton.getContainer());
+            }
+
+            // === FRAMEWORK COMPONENT: CelebrationManager ===
+            celebration = new CelebrationManager(mainContainer);
+
+            // Keyboard input
             setupInput();
 
-            app.ticker.add(gameLoop);
+            // Game loop using framework
+            game.on('update', (dt) => {
+                if (gameState === 'playing') {
+                    updateGame();
+                }
+            });
+
+            // Handle resize
+            window.addEventListener('resize', handleResize);
+
+            game.start();
+        }
+
+        function createCloud(x, y) {
+            const cloud = gfx.createContainer();
+            const cloudGfx = gfx.createGraphics();
+            cloudGfx.circle(0, 0, 20);
+            cloudGfx.circle(18, -8, 25);
+            cloudGfx.circle(40, -5, 20);
+            cloudGfx.circle(55, 3, 15);
+            cloudGfx.fill({ color: 0xFFFFFF, alpha: 0.7 });
+            cloud.addChild(cloudGfx);
+            cloud.x = x;
+            cloud.y = y;
+            return cloud;
         }
 
         function createLevel() {
             // Ground
-            createPlatform(0, 350, 600, 50, 0x4a752c);
+            createPlatform(0, 400, 600, 50, 0x4a752c, true);
 
             // Platforms
-            createPlatform(50, 280, 120, 20, 0x8B4513);
-            createPlatform(220, 220, 100, 20, 0x8B4513);
-            createPlatform(380, 280, 80, 20, 0x8B4513);
-            createPlatform(480, 180, 100, 20, 0x8B4513);
-            createPlatform(280, 130, 120, 20, 0x8B4513);
-            createPlatform(80, 150, 80, 20, 0x8B4513);
+            createPlatform(50, 320, 120, 18, 0x8B4513);
+            createPlatform(220, 260, 100, 18, 0x8B4513);
+            createPlatform(380, 310, 80, 18, 0x8B4513);
+            createPlatform(480, 220, 100, 18, 0x8B4513);
+            createPlatform(280, 170, 120, 18, 0x8B4513);
+            createPlatform(80, 180, 80, 18, 0x8B4513);
 
             // Coins
-            createCoin(100, 250);
-            createCoin(260, 190);
-            createCoin(410, 250);
-            createCoin(520, 150);
-            createCoin(330, 100);
-            createCoin(110, 120);
+            [
+                [100, 290], [260, 230], [410, 280],
+                [520, 190], [330, 140], [110, 150]
+            ].forEach(([x, y]) => createCoin(x, y));
 
             // Spikes
-            createSpike(180, 335);
-            createSpike(350, 335);
-            createSpike(450, 335);
+            [[180, 385], [350, 385], [450, 385]].forEach(([x, y]) => createSpike(x, y));
 
             // Flag (goal)
-            createFlag(530, 130);
+            createFlag(530, 170);
         }
 
-        function createPlatform(x, y, w, h, color) {
-            const platform = new PIXI.Graphics();
-            platform.rect(0, 0, w, h);
-            platform.fill({ color });
-            platform.stroke({ color: 0x000000, width: 2 });
+        function createPlatform(x, y, w, h, color, isGround = false) {
+            const platform = gfx.createGraphics();
+
+            if (isGround) {
+                // Ground with grass
+                platform.rect(0, 0, w, h);
+                platform.fill({ color: 0x5D4037 });
+                platform.rect(0, 0, w, 10);
+                platform.fill({ color: 0x4CAF50 });
+            } else {
+                // Regular platform
+                platform.rect(0, 0, w, h);
+                platform.fill({ color });
+                platform.stroke({ color: 0x5D4037, width: 2 });
+            }
+
             platform.x = x;
             platform.y = y;
             platform.bounds = { x, y, width: w, height: h };
-            app.stage.addChild(platform);
+            worldContainer.addChild(platform);
             platforms.push(platform);
         }
 
         function createCoin(x, y) {
-            const coin = new PIXI.Graphics();
-            coin.circle(0, 0, 12);
-            coin.fill({ color: 0xFFD700 });
-            coin.stroke({ color: 0xFFA500, width: 2 });
+            const coin = gfx.createContainer();
+
+            const coinGfx = gfx.createGraphics();
+            coinGfx.circle(0, 0, 12);
+            coinGfx.fill({ color: 0xFFD700 });
+            coinGfx.stroke({ color: 0xFFA500, width: 2 });
+
+            const symbol = gfx.createText('$', {
+                fontSize: 12,
+                fill: 0xB8860B,
+                fontWeight: 'bold'
+            });
+            symbol.anchor.set(0.5);
+
+            coin.addChild(coinGfx);
+            coin.addChild(symbol);
             coin.x = x;
             coin.y = y;
             coin.collected = false;
-            app.stage.addChild(coin);
+            coin.baseY = y;
+
+            worldContainer.addChild(coin);
             coins.push(coin);
         }
 
         function createSpike(x, y) {
-            const spike = new PIXI.Graphics();
-            spike.poly([0, 0, 15, -30, 30, 0]);
-            spike.fill({ color: 0x555555 });
-            spike.stroke({ color: 0x333333, width: 2 });
+            const spike = gfx.createGraphics();
+            spike.poly([0, 0, 15, -25, 30, 0]);
+            spike.fill({ color: 0x607D8B });
+            spike.stroke({ color: 0x455A64, width: 1 });
             spike.x = x;
             spike.y = y;
-            spike.bounds = { x, y: y - 30, width: 30, height: 30 };
-            app.stage.addChild(spike);
+            spike.bounds = { x, y: y - 25, width: 30, height: 25 };
+            worldContainer.addChild(spike);
             spikes.push(spike);
         }
 
         function createFlag(x, y) {
-            const pole = new PIXI.Graphics();
-            pole.rect(0, 0, 6, 50);
-            pole.fill({ color: 0x8B4513 });
-            pole.x = x;
-            pole.y = y;
-            app.stage.addChild(pole);
+            const flagContainer = gfx.createContainer();
 
-            flag = new PIXI.Graphics();
-            flag.poly([0, 0, 40, 15, 0, 30]);
-            flag.fill({ color: 0x00FF00 });
-            flag.stroke({ color: 0x008800, width: 2 });
-            flag.x = x + 6;
-            flag.y = y;
+            const pole = gfx.createGraphics();
+            pole.rect(0, 0, 6, 50);
+            pole.fill({ color: 0x795548 });
+
+            const flagGfx = gfx.createGraphics();
+            flagGfx.poly([6, 0, 45, 15, 6, 30]);
+            flagGfx.fill({ color: 0x4CAF50 });
+            flagGfx.stroke({ color: 0x388E3C, width: 2 });
+
+            const star = gfx.createText('★', {
+                fontSize: 14,
+                fill: 0xFFEB3B
+            });
+            star.x = 18;
+            star.y = 7;
+
+            flagContainer.addChild(pole);
+            flagContainer.addChild(flagGfx);
+            flagContainer.addChild(star);
+            flagContainer.x = x;
+            flagContainer.y = y;
+
+            flag = flagContainer;
             flag.bounds = { x, y, width: 50, height: 50 };
-            app.stage.addChild(flag);
+            worldContainer.addChild(flag);
         }
 
         function createPlayer() {
-            player = new PIXI.Container();
+            player = gfx.createContainer();
 
-            const body = new PIXI.Graphics();
-            body.roundRect(-15, -30, 30, 30, 5);
-            body.fill({ color: 0x3498DB });
-            body.stroke({ color: 0x2980B9, width: 2 });
+            const body = gfx.createGraphics();
+            body.roundRect(-15, -30, 30, 30, 6);
+            body.fill({ color: 0x2196F3 });
+            body.stroke({ color: 0x1976D2, width: 2 });
             player.addChild(body);
 
             // Eyes
-            const leftEye = new PIXI.Graphics();
-            leftEye.circle(-6, -20, 4);
-            leftEye.fill({ color: 0xFFFFFF });
-            leftEye.circle(-6, -20, 2);
-            leftEye.fill({ color: 0x000000 });
-            player.addChild(leftEye);
-
-            const rightEye = new PIXI.Graphics();
-            rightEye.circle(6, -20, 4);
-            rightEye.fill({ color: 0xFFFFFF });
-            rightEye.circle(6, -20, 2);
-            rightEye.fill({ color: 0x000000 });
-            player.addChild(rightEye);
+            const eyes = gfx.createGraphics();
+            eyes.circle(-6, -20, 4);
+            eyes.circle(6, -20, 4);
+            eyes.fill({ color: 0xFFFFFF });
+            eyes.circle(-6, -20, 2);
+            eyes.circle(6, -20, 2);
+            eyes.fill({ color: 0x000000 });
+            player.addChild(eyes);
 
             player.x = 50;
-            player.y = 320;
-            app.stage.addChild(player);
-        }
-
-        function createUI() {
-            scoreText = new PIXI.Text({
-                text: 'Coins: 0/6',
-                style: { fontSize: 18, fill: 0x000000, fontWeight: 'bold' }
-            });
-            scoreText.x = 10;
-            scoreText.y = 10;
-            app.stage.addChild(scoreText);
-
-            livesText = new PIXI.Text({
-                text: '❤️❤️❤️',
-                style: { fontSize: 20 }
-            });
-            livesText.x = CONFIG.width - 80;
-            livesText.y = 10;
-            app.stage.addChild(livesText);
-
-            messageText = new PIXI.Text({
-                text: '',
-                style: { fontSize: 32, fill: 0xFFFFFF, fontWeight: 'bold', stroke: { color: 0x000000, width: 4 } }
-            });
-            messageText.anchor.set(0.5);
-            messageText.x = CONFIG.width / 2;
-            messageText.y = CONFIG.height / 2;
-            app.stage.addChild(messageText);
+            player.y = 400; // On ground (ground platform is at y=400)
+            worldContainer.addChild(player);
         }
 
         function setupInput() {
             window.addEventListener('keydown', (e) => {
-                keys[e.code] = true;
+                if (gameState !== 'playing') return;
+
+                if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = true;
+                if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = true;
+                if ((e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') && isGrounded) {
+                    playerVelY = CONFIG.jumpForce;
+                    isGrounded = false;
+                }
+
                 if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
                     e.preventDefault();
                 }
             });
-            window.addEventListener('keyup', (e) => keys[e.code] = false);
+
+            window.addEventListener('keyup', (e) => {
+                if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
+                if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
+            });
         }
 
-        function gameLoop() {
-            if (gameOver || gameWon) return;
-
+        function updateGame() {
             // Horizontal movement
-            if (keys['ArrowLeft'] || keys['KeyA']) {
-                player.x -= MOVE_SPEED;
+            if (keys.left) {
+                player.x -= CONFIG.playerSpeed;
                 player.scale.x = -1;
             }
-            if (keys['ArrowRight'] || keys['KeyD']) {
-                player.x += MOVE_SPEED;
+            if (keys.right) {
+                player.x += CONFIG.playerSpeed;
                 player.scale.x = 1;
             }
 
-            // Jump
-            if ((keys['Space'] || keys['ArrowUp'] || keys['KeyW']) && isGrounded) {
-                playerVelY = JUMP_FORCE;
-                isGrounded = false;
-            }
-
             // Gravity
-            playerVelY += GRAVITY;
+            playerVelY += CONFIG.gravity;
             player.y += playerVelY;
 
             // Platform collision
             isGrounded = false;
-            platforms.forEach(platform => {
-                const pb = platform.bounds;
+            platforms.forEach(p => {
+                const pb = p.bounds;
                 if (player.x > pb.x - 15 && player.x < pb.x + pb.width + 15) {
-                    // Landing on top
                     if (player.y >= pb.y - 5 && player.y <= pb.y + 10 && playerVelY >= 0) {
                         player.y = pb.y;
                         playerVelY = 0;
                         isGrounded = true;
-                    }
-                    // Hitting from below
-                    else if (player.y - 30 <= pb.y + pb.height && player.y - 30 >= pb.y + pb.height - 10 && playerVelY < 0) {
-                        playerVelY = 0;
                     }
                 }
             });
 
             // Screen bounds
             player.x = Math.max(15, Math.min(CONFIG.width - 15, player.x));
+
+            // Fall off screen
             if (player.y > CONFIG.height + 50) {
                 loseLife();
             }
 
             // Coin collection
-            coins.forEach(coin => {
+            const time = Date.now() / 1000;
+            coins.forEach((coin, i) => {
                 if (!coin.collected) {
+                    // Animate coin
+                    coin.y = coin.baseY + Math.sin(time * 3 + i) * 3;
+                    coin.rotation = Math.sin(time * 2 + i) * 0.15;
+
+                    // Check collection
                     const dx = coin.x - player.x;
                     const dy = coin.y - (player.y - 15);
                     if (Math.sqrt(dx * dx + dy * dy) < 25) {
                         coin.collected = true;
                         coin.visible = false;
                         score++;
-                        scoreText.text = `Coins: ${score}/6`;
+                        topBar.updateResource('coins', score * 100);
                     }
                 }
             });
@@ -286,63 +451,115 @@
             });
 
             // Flag collision (win)
-            if (player.x > flag.bounds.x && player.x < flag.bounds.x + flag.bounds.width &&
-                player.y > flag.bounds.y && player.y < flag.bounds.y + flag.bounds.height + 30) {
+            const fb = flag.bounds;
+            if (player.x > fb.x && player.x < fb.x + fb.width &&
+                player.y > fb.y && player.y < fb.y + fb.height + 30) {
                 winGame();
             }
 
-            // Animate coins
-            const time = Date.now() / 1000;
-            coins.forEach((coin, i) => {
-                if (!coin.collected) {
-                    coin.y += Math.sin(time * 3 + i) * 0.3;
-                    coin.rotation = Math.sin(time * 2 + i) * 0.2;
-                }
-            });
-
             // Animate flag
-            flag.scale.x = 1 + Math.sin(time * 4) * 0.1;
+            flag.children[1].scale.x = 1 + Math.sin(time * 4) * 0.08;
         }
 
         function loseLife() {
             lives--;
-            livesText.text = '❤️'.repeat(lives);
+            topBar.updateResource('lives', lives);
 
             if (lives <= 0) {
-                gameOver = true;
-                messageText.text = 'GAME OVER\nClick to restart';
-                messageText.style.fill = 0xFF0000;
-                app.canvas.addEventListener('click', restart, { once: true });
+                showResult(false);
             } else {
-                // Reset position
                 player.x = 50;
-                player.y = 320;
+                player.y = 400;
                 playerVelY = 0;
             }
         }
 
         function winGame() {
-            gameWon = true;
-            messageText.text = `YOU WIN!\nCoins: ${score}/6\nClick to restart`;
-            messageText.style.fill = 0x00FF00;
-            app.canvas.addEventListener('click', restart, { once: true });
+            gameState = 'win';
+
+            // === FRAMEWORK COMPONENT: CelebrationManager ===
+            celebration.celebrate({
+                type: 'confetti',
+                duration: 3000,
+                intensity: 'high'
+            });
+
+            showResult(true);
         }
 
-        function restart() {
-            score = 0;
+        function showResult(isWin) {
+            gameState = isWin ? 'win' : 'lose';
+
+            // === FRAMEWORK COMPONENT: ResultScreen ===
+            resultScreen = new ResultScreen({
+                type: isWin ? 'victory' : 'defeat',
+                title: isWin ? 'LEVEL COMPLETE!' : 'GAME OVER',
+                subtitle: isWin ? `Coins: ${score}/6` : 'Try again!',
+                score: score * 100,
+                stars: isWin ? Math.min(3, Math.ceil(score / 2)) : 0,
+                rewards: isWin ? [
+                    { icon: '🪙', label: 'Coins', value: score * 100 },
+                    { icon: '⭐', label: 'Stars', value: Math.min(3, Math.ceil(score / 2)) }
+                ] : [],
+                actions: [
+                    { id: 'replay', label: 'PLAY AGAIN', primary: true },
+                    { id: 'menu', label: 'MENU' }
+                ],
+                onAction: (actionId) => {
+                    if (actionId === 'replay') {
+                        restartGame();
+                    }
+                }
+            });
+
+            resultScreen.setPosition(
+                (CONFIG.width - 320) / 2,
+                (CONFIG.height - 380) / 2
+            );
+            uiContainer.addChild(resultScreen.getContainer());
+        }
+
+        function restartGame() {
+            // Remove result screen
+            if (resultScreen) {
+                resultScreen.getContainer().parent?.removeChild(resultScreen.getContainer());
+                resultScreen = null;
+            }
+
+            // Reset state
+            gameState = 'playing';
             lives = 3;
-            gameOver = false;
-            gameWon = false;
+            score = 0;
             player.x = 50;
-            player.y = 320;
+            player.y = 400;
             playerVelY = 0;
-            scoreText.text = 'Coins: 0/6';
-            livesText.text = '❤️❤️❤️';
-            messageText.text = '';
+            player.scale.x = 1;
+
+            // Reset coins
             coins.forEach(coin => {
                 coin.collected = false;
                 coin.visible = true;
             });
+
+            // Update UI
+            topBar.updateResource('lives', lives);
+            topBar.updateResource('coins', 0);
+        }
+
+        function handleResize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const renderer = game.make('renderer');
+            renderer.resize(window.innerWidth, window.innerHeight);
+
+            const scaleX = window.innerWidth / CONFIG.width;
+            const scaleY = window.innerHeight / CONFIG.height;
+            const scale = Math.min(scaleX, scaleY);
+
+            mainContainer.scale.set(scale);
+            mainContainer.x = (window.innerWidth - CONFIG.width * scale) / 2;
+            mainContainer.y = (window.innerHeight - CONFIG.height * scale) / 2;
         }
 
         init().catch(console.error);
