@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - Pathfinder Demo</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            overflow: hidden;
+        }
+
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 100;
+            min-width: 280px;
+        }
+
+        h1 {
+            margin: 0 0 20px 0;
+            font-size: 24px;
+            color: #00ff88;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        select, button {
+            width: 100%;
+            padding: 10px;
+            font-size: 14px;
+            border: none;
+            border-radius: 5px;
+            background: #2a2a3e;
+            color: #eee;
+            cursor: pointer;
+        }
+
+        button {
+            background: #00ff88;
+            color: #1a1a2e;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        button:hover {
+            background: #00dd77;
+        }
+
+        button:active {
+            background: #00bb66;
+        }
+
+        .info {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 255, 136, 0.1);
+            border-radius: 5px;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .info h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #00ff88;
+        }
+
+        .stat {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            color: #00ff88;
+            font-weight: bold;
+        }
+
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 25px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+
+    <div id="controls">
+        <h1>🎯 Pathfinder</h1>
+
+        <div class="control-group">
+            <label>Grid Type</label>
+            <select id="gridType">
+                <option value="square">Square Grid</option>
+                <option value="hex">Hexagonal Grid</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label>Heuristic</label>
+            <select id="heuristic">
+                <option value="manhattan">Manhattan</option>
+                <option value="euclidean" selected>Euclidean</option>
+                <option value="chebyshev">Chebyshev</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label>Allow Diagonals</label>
+            <select id="diagonals">
+                <option value="true" selected>Yes</option>
+                <option value="false">No</option>
+            </select>
+        </div>
+
+        <button id="randomObstacles">🎲 Random Obstacles</button>
+        <button id="clearObstacles">🧹 Clear Obstacles</button>
+        <button id="showReachable">📍 Show Range</button>
+        <button id="reset">🔄 Reset</button>
+
+        <div class="info">
+            <h3>Statistics</h3>
+            <div class="stat">
+                <span>Path Length:</span>
+                <span class="stat-value" id="pathLength">-</span>
+            </div>
+            <div class="stat">
+                <span>Obstacles:</span>
+                <span class="stat-value" id="obstacleCount">0</span>
+            </div>
+            <div class="stat">
+                <span>Reachable Cells:</span>
+                <span class="stat-value" id="reachableCount">-</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="instructions">
+        Click on grid cells to set start (green) and end (red) points. Click obstacles to toggle.
+    </div>
+
+    <script type="module">
+        import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+        import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+
+        // Simplified Pathfinder and Grid implementations (normally imported from framework)
+        class SquareGrid {
+            constructor(config) {
+                this.width = config.width;
+                this.height = config.height;
+                this.cellSize = config.cellSize;
+                this.origin = config.origin;
+                this.cells = new Map();
+                this.walkable = new Map();
+            }
+
+            worldToCell(pos) {
+                const x = Math.floor((pos.x - this.origin.x) / this.cellSize);
+                const y = Math.floor((pos.z - this.origin.z) / this.cellSize);
+                return { x, y };
+            }
+
+            cellToWorld(coord) {
+                return new THREE.Vector3(
+                    this.origin.x + coord.x * this.cellSize + this.cellSize / 2,
+                    this.origin.y,
+                    this.origin.z + coord.y * this.cellSize + this.cellSize / 2
+                );
+            }
+
+            isValidCoord(coord) {
+                return coord.x >= 0 && coord.x < this.width && coord.y >= 0 && coord.y < this.height;
+            }
+
+            isWalkable(coord) {
+                const key = `${coord.x},${coord.y}`;
+                return this.walkable.get(key) !== false;
+            }
+
+            setWalkable(coord, walkable) {
+                const key = `${coord.x},${coord.y}`;
+                this.walkable.set(key, walkable);
+            }
+
+            getNeighbors(coord) {
+                const neighbors = [];
+                const directions = [
+                    { x: 0, y: -1 }, { x: 1, y: 0 }, { x: 0, y: 1 }, { x: -1, y: 0 },
+                    { x: -1, y: -1 }, { x: 1, y: -1 }, { x: 1, y: 1 }, { x: -1, y: 1 }
+                ];
+
+                for (const dir of directions) {
+                    const neighbor = { x: coord.x + dir.x, y: coord.y + dir.y };
+                    if (this.isValidCoord(neighbor)) {
+                        neighbors.push(neighbor);
+                    }
+                }
+
+                return neighbors;
+            }
+
+            getMovementCost(from, to) {
+                if (!this.isWalkable(to)) return Infinity;
+                const dx = Math.abs(to.x - from.x);
+                const dy = Math.abs(to.y - from.y);
+                return dx + dy === 2 ? 1.414 : 1;
+            }
+        }
+
+        class Pathfinder {
+            constructor(config) {
+                this.grid = config.grid;
+                this.heuristic = config.heuristic || 'manhattan';
+                this.maxIterations = config.maxIterations || 1000;
+            }
+
+            findPath(start, end) {
+                if (!this.grid.isValidCoord(start) || !this.grid.isValidCoord(end)) return null;
+                if (!this.grid.isWalkable(start) || !this.grid.isWalkable(end)) return null;
+
+                const openSet = [];
+                const closedSet = new Set();
+                const cameFrom = new Map();
+                const gScore = new Map();
+
+                const startKey = `${start.x},${start.y}`;
+                const endKey = `${end.x},${end.y}`;
+
+                gScore.set(startKey, 0);
+                openSet.push({ coord: start, gScore: 0, fScore: this.heuristic(start, end) });
+
+                let iterations = 0;
+
+                while (openSet.length > 0 && iterations < this.maxIterations) {
+                    iterations++;
+                    openSet.sort((a, b) => a.fScore - b.fScore);
+                    const current = openSet.shift();
+                    const currentKey = `${current.coord.x},${current.coord.y}`;
+
+                    if (currentKey === endKey) {
+                        return this.reconstructPath(cameFrom, current.coord);
+                    }
+
+                    closedSet.add(currentKey);
+
+                    for (const neighbor of this.grid.getNeighbors(current.coord)) {
+                        const neighborKey = `${neighbor.x},${neighbor.y}`;
+                        if (closedSet.has(neighborKey) || !this.grid.isWalkable(neighbor)) continue;
+
+                        const movementCost = this.grid.getMovementCost(current.coord, neighbor);
+                        if (movementCost === Infinity) continue;
+
+                        const tentativeGScore = current.gScore + movementCost;
+                        const neighborGScore = gScore.get(neighborKey) ?? Infinity;
+
+                        if (tentativeGScore < neighborGScore) {
+                            cameFrom.set(neighborKey, current.coord);
+                            gScore.set(neighborKey, tentativeGScore);
+                            const hScore = this.heuristic(neighbor, end);
+                            const fScore = tentativeGScore + hScore;
+
+                            const existingIndex = openSet.findIndex(n => `${n.coord.x},${n.coord.y}` === neighborKey);
+                            if (existingIndex === -1) {
+                                openSet.push({ coord: neighbor, gScore: tentativeGScore, fScore });
+                            } else {
+                                openSet[existingIndex] = { coord: neighbor, gScore: tentativeGScore, fScore };
+                            }
+                        }
+                    }
+                }
+
+                return null;
+            }
+
+            heuristic(from, to) {
+                const dx = Math.abs(from.x - to.x);
+                const dy = Math.abs(from.y - to.y);
+
+                switch (this.heuristic) {
+                    case 'manhattan': return dx + dy;
+                    case 'euclidean': return Math.sqrt(dx * dx + dy * dy);
+                    case 'chebyshev': return Math.max(dx, dy);
+                    default: return dx + dy;
+                }
+            }
+
+            reconstructPath(cameFrom, current) {
+                const path = [current];
+                let currentKey = `${current.x},${current.y}`;
+
+                while (cameFrom.has(currentKey)) {
+                    current = cameFrom.get(currentKey);
+                    path.unshift(current);
+                    currentKey = `${current.x},${current.y}`;
+                }
+
+                return path;
+            }
+
+            getReachableCells(start, maxCost) {
+                const reachable = [];
+                const visited = new Set();
+                const queue = [{ coord: start, cost: 0 }];
+                visited.add(`${start.x},${start.y}`);
+
+                while (queue.length > 0) {
+                    const current = queue.shift();
+                    reachable.push(current.coord);
+
+                    for (const neighbor of this.grid.getNeighbors(current.coord)) {
+                        const neighborKey = `${neighbor.x},${neighbor.y}`;
+                        if (visited.has(neighborKey) || !this.grid.isWalkable(neighbor)) continue;
+
+                        const movementCost = this.grid.getMovementCost(current.coord, neighbor);
+                        if (movementCost === Infinity) continue;
+
+                        const totalCost = current.cost + movementCost;
+                        if (totalCost <= maxCost) {
+                            visited.add(neighborKey);
+                            queue.push({ coord: neighbor, cost: totalCost });
+                        }
+                    }
+                }
+
+                return reachable;
+            }
+        }
+
+        // Scene setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a2e);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(10, 15, 10);
+        camera.lookAt(5, 0, 5);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('container').appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(10, 20, 10);
+        scene.add(directionalLight);
+
+        // Game state
+        let grid, pathfinder, cellMeshes, startCoord, endCoord, pathLine, reachableMeshes;
+
+        function init() {
+            // Clear scene
+            if (cellMeshes) cellMeshes.forEach(m => scene.remove(m));
+            if (pathLine) scene.remove(pathLine);
+            if (reachableMeshes) reachableMeshes.forEach(m => scene.remove(m));
+
+            cellMeshes = [];
+            reachableMeshes = [];
+            startCoord = null;
+            endCoord = null;
+            pathLine = null;
+
+            // Create grid
+            grid = new SquareGrid({
+                width: 10,
+                height: 10,
+                cellSize: 1,
+                origin: { x: 0, y: 0, z: 0 }
+            });
+
+            // Create pathfinder
+            pathfinder = new Pathfinder({
+                grid,
+                heuristic: document.getElementById('heuristic').value,
+                maxIterations: 1000
+            });
+
+            // Create visual grid
+            for (let x = 0; x < 10; x++) {
+                for (let y = 0; y < 10; y++) {
+                    const geometry = new THREE.BoxGeometry(0.9, 0.1, 0.9);
+                    const material = new THREE.MeshStandardMaterial({ color: 0x2a2a3e });
+                    const mesh = new THREE.Mesh(geometry, material);
+                    mesh.position.copy(grid.cellToWorld({ x, y }));
+                    mesh.userData = { coord: { x, y }, type: 'cell' };
+                    scene.add(mesh);
+                    cellMeshes.push(mesh);
+                }
+            }
+
+            updateStats();
+        }
+
+        function updatePath() {
+            // Clear old path
+            if (pathLine) {
+                scene.remove(pathLine);
+                pathLine = null;
+            }
+
+            if (!startCoord || !endCoord) {
+                document.getElementById('pathLength').textContent = '-';
+                return;
+            }
+
+            // Find path
+            const path = pathfinder.findPath(startCoord, endCoord);
+
+            if (path) {
+                const points = path.map(coord => {
+                    const pos = grid.cellToWorld(coord);
+                    return new THREE.Vector3(pos.x, pos.y + 0.3, pos.z);
+                });
+
+                const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                const material = new THREE.LineBasicMaterial({ color: 0x00ff88, linewidth: 3 });
+                pathLine = new THREE.Line(geometry, material);
+                scene.add(pathLine);
+
+                document.getElementById('pathLength').textContent = path.length;
+            } else {
+                document.getElementById('pathLength').textContent = 'No path';
+            }
+        }
+
+        function updateStats() {
+            const obstacleCount = cellMeshes.filter(m => !grid.isWalkable(m.userData.coord)).length;
+            document.getElementById('obstacleCount').textContent = obstacleCount;
+        }
+
+        function showReachable() {
+            // Clear old reachable
+            if (reachableMeshes) {
+                reachableMeshes.forEach(m => scene.remove(m));
+                reachableMeshes = [];
+            }
+
+            if (!startCoord) return;
+
+            const reachable = pathfinder.getReachableCells(startCoord, 5);
+            document.getElementById('reachableCount').textContent = reachable.length;
+
+            reachable.forEach(coord => {
+                const geometry = new THREE.RingGeometry(0.3, 0.45, 32);
+                const material = new THREE.MeshBasicMaterial({ color: 0x00ff88, side: THREE.DoubleSide, transparent: true, opacity: 0.3 });
+                const mesh = new THREE.Mesh(geometry, material);
+                const pos = grid.cellToWorld(coord);
+                mesh.position.set(pos.x, pos.y + 0.15, pos.z);
+                mesh.rotation.x = -Math.PI / 2;
+                scene.add(mesh);
+                reachableMeshes.push(mesh);
+            });
+        }
+
+        // Mouse interaction
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        function onMouseClick(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(cellMeshes);
+
+            if (intersects.length > 0) {
+                const mesh = intersects[0].object;
+                const coord = mesh.userData.coord;
+
+                if (event.shiftKey) {
+                    // Toggle obstacle
+                    const walkable = grid.isWalkable(coord);
+                    grid.setWalkable(coord, !walkable);
+                    mesh.material.color.setHex(walkable ? 0xff4444 : 0x2a2a3e);
+                    updateStats();
+                    updatePath();
+                } else if (!startCoord) {
+                    // Set start
+                    startCoord = coord;
+                    mesh.material.color.setHex(0x00ff88);
+                } else if (!endCoord) {
+                    // Set end
+                    endCoord = coord;
+                    mesh.material.color.setHex(0xff4444);
+                    updatePath();
+                } else {
+                    // Reset
+                    cellMeshes.forEach(m => {
+                        if (!grid.isWalkable(m.userData.coord)) {
+                            m.material.color.setHex(0xff4444);
+                        } else {
+                            m.material.color.setHex(0x2a2a3e);
+                        }
+                    });
+                    startCoord = coord;
+                    endCoord = null;
+                    mesh.material.color.setHex(0x00ff88);
+                    updatePath();
+                }
+            }
+        }
+
+        window.addEventListener('click', onMouseClick);
+
+        // Controls
+        document.getElementById('randomObstacles').addEventListener('click', () => {
+            for (let i = 0; i < 20; i++) {
+                const x = Math.floor(Math.random() * 10);
+                const y = Math.floor(Math.random() * 10);
+                grid.setWalkable({ x, y }, false);
+                const mesh = cellMeshes.find(m => m.userData.coord.x === x && m.userData.coord.y === y);
+                if (mesh) mesh.material.color.setHex(0xff4444);
+            }
+            updateStats();
+            updatePath();
+        });
+
+        document.getElementById('clearObstacles').addEventListener('click', () => {
+            cellMeshes.forEach(m => {
+                grid.setWalkable(m.userData.coord, true);
+                if (m.userData.coord !== startCoord && m.userData.coord !== endCoord) {
+                    m.material.color.setHex(0x2a2a3e);
+                }
+            });
+            updateStats();
+            updatePath();
+        });
+
+        document.getElementById('showReachable').addEventListener('click', showReachable);
+        document.getElementById('reset').addEventListener('click', init);
+
+        document.getElementById('heuristic').addEventListener('change', (e) => {
+            pathfinder.heuristic = e.target.value;
+            updatePath();
+        });
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Handle resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        init();
+        animate();
+    </script>
+</body>
+</html>
