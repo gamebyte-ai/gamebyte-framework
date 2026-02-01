@@ -237,3 +237,9 @@ await sceneManager.preloadAll(['game', 'settings', 'shop']);
 import LiveDemo from '@site/src/components/LiveDemo';
 
 <LiveDemo src="/demos/screen-manager-demo.html" height="600" title="Scene Management Demo" />
+
+### Memory Game Example
+
+This memory card game demonstrates scene state management with card matching logic, timer, and score tracking:
+
+<LiveDemo src="/demos/memory-game-demo.html" height="600" title="Memory Game - Scene State Example" />

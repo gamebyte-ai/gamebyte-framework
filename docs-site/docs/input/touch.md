@@ -37,10 +37,12 @@ touch.on('hold', (event) => {
 ```
 
 <LiveDemo
-  src="/demos/input-touch.html"
-  height={400}
-  title="Touch Input Demo"
+  src="/demos/flappy-demo.html"
+  height={600}
+  title="Flappy Bird - Tap to Fly Demo"
 />
+
+**This Flappy Bird clone demonstrates tap-based input** - each tap makes the bird flap upward. Perfect example of simple touch/click handling for mobile games.
 
 :::tip Theme Support
 This demo automatically adapts to your selected theme. Try toggling the theme using the 🌙/☀️ button in the navigation bar!

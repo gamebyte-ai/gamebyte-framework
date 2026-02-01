@@ -27,6 +27,16 @@ GameByte provides a comprehensive UI system optimized for mobile games with **ga
 This demo automatically adapts to your selected theme. Try toggling the theme using the sun/moon button in the navigation bar!
 :::
 
+### Snake Game Example
+
+This classic Snake game showcases game UI elements in action - score display, high score tracking, and grid-based visuals:
+
+<LiveDemo
+  src="/demos/snake-demo.html"
+  height={580}
+  title="Snake Game - UI Elements Demo"
+/>
+
 ## Design Principles
 
 ### Mobile-First
