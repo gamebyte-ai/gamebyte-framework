@@ -140,6 +140,7 @@
     // Enemies
     const enemies = [];
     const enemyCount = 8;
+    const pendingTimeouts = [];  // Track timeouts for cleanup
 
     // Pixi app
     const app = new PIXI.Application();
@@ -399,6 +400,7 @@
         if (bullet.x < -20 || bullet.x > window.innerWidth + 20 ||
             bullet.y < -20 || bullet.y > window.innerHeight + 20) {
           bulletsContainer.removeChild(bullet.graphics);
+          bullet.graphics.destroy();  // Clean up GPU memory
           bullets.splice(i, 1);
           continue;
         }
@@ -414,15 +416,18 @@
             // Hit enemy
             enemy.health -= 34;
             bulletsContainer.removeChild(bullet.graphics);
+            bullet.graphics.destroy();  // Clean up GPU memory
             bullets.splice(i, 1);
 
             if (enemy.health <= 0) {
               // Enemy destroyed
               app.stage.removeChild(enemy.graphics);
+              enemy.graphics.destroy();  // Clean up GPU memory
               enemies.splice(j, 1);
 
               // Spawn new enemy after delay
-              setTimeout(spawnEnemy, 1500);
+              const timeoutId = setTimeout(spawnEnemy, 1500);
+              pendingTimeouts.push(timeoutId);
             } else {
               drawEnemy(enemy);
             }
@@ -481,6 +486,44 @@
     window.addEventListener('resize', () => {
       // Joysticks auto-resize with activation zones
     });
+
+    // Cleanup function to prevent memory leaks
+    function dispose() {
+      // Clear pending timeouts
+      for (const timeoutId of pendingTimeouts) {
+        clearTimeout(timeoutId);
+      }
+      pendingTimeouts.length = 0;
+
+      // Remove game loop
+      app.ticker.remove(gameLoop);
+
+      // Destroy all bullets
+      for (const bullet of bullets) {
+        bullet.graphics?.destroy();
+      }
+      bullets.length = 0;
+
+      // Destroy all enemies
+      for (const enemy of enemies) {
+        enemy.graphics?.destroy();
+      }
+      enemies.length = 0;
+
+      // Destroy graphics objects
+      playerGraphics?.destroy();
+      aimLineGraphics?.destroy();
+      bulletsContainer?.destroy();
+
+      // Destroy joysticks
+      moveJoystick?.destroy();
+      aimJoystick?.destroy();
+
+      // Destroy app
+      app?.destroy(true, { children: true });
+    }
+
+    window.addEventListener('beforeunload', dispose);
 
     // Start
     init();

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ScreenManager Demo - GameByte Framework</title>
+    <title>SimpleScreen Demo - GameByte Framework</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { overflow: hidden; background: #1a1a2e; transition: background 0.3s ease; }
@@ -17,12 +17,14 @@
 
     <script>
         // =====================================================
-        // ScreenManager Demo - Using Framework Abstractions
+        // SimpleScreen Demo - Framework Screen Management
         // =====================================================
-        // This demo showcases:
-        // - Screen navigation with push/pop stack
-        // - Slide and fade transitions
-        // - graphics() abstraction instead of direct PIXI usage
+        // This demo showcases the framework's SimpleScreen class:
+        // - Custom screens extending SimpleScreen
+        // - Screen lifecycle: setup, show, hide, destroy
+        // - Push/pop stack navigation pattern
+        // - Slide and fade transitions using AnimationPresets
+        // - Framework's animate() utility and Easing functions
         // =====================================================
 
         const {
@@ -30,7 +32,12 @@
             GameStyleButton,
             GameStyleColors,
             graphics,
-            loadFrameworkFont
+            loadFrameworkFont,
+            SimpleScreen,
+            AnimationPresets,
+            Easing,
+            animate,
+            lerp
         } = GameByteFramework;
 
         const CONFIG = { width: 360, height: 640 };
@@ -108,198 +115,212 @@
         document.body.appendChild(canvas);
 
         const game = createGame();
-        let renderer, stage, screenManager;
+        let renderer, stage, screenStack;
 
-        // ===== DEMO SCREEN MANAGER =====
-        class DemoScreenManager {
-            constructor(stage, gfx) {
+        // ===== SCREEN STACK MANAGER =====
+        // Simple stack-based screen management using SimpleScreen
+        class ScreenStack {
+            constructor(stage) {
                 this.stage = stage;
-                this.gfx = gfx;
                 this.screens = [];
-                this.container = gfx.createContainer();
+                this.gfx = graphics();
+                this.container = this.gfx.createContainer();
                 stage.addChild(this.container);
             }
 
             async push(screen, transition = 'slide') {
                 const current = this.screens[this.screens.length - 1];
-                this.screens.push(screen);
-                this.container.addChild(screen.container);
 
+                // Initialize new screen
+                screen.initialize(CONFIG.width, CONFIG.height);
+                this.screens.push(screen);
+                this.container.addChild(screen.getContainer());
+
+                // Hide current screen (no animation needed)
+                if (current) {
+                    current.getContainer().visible = false;
+                }
+
+                // Show new screen with custom transition
                 if (transition === 'slide') {
-                    screen.container.x = CONFIG.width;
-                    await this.animate(screen.container, { x: 0 }, 300);
-                    if (current) {
-                        current.container.visible = false;
-                    }
-                } else {
-                    screen.container.alpha = 0;
-                    await this.animate(screen.container, { alpha: 1 }, 200);
-                    if (current) {
-                        current.container.visible = false;
-                    }
+                    await this.slideInScreen(screen);
+                } else if (transition === 'fade') {
+                    await screen.show();
                 }
             }
 
             async pop(transition = 'slide') {
                 if (this.screens.length <= 1) return;
+
                 const current = this.screens.pop();
                 const previous = this.screens[this.screens.length - 1];
 
+                // Show previous screen first
                 if (previous) {
-                    previous.container.visible = true;
+                    previous.getContainer().visible = true;
                 }
 
+                // Animate out current screen
                 if (transition === 'slide') {
-                    await this.animate(current.container, { x: CONFIG.width }, 300);
-                } else {
-                    await this.animate(current.container, { alpha: 0 }, 200);
+                    await this.slideOutScreen(current);
+                } else if (transition === 'fade') {
+                    await current.hide();
                 }
 
-                this.container.removeChild(current.container);
-                if (current.destroy) current.destroy();
+                // Cleanup
+                this.container.removeChild(current.getContainer());
+                current.destroy();
             }
 
-            animate(target, props, duration) {
-                return new Promise((resolve) => {
-                    const startProps = {};
-                    for (const key in props) {
-                        startProps[key] = target[key];
-                    }
-                    const startTime = performance.now();
+            async slideInScreen(screen) {
+                const container = screen.getContainer();
+                container.visible = true;
+                await AnimationPresets.slideX(container, CONFIG.width, 0, 300);
+            }
 
-                    const tick = () => {
-                        const elapsed = performance.now() - startTime;
-                        const progress = Math.min(elapsed / duration, 1);
-                        const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
-
-                        for (const key in props) {
-                            target[key] = startProps[key] + (props[key] - startProps[key]) * eased;
-                        }
-
-                        if (progress < 1) {
-                            requestAnimationFrame(tick);
-                        } else {
-                            resolve();
-                        }
-                    };
-                    requestAnimationFrame(tick);
-                });
+            async slideOutScreen(screen) {
+                const container = screen.getContainer();
+                await AnimationPresets.slideX(container, 0, CONFIG.width, 300);
             }
 
             get stackSize() {
                 return this.screens.length;
             }
+
+            getCurrentScreen() {
+                return this.screens[this.screens.length - 1];
+            }
+        }
+
+        // ===== DEMO SCREEN CLASS =====
+        // Custom screen extending SimpleScreen
+        class DemoScreen extends SimpleScreen {
+            constructor(title, color, depth, onPush, onPop) {
+                super(`screen-${depth}`);
+                this.title = title;
+                this.color = color;
+                this.depth = depth;
+                this.onPushCallback = onPush;
+                this.onPopCallback = onPop;
+            }
+
+            setup() {
+                const gfx = graphics();
+                const colors = getColors();
+
+                // Background
+                const bg = gfx.createGraphics();
+                bg.rect(0, 0, this._width, this._height);
+                bg.fill(this.color);
+                this.container.addChild(bg);
+
+                // Screen title
+                const titleText = gfx.createText(this.title, {
+                    fontSize: 28,
+                    fontWeight: 'bold',
+                    fill: 0xffffff
+                });
+                titleText.x = this._width / 2 - titleText.width / 2;
+                titleText.y = 50;
+                this.container.addChild(titleText);
+
+                // Depth indicator
+                const depthText = gfx.createText(`Stack Depth: ${this.depth}`, {
+                    fontSize: 16,
+                    fill: 0xffffff
+                });
+                depthText.x = this._width / 2 - depthText.width / 2;
+                depthText.y = 95;
+                depthText.alpha = 0.8;
+                this.container.addChild(depthText);
+
+                // Decorative circles
+                for (let i = 0; i < 3; i++) {
+                    const circle = gfx.createGraphics();
+                    circle.circle(0, 0, 40 + i * 30);
+                    circle.stroke({ width: 2, color: 0xffffff, alpha: 0.2 });
+                    circle.x = this._width / 2;
+                    circle.y = this._height / 2 - 50;
+                    this.container.addChild(circle);
+                }
+
+                // Push button (slide transition)
+                const pushSlideBtn = new GameStyleButton({
+                    text: 'Push (Slide)',
+                    width: 140,
+                    height: 50,
+                    fontSize: 14,
+                    colorScheme: GameStyleColors.GREEN_BUTTON
+                });
+                pushSlideBtn.setPosition(30, this._height - 200);
+                pushSlideBtn.on('click', () => this.onPushCallback('slide'));
+                this.container.addChild(pushSlideBtn.getContainer());
+
+                // Push button (fade transition)
+                const pushFadeBtn = new GameStyleButton({
+                    text: 'Push (Fade)',
+                    width: 140,
+                    height: 50,
+                    fontSize: 14,
+                    colorScheme: GameStyleColors.BLUE_BUTTON
+                });
+                pushFadeBtn.setPosition(190, this._height - 200);
+                pushFadeBtn.on('click', () => this.onPushCallback('fade'));
+                this.container.addChild(pushFadeBtn.getContainer());
+
+                // Pop button (only show if not home screen)
+                if (this.depth > 1) {
+                    const popBtn = new GameStyleButton({
+                        text: 'Pop Screen',
+                        width: 300,
+                        height: 55,
+                        fontSize: 18,
+                        colorScheme: GameStyleColors.RED_BUTTON
+                    });
+                    popBtn.setPosition(30, this._height - 130);
+                    popBtn.on('click', () => this.onPopCallback());
+                    this.container.addChild(popBtn.getContainer());
+                }
+
+                // Info text
+                const infoText = gfx.createText('Tap buttons to navigate screens', {
+                    fontSize: 12,
+                    fill: 0xffffff
+                });
+                infoText.x = this._width / 2 - infoText.width / 2;
+                infoText.y = this._height - 50;
+                infoText.alpha = 0.6;
+                this.container.addChild(infoText);
+            }
+
+            // Override default fade transition with custom slide for this demo
+            async animateIn() {
+                // Custom slide animation using framework utilities
+                return AnimationPresets.fadeIn(this.container, 300);
+            }
+
+            async animateOut() {
+                return AnimationPresets.fadeOut(this.container, 200);
+            }
         }
 
         // ===== SCREEN FACTORY =====
-        function createScreen(gfx, title, color, depth, onPush, onPop) {
+        function createDemoScreen(screenStack, transition) {
             const colors = getColors();
-            const container = gfx.createContainer();
-
-            // Background
-            const bg = gfx.createGraphics();
-            bg.rect(0, 0, CONFIG.width, CONFIG.height);
-            bg.fill(color);
-            container.addChild(bg);
-
-            // Screen title
-            const titleText = gfx.createText(title, {
-                fontSize: 28,
-                fontWeight: 'bold',
-                fill: 0xffffff
-            });
-            titleText.x = CONFIG.width / 2 - titleText.width / 2;
-            titleText.y = 50;
-            container.addChild(titleText);
-
-            // Depth indicator
-            const depthText = gfx.createText(`Stack Depth: ${depth}`, {
-                fontSize: 16,
-                fill: 0xffffff
-            });
-            depthText.x = CONFIG.width / 2 - depthText.width / 2;
-            depthText.y = 95;
-            depthText.alpha = 0.8;
-            container.addChild(depthText);
-
-            // Decorative circles
-            for (let i = 0; i < 3; i++) {
-                const circle = gfx.createGraphics();
-                circle.circle(0, 0, 40 + i * 30);
-                circle.stroke({ width: 2, color: 0xffffff, alpha: 0.2 });
-                circle.x = CONFIG.width / 2;
-                circle.y = CONFIG.height / 2 - 50;
-                container.addChild(circle);
-            }
-
-            // Push button (slide transition)
-            const pushSlideBtn = new GameStyleButton({
-                text: 'Push (Slide)',
-                width: 140,
-                height: 50,
-                fontSize: 14,
-                colorScheme: GameStyleColors.GREEN_BUTTON
-            });
-            pushSlideBtn.setPosition(30, CONFIG.height - 200);
-            pushSlideBtn.on('click', () => onPush('slide'));
-            container.addChild(pushSlideBtn.getContainer());
-
-            // Push button (fade transition)
-            const pushFadeBtn = new GameStyleButton({
-                text: 'Push (Fade)',
-                width: 140,
-                height: 50,
-                fontSize: 14,
-                colorScheme: GameStyleColors.BLUE_BUTTON
-            });
-            pushFadeBtn.setPosition(190, CONFIG.height - 200);
-            pushFadeBtn.on('click', () => onPush('fade'));
-            container.addChild(pushFadeBtn.getContainer());
-
-            // Pop button
-            if (depth > 1) {
-                const popBtn = new GameStyleButton({
-                    text: 'Pop Screen',
-                    width: 300,
-                    height: 55,
-                    fontSize: 18,
-                    colorScheme: GameStyleColors.RED_BUTTON
-                });
-                popBtn.setPosition(30, CONFIG.height - 130);
-                popBtn.on('click', onPop);
-                container.addChild(popBtn.getContainer());
-            }
-
-            // Info text
-            const infoText = gfx.createText('Tap buttons to navigate screens', {
-                fontSize: 12,
-                fill: 0xffffff
-            });
-            infoText.x = CONFIG.width / 2 - infoText.width / 2;
-            infoText.y = CONFIG.height - 50;
-            infoText.alpha = 0.6;
-            container.addChild(infoText);
-
-            return { container };
-        }
-
-        function pushNewScreen(gfx, screenManager, transition) {
-            const colors = getColors();
-            const depth = screenManager.stackSize + 1;
+            const depth = screenStack.stackSize + 1;
             const colorIndex = (depth - 1) % colors.screenColors.length;
             const screenColor = depth === 1 ? colors.homeScreen : colors.screenColors[colorIndex];
             const screenTitle = depth === 1 ? 'Home Screen' : `Screen ${depth}`;
 
-            const screen = createScreen(
-                gfx,
+            const screen = new DemoScreen(
                 screenTitle,
                 screenColor,
                 depth,
-                (trans) => pushNewScreen(gfx, screenManager, trans),
-                () => screenManager.pop(transition)
+                (trans) => createDemoScreen(screenStack, trans),
+                () => screenStack.pop(transition)
             );
 
-            screenManager.push(screen, transition);
+            screenStack.push(screen, transition);
         }
 
         let isRecreating = false;
@@ -324,18 +345,16 @@
             setupThemeListener();
 
             function createDemo() {
-                const gfx = graphics();
-
                 // Clear stage
                 while (stage.children.length > 0) {
                     stage.removeChildAt(0);
                 }
 
-                // Create screen manager
-                screenManager = new DemoScreenManager(stage, gfx);
+                // Create screen stack manager
+                screenStack = new ScreenStack(stage);
 
-                // Push initial home screen
-                pushNewScreen(gfx, screenManager, 'fade');
+                // Push initial home screen with fade transition
+                createDemoScreen(screenStack, 'fade');
             }
 
             window.createDemo = createDemo;

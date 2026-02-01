@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GameByte - Complete Game Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            overflow: hidden;
+            background: #1a1a2e;
+            touch-action: none;
+        }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
+
+    <script>
+        // =====================================================
+        // Complete Game Demo - Full GameByte Framework Showcase
+        // =====================================================
+        // Demonstrates complete game flow with all screens:
+        // 1. SplashScreen - Loading/branding
+        // 2. HubScreen - Main menu with tabs
+        // 3. Level Selection with HexagonLevelButton
+        // 4. Game Scene with GameTopBar + VirtualJoystick
+        // 5. Pause with GameModalPanel
+        // 6. ResultScreen with CelebrationManager
+        // =====================================================
+
+        const {
+            createGame,
+            graphics,
+            loadFrameworkFont,
+            // Screens
+            SplashScreen,
+            HubScreen,
+            ResultScreen,
+            // UI Components
+            GameTopBar,
+            GameStyleButton,
+            GameStyleColors,
+            GameStylePanel,
+            HexagonLevelButton,
+            GameBottomNav,
+            VirtualJoystick,
+            // Panels
+            GameModalPanel,
+            GameBottomSheet,
+            // Effects
+            CelebrationManager,
+            ConfettiSystem,
+            // Utils
+            UIProgressBar
+        } = GameByteFramework;
+
+        const CONFIG = {
+            width: 390,
+            height: 844 // Mobile portrait
+        };
+
+        let game, stage, gfx;
+        let mainContainer;
+        let currentScreen = null;
+        let gameState = {
+            coins: 1250,
+            gems: 45,
+            lives: 5,
+            currentLevel: 1,
+            highestLevel: 5,
+            score: 0
+        };
+
+        // Game objects for play scene
+        let player, collectibles = [], obstacles = [];
+        let playerVelY = 0, isGrounded = true;
+        let joystick, topBar, celebration;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        document.body.appendChild(canvas);
+
+        async function init() {
+            await loadFrameworkFont();
+
+            game = createGame();
+            await game.initialize(canvas, '2d');
+
+            const renderer = game.make('renderer');
+            stage = renderer.getStage();
+            gfx = graphics();
+
+            // Responsive scaling
+            const scaleX = window.innerWidth / CONFIG.width;
+            const scaleY = window.innerHeight / CONFIG.height;
+            const scale = Math.min(scaleX, scaleY);
+
+            mainContainer = gfx.createContainer();
+            mainContainer.scale.set(scale);
+            mainContainer.x = (window.innerWidth - CONFIG.width * scale) / 2;
+            mainContainer.y = (window.innerHeight - CONFIG.height * scale) / 2;
+            stage.addChild(mainContainer);
+
+            // Celebration manager
+            celebration = new CelebrationManager(mainContainer);
+
+            // Start with splash screen
+            showSplashScreen();
+
+            window.addEventListener('resize', handleResize);
+            game.start();
+        }
+
+        // ==================== SPLASH SCREEN ====================
+        function showSplashScreen() {
+            clearScreen();
+
+            const splashContainer = gfx.createContainer();
+            mainContainer.addChild(splashContainer);
+            currentScreen = splashContainer;
+
+            // Background gradient
+            const bg = gfx.createGraphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill({ color: 0x1a1a2e });
+            splashContainer.addChild(bg);
+
+            // Logo text
+            const logo = gfx.createText('GAMEBYTE', {
+                fontSize: 48,
+                fill: 0xFFFFFF,
+                fontWeight: 'bold'
+            });
+            logo.anchor.set(0.5);
+            logo.x = CONFIG.width / 2;
+            logo.y = CONFIG.height / 2 - 80;
+            splashContainer.addChild(logo);
+
+            // Subtitle
+            const subtitle = gfx.createText('Framework Demo', {
+                fontSize: 20,
+                fill: 0x8892b0
+            });
+            subtitle.anchor.set(0.5);
+            subtitle.x = CONFIG.width / 2;
+            subtitle.y = CONFIG.height / 2 - 30;
+            splashContainer.addChild(subtitle);
+
+            // Loading bar background
+            const loadBg = gfx.createGraphics();
+            loadBg.roundRect(CONFIG.width / 2 - 100, CONFIG.height / 2 + 40, 200, 8, 4);
+            loadBg.fill({ color: 0x333333 });
+            splashContainer.addChild(loadBg);
+
+            // Loading bar fill
+            const loadFill = gfx.createGraphics();
+            loadFill.roundRect(0, 0, 0, 8, 4);
+            loadFill.fill({ color: 0x6366f1 });
+            loadFill.x = CONFIG.width / 2 - 100;
+            loadFill.y = CONFIG.height / 2 + 40;
+            splashContainer.addChild(loadFill);
+
+            // Loading text
+            const loadText = gfx.createText('Loading...', {
+                fontSize: 14,
+                fill: 0x8892b0
+            });
+            loadText.anchor.set(0.5);
+            loadText.x = CONFIG.width / 2;
+            loadText.y = CONFIG.height / 2 + 70;
+            splashContainer.addChild(loadText);
+
+            // Animate loading
+            let progress = 0;
+            const loadInterval = setInterval(() => {
+                progress += Math.random() * 15 + 5;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(loadInterval);
+
+                    // Transition to hub
+                    setTimeout(() => {
+                        showHubScreen();
+                    }, 500);
+                }
+
+                loadFill.clear();
+                loadFill.roundRect(0, 0, progress * 2, 8, 4);
+                loadFill.fill({ color: 0x6366f1 });
+
+                loadText.text = `Loading... ${Math.floor(progress)}%`;
+            }, 100);
+        }
+
+        // ==================== HUB SCREEN (Main Menu) ====================
+        function showHubScreen() {
+            clearScreen();
+
+            const hubContainer = gfx.createContainer();
+            mainContainer.addChild(hubContainer);
+            currentScreen = hubContainer;
+
+            // Background
+            const bg = gfx.createGraphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill({ color: 0x1e293b });
+            hubContainer.addChild(bg);
+
+            // Top bar with resources
+            const topBar = new GameTopBar({
+                width: CONFIG.width - 20,
+                height: 50,
+                resources: [
+                    { type: 'lives', value: gameState.lives, maxValue: 5, icon: 'heart' },
+                    { type: 'coins', value: gameState.coins, icon: 'coin', showAddButton: true },
+                    { type: 'gems', value: gameState.gems, icon: 'gem', showAddButton: true }
+                ],
+                showSettings: true,
+                onSettingsClick: () => showSettingsPanel(hubContainer)
+            });
+            topBar.setPosition(10, 50);
+            hubContainer.addChild(topBar.getContainer());
+
+            // Game title
+            const title = gfx.createText('SUPER JUMPER', {
+                fontSize: 36,
+                fill: 0xFFFFFF,
+                fontWeight: 'bold'
+            });
+            title.anchor.set(0.5, 0);
+            title.x = CONFIG.width / 2;
+            title.y = 120;
+            hubContainer.addChild(title);
+
+            // Level selection panel
+            const levelPanel = new GameStylePanel({
+                width: CONFIG.width - 40,
+                height: 400,
+                title: 'SELECT LEVEL',
+                backgroundColor: 0x2d3748
+            });
+            levelPanel.setPosition(20, 180);
+            hubContainer.addChild(levelPanel.getContainer());
+
+            // Hexagon level buttons
+            const levels = [
+                { level: 1, state: 'completed', stars: 3 },
+                { level: 2, state: 'completed', stars: 2 },
+                { level: 3, state: 'completed', stars: 3 },
+                { level: 4, state: 'completed', stars: 1 },
+                { level: 5, state: 'current', stars: 0 },
+                { level: 6, state: 'locked', stars: 0 },
+                { level: 7, state: 'locked', stars: 0 },
+                { level: 8, state: 'locked', stars: 0 },
+                { level: 9, state: 'locked', stars: 0 }
+            ];
+
+            const startX = 60;
+            const startY = 280;
+            const cols = 3;
+            const spacingX = 110;
+            const spacingY = 100;
+
+            levels.forEach((levelData, index) => {
+                const col = index % cols;
+                const row = Math.floor(index / cols);
+
+                const hexBtn = new HexagonLevelButton({
+                    level: levelData.level,
+                    size: 45,
+                    state: levelData.state,
+                    stars: levelData.stars,
+                    colorScheme: levelData.state === 'current'
+                        ? GameStyleColors.HEXAGON_CANDY_CURRENT
+                        : GameStyleColors.HEXAGON_CANDY_COMPLETED
+                });
+
+                hexBtn.setPosition(startX + col * spacingX, startY + row * spacingY);
+
+                if (levelData.state !== 'locked') {
+                    hexBtn.on('click', () => {
+                        gameState.currentLevel = levelData.level;
+                        showGameScreen();
+                    });
+                }
+
+                hubContainer.addChild(hexBtn.getContainer());
+            });
+
+            // Bottom navigation
+            const bottomNav = new GameBottomNav({
+                width: CONFIG.width,
+                height: 80,
+                items: [
+                    { id: 'shop', type: 'shop', label: 'Shop' },
+                    { id: 'play', type: 'play', label: 'Play', highlighted: true },
+                    { id: 'settings', type: 'settings', label: 'More' }
+                ],
+                onItemClick: (id) => {
+                    if (id === 'play') {
+                        showGameScreen();
+                    } else if (id === 'settings') {
+                        showSettingsPanel(hubContainer);
+                    }
+                }
+            });
+            bottomNav.setPosition(0, CONFIG.height - 80);
+            hubContainer.addChild(bottomNav.getContainer());
+        }
+
+        // ==================== SETTINGS PANEL ====================
+        function showSettingsPanel(parentContainer) {
+            const settingsPanel = new GameModalPanel({
+                width: CONFIG.width - 60,
+                height: 350,
+                title: 'SETTINGS',
+                showCloseButton: true,
+                onClose: () => {
+                    settingsPanel.getContainer().parent?.removeChild(settingsPanel.getContainer());
+                }
+            });
+
+            // Add settings content
+            const content = settingsPanel.getContentContainer();
+
+            const options = ['Music', 'Sound Effects', 'Vibration', 'Notifications'];
+            options.forEach((option, i) => {
+                const row = gfx.createContainer();
+                row.y = i * 60 + 20;
+
+                const label = gfx.createText(option, {
+                    fontSize: 18,
+                    fill: 0xFFFFFF
+                });
+                label.x = 20;
+                label.y = 10;
+                row.addChild(label);
+
+                // Toggle (simplified)
+                const toggle = gfx.createGraphics();
+                toggle.roundRect(0, 0, 50, 28, 14);
+                toggle.fill({ color: i < 2 ? 0x4CAF50 : 0x666666 });
+                toggle.circle(i < 2 ? 36 : 14, 14, 10);
+                toggle.fill({ color: 0xFFFFFF });
+                toggle.x = CONFIG.width - 140;
+                toggle.y = 5;
+                toggle.eventMode = 'static';
+                toggle.cursor = 'pointer';
+                row.addChild(toggle);
+
+                content.addChild(row);
+            });
+
+            settingsPanel.setPosition(30, CONFIG.height / 2 - 175);
+            parentContainer.addChild(settingsPanel.getContainer());
+        }
+
+        // ==================== GAME SCREEN ====================
+        function showGameScreen() {
+            clearScreen();
+
+            const gameContainer = gfx.createContainer();
+            mainContainer.addChild(gameContainer);
+            currentScreen = gameContainer;
+
+            // Sky background
+            const bg = gfx.createGraphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill({ color: 0x87CEEB });
+            gameContainer.addChild(bg);
+
+            // Clouds
+            for (let i = 0; i < 5; i++) {
+                const cloud = createCloud(Math.random() * CONFIG.width, 80 + Math.random() * 150);
+                gameContainer.addChild(cloud);
+            }
+
+            // Ground
+            const ground = gfx.createGraphics();
+            ground.rect(0, CONFIG.height - 100, CONFIG.width, 100);
+            ground.fill({ color: 0x5D4037 });
+            ground.rect(0, CONFIG.height - 100, CONFIG.width, 20);
+            ground.fill({ color: 0x4CAF50 });
+            gameContainer.addChild(ground);
+
+            // Platforms
+            createPlatforms(gameContainer);
+
+            // Collectibles
+            createCollectibles(gameContainer);
+
+            // Player
+            createPlayer(gameContainer);
+
+            // UI Layer
+            const uiLayer = gfx.createContainer();
+            gameContainer.addChild(uiLayer);
+
+            // Top bar
+            topBar = new GameTopBar({
+                width: CONFIG.width - 20,
+                height: 45,
+                resources: [
+                    { type: 'lives', value: gameState.lives, maxValue: 5, icon: 'heart' },
+                    { type: 'coins', value: gameState.score, icon: 'star', label: 'Score' }
+                ],
+                showSettings: true,
+                onSettingsClick: () => showPauseMenu(gameContainer)
+            });
+            topBar.setPosition(10, 40);
+            uiLayer.addChild(topBar.getContainer());
+
+            // Level indicator
+            const levelText = gfx.createText(`Level ${gameState.currentLevel}`, {
+                fontSize: 18,
+                fill: 0x333333,
+                fontWeight: 'bold'
+            });
+            levelText.anchor.set(0.5, 0);
+            levelText.x = CONFIG.width / 2;
+            levelText.y = 95;
+            uiLayer.addChild(levelText);
+
+            // Mobile controls
+            if ('ontouchstart' in window) {
+                joystick = new VirtualJoystick({
+                    mode: 'fixed',
+                    baseRadius: 50,
+                    stickRadius: 22,
+                    position: { x: 70, y: CONFIG.height - 150 }
+                });
+                uiLayer.addChild(joystick.getContainer());
+
+                const jumpBtn = new GameStyleButton({
+                    text: 'JUMP',
+                    width: 80,
+                    height: 80,
+                    fontSize: 14,
+                    colorScheme: GameStyleColors.GREEN_BUTTON,
+                    cornerRadius: 40
+                });
+                jumpBtn.setPosition(CONFIG.width - 100, CONFIG.height - 170);
+                jumpBtn.on('pointerdown', () => {
+                    if (isGrounded) {
+                        playerVelY = -15;
+                        isGrounded = false;
+                    }
+                });
+                uiLayer.addChild(jumpBtn.getContainer());
+            }
+
+            // Keyboard input
+            const keys = { left: false, right: false };
+            window.addEventListener('keydown', (e) => {
+                if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = true;
+                if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = true;
+                if ((e.code === 'Space' || e.code === 'ArrowUp') && isGrounded) {
+                    playerVelY = -15;
+                    isGrounded = false;
+                }
+                if (e.code === 'Escape') showPauseMenu(gameContainer);
+            });
+            window.addEventListener('keyup', (e) => {
+                if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
+                if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
+            });
+
+            // Game update
+            gameState.score = 0;
+            game.off('update');
+            game.on('update', () => {
+                if (!currentScreen || currentScreen !== gameContainer) return;
+
+                // Movement from joystick or keyboard
+                let moveX = 0;
+                if (joystick) {
+                    const data = joystick.getData?.() || { vector: { x: 0 } };
+                    if (data.vector) moveX = data.vector.x;
+                }
+                if (keys.left) moveX = -1;
+                if (keys.right) moveX = 1;
+
+                player.x += moveX * 5;
+                player.x = Math.max(20, Math.min(CONFIG.width - 20, player.x));
+
+                // Gravity
+                if (!isGrounded) {
+                    playerVelY += 0.6;
+                    playerVelY = Math.min(playerVelY, 15);
+                }
+
+                const nextY = player.y + playerVelY;
+                const groundY = CONFIG.height - 100;
+
+                // Ground collision
+                if (nextY >= groundY) {
+                    player.y = groundY;
+                    playerVelY = 0;
+                    isGrounded = true;
+                } else {
+                    player.y = nextY;
+                }
+
+                // Collect items
+                collectibles.forEach((item, i) => {
+                    if (!item.collected) {
+                        const dx = player.x - item.x;
+                        const dy = player.y - 20 - item.y;
+                        if (Math.sqrt(dx * dx + dy * dy) < 30) {
+                            item.collected = true;
+                            item.visible = false;
+                            gameState.score += 100;
+                            topBar.updateResource('coins', gameState.score);
+                        }
+                    }
+                });
+
+                // Check win condition
+                const allCollected = collectibles.every(c => c.collected);
+                if (allCollected) {
+                    game.off('update');
+                    showWinScreen(gameContainer);
+                }
+            });
+        }
+
+        function createCloud(x, y) {
+            const cloud = gfx.createContainer();
+            const cloudGfx = gfx.createGraphics();
+            cloudGfx.circle(0, 0, 25);
+            cloudGfx.circle(25, -10, 30);
+            cloudGfx.circle(50, -5, 25);
+            cloudGfx.fill({ color: 0xFFFFFF, alpha: 0.8 });
+            cloud.addChild(cloudGfx);
+            cloud.x = x;
+            cloud.y = y;
+            return cloud;
+        }
+
+        function createPlatforms(container) {
+            const platformData = [
+                { x: 50, y: CONFIG.height - 250, w: 100 },
+                { x: 200, y: CONFIG.height - 350, w: 80 },
+                { x: 280, y: CONFIG.height - 200, w: 100 }
+            ];
+
+            platformData.forEach(p => {
+                const platform = gfx.createGraphics();
+                platform.rect(0, 0, p.w, 15);
+                platform.fill({ color: 0x8B4513 });
+                platform.rect(0, 0, p.w, 5);
+                platform.fill({ color: 0x4CAF50 });
+                platform.x = p.x;
+                platform.y = p.y;
+                container.addChild(platform);
+            });
+        }
+
+        function createCollectibles(container) {
+            collectibles = [];
+            const positions = [
+                { x: 100, y: CONFIG.height - 300 },
+                { x: 240, y: CONFIG.height - 400 },
+                { x: 320, y: CONFIG.height - 250 },
+                { x: 200, y: CONFIG.height - 150 },
+                { x: 50, y: CONFIG.height - 150 }
+            ];
+
+            positions.forEach(pos => {
+                const star = gfx.createContainer();
+                const starGfx = gfx.createGraphics();
+                // Simple star shape
+                starGfx.poly([0, -15, 4, -5, 15, -5, 7, 3, 10, 15, 0, 8, -10, 15, -7, 3, -15, -5, -4, -5]);
+                starGfx.fill({ color: 0xFFD700 });
+                starGfx.stroke({ color: 0xFFA500, width: 2 });
+                star.addChild(starGfx);
+                star.x = pos.x;
+                star.y = pos.y;
+                star.collected = false;
+                container.addChild(star);
+                collectibles.push(star);
+            });
+        }
+
+        function createPlayer(container) {
+            player = gfx.createContainer();
+
+            const body = gfx.createGraphics();
+            body.roundRect(-18, -40, 36, 40, 8);
+            body.fill({ color: 0x2196F3 });
+            body.stroke({ color: 0x1976D2, width: 2 });
+
+            const eyes = gfx.createGraphics();
+            eyes.circle(-7, -28, 5);
+            eyes.circle(7, -28, 5);
+            eyes.fill({ color: 0xFFFFFF });
+            eyes.circle(-7, -28, 2);
+            eyes.circle(7, -28, 2);
+            eyes.fill({ color: 0x000000 });
+
+            player.addChild(body);
+            player.addChild(eyes);
+            player.x = 50;
+            player.y = CONFIG.height - 100;
+            container.addChild(player);
+
+            playerVelY = 0;
+            isGrounded = true;
+        }
+
+        // ==================== PAUSE MENU ====================
+        function showPauseMenu(gameContainer) {
+            const pausePanel = new GameModalPanel({
+                width: CONFIG.width - 80,
+                height: 300,
+                title: 'PAUSED',
+                showCloseButton: false
+            });
+
+            const content = pausePanel.getContentContainer();
+
+            const resumeBtn = new GameStyleButton({
+                text: 'RESUME',
+                width: 200,
+                height: 55,
+                colorScheme: GameStyleColors.GREEN_BUTTON
+            });
+            resumeBtn.setPosition((CONFIG.width - 80 - 200) / 2, 30);
+            resumeBtn.on('click', () => {
+                pausePanel.getContainer().parent?.removeChild(pausePanel.getContainer());
+            });
+            content.addChild(resumeBtn.getContainer());
+
+            const restartBtn = new GameStyleButton({
+                text: 'RESTART',
+                width: 200,
+                height: 55,
+                colorScheme: GameStyleColors.YELLOW_BUTTON
+            });
+            restartBtn.setPosition((CONFIG.width - 80 - 200) / 2, 100);
+            restartBtn.on('click', () => {
+                pausePanel.getContainer().parent?.removeChild(pausePanel.getContainer());
+                showGameScreen();
+            });
+            content.addChild(restartBtn.getContainer());
+
+            const menuBtn = new GameStyleButton({
+                text: 'MAIN MENU',
+                width: 200,
+                height: 55,
+                colorScheme: GameStyleColors.RED_BUTTON
+            });
+            menuBtn.setPosition((CONFIG.width - 80 - 200) / 2, 170);
+            menuBtn.on('click', () => {
+                game.off('update');
+                showHubScreen();
+            });
+            content.addChild(menuBtn.getContainer());
+
+            pausePanel.setPosition(40, CONFIG.height / 2 - 150);
+            gameContainer.addChild(pausePanel.getContainer());
+        }
+
+        // ==================== WIN SCREEN ====================
+        function showWinScreen(gameContainer) {
+            // Celebrate!
+            celebration.celebrate({
+                type: 'confetti',
+                duration: 3000,
+                intensity: 'high'
+            });
+
+            const resultScreen = new ResultScreen({
+                type: 'victory',
+                title: 'LEVEL COMPLETE!',
+                subtitle: `Level ${gameState.currentLevel}`,
+                score: gameState.score,
+                stars: 3,
+                rewards: [
+                    { icon: '⭐', label: 'Stars', value: gameState.score },
+                    { icon: '🪙', label: 'Coins', value: 50 }
+                ],
+                actions: [
+                    { id: 'next', label: 'NEXT LEVEL', primary: true },
+                    { id: 'menu', label: 'MENU' }
+                ],
+                onAction: (actionId) => {
+                    if (actionId === 'next') {
+                        gameState.currentLevel++;
+                        showGameScreen();
+                    } else {
+                        showHubScreen();
+                    }
+                }
+            });
+
+            resultScreen.setPosition(
+                (CONFIG.width - 320) / 2,
+                (CONFIG.height - 450) / 2
+            );
+            gameContainer.addChild(resultScreen.getContainer());
+        }
+
+        // ==================== UTILITIES ====================
+        function clearScreen() {
+            if (currentScreen) {
+                mainContainer.removeChild(currentScreen);
+                currentScreen = null;
+            }
+            collectibles = [];
+            obstacles = [];
+        }
+
+        function handleResize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const renderer = game.make('renderer');
+            renderer.resize(window.innerWidth, window.innerHeight);
+
+            const scaleX = window.innerWidth / CONFIG.width;
+            const scaleY = window.innerHeight / CONFIG.height;
+            const scale = Math.min(scaleX, scaleY);
+
+            mainContainer.scale.set(scale);
+            mainContainer.x = (window.innerWidth - CONFIG.width * scale) / 2;
+            mainContainer.y = (window.innerHeight - CONFIG.height * scale) / 2;
+        }
+
+        init().catch(console.error);
+    </script>
+</body>
+</html>

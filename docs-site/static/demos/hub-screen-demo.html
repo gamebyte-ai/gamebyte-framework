@@ -17,20 +17,24 @@
 
     <script>
         // =====================================================
-        // HubScreen Demo - Using Framework Abstractions
+        // HubScreen Framework Demo
         // =====================================================
-        // This demo showcases:
-        // - Complete hub screen with tabbed navigation
-        // - Shop, Play, Profile tabs
-        // - CelebrationManager for shimmer and confetti effects
-        // - graphics() abstraction instead of direct PIXI usage
+        // This demo showcases the HubScreen framework component:
+        // - HubScreen with GameTopBar and GameBottomNav
+        // - Resource displays for coins and gems
+        // - Tab-based navigation (Shop, Play, Profile)
+        // - Proper use of registerTabContent() API
+        // - Framework graphics abstraction
+        // - CelebrationManager integration
         // =====================================================
 
         const {
             createGame,
+            HubScreen,
             CelebrationManager,
             graphics,
-            loadFrameworkFont
+            loadFrameworkFont,
+            getFrameworkFontFamily
         } = GameByteFramework;
 
         const CONFIG = { width: 360, height: 640 };
@@ -84,17 +88,10 @@
         const THEME_COLORS = {
             dark: {
                 bgDark: 0x1a1a2e,
-                topBarBg: 0x2d2d44,
-                topBarShadow: 0x000000,
-                currencyBg: 0x3d3d5c,
-                coinColor: 0xFFD700,
-                gemColor: 0x00BFFF,
-                navBg: 0x2d2d44,
-                navBorder: 0x3d3d5c,
-                navActive: 0x6366f1,
-                navInactive: 0x888888,
                 cardBg: 0x2d2d44,
                 cardShadow: 0x1a1a2e,
+                coinColor: 0xFFD700,
+                gemColor: 0x00BFFF,
                 playBtnGlow: 0x4CAF50,
                 playBtnShadow: 0x2E7D32,
                 playBtn: 0x4CAF50,
@@ -106,17 +103,10 @@
             },
             light: {
                 bgDark: 0xe8eef5,
-                topBarBg: 0xd0d8e8,
-                topBarShadow: 0x000000,
-                currencyBg: 0xb8c8d8,
-                coinColor: 0xD4A000,
-                gemColor: 0x0090C0,
-                navBg: 0xd0d8e8,
-                navBorder: 0xb8c8d8,
-                navActive: 0x5558e8,
-                navInactive: 0x6a7a8a,
                 cardBg: 0xd0d8e8,
                 cardShadow: 0xc0c8d0,
+                coinColor: 0xD4A000,
+                gemColor: 0x0090C0,
                 playBtnGlow: 0x3d9d40,
                 playBtnShadow: 0x2d7d30,
                 playBtn: 0x4CAF50,
@@ -141,9 +131,8 @@
 
         let coins = 1234;
         let gems = 50;
-        let currentTab = 'play';
         let celebration = null;
-        let renderer, stage;
+        let renderer, stage, hubScreen;
 
         let isRecreating = false;
         async function applyTheme() {
@@ -151,9 +140,9 @@
             isRecreating = true;
 
             document.body.classList.toggle('light-theme', currentTheme === 'light');
-            if (stage && window.createHubScreen) {
+            if (stage && window.createHubUI) {
                 await loadFrameworkFont();
-                window.createHubScreen();
+                window.createHubUI();
             }
             setTimeout(() => { isRecreating = false; }, 100);
         }
@@ -168,409 +157,319 @@
 
             setupThemeListener();
 
-            function createHubScreen() {
+            function createHubUI() {
                 const colors = getColors();
                 const gfx = graphics();
 
+                // Clear stage
                 while (stage.children.length > 0) {
                     stage.removeChildAt(0);
                 }
                 celebration.clear();
 
-                // Background
-                const bg = gfx.createGraphics();
-                bg.rect(0, 0, CONFIG.width, CONFIG.height);
-                bg.fill(colors.bgDark);
-                stage.addChild(bg);
+                // Destroy previous hub screen
+                if (hubScreen) {
+                    hubScreen.destroy();
+                }
 
-                // TopBar background
-                const topBarShadow = gfx.createGraphics();
-                topBarShadow.rect(0, 70, CONFIG.width, 4);
-                topBarShadow.fill({ color: colors.topBarShadow, alpha: 0.3 });
-                stage.addChild(topBarShadow);
-
-                const topBar = gfx.createGraphics();
-                topBar.rect(0, 0, CONFIG.width, 70);
-                topBar.fill(colors.topBarBg);
-                stage.addChild(topBar);
-
-                // Coins display
-                const coinBg = gfx.createGraphics();
-                coinBg.roundRect(10, 15, 100, 40, 20);
-                coinBg.fill(colors.currencyBg);
-                stage.addChild(coinBg);
-
-                const coinIconContainer = gfx.createContainer();
-                coinIconContainer.x = 30;
-                coinIconContainer.y = 35;
-                stage.addChild(coinIconContainer);
-
-                const coinIcon = gfx.createText('\u{1FA99}', { fontSize: 22 });
-                coinIcon.anchor.set(0.5);
-                coinIconContainer.addChild(coinIcon);
-
-                celebration.addShimmer(coinIconContainer, 'gold');
-
-                const coinText = gfx.createText(coins.toLocaleString(), {
-                    fontSize: 16,
-                    fontWeight: 'bold',
-                    fill: colors.coinColor
-                });
-                coinText.x = 50;
-                coinText.y = 28;
-                stage.addChild(coinText);
-
-                // Gems display
-                const gemBg = gfx.createGraphics();
-                gemBg.roundRect(120, 15, 90, 40, 20);
-                gemBg.fill(colors.currencyBg);
-                stage.addChild(gemBg);
-
-                const gemIconContainer = gfx.createContainer();
-                gemIconContainer.x = 140;
-                gemIconContainer.y = 35;
-                stage.addChild(gemIconContainer);
-
-                const gemIcon = gfx.createText('\u{1F48E}', { fontSize: 20 });
-                gemIcon.anchor.set(0.5);
-                gemIconContainer.addChild(gemIcon);
-
-                celebration.addShimmer(gemIconContainer, 'gem');
-
-                const gemText = gfx.createText(gems.toString(), {
-                    fontSize: 16,
-                    fontWeight: 'bold',
-                    fill: colors.gemColor
-                });
-                gemText.x = 160;
-                gemText.y = 28;
-                stage.addChild(gemText);
-
-                // Settings button
-                const settingsBtn = gfx.createGraphics();
-                settingsBtn.circle(CONFIG.width - 35, 35, 22);
-                settingsBtn.fill(colors.currencyBg);
-                settingsBtn.eventMode = 'static';
-                settingsBtn.cursor = 'pointer';
-                stage.addChild(settingsBtn);
-
-                const settingsIcon = gfx.createText('\u2699\uFE0F', { fontSize: 22 });
-                settingsIcon.anchor.set(0.5);
-                settingsIcon.x = CONFIG.width - 35;
-                settingsIcon.y = 35;
-                stage.addChild(settingsIcon);
-
-                // Content area
-                const contentArea = gfx.createContainer();
-                contentArea.y = 70;
-                stage.addChild(contentArea);
-
-                // BottomNav
-                const bottomNavBorder = gfx.createGraphics();
-                bottomNavBorder.rect(0, CONFIG.height - 84, CONFIG.width, 4);
-                bottomNavBorder.fill(colors.navBorder);
-                stage.addChild(bottomNavBorder);
-
-                const bottomNav = gfx.createGraphics();
-                bottomNav.rect(0, CONFIG.height - 80, CONFIG.width, 80);
-                bottomNav.fill(colors.navBg);
-                stage.addChild(bottomNav);
-
-                // Nav items
-                const navItems = [
-                    { id: 'shop', icon: '\u{1F6D2}', label: 'Shop' },
-                    { id: 'play', icon: '\u25B6\uFE0F', label: 'Play' },
-                    { id: 'profile', icon: '\u{1F464}', label: 'Profile' }
-                ];
-
-                const navWidth = CONFIG.width / navItems.length;
-                const navButtons = [];
-
-                navItems.forEach((item, i) => {
-                    const btn = gfx.createContainer();
-                    btn.x = navWidth * i;
-                    btn.y = CONFIG.height - 80;
-
-                    const hitArea = gfx.createGraphics();
-                    hitArea.rect(0, 0, navWidth, 80);
-                    hitArea.fill({ color: 0xffffff, alpha: 0 });
-                    btn.addChild(hitArea);
-
-                    const highlight = gfx.createGraphics();
-                    highlight.roundRect(navWidth / 2 - 30, 8, 60, 4, 2);
-                    highlight.fill(item.id === currentTab ? colors.navActive : colors.navBg);
-                    btn.addChild(highlight);
-
-                    const icon = gfx.createText(item.icon, {
-                        fontSize: item.id === 'play' ? 32 : 24
-                    });
-                    icon.anchor.set(0.5);
-                    icon.x = navWidth / 2;
-                    icon.y = 35;
-                    btn.addChild(icon);
-
-                    const label = gfx.createText(item.label, {
-                        fontSize: 12,
-                        fill: item.id === currentTab ? colors.navActive : colors.navInactive
-                    });
-                    label.anchor.set(0.5);
-                    label.x = navWidth / 2;
-                    label.y = 62;
-                    btn.addChild(label);
-
-                    btn.eventMode = 'static';
-                    btn.cursor = 'pointer';
-                    btn.on('pointerdown', () => switchTab(item.id));
-
-                    navButtons.push({ btn, highlight, label, id: item.id });
-                    stage.addChild(btn);
-                });
-
-                // Tab content
-                function createTabContent(tabId) {
-                    const content = gfx.createContainer();
-
-                    if (tabId === 'shop') {
-                        const title = gfx.createText('\u{1F6D2} Shop', {
-                            fontSize: 28,
-                            fontWeight: 'bold',
-                            fill: colors.textWhite
-                        });
-                        title.x = 20;
-                        title.y = 20;
-                        content.addChild(title);
-
-                        const items = [
-                            { name: '100 Coins', price: '\u{1F48E} 10', color: colors.coinColor, type: 'gold' },
-                            { name: '500 Coins', price: '\u{1F48E} 45', color: colors.coinColor, type: 'gold' },
-                            { name: 'No Ads', price: '$2.99', color: 0x4CAF50, type: 'none' }
-                        ];
-
-                        items.forEach((item, i) => {
-                            const cardShadow = gfx.createGraphics();
-                            cardShadow.roundRect(20, 75 + i * 100, CONFIG.width - 40, 80, 12);
-                            cardShadow.fill(colors.cardShadow);
-                            content.addChild(cardShadow);
-
-                            const card = gfx.createGraphics();
-                            card.roundRect(20, 70 + i * 100, CONFIG.width - 40, 80, 12);
-                            card.fill(colors.cardBg);
-                            card.eventMode = 'static';
-                            card.cursor = 'pointer';
-                            content.addChild(card);
-
-                            if (item.type === 'gold') {
-                                const iconContainer = gfx.createContainer();
-                                iconContainer.x = 55;
-                                iconContainer.y = 110 + i * 100;
-                                content.addChild(iconContainer);
-
-                                const itemIcon = gfx.createText('\u{1FA99}', { fontSize: 28 });
-                                itemIcon.anchor.set(0.5);
-                                iconContainer.addChild(itemIcon);
-
-                                celebration.addShimmer(iconContainer, 'gold');
+                // Create HubScreen with configuration
+                hubScreen = new HubScreen({
+                    backgroundColor: colors.bgDark,
+                    topBarResources: [
+                        {
+                            type: 'coins',
+                            value: coins,
+                            icon: 'coin',
+                            iconColor: colors.coinColor,
+                            showAddButton: true,
+                            onAddClick: () => {
+                                coins += 100;
+                                hubScreen.updateResource('coins', coins);
+                                celebration.sparkle(CONFIG.width / 2, 30);
                             }
-
-                            const name = gfx.createText(item.name, {
-                                fontSize: 18,
-                                fontWeight: 'bold',
-                                fill: item.color
-                            });
-                            name.x = item.type === 'gold' ? 85 : 40;
-                            name.y = 95 + i * 100;
-                            content.addChild(name);
-
-                            const buyBtn = gfx.createGraphics();
-                            buyBtn.roundRect(CONFIG.width - 100, 85 + i * 100, 60, 30, 8);
-                            buyBtn.fill(colors.buyBtn);
-                            content.addChild(buyBtn);
-
-                            const price = gfx.createText(item.price, {
-                                fontSize: 12,
-                                fill: colors.textWhite
-                            });
-                            price.anchor.set(0.5);
-                            price.x = CONFIG.width - 70;
-                            price.y = 100 + i * 100;
-                            content.addChild(price);
-
-                            card.on('pointerdown', () => {
-                                celebration.sparkle(CONFIG.width / 2, 110 + i * 100);
-                            });
-                        });
-
-                    } else if (tabId === 'play') {
-                        const title = gfx.createText('\u{1F3AE} Ready to Play!', {
-                            fontSize: 24,
-                            fontWeight: 'bold',
-                            fill: colors.textWhite
-                        });
-                        title.anchor.set(0.5);
-                        title.x = CONFIG.width / 2;
-                        title.y = 120;
-                        content.addChild(title);
-
-                        const playBtnGlow = gfx.createGraphics();
-                        playBtnGlow.roundRect(55, 175, CONFIG.width - 110, 90, 20);
-                        playBtnGlow.fill({ color: colors.playBtnGlow, alpha: 0.3 });
-                        content.addChild(playBtnGlow);
-
-                        const playBtnShadow = gfx.createGraphics();
-                        playBtnShadow.roundRect(60, 185, CONFIG.width - 120, 80, 16);
-                        playBtnShadow.fill(colors.playBtnShadow);
-                        content.addChild(playBtnShadow);
-
-                        const playBtn = gfx.createGraphics();
-                        playBtn.roundRect(60, 180, CONFIG.width - 120, 80, 16);
-                        playBtn.fill(colors.playBtn);
-                        playBtn.eventMode = 'static';
-                        playBtn.cursor = 'pointer';
-                        content.addChild(playBtn);
-
-                        const playText = gfx.createText('\u25B6  PLAY', {
-                            fontSize: 28,
-                            fontWeight: 'bold',
-                            fill: colors.textWhite
-                        });
-                        playText.anchor.set(0.5);
-                        playText.x = CONFIG.width / 2;
-                        playText.y = 220;
-                        content.addChild(playText);
-
-                        playBtn.on('pointerdown', () => {
-                            celebration.confettiBurst(CONFIG.width / 2, 220, {
-                                particleCount: 30,
-                                colors: [0x4CAF50, 0x6BCB77, 0xFFD700]
-                            });
-                        });
-
-                        const levelText = gfx.createText('Level 5', {
-                            fontSize: 18,
-                            fill: colors.textMuted
-                        });
-                        levelText.anchor.set(0.5);
-                        levelText.x = CONFIG.width / 2;
-                        levelText.y = 300;
-                        content.addChild(levelText);
-
-                        const starsContainer = gfx.createContainer();
-                        starsContainer.x = CONFIG.width / 2;
-                        starsContainer.y = 340;
-                        content.addChild(starsContainer);
-
-                        for (let i = 0; i < 3; i++) {
-                            const starContainer = gfx.createContainer();
-                            starContainer.x = (i - 1) * 40;
-                            starsContainer.addChild(starContainer);
-
-                            const star = gfx.createText(i < 2 ? '\u2B50' : '\u2606', { fontSize: 28 });
-                            star.anchor.set(0.5);
-                            starContainer.addChild(star);
-
-                            if (i < 2) {
-                                celebration.addShimmer(starContainer, 'star');
-                            }
+                        },
+                        {
+                            type: 'gems',
+                            value: gems,
+                            icon: 'gem',
+                            iconColor: colors.gemColor
                         }
-
-                    } else if (tabId === 'profile') {
-                        const avatarGlow = gfx.createGraphics();
-                        avatarGlow.circle(CONFIG.width / 2, 100, 55);
-                        avatarGlow.fill({ color: colors.avatarGlow, alpha: 0.3 });
-                        content.addChild(avatarGlow);
-
-                        const avatar = gfx.createGraphics();
-                        avatar.circle(CONFIG.width / 2, 100, 50);
-                        avatar.fill(colors.avatarBg);
-                        content.addChild(avatar);
-
-                        const avatarIcon = gfx.createText('\u{1F464}', { fontSize: 48 });
-                        avatarIcon.anchor.set(0.5);
-                        avatarIcon.x = CONFIG.width / 2;
-                        avatarIcon.y = 100;
-                        content.addChild(avatarIcon);
-
-                        const name = gfx.createText('Player123', {
-                            fontSize: 24,
-                            fontWeight: 'bold',
-                            fill: colors.textWhite
+                    ],
+                    showSettings: true,
+                    onSettingsClick: () => {
+                        console.log('Settings clicked');
+                        celebration.confettiBurst(35, 35, {
+                            particleCount: 20,
+                            colors: [0x6366f1, 0x8b5cf6]
                         });
-                        name.anchor.set(0.5);
-                        name.x = CONFIG.width / 2;
-                        name.y = 180;
-                        content.addChild(name);
+                    },
+                    bottomNavItems: [
+                        { id: 'shop', type: 'shop', label: 'Shop' },
+                        { id: 'play', type: 'play', label: 'Play', highlighted: true },
+                        { id: 'profile', type: 'profile', label: 'Profile', locked: true }
+                    ],
+                    defaultTab: 'play'
+                });
 
-                        const stats = gfx.createText('Games: 42  |  Best: 12,450', {
-                            fontSize: 14,
-                            fill: colors.textMuted
-                        });
-                        stats.anchor.set(0.5);
-                        stats.x = CONFIG.width / 2;
-                        stats.y = 220;
-                        content.addChild(stats);
+                // Register tab contents
+                hubScreen.registerTabContent('shop', () => createShopTab(colors, gfx));
+                hubScreen.registerTabContent('play', () => createPlayTab(colors, gfx));
+                hubScreen.registerTabContent('profile', () => createProfileTab(colors, gfx));
 
-                        const achieveTitle = gfx.createText('Achievements', {
-                            fontSize: 18,
-                            fontWeight: 'bold',
-                            fill: colors.textWhite
-                        });
-                        achieveTitle.x = 20;
-                        achieveTitle.y = 270;
-                        content.addChild(achieveTitle);
+                // Listen for tab changes
+                hubScreen.on('tab-changed', (tabId) => {
+                    console.log('Tab switched to:', tabId);
+                });
 
-                        const badges = ['\u{1F3C6}', '\u{1F3AF}', '\u26A1'];
-                        badges.forEach((badge, i) => {
-                            const badgeContainer = gfx.createContainer();
-                            badgeContainer.x = 50 + i * 60;
-                            badgeContainer.y = 320;
-                            content.addChild(badgeContainer);
-
-                            const badgeBg = gfx.createGraphics();
-                            badgeBg.circle(0, 0, 25);
-                            badgeBg.fill(colors.currencyBg);
-                            badgeContainer.addChild(badgeBg);
-
-                            const badgeIcon = gfx.createText(badge, { fontSize: 24 });
-                            badgeIcon.anchor.set(0.5);
-                            badgeContainer.addChild(badgeIcon);
-
-                            celebration.addShimmer(badgeContainer, 'gold');
-                        });
-                    }
-
-                    return content;
-                }
-
-                let currentContent = null;
-
-                function switchTab(tabId) {
-                    currentTab = tabId;
-
-                    navButtons.forEach(({ highlight, label, id }) => {
-                        highlight.clear();
-                        highlight.roundRect(CONFIG.width / navItems.length / 2 - 30, 8, 60, 4, 2);
-                        highlight.fill(id === tabId ? colors.navActive : colors.navBg);
-                        label.style.fill = id === tabId ? colors.navActive : colors.navInactive;
-                    });
-
-                    if (currentContent) {
-                        contentArea.removeChild(currentContent);
-                    }
-                    currentContent = createTabContent(tabId);
-                    contentArea.addChild(currentContent);
-                }
-
-                switchTab('play');
+                // Initialize and add to stage
+                hubScreen.resize(CONFIG.width, CONFIG.height);
+                stage.addChild(hubScreen.getContainer());
             }
 
-            window.createHubScreen = createHubScreen;
+            // ===== TAB CONTENT CREATORS =====
+
+            function createShopTab(colors, gfx) {
+                const content = gfx.createContainer();
+                const { width, height } = hubScreen.getContentAreaSize();
+
+                const title = gfx.createText('🛒 Shop', {
+                    fontFamily: getFrameworkFontFamily(),
+                    fontSize: 28,
+                    fontWeight: 'bold',
+                    fill: colors.textWhite
+                });
+                title.x = 20;
+                title.y = 20;
+                content.addChild(title);
+
+                const items = [
+                    { name: '100 Coins', price: '💎 10', color: colors.coinColor, type: 'gold' },
+                    { name: '500 Coins', price: '💎 45', color: colors.coinColor, type: 'gold' },
+                    { name: 'No Ads', price: '$2.99', color: 0x4CAF50, type: 'none' }
+                ];
+
+                items.forEach((item, i) => {
+                    const cardShadow = gfx.createGraphics();
+                    cardShadow.roundRect(20, 75 + i * 100, width - 40, 80, 12);
+                    cardShadow.fill(colors.cardShadow);
+                    content.addChild(cardShadow);
+
+                    const card = gfx.createGraphics();
+                    card.roundRect(20, 70 + i * 100, width - 40, 80, 12);
+                    card.fill(colors.cardBg);
+                    card.eventMode = 'static';
+                    card.cursor = 'pointer';
+                    content.addChild(card);
+
+                    if (item.type === 'gold') {
+                        const iconContainer = gfx.createContainer();
+                        iconContainer.x = 55;
+                        iconContainer.y = 110 + i * 100;
+                        content.addChild(iconContainer);
+
+                        const itemIcon = gfx.createText('🪙', { fontSize: 28 });
+                        itemIcon.anchor.set(0.5);
+                        iconContainer.addChild(itemIcon);
+
+                        celebration.addShimmer(iconContainer, 'gold');
+                    }
+
+                    const name = gfx.createText(item.name, {
+                        fontFamily: getFrameworkFontFamily(),
+                        fontSize: 18,
+                        fontWeight: 'bold',
+                        fill: item.color
+                    });
+                    name.x = item.type === 'gold' ? 85 : 40;
+                    name.y = 95 + i * 100;
+                    content.addChild(name);
+
+                    const buyBtn = gfx.createGraphics();
+                    buyBtn.roundRect(width - 100, 85 + i * 100, 60, 30, 8);
+                    buyBtn.fill(colors.buyBtn);
+                    content.addChild(buyBtn);
+
+                    const price = gfx.createText(item.price, {
+                        fontFamily: getFrameworkFontFamily(),
+                        fontSize: 12,
+                        fill: colors.textWhite
+                    });
+                    price.anchor.set(0.5);
+                    price.x = width - 70;
+                    price.y = 100 + i * 100;
+                    content.addChild(price);
+
+                    card.on('pointerdown', () => {
+                        celebration.sparkle(width / 2, 110 + i * 100);
+                    });
+                });
+
+                return content;
+            }
+
+            function createPlayTab(colors, gfx) {
+                const content = gfx.createContainer();
+                const { width, height } = hubScreen.getContentAreaSize();
+
+                const title = gfx.createText('🎮 Ready to Play!', {
+                    fontFamily: getFrameworkFontFamily(),
+                    fontSize: 24,
+                    fontWeight: 'bold',
+                    fill: colors.textWhite
+                });
+                title.anchor.set(0.5);
+                title.x = width / 2;
+                title.y = 120;
+                content.addChild(title);
+
+                const playBtnGlow = gfx.createGraphics();
+                playBtnGlow.roundRect(55, 175, width - 110, 90, 20);
+                playBtnGlow.fill({ color: colors.playBtnGlow, alpha: 0.3 });
+                content.addChild(playBtnGlow);
+
+                const playBtnShadow = gfx.createGraphics();
+                playBtnShadow.roundRect(60, 185, width - 120, 80, 16);
+                playBtnShadow.fill(colors.playBtnShadow);
+                content.addChild(playBtnShadow);
+
+                const playBtn = gfx.createGraphics();
+                playBtn.roundRect(60, 180, width - 120, 80, 16);
+                playBtn.fill(colors.playBtn);
+                playBtn.eventMode = 'static';
+                playBtn.cursor = 'pointer';
+                content.addChild(playBtn);
+
+                const playText = gfx.createText('▶  PLAY', {
+                    fontFamily: getFrameworkFontFamily(),
+                    fontSize: 28,
+                    fontWeight: 'bold',
+                    fill: colors.textWhite
+                });
+                playText.anchor.set(0.5);
+                playText.x = width / 2;
+                playText.y = 220;
+                content.addChild(playText);
+
+                playBtn.on('pointerdown', () => {
+                    celebration.confettiBurst(width / 2, 220, {
+                        particleCount: 30,
+                        colors: [0x4CAF50, 0x6BCB77, 0xFFD700]
+                    });
+                });
+
+                const levelText = gfx.createText('Level 5', {
+                    fontFamily: getFrameworkFontFamily(),
+                    fontSize: 18,
+                    fill: colors.textMuted
+                });
+                levelText.anchor.set(0.5);
+                levelText.x = width / 2;
+                levelText.y = 300;
+                content.addChild(levelText);
+
+                const starsContainer = gfx.createContainer();
+                starsContainer.x = width / 2;
+                starsContainer.y = 340;
+                content.addChild(starsContainer);
+
+                for (let i = 0; i < 3; i++) {
+                    const starContainer = gfx.createContainer();
+                    starContainer.x = (i - 1) * 40;
+                    starsContainer.addChild(starContainer);
+
+                    const star = gfx.createText(i < 2 ? '⭐' : '☆', { fontSize: 28 });
+                    star.anchor.set(0.5);
+                    starContainer.addChild(star);
+
+                    if (i < 2) {
+                        celebration.addShimmer(starContainer, 'star');
+                    }
+                }
+
+                return content;
+            }
+
+            function createProfileTab(colors, gfx) {
+                const content = gfx.createContainer();
+                const { width, height } = hubScreen.getContentAreaSize();
+
+                const avatarGlow = gfx.createGraphics();
+                avatarGlow.circle(width / 2, 100, 55);
+                avatarGlow.fill({ color: colors.avatarGlow, alpha: 0.3 });
+                content.addChild(avatarGlow);
+
+                const avatar = gfx.createGraphics();
+                avatar.circle(width / 2, 100, 50);
+                avatar.fill(colors.avatarBg);
+                content.addChild(avatar);
+
+                const avatarIcon = gfx.createText('👤', { fontSize: 48 });
+                avatarIcon.anchor.set(0.5);
+                avatarIcon.x = width / 2;
+                avatarIcon.y = 100;
+                content.addChild(avatarIcon);
+
+                const name = gfx.createText('Player123', {
+                    fontFamily: getFrameworkFontFamily(),
+                    fontSize: 24,
+                    fontWeight: 'bold',
+                    fill: colors.textWhite
+                });
+                name.anchor.set(0.5);
+                name.x = width / 2;
+                name.y = 180;
+                content.addChild(name);
+
+                const stats = gfx.createText('Games: 42  |  Best: 12,450', {
+                    fontFamily: getFrameworkFontFamily(),
+                    fontSize: 14,
+                    fill: colors.textMuted
+                });
+                stats.anchor.set(0.5);
+                stats.x = width / 2;
+                stats.y = 220;
+                content.addChild(stats);
+
+                const achieveTitle = gfx.createText('Achievements', {
+                    fontFamily: getFrameworkFontFamily(),
+                    fontSize: 18,
+                    fontWeight: 'bold',
+                    fill: colors.textWhite
+                });
+                achieveTitle.x = 20;
+                achieveTitle.y = 270;
+                content.addChild(achieveTitle);
+
+                const badges = ['🏆', '🎯', '⚡'];
+                badges.forEach((badge, i) => {
+                    const badgeContainer = gfx.createContainer();
+                    badgeContainer.x = 50 + i * 60;
+                    badgeContainer.y = 320;
+                    content.addChild(badgeContainer);
+
+                    const badgeBg = gfx.createGraphics();
+                    badgeBg.circle(0, 0, 25);
+                    badgeBg.fill(colors.cardBg);
+                    badgeContainer.addChild(badgeBg);
+
+                    const badgeIcon = gfx.createText(badge, { fontSize: 24 });
+                    badgeIcon.anchor.set(0.5);
+                    badgeContainer.addChild(badgeIcon);
+
+                    celebration.addShimmer(badgeContainer, 'gold');
+                });
+
+                return content;
+            }
+
+            window.createHubUI = createHubUI;
 
             game.on('update', (deltaTime) => {
                 celebration.update(deltaTime);
             });
 
             document.body.classList.toggle('light-theme', currentTheme === 'light');
-            createHubScreen();
+            createHubUI();
             game.start();
         })();
     </script>

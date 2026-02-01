@@ -379,11 +379,33 @@
     }
 
     // Handle window resize
-    window.addEventListener('resize', () => {
+    function handleResize() {
       if (currentMode === 'fixed' && joystick) {
         joystick.setPosition(100, window.innerHeight - 180);
       }
-    });
+    }
+    window.addEventListener('resize', handleResize);
+
+    // Cleanup function to prevent memory leaks
+    function dispose() {
+      // Remove resize listener
+      window.removeEventListener('resize', handleResize);
+
+      // Remove game loop
+      app.ticker.remove(gameLoop);
+
+      // Destroy joystick
+      joystick?.destroy();
+
+      // Destroy graphics
+      playerGraphics?.destroy();
+      trailGraphics?.destroy();
+
+      // Destroy app
+      app?.destroy(true, { children: true });
+    }
+
+    window.addEventListener('beforeunload', dispose);
 
     // Start the app
     init();

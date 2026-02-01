@@ -56,7 +56,7 @@
         let game, stage, gfx;
         let mainContainer, worldContainer, uiContainer;
         let player, platforms = [], coins = [], spikes = [], flag;
-        let playerVelY = 0, isGrounded = false;
+        let playerVelY = 0, isGrounded = true; // Start grounded
         let score = 0, lives = 3;
         let gameState = 'playing'; // 'playing', 'win', 'lose'
         let keys = { left: false, right: false };
@@ -386,7 +386,31 @@
         }
 
         function updateGame() {
-            // Horizontal movement
+            // === STEP 1: Verify ground state FIRST (before any physics) ===
+            // This ensures player stays grounded when standing on platforms
+            let currentlyOnPlatform = false;
+            let currentPlatformY = 0;
+
+            platforms.forEach(p => {
+                const pb = p.bounds;
+                // Check X overlap
+                if (player.x > pb.x - 15 && player.x < pb.x + pb.width + 15) {
+                    // Standing on platform: within 5px of platform top
+                    if (Math.abs(player.y - pb.y) <= 5) {
+                        currentlyOnPlatform = true;
+                        currentPlatformY = pb.y;
+                    }
+                }
+            });
+
+            // Snap to platform if standing on one
+            if (currentlyOnPlatform && playerVelY >= 0) {
+                player.y = currentPlatformY;
+                playerVelY = 0;
+                isGrounded = true;
+            }
+
+            // === STEP 2: Horizontal movement ===
             if (keys.left) {
                 player.x -= CONFIG.playerSpeed;
                 player.scale.x = -1;
@@ -396,22 +420,51 @@
                 player.scale.x = 1;
             }
 
-            // Gravity
-            playerVelY += CONFIG.gravity;
-            player.y += playerVelY;
-
-            // Platform collision
-            isGrounded = false;
-            platforms.forEach(p => {
-                const pb = p.bounds;
-                if (player.x > pb.x - 15 && player.x < pb.x + pb.width + 15) {
-                    if (player.y >= pb.y - 5 && player.y <= pb.y + 10 && playerVelY >= 0) {
-                        player.y = pb.y;
-                        playerVelY = 0;
-                        isGrounded = true;
+            // === STEP 3: Check if walked off platform ===
+            if (isGrounded) {
+                let stillOnPlatform = false;
+                platforms.forEach(p => {
+                    const pb = p.bounds;
+                    if (player.x > pb.x - 15 && player.x < pb.x + pb.width + 15 &&
+                        Math.abs(player.y - pb.y) <= 5) {
+                        stillOnPlatform = true;
                     }
+                });
+                if (!stillOnPlatform) {
+                    isGrounded = false;
                 }
-            });
+            }
+
+            // === STEP 4: Apply gravity only when airborne ===
+            if (!isGrounded) {
+                playerVelY += CONFIG.gravity;
+                playerVelY = Math.min(playerVelY, 15); // Cap fall speed
+
+                const nextY = player.y + playerVelY;
+
+                // Check for landing on platforms
+                let willLand = false;
+                let landingY = nextY;
+
+                platforms.forEach(p => {
+                    const pb = p.bounds;
+                    if (player.x > pb.x - 15 && player.x < pb.x + pb.width + 15) {
+                        // Landing: falling through platform top
+                        if (player.y < pb.y && nextY >= pb.y) {
+                            willLand = true;
+                            landingY = pb.y;
+                        }
+                    }
+                });
+
+                if (willLand) {
+                    player.y = landingY;
+                    playerVelY = 0;
+                    isGrounded = true;
+                } else {
+                    player.y = nextY;
+                }
+            }
 
             // Screen bounds
             player.x = Math.max(15, Math.min(CONFIG.width - 15, player.x));
@@ -471,6 +524,7 @@
                 player.x = 50;
                 player.y = 400;
                 playerVelY = 0;
+                isGrounded = true;
             }
         }
 
@@ -533,6 +587,7 @@
             player.x = 50;
             player.y = 400;
             playerVelY = 0;
+            isGrounded = true;
             player.scale.x = 1;
 
             // Reset coins

@@ -43,6 +43,19 @@
     <script src="./dist/gamebyte.umd.js"></script>
 
     <script>
+        /**
+         * Archero-Style Hybrid Demo (Standalone)
+         *
+         * This demo uses direct PIXI.js v8 and THREE.js for standalone hybrid rendering.
+         * For framework-integrated usage, use:
+         * - HybridRenderer from gamebyte-framework for 2D+3D
+         * - graphics().createGraphics() instead of new PIXI.Graphics()
+         * - graphics().createContainer() instead of new PIXI.Container()
+         * - graphics().createText() instead of new PIXI.Text()
+         *
+         * See ArcheroMenu component and HybridRenderer for framework version.
+         */
+
         // Manual hybrid setup (Three.js + Pixi.js stacked canvases)
         // This demonstrates the pattern without using HybridRenderer class
 

@@ -17,16 +17,18 @@
 
     <script>
         // =====================================================
-        // GameBottomSheet Demo - Using Framework Abstractions
+        // GameBottomSheet Framework Component Demo
         // =====================================================
-        // This demo showcases:
-        // - Bottom sheet with drag-to-dismiss
-        // - Selectable item list with rare items
-        // - CelebrationManager for sparkle effects
-        // - graphics() abstraction instead of direct PIXI usage
+        // This demo showcases the GameBottomSheet component:
+        // - Import and use GameBottomSheet from framework
+        // - Configure height ('half', 'full', 'auto')
+        // - Show/hide animations
+        // - Drag-to-dismiss functionality
+        // - Custom content with framework graphics
+        // - Theme support (dark/light)
         // =====================================================
 
-        const { createGame, CelebrationManager, graphics, loadFrameworkFont } = GameByteFramework;
+        const { createGame, GameBottomSheet, graphics, loadFrameworkFont, CelebrationManager } = GameByteFramework;
 
         const CONFIG = { width: 360, height: 640 };
 
@@ -85,14 +87,8 @@
                 btnBorderColor: 0x4F51C5,
                 btnFillColor: 0x6366f1,
                 btnTextColor: 0xffffff,
-                sheetGlowColor: 0x6366f1,
-                sheetBorderColor: 0x4d4d6c,
-                sheetBgColor: 0x2d2d44,
-                handleBgColor: 0x444455,
-                handleColor: 0x666677,
-                sheetTitleColor: 0xffffff,
-                closeBtnColor: 0x4b5563,
-                closeXColor: 0xffffff,
+                sheetBackground: 0x2d2d44,
+                sheetBorder: 0x4d4d6c,
                 itemBorderColor: 0x4d4d6c,
                 itemBgColor: 0x3d3d5c,
                 itemNameColor: 0xffffff,
@@ -110,14 +106,8 @@
                 btnBorderColor: 0x6366f1,
                 btnFillColor: 0x818cf8,
                 btnTextColor: 0xffffff,
-                sheetGlowColor: 0x818cf8,
-                sheetBorderColor: 0xc5cae8,
-                sheetBgColor: 0xf5f7fa,
-                handleBgColor: 0xd0d5e0,
-                handleColor: 0xb0b8c8,
-                sheetTitleColor: 0x2d2d44,
-                closeBtnColor: 0x9ca3af,
-                closeXColor: 0xffffff,
+                sheetBackground: 0xf5f7fa,
+                sheetBorder: 0xc5cae8,
                 itemBorderColor: 0xd0d5e0,
                 itemBgColor: 0xffffff,
                 itemNameColor: 0x2d2d44,
@@ -141,12 +131,7 @@
         const game = createGame();
         let celebration = null;
         let renderer, stage;
-        let sheetOverlay, sheet, dim;
-        let sheetHeight = 320;
-        let isDragging = false;
-        let dragStartY = 0;
-        let sheetStartY = 0;
-        let itemContainers = [];
+        let currentSheet = null;
 
         let isRecreating = false;
         async function applyTheme() {
@@ -161,6 +146,251 @@
             setTimeout(() => { isRecreating = false; }, 100);
         }
 
+        /**
+         * Create item list content for the bottom sheet
+         */
+        function createItemListContent(heightOption) {
+            const colors = getColors();
+            const gfx = graphics();
+            const container = gfx.createContainer();
+
+            const items = [
+                { icon: '⚔️', name: 'Sword', desc: 'Attack +10', rarity: 'common' },
+                { icon: '🛡️', name: 'Shield', desc: 'Defense +15', rarity: 'common' },
+                { icon: '🧪', name: 'Potion', desc: 'Health +50', rarity: 'common' },
+                { icon: '🔮', name: 'Magic Orb', desc: 'Magic +20', rarity: 'rare' },
+                { icon: '👟', name: 'Boots', desc: 'Speed +5', rarity: 'common' }
+            ];
+
+            // Show fewer items for 'half' sheet
+            const visibleItems = heightOption === 'half' ? items.slice(0, 3) : items;
+
+            visibleItems.forEach((item, i) => {
+                const itemContainer = gfx.createContainer();
+                itemContainer.x = 0;
+                itemContainer.y = i * 60;
+                container.addChild(itemContainer);
+
+                // Item border
+                const itemBorder = gfx.createGraphics();
+                itemBorder.roundRect(0, 0, CONFIG.width - 40, 52, 11);
+                itemBorder.fill(item.rarity === 'rare' ? colors.rareBorderColor : colors.itemBorderColor);
+                itemContainer.addChild(itemBorder);
+
+                // Item background
+                const itemBg = gfx.createGraphics();
+                itemBg.roundRect(2, 2, CONFIG.width - 44, 48, 10);
+                itemBg.fill(colors.itemBgColor);
+                itemBg.eventMode = 'static';
+                itemBg.cursor = 'pointer';
+                itemContainer.addChild(itemBg);
+
+                // Icon with shimmer for rare items
+                const iconContainer = gfx.createContainer();
+                iconContainer.x = 25;
+                iconContainer.y = 26;
+                itemContainer.addChild(iconContainer);
+
+                const icon = gfx.createText(item.icon, { fontSize: 24 });
+                icon.anchor.set(0.5);
+                iconContainer.addChild(icon);
+
+                if (item.rarity === 'rare' && celebration) {
+                    celebration.addShimmer(iconContainer, 'gem');
+                }
+
+                // Item name
+                const name = gfx.createText(item.name, {
+                    fontSize: 16,
+                    fontWeight: 'bold',
+                    fill: item.rarity === 'rare' ? colors.rareNameColor : colors.itemNameColor
+                });
+                name.x = 50;
+                name.y = 10;
+                itemContainer.addChild(name);
+
+                // Item description
+                const desc = gfx.createText(item.desc, {
+                    fontSize: 12,
+                    fill: colors.itemDescColor
+                });
+                desc.x = 50;
+                desc.y = 30;
+                itemContainer.addChild(desc);
+
+                // Rare badge
+                if (item.rarity === 'rare') {
+                    const badge = gfx.createGraphics();
+                    badge.roundRect(CONFIG.width - 95, 15, 40, 20, 5);
+                    badge.fill(colors.rareBadgeColor);
+                    itemContainer.addChild(badge);
+
+                    const badgeText = gfx.createText('Rare', {
+                        fontSize: 10,
+                        fontWeight: 'bold',
+                        fill: 0xffffff
+                    });
+                    badgeText.anchor.set(0.5);
+                    badgeText.x = CONFIG.width - 75;
+                    badgeText.y = 25;
+                    itemContainer.addChild(badgeText);
+                }
+
+                // Click handler
+                itemBg.on('pointerdown', () => {
+                    // Calculate world Y position for celebration
+                    const sheetContainer = currentSheet.getContainer();
+                    const panelY = sheetContainer.children[1].y; // panelContainer
+                    const worldY = panelY + 80 + itemContainer.y + 26; // 80 = content offset
+
+                    if (celebration) {
+                        celebration.rewardReceived(CONFIG.width / 2, worldY);
+                    }
+                    console.log('Selected:', item.name);
+                    setTimeout(() => currentSheet.close(), 200);
+                });
+            });
+
+            return container;
+        }
+
+        /**
+         * Show bottom sheet with specified height configuration
+         */
+        async function showBottomSheet(heightOption, title) {
+            const colors = getColors();
+
+            // Create new sheet with framework component
+            currentSheet = new GameBottomSheet({
+                height: heightOption,
+                title: title,
+                showHandle: true,
+                dragToClose: true,
+                theme: {
+                    background: colors.sheetBackground,
+                    border: colors.sheetBorder,
+                    overlayAlpha: 0.6
+                }
+            });
+
+            // Initialize with screen dimensions
+            currentSheet.initialize(CONFIG.width, CONFIG.height);
+
+            // Add custom content (item list)
+            const itemList = createItemListContent(heightOption);
+            currentSheet.addContent(itemList);
+
+            // Add to stage
+            stage.addChild(currentSheet.getContainer());
+
+            // Show with animation
+            await currentSheet.show();
+
+            // Listen for close event
+            currentSheet.on('close', () => {
+                stage.removeChild(currentSheet.getContainer());
+                currentSheet.destroy();
+                currentSheet = null;
+            });
+        }
+
+        /**
+         * Create main screen with buttons
+         */
+        function createScreen() {
+            const colors = getColors();
+            const gfx = graphics();
+
+            while (stage.children.length > 0) {
+                stage.removeChildAt(0);
+            }
+            if (celebration) {
+                celebration.clear();
+            }
+
+            // Background
+            const bg = gfx.createGraphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill(colors.bgColor);
+            stage.addChild(bg);
+
+            // Title decorations
+            const titleDecorLeft = gfx.createGraphics();
+            titleDecorLeft.roundRect(30, 60, 50, 3, 2);
+            titleDecorLeft.fill(colors.titleDecorColor);
+            stage.addChild(titleDecorLeft);
+
+            const titleDecorRight = gfx.createGraphics();
+            titleDecorRight.roundRect(CONFIG.width - 80, 60, 50, 3, 2);
+            titleDecorRight.fill(colors.titleDecorColor);
+            stage.addChild(titleDecorRight);
+
+            const pageTitle = gfx.createText('Select an Item', {
+                fontSize: 24,
+                fontWeight: 'bold',
+                fill: colors.titleTextColor,
+                dropShadow: currentTheme === 'dark',
+                dropShadowDistance: 2
+            });
+            pageTitle.anchor.set(0.5);
+            pageTitle.x = CONFIG.width / 2;
+            pageTitle.y = 60;
+            stage.addChild(pageTitle);
+
+            // Buttons to show different sheet configurations
+            const sizes = [
+                { label: 'Half Sheet', height: 'half', icon: '📋', title: 'Select Item' },
+                { label: 'Full Sheet', height: 'full', icon: '📄', title: 'All Items' },
+                { label: 'Auto Sheet', height: 'auto', icon: 'auto', title: 'Quick Select' }
+            ];
+
+            sizes.forEach((size, i) => {
+                const btnGlow = gfx.createGraphics();
+                btnGlow.roundRect(35, 115 + i * 70, CONFIG.width - 70, 60, 14);
+                btnGlow.fill({ color: colors.btnGlowColor, alpha: 0.2 });
+                stage.addChild(btnGlow);
+
+                const btnBorder = gfx.createGraphics();
+                btnBorder.roundRect(38, 118 + i * 70, CONFIG.width - 76, 57, 13);
+                btnBorder.fill(colors.btnBorderColor);
+                stage.addChild(btnBorder);
+
+                const btn = gfx.createGraphics();
+                btn.roundRect(40, 120 + i * 70, CONFIG.width - 80, 55, 12);
+                btn.fill(colors.btnFillColor);
+                btn.eventMode = 'static';
+                btn.cursor = 'pointer';
+                stage.addChild(btn);
+
+                const icon = gfx.createText(size.icon, { fontSize: 20 });
+                icon.x = 60;
+                icon.y = 135 + i * 70;
+                stage.addChild(icon);
+
+                const text = gfx.createText(size.label, {
+                    fontSize: 18,
+                    fontWeight: 'bold',
+                    fill: colors.btnTextColor
+                });
+                text.anchor.set(0.5);
+                text.x = CONFIG.width / 2 + 10;
+                text.y = 147 + i * 70;
+                stage.addChild(text);
+
+                btn.on('pointerdown', () => showBottomSheet(size.height, size.title));
+            });
+
+            // Instructions
+            const instr = gfx.createText('Drag handle down to close', {
+                fontSize: 12,
+                fill: colors.instrColor
+            });
+            instr.anchor.set(0.5);
+            instr.x = CONFIG.width / 2;
+            instr.y = CONFIG.height - 30;
+            stage.addChild(instr);
+        }
+
         (async () => {
             await loadFrameworkFont();
             await game.initialize(canvas, '2d');
@@ -170,375 +400,12 @@
             celebration = new CelebrationManager(stage, CONFIG.width, CONFIG.height);
             setupThemeListener();
 
-            function getSheetHeight(heightOption) {
-                switch (heightOption) {
-                    case 'half': return CONFIG.height * 0.5;
-                    case 'full': return CONFIG.height * 0.9;
-                    case 'auto': return 400;
-                    default: return 400;
-                }
-            }
-
-            function animate(target, props, duration) {
-                return new Promise(resolve => {
-                    const start = {};
-                    for (const key in props) {
-                        start[key] = target[key];
-                    }
-                    const startTime = Date.now();
-
-                    const tick = () => {
-                        const elapsed = Date.now() - startTime;
-                        const progress = Math.min(elapsed / duration, 1);
-                        const eased = 1 - Math.pow(1 - progress, 3);
-
-                        for (const key in props) {
-                            target[key] = start[key] + (props[key] - start[key]) * eased;
-                        }
-
-                        if (progress < 1) {
-                            requestAnimationFrame(tick);
-                        } else {
-                            resolve();
-                        }
-                    };
-                    tick();
-                });
-            }
-
-            function createSheetContent(height) {
-                const colors = getColors();
-                const gfx = graphics();
-
-                while (sheet.children.length > 0) {
-                    sheet.removeChildAt(0);
-                }
-                itemContainers = [];
-
-                sheetHeight = height;
-                sheet.y = CONFIG.height;
-
-                // Sheet outer glow
-                const sheetGlow = gfx.createGraphics();
-                sheetGlow.roundRect(-5, -5, CONFIG.width + 10, sheetHeight + 60, 28);
-                sheetGlow.fill({ color: colors.sheetGlowColor, alpha: 0.15 });
-                sheet.addChild(sheetGlow);
-
-                // Sheet border
-                const sheetBorder = gfx.createGraphics();
-                sheetBorder.roundRect(-2, -2, CONFIG.width + 4, sheetHeight + 54, 26);
-                sheetBorder.fill(colors.sheetBorderColor);
-                sheet.addChild(sheetBorder);
-
-                // Sheet background
-                const sheetBg = gfx.createGraphics();
-                sheetBg.roundRect(0, 0, CONFIG.width, sheetHeight + 50, 24);
-                sheetBg.fill(colors.sheetBgColor);
-                sheet.addChild(sheetBg);
-
-                // Handle
-                const handleBg = gfx.createGraphics();
-                handleBg.roundRect(CONFIG.width / 2 - 30, 10, 60, 8, 4);
-                handleBg.fill(colors.handleBgColor);
-                sheet.addChild(handleBg);
-
-                const handle = gfx.createGraphics();
-                handle.roundRect(CONFIG.width / 2 - 25, 12, 50, 5, 3);
-                handle.fill(colors.handleColor);
-                sheet.addChild(handle);
-
-                // Drag area
-                const dragArea = gfx.createGraphics();
-                dragArea.rect(0, 0, CONFIG.width, 50);
-                dragArea.fill({ color: 0xffffff, alpha: 0 });
-                dragArea.eventMode = 'static';
-                dragArea.cursor = 'grab';
-                sheet.addChild(dragArea);
-
-                // Title
-                const title = gfx.createText('Select Item', {
-                    fontSize: 22,
-                    fontWeight: 'bold',
-                    fill: colors.sheetTitleColor,
-                    dropShadow: currentTheme === 'dark',
-                    dropShadowDistance: 1
-                });
-                title.anchor.set(0.5, 0);
-                title.x = CONFIG.width / 2;
-                title.y = 35;
-                sheet.addChild(title);
-
-                // Close button
-                const closeBtnGlow = gfx.createGraphics();
-                closeBtnGlow.circle(CONFIG.width - 30, 45, 20);
-                closeBtnGlow.fill({ color: colors.closeBtnColor, alpha: 0.3 });
-                sheet.addChild(closeBtnGlow);
-
-                const closeBtn = gfx.createGraphics();
-                closeBtn.circle(CONFIG.width - 30, 45, 16);
-                closeBtn.fill(colors.closeBtnColor);
-                closeBtn.eventMode = 'static';
-                closeBtn.cursor = 'pointer';
-                sheet.addChild(closeBtn);
-
-                const closeX = gfx.createText('\u2715', {
-                    fontSize: 14,
-                    fill: colors.closeXColor
-                });
-                closeX.anchor.set(0.5);
-                closeX.x = CONFIG.width - 30;
-                closeX.y = 45;
-                sheet.addChild(closeX);
-
-                closeBtn.on('pointerdown', hideBottomSheet);
-
-                // Items
-                const items = [
-                    { icon: '\u2694\ufe0f', name: 'Sword', desc: 'Attack +10', rarity: 'common' },
-                    { icon: '\ud83d\udee1\ufe0f', name: 'Shield', desc: 'Defense +15', rarity: 'common' },
-                    { icon: '\ud83e\uddea', name: 'Potion', desc: 'Health +50', rarity: 'common' },
-                    { icon: '\ud83d\udd2e', name: 'Magic Orb', desc: 'Magic +20', rarity: 'rare' },
-                    { icon: '\ud83d\udc5f', name: 'Boots', desc: 'Speed +5', rarity: 'common' }
-                ];
-
-                const visibleItems = height >= 400 ? items : items.slice(0, 3);
-
-                visibleItems.forEach((item, i) => {
-                    const itemContainer = gfx.createContainer();
-                    itemContainer.x = 0;
-                    itemContainer.y = 80 + i * 60;
-                    sheet.addChild(itemContainer);
-                    itemContainers.push(itemContainer);
-
-                    const itemBorder = gfx.createGraphics();
-                    itemBorder.roundRect(18, 0, CONFIG.width - 36, 52, 11);
-                    itemBorder.fill(item.rarity === 'rare' ? colors.rareBorderColor : colors.itemBorderColor);
-                    itemContainer.addChild(itemBorder);
-
-                    const itemBg = gfx.createGraphics();
-                    itemBg.roundRect(20, 2, CONFIG.width - 40, 48, 10);
-                    itemBg.fill(colors.itemBgColor);
-                    itemBg.eventMode = 'static';
-                    itemBg.cursor = 'pointer';
-                    itemContainer.addChild(itemBg);
-
-                    const iconContainer = gfx.createContainer();
-                    iconContainer.x = 45;
-                    iconContainer.y = 26;
-                    itemContainer.addChild(iconContainer);
-
-                    const icon = gfx.createText(item.icon, { fontSize: 24 });
-                    icon.anchor.set(0.5);
-                    iconContainer.addChild(icon);
-
-                    if (item.rarity === 'rare') {
-                        celebration.addShimmer(iconContainer, 'gem');
-                    }
-
-                    const name = gfx.createText(item.name, {
-                        fontSize: 16,
-                        fontWeight: 'bold',
-                        fill: item.rarity === 'rare' ? colors.rareNameColor : colors.itemNameColor
-                    });
-                    name.x = 70;
-                    name.y = 10;
-                    itemContainer.addChild(name);
-
-                    const desc = gfx.createText(item.desc, {
-                        fontSize: 12,
-                        fill: colors.itemDescColor
-                    });
-                    desc.x = 70;
-                    desc.y = 30;
-                    itemContainer.addChild(desc);
-
-                    if (item.rarity === 'rare') {
-                        const badge = gfx.createGraphics();
-                        badge.roundRect(CONFIG.width - 75, 15, 40, 20, 5);
-                        badge.fill(colors.rareBadgeColor);
-                        itemContainer.addChild(badge);
-
-                        const badgeText = gfx.createText('Rare', {
-                            fontSize: 10,
-                            fontWeight: 'bold',
-                            fill: 0xffffff
-                        });
-                        badgeText.anchor.set(0.5);
-                        badgeText.x = CONFIG.width - 55;
-                        badgeText.y = 25;
-                        itemContainer.addChild(badgeText);
-                    }
-
-                    itemBg.on('pointerdown', () => {
-                        const worldY = sheet.y + itemContainer.y + 26;
-                        celebration.rewardReceived(CONFIG.width / 2, worldY);
-                        console.log('Selected:', item.name);
-                        setTimeout(() => hideBottomSheet(), 200);
-                    });
-                });
-
-                // Drag events
-                dragArea.on('pointerdown', (e) => {
-                    isDragging = true;
-                    dragStartY = e.global.y;
-                    sheetStartY = sheet.y;
-                    dragArea.cursor = 'grabbing';
-                });
-
-                stage.eventMode = 'static';
-                stage.on('pointermove', (e) => {
-                    if (!isDragging) return;
-                    const delta = e.global.y - dragStartY;
-                    const newY = Math.max(CONFIG.height - sheetHeight, sheetStartY + delta);
-                    sheet.y = newY;
-                });
-
-                stage.on('pointerup', () => {
-                    if (!isDragging) return;
-                    isDragging = false;
-                    dragArea.cursor = 'grab';
-
-                    const dragDistance = sheet.y - (CONFIG.height - sheetHeight);
-                    if (dragDistance > 100) {
-                        hideBottomSheet();
-                    } else {
-                        animate(sheet, { y: CONFIG.height - sheetHeight }, 200);
-                    }
-                });
-            }
-
-            async function showBottomSheet(heightOption) {
-                const height = getSheetHeight(heightOption);
-                createSheetContent(height);
-                sheetOverlay.visible = true;
-                dim.alpha = 0;
-
-                await Promise.all([
-                    animate(dim, { alpha: 0.6 }, 200),
-                    animate(sheet, { y: CONFIG.height - height }, 300)
-                ]);
-            }
-
-            async function hideBottomSheet() {
-                await Promise.all([
-                    animate(dim, { alpha: 0 }, 150),
-                    animate(sheet, { y: CONFIG.height }, 250)
-                ]);
-                sheetOverlay.visible = false;
-            }
-
-            function createScreen() {
-                const colors = getColors();
-                const gfx = graphics();
-
-                while (stage.children.length > 0) {
-                    stage.removeChildAt(0);
-                }
-                celebration.clear();
-
-                // Background
-                const bg = gfx.createGraphics();
-                bg.rect(0, 0, CONFIG.width, CONFIG.height);
-                bg.fill(colors.bgColor);
-                stage.addChild(bg);
-
-                // Title decorations
-                const titleDecorLeft = gfx.createGraphics();
-                titleDecorLeft.roundRect(30, 60, 50, 3, 2);
-                titleDecorLeft.fill(colors.titleDecorColor);
-                stage.addChild(titleDecorLeft);
-
-                const titleDecorRight = gfx.createGraphics();
-                titleDecorRight.roundRect(CONFIG.width - 80, 60, 50, 3, 2);
-                titleDecorRight.fill(colors.titleDecorColor);
-                stage.addChild(titleDecorRight);
-
-                const pageTitle = gfx.createText('Select an Item', {
-                    fontSize: 24,
-                    fontWeight: 'bold',
-                    fill: colors.titleTextColor,
-                    dropShadow: currentTheme === 'dark',
-                    dropShadowDistance: 2
-                });
-                pageTitle.anchor.set(0.5);
-                pageTitle.x = CONFIG.width / 2;
-                pageTitle.y = 60;
-                stage.addChild(pageTitle);
-
-                // Buttons
-                const sizes = [
-                    { label: 'Half Sheet', height: 'half', icon: '\ud83d\udccb' },
-                    { label: 'Full Sheet', height: 'full', icon: '\ud83d\udcc4' },
-                    { label: 'Auto Sheet', height: 'auto', icon: '\ud83d\udcd1' }
-                ];
-
-                sizes.forEach((size, i) => {
-                    const btnGlow = gfx.createGraphics();
-                    btnGlow.roundRect(35, 115 + i * 70, CONFIG.width - 70, 60, 14);
-                    btnGlow.fill({ color: colors.btnGlowColor, alpha: 0.2 });
-                    stage.addChild(btnGlow);
-
-                    const btnBorder = gfx.createGraphics();
-                    btnBorder.roundRect(38, 118 + i * 70, CONFIG.width - 76, 57, 13);
-                    btnBorder.fill(colors.btnBorderColor);
-                    stage.addChild(btnBorder);
-
-                    const btn = gfx.createGraphics();
-                    btn.roundRect(40, 120 + i * 70, CONFIG.width - 80, 55, 12);
-                    btn.fill(colors.btnFillColor);
-                    btn.eventMode = 'static';
-                    btn.cursor = 'pointer';
-                    stage.addChild(btn);
-
-                    const icon = gfx.createText(size.icon, { fontSize: 20 });
-                    icon.x = 60;
-                    icon.y = 135 + i * 70;
-                    stage.addChild(icon);
-
-                    const text = gfx.createText(size.label, {
-                        fontSize: 18,
-                        fontWeight: 'bold',
-                        fill: colors.btnTextColor
-                    });
-                    text.anchor.set(0.5);
-                    text.x = CONFIG.width / 2 + 10;
-                    text.y = 147 + i * 70;
-                    stage.addChild(text);
-
-                    btn.on('pointerdown', () => showBottomSheet(size.height));
-                });
-
-                // Bottom Sheet overlay
-                sheetOverlay = gfx.createContainer();
-                sheetOverlay.visible = false;
-                stage.addChild(sheetOverlay);
-
-                dim = gfx.createGraphics();
-                dim.rect(0, 0, CONFIG.width, CONFIG.height);
-                dim.fill({ color: 0x000000, alpha: 0.6 });
-                dim.eventMode = 'static';
-                sheetOverlay.addChild(dim);
-
-                sheet = gfx.createContainer();
-                sheetOverlay.addChild(sheet);
-
-                dim.on('pointerdown', hideBottomSheet);
-
-                // Instructions
-                const instr = gfx.createText('Drag handle down to close', {
-                    fontSize: 12,
-                    fill: colors.instrColor
-                });
-                instr.anchor.set(0.5);
-                instr.x = CONFIG.width / 2;
-                instr.y = CONFIG.height - 30;
-                stage.addChild(instr);
-            }
-
             window.createScreen = createScreen;
 
             game.on('update', (deltaTime) => {
-                celebration.update(deltaTime);
+                if (celebration) {
+                    celebration.update(deltaTime);
+                }
             });
 
             document.body.classList.toggle('light-theme', currentTheme === 'light');

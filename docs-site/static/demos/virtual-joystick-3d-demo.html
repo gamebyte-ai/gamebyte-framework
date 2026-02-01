@@ -143,6 +143,8 @@
     let scene, camera, renderer, cube, floor;
     let joystick = null;
     let currentMode = 'dynamic';
+    let animationFrameId = null;
+    const obstacles = [];  // Track obstacles for cleanup
 
     // Cube movement
     const cubeSpeed = 0.1;
@@ -250,6 +252,7 @@
         obstacle.position.set(pos.x, 0.75, pos.z);
         obstacle.castShadow = true;
         scene.add(obstacle);
+        obstacles.push({ mesh: obstacle, geometry, material });  // Track for cleanup
       });
     }
 
@@ -352,7 +355,7 @@
     }
 
     function animate() {
-      requestAnimationFrame(animate);
+      animationFrameId = requestAnimationFrame(animate);
 
       // Get joystick input
       if (joystick) {
@@ -393,6 +396,57 @@
       // Render Three.js scene
       renderer.render(scene, camera);
     }
+
+    // Cleanup function to prevent memory leaks
+    function dispose() {
+      // Cancel animation frame
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+
+      // Remove resize listener
+      window.removeEventListener('resize', onWindowResize);
+
+      // Destroy joystick
+      joystick?.destroy();
+
+      // Destroy Pixi app
+      if (window.pixiApp) {
+        window.pixiApp.destroy(true, { children: true });
+        window.pixiApp = null;
+      }
+
+      // Dispose Three.js resources
+      if (cube) {
+        cube.geometry?.dispose();
+        cube.material?.dispose();
+      }
+
+      if (floor) {
+        floor.geometry?.dispose();
+        floor.material?.dispose();
+      }
+
+      // Dispose obstacles
+      for (const obj of obstacles) {
+        obj.geometry?.dispose();
+        obj.material?.dispose();
+      }
+      obstacles.length = 0;
+
+      // Dispose renderer
+      if (renderer) {
+        renderer.dispose();
+        renderer.domElement?.remove();
+      }
+
+      // Clear scene
+      if (scene) {
+        scene.clear();
+      }
+    }
+
+    window.addEventListener('beforeunload', dispose);
 
     // Start
     init();

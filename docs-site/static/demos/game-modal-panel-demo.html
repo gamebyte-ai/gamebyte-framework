@@ -17,16 +17,18 @@
 
     <script>
         // =====================================================
-        // GameModalPanel Demo - Using Framework Abstractions
+        // GameModalPanel Framework Component Demo
         // =====================================================
-        // This demo showcases:
-        // - Modal panel with scale animation
+        // This demo showcases the GameModalPanel framework component:
+        // - Using GameModalPanel class with proper configuration
+        // - Adding custom content using addContent() API
+        // - Show/hide animations with scale effects
         // - Settings toggles with sparkle effects
         // - CelebrationManager for confetti
-        // - graphics() abstraction instead of direct PIXI usage
+        // - Theme support (light/dark)
         // =====================================================
 
-        const { createGame, CelebrationManager, graphics, loadFrameworkFont } = GameByteFramework;
+        const { createGame, GameModalPanel, CelebrationManager, graphics, loadFrameworkFont } = GameByteFramework;
 
         const CONFIG = { width: 400, height: 500 };
 
@@ -85,16 +87,12 @@
                 btnGlowAlpha: 0.3,
                 btnBorder: 0x4F51C5,
                 btnBg: 0x6366f1,
-                dimColor: 0x000000,
-                dimAlpha: 0.6,
-                panelGlow: 0x6366f1,
-                panelGlowAlpha: 0.2,
-                panelBorder: 0x4d4d6c,
                 panelBg: 0x2A3142,
-                titleDecor: 0x6366f1,
-                titleColor: 0xffffff,
-                closeBtnGlow: 0xE84C4C,
-                closeBtnBg: 0xE84C4C,
+                panelBorder: 0x3D4F5F,
+                overlay: 0x000000,
+                overlayAlpha: 0.6,
+                title: 0xffffff,
+                titleStroke: 0x1A1A2A,
                 rowBg: 0x3d3d5c,
                 rowBgAlpha: 0.5,
                 labelText: 0xffffff,
@@ -114,16 +112,12 @@
                 btnGlowAlpha: 0.35,
                 btnBorder: 0x5F61D5,
                 btnBg: 0x7376f5,
-                dimColor: 0x1a2a4a,
-                dimAlpha: 0.5,
-                panelGlow: 0x7376f5,
-                panelGlowAlpha: 0.25,
-                panelBorder: 0x8a9abc,
                 panelBg: 0xf0f4fa,
-                titleDecor: 0x7376f5,
-                titleColor: 0x2a3a5a,
-                closeBtnGlow: 0xF05C5C,
-                closeBtnBg: 0xF05C5C,
+                panelBorder: 0x8a9abc,
+                overlay: 0x1a2a4a,
+                overlayAlpha: 0.5,
+                title: 0x2a3a5a,
+                titleStroke: 0xf0f4fa,
                 rowBg: 0xd8dce8,
                 rowBgAlpha: 0.7,
                 labelText: 0x2a3a5a,
@@ -149,6 +143,7 @@
         const game = createGame();
         let celebration = null;
         let renderer, stage;
+        let modal = null;
 
         let isRecreating = false;
         async function applyTheme() {
@@ -161,6 +156,94 @@
                 window.createModalScreen();
             }
             setTimeout(() => { isRecreating = false; }, 100);
+        }
+
+        // ===== CREATE TOGGLE COMPONENT =====
+        function createToggle(label, icon, initialValue, y, colors, celebration, modalContainer) {
+            const factory = graphics();
+            const toggleContainer = factory.createContainer();
+
+            // Row background
+            const rowBg = factory.createGraphics();
+            rowBg.roundRect(0, 0, 260, 50, 10);
+            rowBg.fill({ color: colors.rowBg, alpha: colors.rowBgAlpha });
+            toggleContainer.addChild(rowBg);
+
+            // Icon
+            const iconText = factory.createText(icon, { fontSize: 20 });
+            iconText.x = 20;
+            iconText.y = 16;
+            toggleContainer.addChild(iconText);
+
+            // Label
+            const labelText = factory.createText(label, {
+                fontSize: 18,
+                fill: colors.labelText
+            });
+            labelText.x = 50;
+            labelText.y = 18;
+            toggleContainer.addChild(labelText);
+
+            // Toggle state
+            let isOn = initialValue;
+
+            // Toggle background border
+            const toggleBorder = factory.createGraphics();
+            toggleBorder.roundRect(198, 11, 64, 34, 17);
+            toggleBorder.fill(isOn ? colors.toggleOnBorder : colors.toggleOffBorder);
+            toggleContainer.addChild(toggleBorder);
+
+            // Toggle background
+            const toggleBg = factory.createGraphics();
+            toggleBg.roundRect(200, 13, 60, 30, 15);
+            toggleBg.fill(isOn ? colors.toggleOnBg : colors.toggleOffBg);
+            toggleBg.eventMode = 'static';
+            toggleBg.cursor = 'pointer';
+            toggleContainer.addChild(toggleBg);
+
+            // Knob shadow
+            const knobShadow = factory.createGraphics();
+            knobShadow.circle(isOn ? 246 : 216, 29, 11);
+            knobShadow.fill({ color: 0x000000, alpha: 0.2 });
+            toggleContainer.addChild(knobShadow);
+
+            // Knob
+            const knob = factory.createGraphics();
+            knob.circle(isOn ? 245 : 215, 28, 11);
+            knob.fill(0xffffff);
+            toggleContainer.addChild(knob);
+
+            // Toggle interaction
+            toggleBg.on('pointerdown', () => {
+                isOn = !isOn;
+
+                // Update graphics
+                toggleBorder.clear();
+                toggleBorder.roundRect(198, 11, 64, 34, 17);
+                toggleBorder.fill(isOn ? colors.toggleOnBorder : colors.toggleOffBorder);
+
+                toggleBg.clear();
+                toggleBg.roundRect(200, 13, 60, 30, 15);
+                toggleBg.fill(isOn ? colors.toggleOnBg : colors.toggleOffBg);
+
+                knobShadow.clear();
+                knobShadow.circle(isOn ? 246 : 216, 29, 11);
+                knobShadow.fill({ color: 0x000000, alpha: 0.2 });
+
+                knob.clear();
+                knob.circle(isOn ? 245 : 215, 28, 11);
+                knob.fill(0xffffff);
+
+                // Celebration effect when toggled on
+                if (isOn) {
+                    const sparkleX = modalContainer.x + toggleContainer.x + 230;
+                    const sparkleY = modalContainer.y + toggleContainer.y + 28;
+                    celebration.rewardReceived(sparkleX, sparkleY);
+                }
+            });
+
+            toggleContainer.y = y;
+            return toggleContainer;
         }
 
         (async () => {
@@ -176,10 +259,17 @@
                 const colors = getColors();
                 const gfx = graphics();
 
+                // Clear stage
                 while (stage.children.length > 0) {
                     stage.removeChildAt(0);
                 }
                 celebration.clear();
+
+                // Destroy old modal if exists
+                if (modal) {
+                    modal.destroy();
+                    modal = null;
+                }
 
                 // Background
                 const bg = gfx.createGraphics();
@@ -197,7 +287,7 @@
                     }
                 }
 
-                // Show Modal button
+                // Show Modal button with glow
                 const btnGlow = gfx.createGraphics();
                 btnGlow.roundRect(CONFIG.width / 2 - 85, CONFIG.height / 2 - 35, 170, 70, 16);
                 btnGlow.fill({ color: colors.btnGlow, alpha: colors.btnGlowAlpha });
@@ -225,230 +315,58 @@
                 showText.y = CONFIG.height / 2;
                 stage.addChild(showText);
 
-                // Modal overlay
-                const modalOverlay = gfx.createContainer();
-                modalOverlay.visible = false;
-                stage.addChild(modalOverlay);
-
-                const dim = gfx.createGraphics();
-                dim.rect(0, 0, CONFIG.width, CONFIG.height);
-                dim.fill({ color: colors.dimColor, alpha: colors.dimAlpha });
-                dim.eventMode = 'static';
-                modalOverlay.addChild(dim);
-
-                // Modal panel
-                const modal = gfx.createContainer();
-                modal.x = CONFIG.width / 2;
-                modal.y = CONFIG.height / 2;
-                modalOverlay.addChild(modal);
-
-                const panelGlow = gfx.createGraphics();
-                panelGlow.roundRect(-165, -185, 330, 370, 24);
-                panelGlow.fill({ color: colors.panelGlow, alpha: colors.panelGlowAlpha });
-                modal.addChild(panelGlow);
-
-                const panelBorder = gfx.createGraphics();
-                panelBorder.roundRect(-158, -178, 316, 356, 20);
-                panelBorder.fill(colors.panelBorder);
-                modal.addChild(panelBorder);
-
-                const panelBg = gfx.createGraphics();
-                panelBg.roundRect(-150, -170, 300, 340, 16);
-                panelBg.fill(colors.panelBg);
-                modal.addChild(panelBg);
-
-                // Title decorations
-                const titleDecorLeft = gfx.createGraphics();
-                titleDecorLeft.roundRect(-130, -132, 40, 3, 2);
-                titleDecorLeft.fill(colors.titleDecor);
-                modal.addChild(titleDecorLeft);
-
-                const titleDecorRight = gfx.createGraphics();
-                titleDecorRight.roundRect(90, -132, 40, 3, 2);
-                titleDecorRight.fill(colors.titleDecor);
-                modal.addChild(titleDecorRight);
-
-                const title = gfx.createText('Settings', {
-                    fontSize: 28,
-                    fontWeight: 'bold',
-                    fill: colors.titleColor,
-                    dropShadow: currentTheme === 'dark',
-                    dropShadowDistance: 2
-                });
-                title.anchor.set(0.5);
-                title.y = -130;
-                modal.addChild(title);
-
-                const settingsIcon = gfx.createText('\u2699\ufe0f', { fontSize: 24 });
-                settingsIcon.anchor.set(0.5);
-                settingsIcon.x = -70;
-                settingsIcon.y = -130;
-                modal.addChild(settingsIcon);
-
-                // Close button
-                const closeBtnGlow = gfx.createGraphics();
-                closeBtnGlow.circle(125, -145, 22);
-                closeBtnGlow.fill({ color: colors.closeBtnGlow, alpha: 0.3 });
-                modal.addChild(closeBtnGlow);
-
-                const closeBtn = gfx.createGraphics();
-                closeBtn.circle(125, -145, 18);
-                closeBtn.fill(colors.closeBtnBg);
-                closeBtn.eventMode = 'static';
-                closeBtn.cursor = 'pointer';
-                modal.addChild(closeBtn);
-
-                const closeX = gfx.createText('\u2715', {
-                    fontSize: 18,
-                    fontWeight: 'bold',
-                    fill: colors.textWhite
-                });
-                closeX.anchor.set(0.5);
-                closeX.x = 125;
-                closeX.y = -145;
-                modal.addChild(closeX);
-
-                // Toggle rows
-                const toggles = [
-                    { label: 'Music', icon: '\ud83c\udfb5', value: true, y: -60 },
-                    { label: 'Sound Effects', icon: '\ud83d\udd0a', value: true, y: 10 },
-                    { label: 'Vibration', icon: '\ud83d\udcf3', value: false, y: 80 }
-                ];
-
-                toggles.forEach((toggle) => {
-                    const rowBg = gfx.createGraphics();
-                    rowBg.roundRect(-130, toggle.y - 18, 260, 50, 10);
-                    rowBg.fill({ color: colors.rowBg, alpha: colors.rowBgAlpha });
-                    modal.addChild(rowBg);
-
-                    const icon = gfx.createText(toggle.icon, { fontSize: 20 });
-                    icon.x = -110;
-                    icon.y = toggle.y - 2;
-                    modal.addChild(icon);
-
-                    const label = gfx.createText(toggle.label, {
-                        fontSize: 18,
-                        fill: colors.labelText
-                    });
-                    label.x = -80;
-                    label.y = toggle.y;
-                    modal.addChild(label);
-
-                    const toggleBorder = gfx.createGraphics();
-                    toggleBorder.roundRect(68, toggle.y - 7, 64, 34, 17);
-                    toggleBorder.fill(toggle.value ? colors.toggleOnBorder : colors.toggleOffBorder);
-                    modal.addChild(toggleBorder);
-
-                    const toggleBg = gfx.createGraphics();
-                    toggleBg.roundRect(70, toggle.y - 5, 60, 30, 15);
-                    toggleBg.fill(toggle.value ? colors.toggleOnBg : colors.toggleOffBg);
-                    toggleBg.eventMode = 'static';
-                    toggleBg.cursor = 'pointer';
-                    modal.addChild(toggleBg);
-
-                    const knobShadow = gfx.createGraphics();
-                    knobShadow.circle(toggle.value ? 116 : 86, toggle.y + 11, 11);
-                    knobShadow.fill({ color: 0x000000, alpha: 0.2 });
-                    modal.addChild(knobShadow);
-
-                    const knob = gfx.createGraphics();
-                    knob.circle(toggle.value ? 115 : 85, toggle.y + 10, 11);
-                    knob.fill(0xffffff);
-                    modal.addChild(knob);
-
-                    toggleBg.on('pointerdown', () => {
-                        toggle.value = !toggle.value;
-
-                        toggleBorder.clear();
-                        toggleBorder.roundRect(68, toggle.y - 7, 64, 34, 17);
-                        toggleBorder.fill(toggle.value ? colors.toggleOnBorder : colors.toggleOffBorder);
-
-                        toggleBg.clear();
-                        toggleBg.roundRect(70, toggle.y - 5, 60, 30, 15);
-                        toggleBg.fill(toggle.value ? colors.toggleOnBg : colors.toggleOffBg);
-
-                        knobShadow.clear();
-                        knobShadow.circle(toggle.value ? 116 : 86, toggle.y + 11, 11);
-                        knobShadow.fill({ color: 0x000000, alpha: 0.2 });
-
-                        knob.clear();
-                        knob.circle(toggle.value ? 115 : 85, toggle.y + 10, 11);
-                        knob.fill(0xffffff);
-
-                        if (toggle.value) {
-                            const sparkleX = modal.x + 100;
-                            const sparkleY = modal.y + toggle.y + 10;
-                            celebration.rewardReceived(sparkleX, sparkleY);
-                        }
-                    });
+                // Create GameModalPanel with configuration
+                modal = new GameModalPanel({
+                    width: 300,
+                    height: 340,
+                    title: '⚙️ Settings',
+                    showCloseButton: true,
+                    closeOnOverlay: true,
+                    theme: {
+                        background: colors.panelBg,
+                        border: colors.panelBorder,
+                        overlay: colors.overlay,
+                        overlayAlpha: colors.overlayAlpha,
+                        title: colors.title,
+                        titleStroke: colors.titleStroke
+                    },
+                    onClose: () => {
+                        console.log('Modal closed');
+                    }
                 });
 
-                // Animation functions
-                function easeOutBack(x) {
-                    const c1 = 1.70158;
-                    const c3 = c1 + 1;
-                    return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
-                }
+                // Initialize modal with screen dimensions
+                modal.initialize(CONFIG.width, CONFIG.height);
 
-                function animate(target, props, duration, easing = (x) => x) {
-                    return new Promise(resolve => {
-                        const start = {};
-                        for (const key in props) {
-                            start[key] = target[key];
-                        }
-                        const startTime = Date.now();
+                // Add modal container to stage
+                stage.addChild(modal.getContainer());
 
-                        const tick = () => {
-                            const elapsed = Date.now() - startTime;
-                            const progress = Math.min(elapsed / duration, 1);
-                            const eased = easing(progress);
+                // Get modal panel container for celebration positioning
+                const modalPanelContainer = modal.getContainer().children[1];
 
-                            for (const key in props) {
-                                target[key] = start[key] + (props[key] - start[key]) * eased;
-                            }
+                // Create and add custom content (toggles)
+                const toggle1 = createToggle('Music', '🎵', true, 0, colors, celebration, modalPanelContainer);
+                modal.addContent(toggle1);
 
-                            if (progress < 1) {
-                                requestAnimationFrame(tick);
-                            } else {
-                                resolve();
-                            }
-                        };
-                        tick();
-                    });
-                }
+                const toggle2 = createToggle('Sound Effects', '🔊', true, 70, colors, celebration, modalPanelContainer);
+                modal.addContent(toggle2);
 
-                async function showModal() {
-                    modalOverlay.visible = true;
-                    dim.alpha = 0;
-                    modal.scale.x = 0;
-                    modal.scale.y = 0;
+                const toggle3 = createToggle('Vibration', '📳', false, 140, colors, celebration, modalPanelContainer);
+                modal.addContent(toggle3);
 
-                    await Promise.all([
-                        animate(dim, { alpha: colors.dimAlpha }, 200),
-                        animate(modal.scale, { x: 1, y: 1 }, 300, easeOutBack)
-                    ]);
-
+                // Show modal button interaction
+                showBtn.on('pointerdown', async () => {
+                    await modal.show();
+                    // Confetti when modal appears
                     celebration.confetti.burst(CONFIG.width / 2, CONFIG.height / 2, {
                         particleCount: 20,
                         spread: 360,
                         colors: colors.confettiColors
                     });
-                }
-
-                async function hideModal() {
-                    await Promise.all([
-                        animate(dim, { alpha: 0 }, 150),
-                        animate(modal.scale, { x: 0, y: 0 }, 200)
-                    ]);
-                    modalOverlay.visible = false;
-                }
-
-                showBtn.on('pointerdown', showModal);
-                closeBtn.on('pointerdown', hideModal);
-                dim.on('pointerdown', hideModal);
+                });
 
                 // Instructions
-                const instr = gfx.createText('Tap to show modal with scale animation', {
+                const instr = gfx.createText('Click to show GameModalPanel with framework API', {
                     fontSize: 12,
                     fill: colors.instructionText
                 });

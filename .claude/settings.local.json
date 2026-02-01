@@ -68,7 +68,13 @@
       "WebFetch(domain:cdn.jsdelivr.net)",
       "WebFetch(domain:pixijs.io)",
       "WebFetch(domain:)",
-      "Bash(gh release create:*)"
+      "Bash(gh release create:*)",
+      "Bash(while read demo)",
+      "Bash(do if [ -f \"docs-site/static/demos/$demo\" ])",
+      "Bash(then echo \"✅ $demo\")",
+      "Bash(else echo \"❌ MISSING: $demo\")",
+      "Bash(fi)",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []
