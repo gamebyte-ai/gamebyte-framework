@@ -444,8 +444,8 @@ export class CameraController extends EventEmitter<CameraControllerEvents> {
     // Update camera zoom
     if (Math.abs(this.currentZoom - lastZoom) > 0.001) {
       if ('zoom' in this.camera && 'updateProjectionMatrix' in this.camera) {
-        this.camera.zoom = this.currentZoom;
-        this.camera.updateProjectionMatrix();
+        (this.camera as THREE.OrthographicCamera).zoom = this.currentZoom;
+        (this.camera as THREE.OrthographicCamera).updateProjectionMatrix();
       } else if (this.camera instanceof THREE.PerspectiveCamera) {
         // For perspective cameras, adjust FOV instead
         const baseFOV = 60;
@@ -505,8 +505,8 @@ export class CameraController extends EventEmitter<CameraControllerEvents> {
     this.camera.position.z = this.currentZ;
 
     if ('zoom' in this.camera && 'updateProjectionMatrix' in this.camera) {
-      this.camera.zoom = this.currentZoom;
-      this.camera.updateProjectionMatrix();
+      (this.camera as THREE.OrthographicCamera).zoom = this.currentZoom;
+      (this.camera as THREE.OrthographicCamera).updateProjectionMatrix();
     }
   }
 

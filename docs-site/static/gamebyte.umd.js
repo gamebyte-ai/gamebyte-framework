@@ -1,8 +1,8 @@
 (function (global, factory) {
-	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('pixi.js'), require('three'), require('matter-js'), require('cannon-es'), require('three/examples/jsm/renderers/CSS2DRenderer.js'), require('@pixi/layout')) :
-	typeof define === 'function' && define.amd ? define(['exports', 'pixi.js', 'three', 'matter-js', 'cannon-es', 'three/examples/jsm/renderers/CSS2DRenderer.js', '@pixi/layout'], factory) :
-	(global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.GameByteFramework = {}, global.PIXI, global.THREE, global.Matter, global.CANNON, global.THREE));
-})(this, (function (exports, PIXI, THREE, Matter, CANNON, CSS2DRenderer_js) { 'use strict';
+	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('pixi.js'), require('matter-js'), require('cannon-es'), require('@pixi/layout')) :
+	typeof define === 'function' && define.amd ? define(['exports', 'pixi.js', 'matter-js', 'cannon-es', '@pixi/layout'], factory) :
+	(global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.GameByteFramework = {}, global.PIXI, global.Matter, global.CANNON));
+})(this, (function (exports, PIXI, Matter, CANNON) { 'use strict';
 
 	function _interopNamespaceDefault(e) {
 		var n = Object.create(null);
@@ -22,7 +22,6 @@
 	}
 
 	var PIXI__namespace = /*#__PURE__*/_interopNamespaceDefault(PIXI);
-	var THREE__namespace = /*#__PURE__*/_interopNamespaceDefault(THREE);
 	var CANNON__namespace = /*#__PURE__*/_interopNamespaceDefault(CANNON);
 
 	function getDefaultExportFromCjs (x) {
@@ -664,6 +663,22 @@
 	}
 	// No wrapper needed - use PIXI.Text directly
 	/**
+	 * Pixi.js FillGradient Wrapper
+	 */
+	class PixiFillGradientWrapper {
+	    constructor(gradient, type) {
+	        this.gradient = gradient;
+	        this.type = type;
+	    }
+	    /** Get the native PIXI.FillGradient for use with graphics.fill() */
+	    get native() {
+	        return this.gradient;
+	    }
+	    destroy() {
+	        this.gradient.destroy();
+	    }
+	}
+	/**
 	 * Pixi.js Sprite Wrapper
 	 */
 	class PixiSpriteWrapper extends PIXI__namespace.Sprite {
@@ -688,10 +703,20 @@
 	    }
 	    createText(text, style) {
 	        // Pixi v8: new PIXI.Text({ text, style })
-	        // Apply framework default font if not specified
+	        // Apply framework defaults: font, stroke outline, and drop shadow for readability
 	        const styleWithDefaults = {
 	            fontFamily: getFrameworkFontFamily(),
-	            ...style
+	            // Default stroke for text outline (improves readability on any background)
+	            stroke: { color: 0x000000, width: 3 },
+	            // Default drop shadow for depth
+	            dropShadow: {
+	                color: 0x000000,
+	                alpha: 0.5,
+	                angle: Math.PI / 4,
+	                blur: 4,
+	                distance: 2
+	            },
+	            ...style // User styles override defaults
 	        };
 	        const pixiStyle = PixiGraphicsFactory.convertToPixiV8Style(styleWithDefaults);
 	        return new PIXI__namespace.Text({ text, style: pixiStyle });
@@ -714,6 +739,28 @@
 	            draw(ctx);
 	        }
 	        return PIXI__namespace.Texture.from(canvas);
+	    }
+	    createLinearGradient(config) {
+	        const gradient = new PIXI__namespace.FillGradient({
+	            type: 'linear',
+	            start: config.start,
+	            end: config.end,
+	            colorStops: config.colorStops,
+	            textureSpace: config.textureSpace || 'local',
+	        });
+	        return new PixiFillGradientWrapper(gradient, 'linear');
+	    }
+	    createRadialGradient(config) {
+	        const gradient = new PIXI__namespace.FillGradient({
+	            type: 'radial',
+	            center: config.center,
+	            innerRadius: config.innerRadius,
+	            outerCenter: config.outerCenter || config.center,
+	            outerRadius: config.outerRadius,
+	            colorStops: config.colorStops,
+	            textureSpace: config.textureSpace || 'local',
+	        });
+	        return new PixiFillGradientWrapper(gradient, 'radial');
 	    }
 	    /**
 	     * Convert framework text style to Pixi v8 style object format
@@ -799,11 +846,16 @@
 	     */
 	    static async initialize3D() {
 	        try {
-	            const { ThreeGraphicsFactory } = await Promise.resolve().then(function () { return ThreeGraphicsFactory$1; });
+	            // Use computed import path to prevent Rollup from statically analyzing
+	            // and inlining the ThreeGraphicsFactory module
+	            const modulePath = './ThreeGraphicsFactory';
+	            const module = await import(/* webpackIgnore: true */ modulePath);
+	            const { ThreeGraphicsFactory } = module;
 	            GraphicsEngine.instance = new GraphicsEngine(exports.RenderingMode.RENDERER_3D, new ThreeGraphicsFactory());
 	        }
 	        catch (error) {
 	            throw new Error('Failed to load ThreeGraphicsFactory. Make sure Three.js is available. ' +
+	                'For UMD users, load gamebyte-three.umd.js after Three.js. ' +
 	                'Error: ' + (error instanceof Error ? error.message : String(error)));
 	        }
 	    }
@@ -1618,7 +1670,8 @@
 	        this.initialized = false;
 	        this.id = id;
 	        this.name = name;
-	        this.container = new PIXI__namespace.Container();
+	        // Use graphics abstraction but cast to PIXI.Container for type compatibility
+	        this.container = graphics().createContainer();
 	    }
 	    /**
 	     * Whether the scene is currently active
@@ -1707,168 +1760,8 @@
 	        this.emit('destroyed');
 	    }
 	}
-	/**
-	 * Base scene implementation for 3D games (Three.js)
-	 *
-	 * Provides:
-	 * - Three.js scene management
-	 * - Camera management
-	 * - Lifecycle methods
-	 * - Ready-to-extend base for 3D game scenes
-	 *
-	 * @example
-	 * ```typescript
-	 * class Gameplay3DScene extends BaseScene3D {
-	 *     constructor() {
-	 *         super('gameplay3d', 'Gameplay 3D Scene');
-	 *     }
-	 *
-	 *     async initialize() {
-	 *         await super.initialize();
-	 *
-	 *         // Setup camera
-	 *         this.setupCamera(75, 800/600, 0.1, 1000);
-	 *         this.camera.position.z = 5;
-	 *
-	 *         // Add objects to scene
-	 *         const geometry = new THREE.BoxGeometry();
-	 *         const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-	 *         const cube = new THREE.Mesh(geometry, material);
-	 *         this.scene.add(cube);
-	 *     }
-	 * }
-	 * ```
-	 */
-	class BaseScene3D extends EventEmitter {
-	    constructor(id, name) {
-	        super();
-	        this._isActive = false;
-	        this.camera = null;
-	        this.initialized = false;
-	        this.id = id;
-	        this.name = name;
-	        this.scene = new THREE__namespace.Scene();
-	    }
-	    /**
-	     * Whether the scene is currently active
-	     */
-	    get isActive() {
-	        return this._isActive;
-	    }
-	    /**
-	     * Get the Three.js scene
-	     */
-	    getScene() {
-	        return this.scene;
-	    }
-	    /**
-	     * Get the camera
-	     */
-	    getCamera() {
-	        return this.camera;
-	    }
-	    /**
-	     * Setup a perspective camera
-	     */
-	    setupCamera(fov = 75, aspect = 1, near = 0.1, far = 1000) {
-	        this.camera = new THREE__namespace.PerspectiveCamera(fov, aspect, near, far);
-	    }
-	    /**
-	     * Setup an orthographic camera
-	     */
-	    setupOrthographicCamera(left, right, top, bottom, near = 0.1, far = 1000) {
-	        this.camera = new THREE__namespace.OrthographicCamera(left, right, top, bottom, near, far);
-	    }
-	    /**
-	     * Initialize the scene
-	     * Override this in your scene to add initialization logic
-	     */
-	    async initialize() {
-	        if (this.initialized) {
-	            return;
-	        }
-	        this.emit('initializing');
-	        // Override in subclass to add game objects and setup camera
-	        this.initialized = true;
-	        this.emit('initialized');
-	    }
-	    /**
-	     * Called when the scene becomes active
-	     * Override this to add activation logic
-	     */
-	    activate() {
-	        this._isActive = true;
-	        this.emit('activated');
-	    }
-	    /**
-	     * Called when the scene becomes inactive
-	     * Override this to add deactivation logic
-	     */
-	    deactivate() {
-	        this._isActive = false;
-	        this.emit('deactivated');
-	    }
-	    /**
-	     * Update the scene logic
-	     * Override this to add game logic
-	     *
-	     * @param deltaTime Time since last frame in milliseconds
-	     */
-	    update(deltaTime) {
-	        if (!this._isActive) {
-	            return;
-	        }
-	        this.emit('update', deltaTime);
-	    }
-	    /**
-	     * Render the scene
-	     * Default implementation sets the scene and camera on the renderer
-	     *
-	     * @param renderer The renderer instance
-	     */
-	    render(renderer) {
-	        if (!this._isActive || !this.scene || !this.camera) {
-	            return;
-	        }
-	        // Set scene and camera on renderer
-	        if (renderer.setScene) {
-	            renderer.setScene(this.scene);
-	        }
-	        if (renderer.setCamera && this.camera) {
-	            renderer.setCamera(this.camera);
-	        }
-	        this.emit('render', renderer);
-	    }
-	    /**
-	     * Clean up scene resources
-	     * Override this to add cleanup logic
-	     */
-	    destroy() {
-	        this.emit('destroying');
-	        // Dispose of Three.js objects
-	        this.scene.traverse((object) => {
-	            if (object instanceof THREE__namespace.Mesh) {
-	                if (object.geometry) {
-	                    object.geometry.dispose();
-	                }
-	                if (object.material) {
-	                    if (Array.isArray(object.material)) {
-	                        object.material.forEach(mat => mat.dispose());
-	                    }
-	                    else {
-	                        object.material.dispose();
-	                    }
-	                }
-	            }
-	        });
-	        this.scene.clear();
-	        this.camera = null;
-	        this.removeAllListeners();
-	        this.initialized = false;
-	        this._isActive = false;
-	        this.emit('destroyed');
-	    }
-	}
+	// NOTE: BaseScene3D is available in the Three.js toolkit bundle (gamebyte-three.umd.js)
+	// For ESM/bundlers: import { BaseScene3D } from 'gamebyte-framework/three-toolkit'
 
 	/**
 	 * Abstract base class for service providers with common functionality.
@@ -6609,10 +6502,10 @@
 	}
 
 	/**
-	 * Version Detection Utilities
+	 * Version Detection Utilities (Pixi.js and Browser only)
 	 *
-	 * Provides runtime detection of library versions and feature availability
-	 * to ensure backward compatibility across Pixi.js v7/v8 and Three.js r150-r180+
+	 * Provides runtime detection of Pixi.js version and browser feature availability
+	 * Note: Three.js detection is in ThreeVersionDetection.ts (separate bundle)
 	 */
 	/**
 	 * Parse semantic version string into components
@@ -6753,168 +6646,6 @@
 	PixiVersionDetector.cachedVersion = null;
 	PixiVersionDetector.cachedFeatures = null;
 	/**
-	 * Detect Three.js version and available features
-	 */
-	class ThreeVersionDetector {
-	    /**
-	     * Get Three.js version (revision number)
-	     */
-	    static getVersion() {
-	        if (this.cachedVersion) {
-	            return this.cachedVersion;
-	        }
-	        try {
-	            if (THREE__namespace && THREE__namespace.REVISION) {
-	                const revision = parseInt(THREE__namespace.REVISION, 10);
-	                // Three.js uses revision numbers like "150", "160", "180"
-	                // Convert to semantic version for consistency
-	                this.cachedVersion = {
-	                    major: 0,
-	                    minor: revision,
-	                    patch: 0,
-	                    raw: `0.${revision}.0`
-	                };
-	            }
-	            else {
-	                // Fallback
-	                this.cachedVersion = { major: 0, minor: 180, patch: 0, raw: '0.180.0' };
-	            }
-	        }
-	        catch (error) {
-	            // Default to r180
-	            this.cachedVersion = { major: 0, minor: 180, patch: 0, raw: '0.180.0' };
-	        }
-	        return this.cachedVersion;
-	    }
-	    /**
-	     * Get revision number
-	     */
-	    static getRevision() {
-	        return this.getVersion().minor;
-	    }
-	    /**
-	     * Check if Three.js is r180 or higher
-	     */
-	    static isR180OrHigher() {
-	        return this.getRevision() >= 180;
-	    }
-	    /**
-	     * Check if Three.js is r160 or higher
-	     */
-	    static isR160OrHigher() {
-	        return this.getRevision() >= 160;
-	    }
-	    /**
-	     * Check if Three.js is below r160
-	     */
-	    static isLegacy() {
-	        return this.getRevision() < 160;
-	    }
-	    /**
-	     * Detect available rendering features
-	     */
-	    static getFeatureSupport() {
-	        if (this.cachedFeatures) {
-	            return this.cachedFeatures;
-	        }
-	        this.cachedFeatures = {
-	            webgpu: this.hasWebGPUSupport(),
-	            webgl2: this.hasWebGL2Support(),
-	            webgl: this.hasWebGLSupport()
-	        };
-	        return this.cachedFeatures;
-	    }
-	    /**
-	     * Check if WebGPURenderer might be available (version check only)
-	     * WebGPURenderer is in examples/jsm, not main Three.js export
-	     */
-	    static hasWebGPURenderer() {
-	        // WebGPURenderer available from r160+
-	        // Actual availability requires runtime dynamic import check
-	        return this.getRevision() >= 160;
-	    }
-	    /**
-	     * Attempt to load WebGPURenderer dynamically
-	     * Returns true if WebGPURenderer can be imported
-	     */
-	    static async canLoadWebGPURenderer() {
-	        if (this.getRevision() < 160) {
-	            return false;
-	        }
-	        try {
-	            // @ts-expect-error - WebGPURenderer is in examples/jsm, not in main type definitions
-	            await import('three/examples/jsm/renderers/webgpu/WebGPURenderer.js');
-	            return true;
-	        }
-	        catch {
-	            return false;
-	        }
-	    }
-	    /**
-	     * Check if browser supports WebGPU
-	     */
-	    static hasWebGPUSupport() {
-	        if (typeof navigator === 'undefined') {
-	            return false;
-	        }
-	        return 'gpu' in navigator && this.hasWebGPURenderer();
-	    }
-	    /**
-	     * Check if WebGL2 is available
-	     */
-	    static hasWebGL2Support() {
-	        if (typeof document === 'undefined') {
-	            return false;
-	        }
-	        try {
-	            const canvas = document.createElement('canvas');
-	            return !!(canvas.getContext('webgl2') || canvas.getContext('experimental-webgl2'));
-	        }
-	        catch {
-	            return false;
-	        }
-	    }
-	    /**
-	     * Check if WebGL is available
-	     */
-	    static hasWebGLSupport() {
-	        if (typeof document === 'undefined') {
-	            return false;
-	        }
-	        try {
-	            const canvas = document.createElement('canvas');
-	            return !!(canvas.getContext('webgl') || canvas.getContext('experimental-webgl'));
-	        }
-	        catch {
-	            return false;
-	        }
-	    }
-	    /**
-	     * Check if instanced rendering is available
-	     */
-	    static hasInstancedMesh() {
-	        try {
-	            return typeof THREE__namespace.InstancedMesh !== 'undefined';
-	        }
-	        catch {
-	            return false;
-	        }
-	    }
-	    /**
-	     * Check if LOD (Level of Detail) is available
-	     */
-	    static hasLOD() {
-	        try {
-	            return typeof THREE__namespace.LOD !== 'undefined';
-	        }
-	        catch {
-	            return false;
-	        }
-	    }
-	}
-	ThreeVersionDetector.cachedVersion = null;
-	ThreeVersionDetector.cachedFeatures = null;
-	/**
 	 * Browser feature detection
 	 */
 	class BrowserFeatureDetector {
@@ -6991,11 +6722,12 @@
 	    }
 	}
 	/**
-	 * Unified version detection and feature support
+	 * Framework compatibility (Pixi-only version)
+	 * Note: Full compatibility report including Three.js is in FrameworkCompatibility (three-toolkit)
 	 */
 	class FrameworkCompatibility {
 	    /**
-	     * Get comprehensive compatibility report
+	     * Get compatibility report (Pixi and browser only)
 	     */
 	    static getCompatibilityReport() {
 	        return {
@@ -7006,16 +6738,6 @@
 	                features: PixiVersionDetector.getFeatureSupport(),
 	                hasAutoDetectRenderer: PixiVersionDetector.hasAutoDetectRenderer(),
 	                hasParticleContainer: PixiVersionDetector.hasParticleContainer()
-	            },
-	            three: {
-	                version: ThreeVersionDetector.getVersion(),
-	                revision: ThreeVersionDetector.getRevision(),
-	                isR180Plus: ThreeVersionDetector.isR180OrHigher(),
-	                isR160Plus: ThreeVersionDetector.isR160OrHigher(),
-	                features: ThreeVersionDetector.getFeatureSupport(),
-	                hasWebGPURenderer: ThreeVersionDetector.hasWebGPURenderer(),
-	                hasInstancedMesh: ThreeVersionDetector.hasInstancedMesh(),
-	                hasLOD: ThreeVersionDetector.hasLOD()
 	            },
 	            browser: {
 	                hasWebGPU: BrowserFeatureDetector.hasWebGPU(),
@@ -7034,17 +6756,15 @@
 	        const report = this.getCompatibilityReport();
 	        console.group('🔍 GameByte Framework - Compatibility Report');
 	        console.log('Pixi.js:', report.pixi);
-	        console.log('Three.js:', report.three);
 	        console.log('Browser:', report.browser);
 	        console.groupEnd();
 	    }
 	}
 
 	/**
-	 * Renderer Compatibility Utilities
+	 * Pixi.js Compatibility Utilities
 	 *
-	 * Provides fallback mechanisms and compatibility helpers for working with
-	 * different versions of Pixi.js (v7/v8) and Three.js (r150-r180+)
+	 * Provides compatibility helpers for working with Pixi.js v8+
 	 */
 	/**
 	 * Pixi.js Compatibility Helpers
@@ -7161,155 +6881,7 @@
 	    }
 	}
 	/**
-	 * Three.js Compatibility Helpers
-	 */
-	class ThreeCompatibility {
-	    /**
-	     * Create a Three.js renderer with automatic version detection and fallback
-	     * Supports WebGPURenderer (r160+) with fallback to WebGLRenderer
-	     */
-	    static async createRenderer(options) {
-	        const hasWebGPURenderer = ThreeVersionDetector.hasWebGPURenderer();
-	        const hasWebGPU = BrowserFeatureDetector.hasWebGPU();
-	        const revision = ThreeVersionDetector.getRevision();
-	        console.log('🎨 Creating Three.js renderer:', {
-	            revision,
-	            hasWebGPURenderer,
-	            hasWebGPU,
-	            bestContext: BrowserFeatureDetector.getBestRenderingContext()
-	        });
-	        // Try WebGPU first if available (r160+)
-	        if (hasWebGPURenderer && hasWebGPU) {
-	            try {
-	                const webgpuRenderer = await this.createWebGPURenderer(options);
-	                console.log('✅ Created WebGPU renderer');
-	                return webgpuRenderer;
-	            }
-	            catch (error) {
-	                console.warn('⚠️ WebGPU renderer failed, falling back to WebGL:', error);
-	            }
-	        }
-	        // Fall back to WebGL
-	        console.log('✅ Creating WebGL renderer');
-	        return this.createWebGLRenderer(options);
-	    }
-	    /**
-	     * Create WebGPU renderer (Three.js r160+)
-	     * WebGPURenderer is in examples/jsm, requires dynamic import
-	     */
-	    static async createWebGPURenderer(options) {
-	        try {
-	            // Dynamic import to avoid build-time resolution errors
-	            // @ts-expect-error - WebGPURenderer is in examples/jsm, not in main type definitions
-	            const { WebGPURenderer } = await import('three/examples/jsm/renderers/webgpu/WebGPURenderer.js');
-	            if (!WebGPURenderer) {
-	                throw new Error('WebGPURenderer not available after import');
-	            }
-	            const renderer = new WebGPURenderer({
-	                canvas: options.canvas,
-	                antialias: options.antialias !== false,
-	                alpha: options.alpha || false,
-	                powerPreference: options.powerPreference || 'high-performance'
-	            });
-	            await renderer.init();
-	            console.log('✅ WebGPURenderer initialized successfully');
-	            return renderer;
-	        }
-	        catch (error) {
-	            console.warn('⚠️ Failed to load WebGPURenderer:', error);
-	            throw new Error(`WebGPURenderer not available: ${error}`);
-	        }
-	    }
-	    /**
-	     * Create WebGL renderer (All Three.js versions)
-	     */
-	    static createWebGLRenderer(options) {
-	        const rendererOptions = {
-	            canvas: options.canvas,
-	            antialias: options.antialias !== false,
-	            alpha: options.alpha || false,
-	            preserveDrawingBuffer: options.preserveDrawingBuffer || false,
-	            powerPreference: options.powerPreference || 'high-performance',
-	            stencil: options.stencil !== false,
-	            depth: options.depth !== false,
-	            logarithmicDepthBuffer: options.logarithmicDepthBuffer || false,
-	            precision: options.precision || 'highp'
-	        };
-	        return new THREE__namespace.WebGLRenderer(rendererOptions);
-	    }
-	    /**
-	     * Check if instanced rendering is available
-	     */
-	    static hasInstancedMesh() {
-	        return ThreeVersionDetector.hasInstancedMesh();
-	    }
-	    /**
-	     * Get InstancedMesh class if available
-	     */
-	    static getInstancedMesh() {
-	        if (this.hasInstancedMesh()) {
-	            return THREE__namespace.InstancedMesh;
-	        }
-	        console.warn('⚠️ InstancedMesh not available in this Three.js version');
-	        return null;
-	    }
-	    /**
-	     * Check if LOD (Level of Detail) is available
-	     */
-	    static hasLOD() {
-	        return ThreeVersionDetector.hasLOD();
-	    }
-	    /**
-	     * Get LOD class if available
-	     */
-	    static getLOD() {
-	        if (this.hasLOD()) {
-	            return THREE__namespace.LOD;
-	        }
-	        console.warn('⚠️ LOD not available in this Three.js version');
-	        return null;
-	    }
-	    /**
-	     * Enable shadow optimization based on version
-	     */
-	    static optimizeShadows(renderer, quality = 'medium') {
-	        const isWebGPU = renderer.isWebGPURenderer;
-	        if (!isWebGPU && renderer.shadowMap) {
-	            // WebGL shadow optimization
-	            renderer.shadowMap.enabled = true;
-	            switch (quality) {
-	                case 'low':
-	                    renderer.shadowMap.type = THREE__namespace.BasicShadowMap;
-	                    break;
-	                case 'medium':
-	                    renderer.shadowMap.type = THREE__namespace.PCFShadowMap;
-	                    break;
-	                case 'high':
-	                    renderer.shadowMap.type = THREE__namespace.PCFSoftShadowMap;
-	                    break;
-	            }
-	        }
-	        else if (isWebGPU) {
-	            // WebGPU has built-in shadow support
-	            console.log('✅ WebGPU renderer with native shadow support');
-	        }
-	    }
-	    /**
-	     * Get renderer type for diagnostics
-	     */
-	    static getRendererType(renderer) {
-	        if (renderer.isWebGPURenderer) {
-	            return 'webgpu';
-	        }
-	        const gl = renderer.getContext();
-	        if (gl && gl.constructor.name.includes('2')) {
-	            return 'webgl2';
-	        }
-	        return 'webgl';
-	    }
-	}
-	/**
-	 * General rendering compatibility helpers
+	 * General rendering compatibility helpers (Pixi-only version)
 	 */
 	class RenderingCompatibility {
 	    /**
@@ -7356,7 +6928,7 @@
 	        return 'high-performance';
 	    }
 	    /**
-	     * Log compatibility report
+	     * Log compatibility report (Pixi only)
 	     */
 	    static logCompatibilityReport() {
 	        console.group('🔍 Rendering Compatibility Report');
@@ -7366,13 +6938,6 @@
 	            hasWebGPU: PixiVersionDetector.getFeatureSupport().webgpu,
 	            hasAutoDetect: PixiVersionDetector.hasAutoDetectRenderer(),
 	            hasParticleContainer: PixiVersionDetector.hasParticleContainer()
-	        });
-	        console.log('Three.js:', {
-	            revision: ThreeVersionDetector.getRevision(),
-	            isR180Plus: ThreeVersionDetector.isR180OrHigher(),
-	            hasWebGPU: ThreeVersionDetector.hasWebGPURenderer(),
-	            hasInstancedMesh: ThreeVersionDetector.hasInstancedMesh(),
-	            hasLOD: ThreeVersionDetector.hasLOD()
 	        });
 	        console.log('Recommendations:', {
 	            pixelRatio: this.getOptimalPixelRatio(),
@@ -7432,39 +6997,10 @@
 	    }
 	    /**
 	     * Scale a base value by the current scale factor
+	     * Use this method for all responsive scaling (size, font, position, padding, stroke, etc.)
 	     */
 	    scale(baseValue) {
 	        return baseValue * this.currentSize.scale;
-	    }
-	    /**
-	     * Scale a size value (width, height, radius, etc.)
-	     */
-	    scaleSize(baseSize) {
-	        return this.scale(baseSize);
-	    }
-	    /**
-	     * Scale a font size
-	     */
-	    scaleFont(baseFontSize) {
-	        return this.scale(baseFontSize);
-	    }
-	    /**
-	     * Scale a position value (x, y)
-	     */
-	    scalePosition(basePosition) {
-	        return this.scale(basePosition);
-	    }
-	    /**
-	     * Scale a padding/margin value
-	     */
-	    scalePadding(basePadding) {
-	        return this.scale(basePadding);
-	    }
-	    /**
-	     * Scale a stroke width
-	     */
-	    scaleStroke(baseStroke) {
-	        return this.scale(baseStroke);
 	    }
 	    /**
 	     * Register a callback for resize events
@@ -7980,823 +7516,6 @@
 	            this.needsRender = true;
 	            this.render(deltaTime);
 	        }
-	    }
-	}
-
-	/**
-	 * 3D renderer implementation using Three.js with WebGPU support.
-	 * Supports WebGPURenderer (r160+) with automatic fallback to WebGLRenderer.
-	 */
-	class ThreeRenderer extends EventEmitter {
-	    constructor() {
-	        super(...arguments);
-	        this.mode = exports.RenderingMode.RENDERER_3D;
-	        this.renderer = null; // Can be WebGLRenderer or WebGPURenderer
-	        this.scene = null;
-	        this.camera = null;
-	        this.clock = new THREE.Clock();
-	        this.animationId = null;
-	        this.lastTime = 0;
-	        this.frameCount = 0;
-	        this.fps = 60;
-	        this.renderMode = 'continuous';
-	        this.needsRender = false;
-	        this.enableStats = false;
-	        this.shadowQuality = 'medium';
-	        this.enableFrustumCulling = true;
-	        /**
-	         * Main render loop with improved FPS calculation.
-	         */
-	        this.renderLoop = () => {
-	            const now = performance.now();
-	            const deltaTime = now - this.lastTime;
-	            this.lastTime = now;
-	            // Calculate FPS with smoothing
-	            this.frameCount++;
-	            if (this.frameCount >= 30) { // Check every 30 frames for more stable FPS
-	                const averageDelta = deltaTime / this.frameCount;
-	                this.fps = Math.round(1000 / averageDelta);
-	                this.frameCount = 0;
-	            }
-	            this.emit('tick', deltaTime);
-	            // In continuous mode, always mark for re-render
-	            if (this.renderMode === 'continuous') {
-	                this.needsRender = true;
-	            }
-	            this.render(deltaTime);
-	            this.animationId = requestAnimationFrame(this.renderLoop);
-	        };
-	    }
-	    /**
-	     * Initialize the 3D renderer with WebGPU support and r180 optimizations.
-	     */
-	    async initialize(canvas, options = {}) {
-	        // Log compatibility info
-	        console.log('🎮 Initializing ThreeRenderer with Three.js r' + ThreeVersionDetector.getRevision());
-	        // Set configuration
-	        this.renderMode = options.renderMode || 'continuous';
-	        this.enableStats = options.enableStats ?? false;
-	        this.shadowQuality = options.shadowQuality || 'medium';
-	        this.enableFrustumCulling = options.enableFrustumCulling ?? true;
-	        // Get optimal settings for device
-	        const optimalPixelRatio = RenderingCompatibility.getOptimalPixelRatio();
-	        const recommendedAntialias = RenderingCompatibility.getRecommendedAntialias();
-	        const recommendedPower = RenderingCompatibility.getRecommendedPowerPreference();
-	        // Build Three.js options with smart defaults
-	        const threeOptions = {
-	            canvas,
-	            antialias: options.antialias ?? recommendedAntialias,
-	            alpha: options.transparent ?? false,
-	            preserveDrawingBuffer: options.preserveDrawingBuffer ?? false,
-	            powerPreference: options.powerPreference || recommendedPower
-	        };
-	        // Create renderer using compatibility layer (WebGPU or WebGL)
-	        try {
-	            this.renderer = await ThreeCompatibility.createRenderer(threeOptions);
-	            console.log('✅ ThreeRenderer initialized with', ThreeCompatibility.getRendererType(this.renderer));
-	        }
-	        catch (error) {
-	            console.error('❌ Failed to initialize ThreeRenderer:', error);
-	            throw error;
-	        }
-	        // Set renderer size and pixel ratio
-	        this.renderer.setSize(options.width || canvas.width || 800, options.height || canvas.height || 600, false);
-	        if (options.resolution) {
-	            this.renderer.setPixelRatio(options.resolution);
-	        }
-	        else {
-	            this.renderer.setPixelRatio(optimalPixelRatio);
-	        }
-	        // Set background color if provided
-	        if (options.backgroundColor !== undefined) {
-	            const color = typeof options.backgroundColor === 'string'
-	                ? options.backgroundColor
-	                : `#${options.backgroundColor.toString(16).padStart(6, '0')}`;
-	            if (this.renderer.setClearColor) {
-	                this.renderer.setClearColor(color);
-	            }
-	        }
-	        // Apply shadow optimization
-	        ThreeCompatibility.optimizeShadows(this.renderer, this.shadowQuality);
-	        // Create default scene
-	        this.scene = new THREE.Scene();
-	        // Frustum culling is enabled by default in Three.js
-	        // Objects are automatically culled based on camera frustum
-	        this.emit('initialized');
-	    }
-	    /**
-	     * Start the render loop.
-	     * In on-demand mode, this just enables rendering when requested.
-	     * In continuous mode, this starts the animation loop.
-	     */
-	    start() {
-	        if (!this.renderer) {
-	            throw new Error('Renderer not initialized');
-	        }
-	        this.clock.start();
-	        if (this.renderMode === 'continuous') {
-	            this.renderLoop();
-	        }
-	        else {
-	            console.log('📊 ThreeRenderer started in on-demand mode');
-	        }
-	        this.emit('started');
-	    }
-	    /**
-	     * Stop the render loop.
-	     */
-	    stop() {
-	        if (this.animationId) {
-	            cancelAnimationFrame(this.animationId);
-	            this.animationId = null;
-	        }
-	        this.clock.stop();
-	        this.emit('stopped');
-	    }
-	    /**
-	     * Request a render frame (useful for on-demand rendering).
-	     */
-	    requestRender() {
-	        if (this.renderMode === 'on-demand') {
-	            this.needsRender = true;
-	            this.render();
-	        }
-	    }
-	    /**
-	     * Mark scene as dirty and needing re-render.
-	     */
-	    markDirty() {
-	        this.needsRender = true;
-	    }
-	    /**
-	     * Resize the renderer and update camera.
-	     */
-	    resize(width, height) {
-	        if (!this.renderer) {
-	            return;
-	        }
-	        this.renderer.setSize(width, height, false);
-	        // Update camera aspect ratio if it's a perspective camera
-	        if (this.camera && 'aspect' in this.camera) {
-	            this.camera.aspect = width / height;
-	            this.camera.updateProjectionMatrix?.();
-	        }
-	        this.emit('resize', width, height);
-	        this.requestRender(); // Re-render after resize
-	    }
-	    /**
-	     * Render a single frame.
-	     * In on-demand mode, only renders if scene is dirty.
-	     */
-	    render(deltaTime) {
-	        if (!this.renderer || !this.scene || !this.camera) {
-	            return;
-	        }
-	        // In on-demand mode, only render if needed
-	        if (this.renderMode === 'on-demand' && !this.needsRender) {
-	            return;
-	        }
-	        this.renderer.render(this.scene, this.camera);
-	        this.needsRender = false;
-	        this.emit('render', deltaTime);
-	    }
-	    /**
-	     * Get the current canvas element.
-	     */
-	    getCanvas() {
-	        return this.renderer?.domElement || null;
-	    }
-	    /**
-	     * Get the underlying 3D renderer instance.
-	     * Can be WebGLRenderer or WebGPURenderer (r160+).
-	     */
-	    getRenderer() {
-	        return this.renderer;
-	    }
-	    /**
-	     * Get the current scene.
-	     */
-	    getScene() {
-	        return this.scene;
-	    }
-	    /**
-	     * Set the active scene.
-	     */
-	    setScene(scene) {
-	        this.scene = scene;
-	    }
-	    /**
-	     * Get the current camera.
-	     */
-	    getCamera() {
-	        return this.camera;
-	    }
-	    /**
-	     * Set the active camera.
-	     */
-	    setCamera(camera) {
-	        this.camera = camera;
-	    }
-	    /**
-	     * Get renderer statistics with improved tracking.
-	     */
-	    getStats() {
-	        const info = this.renderer?.info;
-	        const memory = info?.memory;
-	        const render = info?.render;
-	        // Get delta time without consuming it
-	        const delta = this.clock.running ? performance.now() - this.lastTime : 0;
-	        return {
-	            fps: this.fps,
-	            deltaTime: delta,
-	            drawCalls: render?.calls || 0,
-	            triangles: render?.triangles || 0,
-	            memory: {
-	                used: (memory?.geometries || 0) + (memory?.textures || 0),
-	                total: 0 // Three.js doesn't provide total memory info
-	            }
-	        };
-	    }
-	    /**
-	     * Get detailed renderer information for debugging.
-	     */
-	    getRendererInfo() {
-	        return {
-	            revision: ThreeVersionDetector.getRevision(),
-	            type: ThreeCompatibility.getRendererType(this.renderer),
-	            renderMode: this.renderMode,
-	            shadowQuality: this.shadowQuality,
-	            frustumCulling: this.enableFrustumCulling,
-	            resolution: this.renderer?.getPixelRatio() || 1,
-	            fps: this.fps,
-	            features: ThreeVersionDetector.getFeatureSupport(),
-	            info: this.renderer?.info
-	        };
-	    }
-	    /**
-	     * Enable or disable shadow rendering
-	     */
-	    setShadowQuality(quality) {
-	        this.shadowQuality = quality;
-	        if (this.renderer) {
-	            ThreeCompatibility.optimizeShadows(this.renderer, quality);
-	        }
-	    }
-	    /**
-	     * Get the Three.js scene (implements Renderer interface).
-	     */
-	    getStage() {
-	        return this.scene;
-	    }
-	    /**
-	     * Get the native Three.js renderer (implements Renderer interface).
-	     */
-	    getNativeRenderer() {
-	        return this.renderer;
-	    }
-	    /**
-	     * Destroy the renderer and clean up resources.
-	     */
-	    destroy() {
-	        this.stop();
-	        if (this.renderer) {
-	            this.renderer.dispose();
-	            this.renderer = null;
-	        }
-	        this.scene = null;
-	        this.camera = null;
-	        this.removeAllListeners();
-	        this.emit('destroyed');
-	    }
-	}
-
-	/**
-	 * Hybrid renderer that combines Three.js (3D) and Pixi.js (2D) using stacked canvas approach.
-	 *
-	 * Architecture:
-	 * - Layer 1 (z-index: 1): Three.js canvas for 3D background/scene
-	 * - Layer 2 (z-index: 2): Pixi.js canvas for 2D UI overlay (transparent)
-	 *
-	 * Both renderers run independently with synchronized dimensions and render loops.
-	 * Perfect for games that need 3D environments with 2D UI overlays.
-	 *
-	 * @example
-	 * ```typescript
-	 * const hybridRenderer = new HybridRenderer();
-	 * await hybridRenderer.initialize(containerElement, {
-	 *   width: 1080,
-	 *   height: 1920,
-	 *   antialias: true,
-	 *   transparent: false // Three.js opaque, Pixi.js transparent
-	 * });
-	 *
-	 * // Get Three.js components
-	 * const threeScene = hybridRenderer.getThreeScene();
-	 * const threeCamera = hybridRenderer.getThreeCamera();
-	 *
-	 * // Get Pixi.js stage
-	 * const pixiStage = hybridRenderer.getPixiStage();
-	 *
-	 * // Start rendering both layers
-	 * hybridRenderer.start();
-	 * ```
-	 */
-	class HybridRenderer extends EventEmitter {
-	    constructor() {
-	        super(...arguments);
-	        this.mode = exports.RenderingMode.HYBRID;
-	        // Three.js (3D Layer)
-	        this.threeRenderer = null;
-	        this.threeScene = null;
-	        this.threeCamera = null;
-	        this.threeCanvas = null;
-	        this.clock = new THREE.Clock();
-	        // Pixi.js (2D UI Layer)
-	        this.pixiApp = null; // Can be Application (v7) or Renderer (v8)
-	        this.pixiStage = null; // Pixi Container
-	        this.pixiCanvas = null;
-	        // Shared state
-	        this.container = null;
-	        this.animationId = null;
-	        this.lastTime = 0;
-	        this.frameCount = 0;
-	        this.fps = 60;
-	        this.renderMode = 'continuous';
-	        this.needsRender = false;
-	        this.enableStats = false;
-	        // Configuration
-	        this.shadowQuality = 'medium';
-	        this.enableFrustumCulling = true;
-	        this.threeZIndex = 1;
-	        this.pixiZIndex = 2;
-	    }
-	    /**
-	     * Initialize the hybrid renderer with stacked canvas architecture.
-	     *
-	     * @param container - Parent HTML element to contain both canvases
-	     * @param options - Configuration options
-	     */
-	    async initialize(container, options = {}) {
-	        console.log('🎮 Initializing HybridRenderer (Three.js + Pixi.js)');
-	        console.log('   Three.js r' + ThreeVersionDetector.getRevision());
-	        console.log('   Pixi.js', PixiVersionDetector.getVersion().raw);
-	        this.container = container;
-	        // Set configuration
-	        this.renderMode = options.renderMode || 'continuous';
-	        this.enableStats = options.enableStats ?? false;
-	        this.shadowQuality = options.shadowQuality || 'medium';
-	        this.enableFrustumCulling = options.enableFrustumCulling ?? true;
-	        this.threeZIndex = options.threeZIndex ?? 1;
-	        this.pixiZIndex = options.pixiZIndex ?? 2;
-	        // Get optimal settings for device
-	        const optimalPixelRatio = RenderingCompatibility.getOptimalPixelRatio();
-	        const recommendedAntialias = RenderingCompatibility.getRecommendedAntialias();
-	        const recommendedPower = RenderingCompatibility.getRecommendedPowerPreference();
-	        const width = options.width || container.clientWidth || 800;
-	        const height = options.height || container.clientHeight || 600;
-	        // Setup container styles
-	        container.style.position = 'relative';
-	        container.style.width = `${width}px`;
-	        container.style.height = `${height}px`;
-	        container.style.overflow = 'hidden';
-	        // Initialize Three.js (3D Background Layer)
-	        await this.initializeThreeLayer(width, height, {
-	            antialias: options.antialias ?? recommendedAntialias,
-	            alpha: false, // Opaque background (Three.js uses 'alpha' not 'transparent')
-	            preserveDrawingBuffer: options.preserveDrawingBuffer ?? false,
-	            powerPreference: options.powerPreference || recommendedPower
-	        }, {
-	            backgroundColor: options.backgroundColor,
-	            resolution: options.resolution || optimalPixelRatio
-	        });
-	        // Initialize Pixi.js (2D UI Overlay Layer)
-	        await this.initializePixiLayer(width, height, {
-	            antialias: options.antialias ?? recommendedAntialias,
-	            backgroundAlpha: 0, // Transparent to show 3D layer below
-	            preserveDrawingBuffer: options.preserveDrawingBuffer ?? false,
-	            powerPreference: options.powerPreference || recommendedPower,
-	            resolution: options.resolution || optimalPixelRatio,
-	            preference: options.pixiPreference
-	        });
-	        // Set up synchronized resize handling
-	        this.setupResizeHandling();
-	        console.log('✅ HybridRenderer initialized successfully');
-	        console.log('   Three.js layer: z-index', this.threeZIndex);
-	        console.log('   Pixi.js layer: z-index', this.pixiZIndex);
-	        this.emit('initialized');
-	    }
-	    /**
-	     * Initialize Three.js 3D background layer
-	     */
-	    async initializeThreeLayer(width, height, options, extraOptions) {
-	        // Create Three.js canvas
-	        this.threeCanvas = document.createElement('canvas');
-	        this.threeCanvas.id = 'three-canvas';
-	        this.threeCanvas.style.position = 'absolute';
-	        this.threeCanvas.style.top = '0';
-	        this.threeCanvas.style.left = '0';
-	        this.threeCanvas.style.zIndex = String(this.threeZIndex);
-	        this.threeCanvas.style.pointerEvents = 'none'; // UI layer handles interactions
-	        // Append to container
-	        this.container.appendChild(this.threeCanvas);
-	        // Create Three.js renderer
-	        const threeOptions = {
-	            canvas: this.threeCanvas,
-	            antialias: options.antialias ?? true,
-	            alpha: options.alpha ?? false,
-	            preserveDrawingBuffer: options.preserveDrawingBuffer ?? false,
-	            powerPreference: options.powerPreference || 'high-performance'
-	        };
-	        try {
-	            this.threeRenderer = await ThreeCompatibility.createRenderer(threeOptions);
-	            console.log('✅ Three.js layer initialized with', ThreeCompatibility.getRendererType(this.threeRenderer));
-	        }
-	        catch (error) {
-	            console.error('❌ Failed to initialize Three.js layer:', error);
-	            throw error;
-	        }
-	        // Set renderer size and pixel ratio
-	        this.threeRenderer.setSize(width, height, false);
-	        if (extraOptions?.resolution) {
-	            this.threeRenderer.setPixelRatio(extraOptions.resolution);
-	        }
-	        else {
-	            this.threeRenderer.setPixelRatio(RenderingCompatibility.getOptimalPixelRatio());
-	        }
-	        // Set background color
-	        if (extraOptions?.backgroundColor !== undefined) {
-	            const bgColor = typeof extraOptions.backgroundColor === 'string'
-	                ? parseInt(extraOptions.backgroundColor.replace('#', '0x'), 16)
-	                : extraOptions.backgroundColor;
-	            this.threeRenderer.setClearColor(bgColor, 1.0);
-	        }
-	        // Configure shadow quality
-	        if (this.threeRenderer.shadowMap) {
-	            this.threeRenderer.shadowMap.enabled = true;
-	            switch (this.shadowQuality) {
-	                case 'low':
-	                    this.threeRenderer.shadowMap.type = 0; // BasicShadowMap
-	                    break;
-	                case 'medium':
-	                    this.threeRenderer.shadowMap.type = 1; // PCFShadowMap
-	                    break;
-	                case 'high':
-	                    this.threeRenderer.shadowMap.type = 2; // PCFSoftShadowMap
-	                    break;
-	            }
-	        }
-	        // Create default scene (can be replaced by user)
-	        this.threeScene = new THREE.Scene();
-	        // Camera will be set by user via setThreeCamera()
-	    }
-	    /**
-	     * Initialize Pixi.js 2D UI overlay layer
-	     */
-	    async initializePixiLayer(width, height, options) {
-	        // Create Pixi.js canvas
-	        this.pixiCanvas = document.createElement('canvas');
-	        this.pixiCanvas.id = 'pixi-canvas';
-	        this.pixiCanvas.style.position = 'absolute';
-	        this.pixiCanvas.style.top = '0';
-	        this.pixiCanvas.style.left = '0';
-	        this.pixiCanvas.style.zIndex = String(this.pixiZIndex);
-	        this.pixiCanvas.style.pointerEvents = 'auto'; // Handle all interactions
-	        // Append to container
-	        this.container.appendChild(this.pixiCanvas);
-	        // Create Pixi.js renderer
-	        const pixiOptions = {
-	            canvas: this.pixiCanvas,
-	            width,
-	            height,
-	            antialias: options.antialias ?? true,
-	            backgroundAlpha: 0, // Fully transparent
-	            backgroundColor: 0x000000, // Black (won't be visible)
-	            preserveDrawingBuffer: options.preserveDrawingBuffer ?? false,
-	            powerPreference: options.powerPreference || 'high-performance',
-	            autoDensity: true,
-	            resolution: options.resolution || RenderingCompatibility.getOptimalPixelRatio(),
-	            preference: options.preference
-	        };
-	        try {
-	            this.pixiApp = await PixiCompatibility.createRenderer(pixiOptions);
-	            console.log('✅ Pixi.js layer initialized (transparent overlay)');
-	        }
-	        catch (error) {
-	            console.error('❌ Failed to initialize Pixi.js layer:', error);
-	            throw error;
-	        }
-	        // Get stage
-	        this.pixiStage = PixiCompatibility.getStage(this.pixiApp);
-	    }
-	    /**
-	     * Setup synchronized resize handling for both layers
-	     */
-	    setupResizeHandling() {
-	        const renderer = PixiCompatibility.getRenderer(this.pixiApp);
-	        if (renderer && renderer.on) {
-	            renderer.on('resize', (width, height) => {
-	                // Resize Three.js layer to match
-	                if (this.threeRenderer) {
-	                    this.threeRenderer.setSize(width, height, false);
-	                }
-	                // Update container size
-	                if (this.container) {
-	                    this.container.style.width = `${width}px`;
-	                    this.container.style.height = `${height}px`;
-	                }
-	                this.emit('resize', width, height);
-	                this.requestRender();
-	            });
-	        }
-	    }
-	    /**
-	     * Start the hybrid render loop.
-	     * Both Three.js and Pixi.js render in the same animation frame.
-	     */
-	    start() {
-	        if (this.animationId !== null) {
-	            console.warn('HybridRenderer already started');
-	            return;
-	        }
-	        console.log('▶️ Starting HybridRenderer');
-	        if (this.renderMode === 'continuous') {
-	            this.startContinuousRendering();
-	        }
-	        else {
-	            console.log('On-demand mode enabled. Call requestRender() to render.');
-	        }
-	        this.emit('start');
-	    }
-	    /**
-	     * Start continuous rendering loop
-	     */
-	    startContinuousRendering() {
-	        const animate = (currentTime) => {
-	            this.animationId = requestAnimationFrame(animate);
-	            // Calculate delta time
-	            const deltaTime = this.lastTime > 0 ? (currentTime - this.lastTime) / 1000 : 0;
-	            this.lastTime = currentTime;
-	            // Calculate FPS
-	            this.frameCount++;
-	            if (this.frameCount >= 60) {
-	                this.fps = Math.round(1 / deltaTime);
-	                this.frameCount = 0;
-	            }
-	            // Render both layers
-	            this.render(deltaTime);
-	            // Emit tick event
-	            this.emit('tick', deltaTime);
-	        };
-	        this.animationId = requestAnimationFrame(animate);
-	    }
-	    /**
-	     * Stop the render loop.
-	     */
-	    stop() {
-	        if (this.animationId !== null) {
-	            cancelAnimationFrame(this.animationId);
-	            this.animationId = null;
-	            console.log('⏸️ HybridRenderer stopped');
-	        }
-	        this.emit('stop');
-	    }
-	    /**
-	     * Render a single frame (both Three.js and Pixi.js).
-	     */
-	    render(deltaTime) {
-	        if (this.renderMode === 'on-demand' && !this.needsRender) {
-	            return; // Skip rendering if not requested
-	        }
-	        // Render Three.js 3D layer
-	        if (this.threeRenderer && this.threeScene && this.threeCamera) {
-	            this.threeRenderer.render(this.threeScene, this.threeCamera);
-	        }
-	        // Render Pixi.js 2D UI layer
-	        if (this.pixiApp && this.pixiStage) {
-	            const renderer = PixiCompatibility.getRenderer(this.pixiApp);
-	            if (renderer) {
-	                renderer.render(this.pixiStage);
-	            }
-	        }
-	        // Reset render request flag
-	        this.needsRender = false;
-	        // Emit render event
-	        if (deltaTime !== undefined) {
-	            this.emit('render', deltaTime);
-	        }
-	    }
-	    /**
-	     * Request a render in on-demand mode.
-	     * In continuous mode, this has no effect.
-	     */
-	    requestRender() {
-	        if (this.renderMode === 'on-demand') {
-	            this.needsRender = true;
-	            // Trigger single frame render
-	            if (this.animationId === null) {
-	                requestAnimationFrame(() => {
-	                    const deltaTime = this.clock.getDelta();
-	                    this.render(deltaTime);
-	                });
-	            }
-	        }
-	    }
-	    /**
-	     * Resize both renderer layers.
-	     */
-	    resize(width, height) {
-	        // Resize Three.js
-	        if (this.threeRenderer) {
-	            this.threeRenderer.setSize(width, height, false);
-	        }
-	        // Resize Pixi.js
-	        if (this.pixiApp) {
-	            const renderer = PixiCompatibility.getRenderer(this.pixiApp);
-	            if (renderer && renderer.resize) {
-	                renderer.resize(width, height);
-	            }
-	        }
-	        // Update container
-	        if (this.container) {
-	            this.container.style.width = `${width}px`;
-	            this.container.style.height = `${height}px`;
-	        }
-	        // Update camera aspect ratio if it's a PerspectiveCamera
-	        if (this.threeCamera && 'aspect' in this.threeCamera) {
-	            this.threeCamera.aspect = width / height;
-	            this.threeCamera.updateProjectionMatrix();
-	        }
-	        this.requestRender();
-	        this.emit('resize', width, height);
-	    }
-	    /**
-	     * Get the Three.js canvas element.
-	     */
-	    getCanvas() {
-	        // Return Pixi canvas since it's the top layer handling interactions
-	        return this.pixiCanvas;
-	    }
-	    /**
-	     * Get the Three.js canvas element specifically.
-	     */
-	    getThreeCanvas() {
-	        return this.threeCanvas;
-	    }
-	    /**
-	     * Get the Pixi.js canvas element specifically.
-	     */
-	    getPixiCanvas() {
-	        return this.pixiCanvas;
-	    }
-	    /**
-	     * Get the Three.js scene.
-	     * Add your 3D objects to this scene.
-	     */
-	    getThreeScene() {
-	        return this.threeScene;
-	    }
-	    /**
-	     * Set the Three.js scene (optional, default scene is created).
-	     */
-	    setThreeScene(scene) {
-	        this.threeScene = scene;
-	        this.requestRender();
-	    }
-	    /**
-	     * Get the Three.js camera.
-	     */
-	    getThreeCamera() {
-	        return this.threeCamera;
-	    }
-	    /**
-	     * Set the Three.js camera.
-	     * This must be called before rendering.
-	     */
-	    setThreeCamera(camera) {
-	        this.threeCamera = camera;
-	        this.requestRender();
-	    }
-	    /**
-	     * Get the Three.js renderer instance.
-	     */
-	    getThreeRenderer() {
-	        return this.threeRenderer;
-	    }
-	    /**
-	     * Get the Pixi.js stage container.
-	     * Add your 2D UI elements to this container.
-	     */
-	    getPixiStage() {
-	        return this.pixiStage;
-	    }
-	    /**
-	     * Get the Pixi.js application/renderer instance.
-	     */
-	    getPixiApp() {
-	        return this.pixiApp;
-	    }
-	    /**
-	     * Get renderer statistics.
-	     */
-	    getStats() {
-	        const stats = {
-	            fps: this.fps,
-	            deltaTime: this.clock.getDelta(),
-	            drawCalls: 0,
-	            triangles: 0,
-	            memory: {
-	                used: 0,
-	                total: 0
-	            }
-	        };
-	        // Get Three.js stats if available
-	        if (this.threeRenderer && this.threeRenderer.info) {
-	            const info = this.threeRenderer.info;
-	            stats.drawCalls += info.render?.calls || 0;
-	            stats.triangles += info.render?.triangles || 0;
-	            if (info.memory) {
-	                stats.memory.used += info.memory.geometries || 0;
-	                stats.memory.used += info.memory.textures || 0;
-	            }
-	        }
-	        // Get Pixi.js stats if available
-	        if (this.pixiApp) {
-	            const renderer = PixiCompatibility.getRenderer(this.pixiApp);
-	            if (renderer && renderer.renderingToScreen !== undefined) ;
-	        }
-	        // Get memory info if available
-	        if (performance.memory) {
-	            const mem = performance.memory;
-	            stats.memory.used = mem.usedJSHeapSize / 1048576; // Convert to MB
-	            stats.memory.total = mem.totalJSHeapSize / 1048576;
-	        }
-	        return stats;
-	    }
-	    /**
-	     * Get the primary stage (3D scene for hybrid renderer).
-	     * For accessing 2D stage, use getPixiStage() instead.
-	     */
-	    getStage() {
-	        return this.threeScene;
-	    }
-	    /**
-	     * Get the native renderer (returns Three.js renderer for hybrid).
-	     */
-	    getNativeRenderer() {
-	        return this.threeRenderer;
-	    }
-	    /**
-	     * Destroy the hybrid renderer and clean up all resources.
-	     */
-	    destroy() {
-	        console.log('Destroying HybridRenderer');
-	        // Stop rendering
-	        this.stop();
-	        // Destroy Three.js
-	        if (this.threeRenderer) {
-	            this.threeRenderer.dispose();
-	            this.threeRenderer = null;
-	        }
-	        if (this.threeScene) {
-	            // Dispose scene resources
-	            this.threeScene.traverse((object) => {
-	                if (object.geometry)
-	                    object.geometry.dispose();
-	                if (object.material) {
-	                    if (Array.isArray(object.material)) {
-	                        object.material.forEach((mat) => mat.dispose());
-	                    }
-	                    else {
-	                        object.material.dispose();
-	                    }
-	                }
-	            });
-	            this.threeScene = null;
-	        }
-	        // Destroy Pixi.js
-	        if (this.pixiApp) {
-	            if (this.pixiApp.destroy) {
-	                this.pixiApp.destroy(true, { children: true, texture: true, baseTexture: true });
-	            }
-	            this.pixiApp = null;
-	        }
-	        // Remove canvases
-	        if (this.threeCanvas && this.threeCanvas.parentNode) {
-	            this.threeCanvas.parentNode.removeChild(this.threeCanvas);
-	            this.threeCanvas = null;
-	        }
-	        if (this.pixiCanvas && this.pixiCanvas.parentNode) {
-	            this.pixiCanvas.parentNode.removeChild(this.pixiCanvas);
-	            this.pixiCanvas = null;
-	        }
-	        // Clear references
-	        this.container = null;
-	        this.threeCamera = null;
-	        this.pixiStage = null;
-	        // Remove all event listeners
-	        this.removeAllListeners();
-	        this.emit('destroyed');
-	        console.log('✅ HybridRenderer destroyed');
 	    }
 	}
 
@@ -37493,6 +36212,445 @@
 	}
 
 	/**
+	 * Game-style UI theme inspired by mobile games like Brawl Stars, Candy Crush, etc.
+	 * Features vibrant colors, multi-layer effects, and bold visual design.
+	 */
+	class GameStyleUITheme {
+	    constructor() {
+	        this.name = 'game-style';
+	        // Vibrant game-style color palette
+	        this.colors = {
+	            // Primary action color (bright orange/yellow for Play buttons)
+	            primary: { r: 255, g: 180, b: 0, a: 1 }, // Golden yellow
+	            secondary: { r: 0, g: 180, b: 255, a: 1 }, // Bright cyan
+	            // Background colors (sky blue gradient base)
+	            background: { r: 0, g: 140, b: 220, a: 1 }, // Sky blue
+	            surface: { r: 30, g: 100, b: 180, a: 1 }, // Darker blue surface
+	            // Text colors
+	            text: { r: 255, g: 255, b: 255, a: 1 }, // White with stroke
+	            textSecondary: { r: 200, g: 220, b: 255, a: 1 }, // Light blue-white
+	            // Status colors (game-style vibrant)
+	            success: { r: 50, g: 205, b: 50, a: 1 }, // Lime green
+	            warning: { r: 255, g: 165, b: 0, a: 1 }, // Orange
+	            error: { r: 255, g: 60, b: 60, a: 1 }, // Bright red
+	            // Utility
+	            overlay: { r: 0, g: 0, b: 0, a: 0.6 }
+	        };
+	        // Game-style specific colors
+	        this.gameColors = {
+	            // Button colors
+	            buttonYellow: { top: 0xFFD700, bottom: 0xFFA500, border: 0xCC8800 },
+	            buttonGreen: { top: 0x50C878, bottom: 0x228B22, border: 0x1A6B1A },
+	            buttonBlue: { top: 0x4DA6FF, bottom: 0x0066CC, border: 0x004C99 },
+	            buttonRed: { top: 0xFF6B6B, bottom: 0xCC3333, border: 0x992626 },
+	            buttonPurple: { top: 0xB388FF, bottom: 0x7C4DFF, border: 0x5C3DB8 },
+	            // UI element colors
+	            panelDark: 0x1A237E,
+	            panelLight: 0x3949AB,
+	            borderDark: 0x0D1B2A,
+	            borderMedium: 0x1B3A5C,
+	            // Resource colors
+	            coinGold: 0xFFD700,
+	            gemPurple: 0x9C27B0,
+	            heartRed: 0xFF4081,
+	            energyBlue: 0x00BCD4,
+	            // Level path
+	            pathActive: 0xFFD54F,
+	            pathInactive: 0x5C6BC0,
+	            pathCompleted: 0x4CAF50,
+	            // Hexagon level button
+	            hexBlue: { fill: 0x3D85C6, border: 0x1A3A5C, highlight: 0x6DB3F2 },
+	            hexLocked: { fill: 0x5C5C5C, border: 0x3A3A3A, highlight: 0x7A7A7A }
+	        };
+	        // Bold typography for games
+	        this.typography = {
+	            fontFamily: '"Lilita One", "Arial Black", sans-serif',
+	            sizes: {
+	                small: 16,
+	                medium: 22,
+	                large: 32,
+	                xlarge: 48
+	            },
+	            weights: {
+	                normal: 600,
+	                bold: 800
+	            }
+	        };
+	        // Generous spacing for touch targets
+	        this.spacing = {
+	            xs: 6,
+	            sm: 12,
+	            md: 20,
+	            lg: 32,
+	            xl: 48
+	        };
+	        // Rounded corners for game feel
+	        this.radius = {
+	            sm: 8,
+	            md: 16,
+	            lg: 24,
+	            full: 9999
+	        };
+	        // Bold shadows for depth
+	        this.shadows = {
+	            sm: '0 3px 0 rgba(0, 0, 0, 0.3), 0 4px 8px rgba(0, 0, 0, 0.2)',
+	            md: '0 5px 0 rgba(0, 0, 0, 0.3), 0 8px 16px rgba(0, 0, 0, 0.25)',
+	            lg: '0 8px 0 rgba(0, 0, 0, 0.3), 0 12px 24px rgba(0, 0, 0, 0.3)'
+	        };
+	        // Bouncy animations
+	        this.animations = {
+	            fast: 150,
+	            normal: 300,
+	            slow: 500
+	        };
+	    }
+	}
+	/**
+	 * Game style color utilities
+	 */
+	const GameStyleColors = {
+	    // Pre-defined button color schemes - No Ads popup style (solid color, black border, jellybean)
+	    YELLOW_BUTTON: {
+	        gradientTop: 0xFFD966, // Golden yellow (solid)
+	        gradientBottom: 0xFFD966, // Same - solid color
+	        border: 0x000000, // Black outer border
+	        shadow: 0xCC9900, // Darker yellow shadow
+	        highlight: 0xFFFFFF, // White highlight (25% alpha applied in code)
+	        text: 0xFFFFFF,
+	        textStroke: 0x805500,
+	        jellybean: 0xFFFBE6 // Light cream jellybean
+	    },
+	    GREEN_BUTTON: {
+	        gradientTop: 0x2DE45A, // Main green (No Ads popup style)
+	        gradientBottom: 0x2DE45A, // Same - solid color
+	        border: 0x000000, // Black outer border
+	        shadow: 0x28A165, // Green shadow/depth
+	        highlight: 0xFFFFFF, // White highlight (25% alpha applied in code)
+	        text: 0xFFFFFF,
+	        textStroke: 0x1A4D1A,
+	        jellybean: 0xE6FCE9 // Jellybean gloss color
+	    },
+	    BLUE_BUTTON: {
+	        gradientTop: 0x4DA6FF, // Bright blue (solid)
+	        gradientBottom: 0x4DA6FF, // Same - solid color
+	        border: 0x000000, // Black outer border
+	        shadow: 0x2E7BC9, // Darker blue shadow
+	        highlight: 0xFFFFFF, // White highlight (25% alpha applied in code)
+	        text: 0xFFFFFF,
+	        textStroke: 0x1A4B7A,
+	        jellybean: 0xE6F3FF // Light blue jellybean
+	    },
+	    RED_BUTTON: {
+	        gradientTop: 0xE85C5C, // Coral red (solid)
+	        gradientBottom: 0xE85C5C, // Same - solid color
+	        border: 0x000000, // Black outer border
+	        shadow: 0xB34040, // Darker red shadow
+	        highlight: 0xFFFFFF, // White highlight (25% alpha applied in code)
+	        text: 0xFFFFFF,
+	        textStroke: 0x5C0D0D,
+	        jellybean: 0xFFE6E6 // Light pink jellybean
+	    },
+	    PURPLE_BUTTON: {
+	        gradientTop: 0xAD6DD6, // Lavender (solid)
+	        gradientBottom: 0xAD6DD6, // Same - solid color
+	        border: 0x000000, // Black outer border
+	        shadow: 0x8050B0, // Darker purple shadow
+	        highlight: 0xFFFFFF, // White highlight (25% alpha applied in code)
+	        text: 0xFFFFFF,
+	        textStroke: 0x3D1A54,
+	        jellybean: 0xF3E6FF // Light lavender jellybean
+	    },
+	    // Cream/Beige Play Button (Candy Crush style - keeps gradient for variety)
+	    CREAM_BUTTON: {
+	        gradientTop: 0xFFFBF0,
+	        gradientBottom: 0xF5E6C8,
+	        border: 0x000000, // Black outer border
+	        shadow: 0xD4A857,
+	        highlight: 0xFFFFFF,
+	        text: 0x8B6914,
+	        textStroke: 0xD4A857,
+	        jellybean: 0xFFFFFF // White jellybean
+	    },
+	    // Hexagon level colors
+	    HEXAGON_BLUE: {
+	        fill: 0x4DA6FF,
+	        fillBottom: 0x2E7BC9,
+	        border: 0x1A3A5C,
+	        highlight: 0x7DBFFF,
+	        text: 0xFFFFFF,
+	        textStroke: 0x1A3A5C
+	    },
+	    HEXAGON_LOCKED: {
+	        fill: 0x6B7280,
+	        fillBottom: 0x4B5563,
+	        border: 0x374151,
+	        highlight: 0x9CA3AF,
+	        text: 0xD1D5DB,
+	        textStroke: 0x1F2937
+	    },
+	    HEXAGON_COMPLETED: {
+	        fill: 0x4ADE80,
+	        fillBottom: 0x22C55E,
+	        border: 0x166534,
+	        highlight: 0x86EFAC,
+	        text: 0xFFFFFF,
+	        textStroke: 0x166534
+	    },
+	    HEXAGON_CURRENT: {
+	        fill: 0x818CF8,
+	        fillBottom: 0x6366F1,
+	        border: 0x3730A3,
+	        highlight: 0xA5B4FC,
+	        text: 0xFFFFFF,
+	        textStroke: 0x3730A3,
+	        glow: 0x818CF8
+	    },
+	    // Candy Crush style hexagon with golden border
+	    HEXAGON_CANDY_BLUE: {
+	        fill: 0x5DADE2,
+	        fillBottom: 0x3498DB,
+	        border: 0xF1C40F,
+	        highlight: 0x85C1E9,
+	        text: 0xFFFFFF,
+	        textStroke: 0x21618C,
+	        outerBorder: 0xD4AC0D
+	    },
+	    HEXAGON_CANDY_CURRENT: {
+	        fill: 0x7FB3D5,
+	        fillBottom: 0x5499C7,
+	        border: 0xF1C40F,
+	        highlight: 0xA9CCE3,
+	        text: 0xFFFFFF,
+	        textStroke: 0x2471A3,
+	        outerBorder: 0xD4AC0D,
+	        glow: 0x5DADE2
+	    },
+	    HEXAGON_CANDY_LOCKED: {
+	        fill: 0x7F8C8D,
+	        fillBottom: 0x5D6D7E,
+	        border: 0x95A5A6,
+	        highlight: 0xAEB6BF,
+	        text: 0xBDC3C7,
+	        textStroke: 0x2C3E50,
+	        outerBorder: 0x566573
+	    },
+	    // Panel color schemes (matches No Ads popup style)
+	    PANEL_BLUE: {
+	        fillTop: 0x41A7FB, // Light blue (same as No Ads modal bg)
+	        fillBottom: 0x41A7FB, // Solid color, no gradient
+	        borderOuter: 0x1e3a5f, // Dark navy border
+	        borderInner: 0x1e3a5f, // Same - single border layer
+	        borderWidth: 4, // Thinner border like No Ads
+	        titleColor: 0xFFFFFF,
+	        titleStroke: 0x1a2a3a, // Darker stroke for title
+	        headerBg: 0x2889F0, // Darker blue header
+	        closeButtonBg: 0xE84C4C,
+	        closeButtonBorder: 0xA83340,
+	        closeButtonX: 0xFFFFFF
+	    },
+	    PANEL_PURPLE: {
+	        fillTop: 0xA478DC,
+	        fillBottom: 0x7B4DB8,
+	        borderOuter: 0x4A2878,
+	        borderInner: 0x5A3888,
+	        borderWidth: 8,
+	        titleColor: 0xFFFFFF,
+	        titleStroke: 0x4A2878,
+	        closeButtonBg: 0xE84C4C,
+	        closeButtonBorder: 0x8B2020,
+	        closeButtonX: 0xFFFFFF
+	    },
+	    PANEL_GREEN: {
+	        fillTop: 0x6FCF6F,
+	        fillBottom: 0x4CAF50,
+	        borderOuter: 0x2E7D32,
+	        borderInner: 0x388E3C,
+	        borderWidth: 8,
+	        titleColor: 0xFFFFFF,
+	        titleStroke: 0x2E7D32,
+	        closeButtonBg: 0xE84C4C,
+	        closeButtonBorder: 0x8B2020,
+	        closeButtonX: 0xFFFFFF
+	    },
+	    PANEL_ORANGE: {
+	        fillTop: 0xFFB74D,
+	        fillBottom: 0xFF9800,
+	        borderOuter: 0xE65100,
+	        borderInner: 0xF57C00,
+	        borderWidth: 8,
+	        titleColor: 0xFFFFFF,
+	        titleStroke: 0xE65100,
+	        closeButtonBg: 0xE84C4C,
+	        closeButtonBorder: 0x8B2020,
+	        closeButtonX: 0xFFFFFF
+	    },
+	    PANEL_DARK: {
+	        fillTop: 0x3D4A5C,
+	        fillBottom: 0x2C3E50,
+	        borderOuter: 0x1A252F,
+	        borderInner: 0x2A3F4F,
+	        borderWidth: 8,
+	        titleColor: 0xFFFFFF,
+	        titleStroke: 0x1A252F,
+	        closeButtonBg: 0xE84C4C,
+	        closeButtonBorder: 0x8B2020,
+	        closeButtonX: 0xFFFFFF
+	    },
+	    PANEL_RED: {
+	        fillTop: 0xE57373,
+	        fillBottom: 0xD32F2F,
+	        borderOuter: 0x8B1A1A,
+	        borderInner: 0xB71C1C,
+	        borderWidth: 8,
+	        titleColor: 0xFFFFFF,
+	        titleStroke: 0x8B1A1A,
+	        closeButtonBg: 0x333333,
+	        closeButtonBorder: 0x1A1A1A,
+	        closeButtonX: 0xFFFFFF
+	    },
+	    // Top Bar Resource Pill Colors
+	    TOP_BAR_LIVES: {
+	        background: 0x1A1A2A,
+	        border: 0x0D0D15,
+	        iconColor: 0xFF4081,
+	        textColor: 0xFFFFFF,
+	        labelBackground: 0x2A2A3A,
+	        labelColor: 0xFFFFFF
+	    },
+	    TOP_BAR_COINS: {
+	        background: 0x4CAF50,
+	        border: 0x2E7D32,
+	        iconColor: 0xFFD700,
+	        textColor: 0xFFFFFF,
+	        addButtonBg: 0x66BB6A,
+	        addButtonBorder: 0x43A047
+	    },
+	    // Bottom Navigation Colors
+	    BOTTOM_NAV: {
+	        background: 0x1A237E,
+	        topBorder: 0x3949AB,
+	        itemBackground: 0x283593,
+	        itemHighlight: 0x3949AB,
+	        itemActive: 0x5C6BC0,
+	        textColor: 0xFFFFFF,
+	        lockedColor: 0x757575
+	    },
+	    // ═══════════════════════════════════════════════════════════════
+	    // @pixi/ui Wrapper Component Colors (Jellybean Style)
+	    // ═══════════════════════════════════════════════════════════════
+	    // Input field colors
+	    GAME_INPUT: {
+	        background: 0x2A3A4A,
+	        backgroundFocus: 0x3A4A5A,
+	        border: 0x000000,
+	        borderInner: 0x1A2A3A,
+	        shadow: 0x1A2530,
+	        text: 0xFFFFFF,
+	        placeholder: 0x8A9AAA,
+	        cursor: 0xFFFFFF,
+	        selection: 0x4DA6FF,
+	        highlight: 0xFFFFFF
+	    },
+	    // ScrollBox colors
+	    GAME_SCROLLBOX: {
+	        background: 0x2A3A4A,
+	        border: 0x000000,
+	        borderInner: 0x1A2A3A,
+	        shadow: 0x1A2530,
+	        scrollbarTrack: 0x1A2A3A,
+	        scrollbarThumb: 0x5A6A7A,
+	        scrollbarThumbHover: 0x7A8A9A,
+	        highlight: 0xFFFFFF
+	    },
+	    // Select/Dropdown colors
+	    GAME_SELECT: {
+	        triggerBg: 0x4DA6FF,
+	        triggerBorder: 0x000000,
+	        triggerShadow: 0x2E7BC9,
+	        triggerHighlight: 0xFFFFFF,
+	        dropdownBg: 0x2A3A4A,
+	        dropdownBorder: 0x000000,
+	        dropdownShadow: 0x1A2530,
+	        itemHover: 0x3A4A5A,
+	        itemSelected: 0x4DA6FF,
+	        text: 0xFFFFFF,
+	        arrow: 0xFFFFFF
+	    },
+	    // CheckBox colors
+	    GAME_CHECKBOX: {
+	        boxBg: 0x2A3A4A,
+	        boxBorder: 0x000000,
+	        boxShadow: 0x1A2530,
+	        boxChecked: 0x4DA6FF,
+	        checkmark: 0xFFFFFF,
+	        highlight: 0xFFFFFF,
+	        text: 0xFFFFFF
+	    },
+	    // RadioGroup colors
+	    GAME_RADIO: {
+	        circleBg: 0x2A3A4A,
+	        circleBorder: 0x000000,
+	        circleShadow: 0x1A2530,
+	        circleSelected: 0x4DA6FF,
+	        dot: 0xFFFFFF,
+	        highlight: 0xFFFFFF,
+	        text: 0xFFFFFF
+	    },
+	    // List colors (minimal - mostly container)
+	    GAME_LIST: {
+	        background: 0x2A3A4A,
+	        border: 0x000000,
+	        divider: 0x3A4A5A
+	    }
+	};
+	/**
+	 * Create a canvas gradient for game buttons
+	 */
+	function createGameButtonGradient(ctx, x, y, width, height, colorTop, colorBottom) {
+	    const gradient = ctx.createLinearGradient(x, y, x, y + height);
+	    gradient.addColorStop(0, numberToHex(colorTop));
+	    gradient.addColorStop(0.5, numberToHex(colorTop));
+	    gradient.addColorStop(0.5, numberToHex(colorBottom));
+	    gradient.addColorStop(1, numberToHex(colorBottom));
+	    return gradient;
+	}
+	/**
+	 * Create a vertical gradient for backgrounds
+	 */
+	function createSkyGradient(ctx, width, height) {
+	    const gradient = ctx.createLinearGradient(0, 0, 0, height);
+	    gradient.addColorStop(0, '#0066CC');
+	    gradient.addColorStop(0.3, '#0088EE');
+	    gradient.addColorStop(0.6, '#00AAFF');
+	    gradient.addColorStop(1, '#66CCFF');
+	    return gradient;
+	}
+	/**
+	 * Convert hex number to CSS color string
+	 */
+	function numberToHex(num) {
+	    return `#${num.toString(16).padStart(6, '0')}`;
+	}
+	/**
+	 * Lighten a color by a percentage
+	 */
+	function lightenColor(color, percent) {
+	    const r = Math.min(255, ((color >> 16) & 0xFF) + Math.floor(255 * percent));
+	    const g = Math.min(255, ((color >> 8) & 0xFF) + Math.floor(255 * percent));
+	    const b = Math.min(255, (color & 0xFF) + Math.floor(255 * percent));
+	    return (r << 16) | (g << 8) | b;
+	}
+	/**
+	 * Darken a color by a percentage
+	 */
+	function darkenColor(color, percent) {
+	    const r = Math.max(0, ((color >> 16) & 0xFF) - Math.floor(255 * percent));
+	    const g = Math.max(0, ((color >> 8) & 0xFF) - Math.floor(255 * percent));
+	    const b = Math.max(0, (color & 0xFF) - Math.floor(255 * percent));
+	    return (r << 16) | (g << 8) | b;
+	}
+
+	/**
 	 * Modern UIButton component for mobile games
 	 *
 	 * Features:
@@ -37666,13 +36824,13 @@
 	    renderGradientBackground(baseColor) {
 	        const { width, height, borderRadius, gradient } = this.config;
 	        // Determine gradient colors
-	        const colorTop = gradient.colorTop !== undefined ? gradient.colorTop : this.lightenColor(baseColor, 0.2);
-	        const colorBottom = gradient.colorBottom !== undefined ? gradient.colorBottom : this.darkenColor(baseColor, 0.2);
+	        const colorTop = gradient.colorTop !== undefined ? gradient.colorTop : lightenColor(baseColor, 0.2);
+	        const colorBottom = gradient.colorBottom !== undefined ? gradient.colorBottom : darkenColor(baseColor, 0.2);
 	        // Create gradient texture using framework abstraction
 	        const texture = graphics().createCanvasTexture(width, height, (ctx) => {
 	            const gradientFill = ctx.createLinearGradient(0, 0, 0, height);
-	            gradientFill.addColorStop(0, this.numberToHex(colorTop));
-	            gradientFill.addColorStop(1, this.numberToHex(colorBottom));
+	            gradientFill.addColorStop(0, numberToHex(colorTop));
+	            gradientFill.addColorStop(1, numberToHex(colorBottom));
 	            ctx.fillStyle = gradientFill;
 	            this.roundRect(ctx, 0, 0, width, height, borderRadius);
 	            ctx.fill();
@@ -37843,24 +37001,6 @@
 	        this.activeRipples = [];
 	        this.container.destroy({ children: true });
 	        this.removeAllListeners();
-	    }
-	    /**
-	     * Utility methods
-	     */
-	    lightenColor(color, amount) {
-	        const r = ((color >> 16) & 0xFF) + Math.floor(255 * amount);
-	        const g = ((color >> 8) & 0xFF) + Math.floor(255 * amount);
-	        const b = (color & 0xFF) + Math.floor(255 * amount);
-	        return ((Math.min(255, r) << 16) | (Math.min(255, g) << 8) | Math.min(255, b));
-	    }
-	    darkenColor(color, amount) {
-	        const r = ((color >> 16) & 0xFF) - Math.floor(255 * amount);
-	        const g = ((color >> 8) & 0xFF) - Math.floor(255 * amount);
-	        const b = (color & 0xFF) - Math.floor(255 * amount);
-	        return ((Math.max(0, r) << 16) | (Math.max(0, g) << 8) | Math.max(0, b));
-	    }
-	    numberToHex(num) {
-	        return `#${num.toString(16).padStart(6, '0')}`;
 	    }
 	    roundRect(ctx, x, y, width, height, radius) {
 	        ctx.beginPath();
@@ -38577,7 +37717,7 @@
 	        }
 	        else if (this._item) {
 	            // Slightly lighter when occupied
-	            bgColor = this.lightenColor(backgroundColor, 0.1);
+	            bgColor = lightenColor(backgroundColor, 0.1);
 	        }
 	        // Draw background using Pixi v8 modern API
 	        this.background
@@ -38644,15 +37784,6 @@
 	            .moveTo(centerX, centerY - size / 2)
 	            .lineTo(centerX, centerY + size / 2)
 	            .stroke({ color: 0x555555, width: 2, alpha: 0.5 });
-	    }
-	    /**
-	     * Lighten a color
-	     */
-	    lightenColor(color, amount) {
-	        const r = Math.min(255, ((color >> 16) & 0xFF) + 255 * amount);
-	        const g = Math.min(255, ((color >> 8) & 0xFF) + 255 * amount);
-	        const b = Math.min(255, (color & 0xFF) + 255 * amount);
-	        return (r << 16) | (g << 8) | b;
 	    }
 	}
 
@@ -40281,7 +39412,7 @@
 	        this.responsiveCalculator = null;
 	        // Merge style configuration with defaults
 	        this.style = this.mergeStyleConfig(options);
-	        // Handle backward compatibility for deprecated options
+	        // Merge callbacks (support both callbacks.onSectionChange and shorthand onSectionChange)
 	        this.callbacks = {
 	            ...options.callbacks,
 	            onSectionChange: options.callbacks?.onSectionChange || options.onSectionChange
@@ -40333,21 +39464,21 @@
 	     */
 	    mergeStyleConfig(options) {
 	        const style = options.style || {};
-	        // Handle backward compatibility
-	        const legacyOverrides = {};
+	        // Apply shorthand options (top-level options override style.*)
+	        const shorthandOverrides = {};
 	        if (options.enableParticles !== undefined)
-	            legacyOverrides.enableParticles = options.enableParticles;
+	            shorthandOverrides.enableParticles = options.enableParticles;
 	        if (options.navHeight !== undefined)
-	            legacyOverrides.navHeight = options.navHeight;
+	            shorthandOverrides.navHeight = options.navHeight;
 	        if (options.buttonSize !== undefined)
-	            legacyOverrides.buttonSize = options.buttonSize;
+	            shorthandOverrides.buttonSize = options.buttonSize;
 	        if (options.activeButtonSize !== undefined)
-	            legacyOverrides.activeButtonSize = options.activeButtonSize;
+	            shorthandOverrides.activeButtonSize = options.activeButtonSize;
 	        if (options.padding !== undefined)
-	            legacyOverrides.padding = options.padding;
+	            shorthandOverrides.padding = options.padding;
 	        return {
 	            ...DEFAULT_STYLE$1,
-	            ...legacyOverrides,
+	            ...shorthandOverrides,
 	            ...style,
 	            buttonGradient: {
 	                ...DEFAULT_STYLE$1.buttonGradient,
@@ -40526,24 +39657,20 @@
 	        // Use style config values (with vanilla defaults in DEFAULT_STYLE)
 	        const fontSize = isActive ? this.style.activeIconSize : this.style.iconSize;
 	        const yPosition = isActive ? this.style.activeIconYOffset : this.style.iconYOffset;
-	        // Direct PIXI.Text creation (bypass framework abstraction for predictable sizing)
-	        // Pixi v8 format: new PIXI.Text({ text, style })
-	        const icon = new PIXI__namespace.Text({
-	            text: typeof section.icon === 'string' ? section.icon : '',
-	            style: {
-	                fontSize: fontSize,
-	                fontFamily: 'system-ui',
-	                stroke: { color: this.style.iconStrokeColor, width: this.style.iconStrokeWidth },
-	                dropShadow: {
-	                    angle: 0.523599,
-	                    distance: this.style.iconShadowDistance,
-	                    alpha: 0.8,
-	                    blur: this.style.iconShadowBlur,
-	                    color: this.style.iconStrokeColor
-	                }
+	        // Create icon text using graphics abstraction
+	        const icon = graphics().createText(typeof section.icon === 'string' ? section.icon : '', {
+	            fontSize: fontSize,
+	            fontFamily: 'system-ui',
+	            stroke: { color: this.style.iconStrokeColor, width: this.style.iconStrokeWidth },
+	            dropShadow: {
+	                angle: 0.523599,
+	                distance: this.style.iconShadowDistance,
+	                alpha: 0.8,
+	                blur: this.style.iconShadowBlur,
+	                color: this.style.iconStrokeColor
 	            }
 	        });
-	        icon.anchor.set(0.5);
+	        icon.anchor?.set(0.5);
 	        icon.y = yPosition;
 	        return icon;
 	    }
@@ -40560,25 +39687,21 @@
 	        // Apply section-specific style overrides
 	        const labelColor = section.customStyle?.labelColor ?? this.style.labelColor;
 	        const labelStrokeColor = section.customStyle?.labelStrokeColor ?? this.style.labelStrokeColor;
-	        // Direct PIXI.Text creation (bypass framework abstraction for predictable sizing)
-	        // Pixi v8 format: new PIXI.Text({ text, style })
-	        const label = new PIXI__namespace.Text({
-	            text: section.name,
-	            style: {
-	                fontSize: this.style.labelSize,
-	                fill: labelColor,
-	                fontWeight: this.style.labelFontWeight,
-	                stroke: { color: labelStrokeColor, width: this.style.labelStrokeWidth },
-	                dropShadow: {
-	                    angle: 0.523599,
-	                    distance: this.style.labelShadowDistance,
-	                    alpha: 0.6,
-	                    blur: this.style.labelShadowBlur,
-	                    color: 0x000000
-	                }
+	        // Create label text using graphics abstraction
+	        const label = graphics().createText(section.name, {
+	            fontSize: this.style.labelSize,
+	            fill: labelColor,
+	            fontWeight: this.style.labelFontWeight,
+	            stroke: { color: labelStrokeColor, width: this.style.labelStrokeWidth },
+	            dropShadow: {
+	                angle: 0.523599,
+	                distance: this.style.labelShadowDistance,
+	                alpha: 0.6,
+	                blur: this.style.labelShadowBlur,
+	                color: 0x000000
 	            }
 	        });
-	        label.anchor.set(0.5);
+	        label.anchor?.set(0.5);
 	        label.y = this.style.labelYOffset;
 	        return label;
 	    }
@@ -40602,9 +39725,8 @@
 	            const topColor = gradientConfig.topColor ?? 0xFFF4CC;
 	            const middleColor = gradientConfig.middleColor ?? 0xFFD700;
 	            const bottomColor = gradientConfig.bottomColor ?? 0xFF8C00;
-	            // PixiJS v8 FillGradient API (EXACT vanilla syntax)
-	            const fillGradient = new PIXI__namespace.FillGradient({
-	                type: 'linear',
+	            // Create linear gradient using graphics factory abstraction
+	            const fillGradient = graphics().createLinearGradient({
 	                start: { x: 0, y: 0 },
 	                end: { x: 0, y: 1 },
 	                colorStops: [
@@ -40614,7 +39736,7 @@
 	                ]
 	            });
 	            bg.roundRect(-size / 2, -size / 2, size, size, this.getScaledValue(this.style.buttonRadius));
-	            bg.fill(fillGradient);
+	            bg.fill(fillGradient.native);
 	        }
 	        else {
 	            // Inactive: Transparent
@@ -40635,10 +39757,9 @@
 	        const middleColor = shine.middleColor ?? 0xFFFBE6;
 	        const bottomColor = shine.bottomColor ?? 0xFFE55C;
 	        const alpha = shine.alpha ?? 0.35;
-	        // PixiJS v8 FillGradient API (EXACT vanilla syntax)
+	        // Create shine gradient using graphics factory abstraction
 	        const overlayTop = -size / 2 + 8;
-	        const shineGradient = new PIXI__namespace.FillGradient({
-	            type: 'linear',
+	        const shineGradient = graphics().createLinearGradient({
 	            start: { x: 0, y: 0 },
 	            end: { x: 0, y: 1 },
 	            colorStops: [
@@ -40648,7 +39769,7 @@
 	            ]
 	        });
 	        overlay.roundRect(-overlayWidth / 2, overlayTop, overlayWidth, overlayHeight, this.getScaledValue(25));
-	        overlay.fill(shineGradient);
+	        overlay.fill(shineGradient.native);
 	        overlay.alpha = alpha; // Vanilla: simple alpha, no mask
 	        return overlay;
 	    }
@@ -41211,6 +40332,749 @@
 	}
 
 	/**
+	 * GameSplash - Framework splash screen (instant-loading)
+	 *
+	 * Shows GameByte logo with premium animations.
+	 * Loads INSTANTLY before any JavaScript - pure HTML/CSS.
+	 *
+	 * Features:
+	 * - Ambient light rays rotating in background
+	 * - Lens flare center glow
+	 * - Gradient orbital rings with orbiting dot
+	 * - Energy ripples expanding outward
+	 * - 4-pointed star sparkles (SVG)
+	 * - Particle burst effects
+	 * - Smooth floating logo with multi-layer glow
+	 * - Reduced motion support for accessibility
+	 *
+	 * Usage:
+	 * 1. Add GameSplash.getInlineCSS() to your HTML <head>
+	 * 2. Add GameSplash.getInlineHTML() to your HTML <body>
+	 * 3. Call GameSplash.init() once JS loads
+	 * 4. Call splash.hide() to transition out
+	 */
+	const DEFAULT_CONFIG$4 = {
+	    logoUrl: '/img/logo-icon.svg',
+	    backgroundColor: '#0a0a1a',
+	    glowColor: '#6366f1',
+	    accentColor: '#a855f7',
+	    duration: 1500
+	};
+	/**
+	 * Convert hex color to RGB values
+	 */
+	function hexToRgb(hex) {
+	    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+	    if (result) {
+	        return `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`;
+	    }
+	    return '99, 102, 241'; // Default fallback
+	}
+	/**
+	 * GameSplash - Framework branding splash (instant load)
+	 */
+	class GameSplash {
+	    constructor(config = {}) {
+	        this.element = null;
+	        this.onComplete = null;
+	        this.config = { ...DEFAULT_CONFIG$4, ...config };
+	    }
+	    /**
+	     * Initialize splash screen (call once JS loads)
+	     */
+	    static init(config = {}) {
+	        if (!GameSplash.instance) {
+	            GameSplash.instance = new GameSplash(config);
+	            GameSplash.instance.attach();
+	        }
+	        return GameSplash.instance;
+	    }
+	    /**
+	     * Get singleton instance
+	     */
+	    static getInstance() {
+	        return GameSplash.instance;
+	    }
+	    /**
+	     * Attach to existing splash element or create new one
+	     */
+	    attach() {
+	        this.element = document.getElementById('gamebyte-splash');
+	        if (!this.element) {
+	            // Create splash if not found in HTML
+	            const css = document.createElement('style');
+	            css.id = 'gamebyte-splash-styles';
+	            css.textContent = GameSplash.getInlineCSS(this.config).replace(/<\/?style[^>]*>/g, '');
+	            document.head.appendChild(css);
+	            document.body.insertAdjacentHTML('afterbegin', GameSplash.getInlineHTML(this.config));
+	            this.element = document.getElementById('gamebyte-splash');
+	        }
+	        // Auto-hide if duration is set
+	        if (this.config.duration > 0) {
+	            setTimeout(() => this.hide(), this.config.duration);
+	        }
+	    }
+	    /**
+	     * Hide splash with fade animation
+	     */
+	    async hide() {
+	        if (!this.element)
+	            return;
+	        this.element.classList.add('splash-hiding');
+	        return new Promise((resolve) => {
+	            setTimeout(() => {
+	                if (this.element) {
+	                    this.element.remove();
+	                }
+	                // Clean up styles
+	                const styles = document.getElementById('gamebyte-splash-styles');
+	                if (styles)
+	                    styles.remove();
+	                GameSplash.instance = null;
+	                if (this.onComplete) {
+	                    this.onComplete();
+	                }
+	                resolve();
+	            }, 600);
+	        });
+	    }
+	    /**
+	     * Set callback for when splash completes
+	     */
+	    onHide(callback) {
+	        this.onComplete = callback;
+	    }
+	    /**
+	     * Get inline CSS to embed in <head>
+	     * Pure CSS - loads instantly without JS
+	     * Premium effects: light rays, lens flare, orbital rings, sparkles, particles
+	     */
+	    static getInlineCSS(config = {}) {
+	        const cfg = { ...DEFAULT_CONFIG$4, ...config };
+	        const glowRgb = hexToRgb(cfg.glowColor);
+	        const accentRgb = hexToRgb(cfg.accentColor);
+	        return `
+<style id="gamebyte-splash-styles">
+  :root {
+    --gb-glow: ${cfg.glowColor};
+    --gb-glow-rgb: ${glowRgb};
+    --gb-accent: ${cfg.accentColor};
+    --gb-accent-rgb: ${accentRgb};
+  }
+
+  #gamebyte-splash {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(ellipse at center, #12122a 0%, ${cfg.backgroundColor} 70%);
+    transition: opacity 0.6s ease-out;
+    overflow: hidden;
+  }
+
+  #gamebyte-splash.splash-hiding {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* === AMBIENT LIGHT RAYS === */
+  .gb-light-rays {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: conic-gradient(
+      from 0deg at 50% 50%,
+      transparent 0deg,
+      rgba(var(--gb-glow-rgb), 0.03) 10deg,
+      transparent 20deg,
+      transparent 40deg,
+      rgba(var(--gb-glow-rgb), 0.02) 50deg,
+      transparent 60deg,
+      transparent 90deg,
+      rgba(var(--gb-accent-rgb), 0.03) 100deg,
+      transparent 110deg,
+      transparent 140deg,
+      rgba(var(--gb-glow-rgb), 0.02) 150deg,
+      transparent 160deg,
+      transparent 180deg,
+      rgba(var(--gb-glow-rgb), 0.03) 190deg,
+      transparent 200deg,
+      transparent 230deg,
+      rgba(var(--gb-accent-rgb), 0.02) 240deg,
+      transparent 250deg,
+      transparent 280deg,
+      rgba(var(--gb-glow-rgb), 0.03) 290deg,
+      transparent 300deg,
+      transparent 330deg,
+      rgba(var(--gb-glow-rgb), 0.02) 340deg,
+      transparent 360deg
+    );
+    animation: gb-rays-rotate 20s linear infinite;
+    pointer-events: none;
+  }
+
+  /* === LENS FLARE CENTER GLOW === */
+  .gb-lens-flare {
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(
+      circle at center,
+      rgba(var(--gb-glow-rgb), 0.15) 0%,
+      rgba(var(--gb-glow-rgb), 0.08) 20%,
+      rgba(var(--gb-accent-rgb), 0.03) 40%,
+      transparent 70%
+    );
+    filter: blur(20px);
+    animation: gb-lens-pulse 4s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  /* === LOGO WRAPPER === */
+  .gamebyte-logo-wrapper {
+    position: relative;
+    width: 240px;
+    height: 240px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: gb-entrance 1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  /* === LOGO === */
+  .gamebyte-logo {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    z-index: 10;
+  }
+
+  .gamebyte-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+    animation: gb-logo-glow 3s ease-in-out infinite;
+  }
+
+  /* === ORBITAL RINGS WITH GRADIENT === */
+  .gb-orbit {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .gb-orbit-1 {
+    width: 130px;
+    height: 130px;
+    border: 2px solid transparent;
+    background: linear-gradient(${cfg.backgroundColor}, ${cfg.backgroundColor}) padding-box,
+                linear-gradient(45deg, var(--gb-glow), var(--gb-accent), var(--gb-glow)) border-box;
+    animation: gb-spin 6s linear infinite;
+    opacity: 0.6;
+  }
+
+  .gb-orbit-2 {
+    width: 170px;
+    height: 170px;
+    border: 1px dashed rgba(var(--gb-glow-rgb), 0.4);
+    animation: gb-spin-reverse 10s linear infinite;
+  }
+
+  .gb-orbit-3 {
+    width: 210px;
+    height: 210px;
+    border: 1px solid transparent;
+    background: linear-gradient(${cfg.backgroundColor}, ${cfg.backgroundColor}) padding-box,
+                linear-gradient(135deg, transparent, var(--gb-glow), transparent) border-box;
+    animation: gb-spin 15s linear infinite;
+    opacity: 0.3;
+  }
+
+  /* === ORBITING DOT === */
+  .gb-orbit-dot {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: var(--gb-glow);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--gb-glow), 0 0 20px var(--gb-glow), 0 0 30px var(--gb-accent);
+    top: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  /* === ENERGY RIPPLES === */
+  .gb-ripple {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 2px solid var(--gb-glow);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .gb-ripple-1 { animation: gb-ripple-expand 2.5s ease-out infinite; }
+  .gb-ripple-2 { animation: gb-ripple-expand 2.5s ease-out infinite 0.8s; }
+  .gb-ripple-3 { animation: gb-ripple-expand 2.5s ease-out infinite 1.6s; }
+
+  /* === 4-POINTED STAR SPARKLES (SVG) === */
+  .gb-sparkles {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  .gb-star {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    opacity: 0;
+  }
+
+  .gb-star svg {
+    width: 100%;
+    height: 100%;
+    fill: white;
+    filter: drop-shadow(0 0 4px white) drop-shadow(0 0 8px var(--gb-glow));
+  }
+
+  .gb-star-1 { top: 15%; left: 20%; animation: gb-star-twinkle 2s ease-in-out infinite 0s; }
+  .gb-star-2 { top: 25%; right: 15%; animation: gb-star-twinkle 2.3s ease-in-out infinite 0.4s; }
+  .gb-star-3 { bottom: 20%; left: 15%; animation: gb-star-twinkle 1.8s ease-in-out infinite 0.8s; }
+  .gb-star-4 { bottom: 25%; right: 20%; animation: gb-star-twinkle 2.1s ease-in-out infinite 1.2s; }
+  .gb-star-5 { top: 50%; left: 5%; animation: gb-star-twinkle 2.5s ease-in-out infinite 0.2s; }
+  .gb-star-6 { top: 50%; right: 5%; animation: gb-star-twinkle 1.9s ease-in-out infinite 0.6s; }
+
+  /* === FLOATING PARTICLES === */
+  .gb-particles {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  .gb-particle {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: white;
+    border-radius: 50%;
+    opacity: 0;
+  }
+
+  .gb-particle-1 { top: 50%; left: 50%; animation: gb-particle-burst 3s ease-out infinite 0s; --angle: 0deg; --dist: 120px; }
+  .gb-particle-2 { top: 50%; left: 50%; animation: gb-particle-burst 3s ease-out infinite 0.25s; --angle: 45deg; --dist: 100px; }
+  .gb-particle-3 { top: 50%; left: 50%; animation: gb-particle-burst 3s ease-out infinite 0.5s; --angle: 90deg; --dist: 110px; }
+  .gb-particle-4 { top: 50%; left: 50%; animation: gb-particle-burst 3s ease-out infinite 0.75s; --angle: 135deg; --dist: 95px; }
+  .gb-particle-5 { top: 50%; left: 50%; animation: gb-particle-burst 3s ease-out infinite 1s; --angle: 180deg; --dist: 115px; }
+  .gb-particle-6 { top: 50%; left: 50%; animation: gb-particle-burst 3s ease-out infinite 1.25s; --angle: 225deg; --dist: 105px; }
+  .gb-particle-7 { top: 50%; left: 50%; animation: gb-particle-burst 3s ease-out infinite 1.5s; --angle: 270deg; --dist: 120px; }
+  .gb-particle-8 { top: 50%; left: 50%; animation: gb-particle-burst 3s ease-out infinite 1.75s; --angle: 315deg; --dist: 100px; }
+
+  /* === KEYFRAME ANIMATIONS === */
+  @keyframes gb-entrance {
+    0% { transform: scale(0); opacity: 0; filter: blur(20px); }
+    50% { filter: blur(0); }
+    100% { transform: scale(1); opacity: 1; filter: blur(0); }
+  }
+
+  @keyframes gb-logo-glow {
+    0%, 100% {
+      filter: brightness(0) invert(1)
+              drop-shadow(0 0 15px rgba(var(--gb-glow-rgb), 0.8))
+              drop-shadow(0 0 30px rgba(var(--gb-glow-rgb), 0.5))
+              drop-shadow(0 0 45px rgba(var(--gb-accent-rgb), 0.3));
+    }
+    50% {
+      filter: brightness(0) invert(1)
+              drop-shadow(0 0 25px rgba(var(--gb-glow-rgb), 1))
+              drop-shadow(0 0 50px rgba(var(--gb-glow-rgb), 0.7))
+              drop-shadow(0 0 75px rgba(var(--gb-accent-rgb), 0.5));
+    }
+  }
+
+  @keyframes gb-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes gb-spin-reverse {
+    from { transform: rotate(360deg); }
+    to { transform: rotate(0deg); }
+  }
+
+  @keyframes gb-ripple-expand {
+    0% { transform: scale(1); opacity: 0.6; border-color: var(--gb-glow); }
+    100% { transform: scale(4); opacity: 0; border-color: var(--gb-accent); }
+  }
+
+  @keyframes gb-star-twinkle {
+    0%, 100% { opacity: 0; transform: scale(0.5) rotate(0deg); }
+    50% { opacity: 1; transform: scale(1) rotate(180deg); }
+  }
+
+  @keyframes gb-particle-burst {
+    0% {
+      opacity: 1;
+      transform: rotate(var(--angle)) translateX(30px) scale(1);
+      box-shadow: 0 0 6px var(--gb-glow), 0 0 12px var(--gb-glow);
+    }
+    100% {
+      opacity: 0;
+      transform: rotate(var(--angle)) translateX(var(--dist)) scale(0);
+      box-shadow: 0 0 2px var(--gb-glow);
+    }
+  }
+
+  @keyframes gb-rays-rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes gb-lens-pulse {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+  }
+
+  /* === REDUCED MOTION (ACCESSIBILITY) === */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+    }
+  }
+</style>`;
+	    }
+	    /**
+	     * Get inline HTML to embed in <body>
+	     * Pure HTML - renders instantly without JS
+	     * Includes: light rays, lens flare, orbital rings, sparkles, particles, logo
+	     */
+	    static getInlineHTML(config = {}) {
+	        const cfg = { ...DEFAULT_CONFIG$4, ...config };
+	        // SVG for 4-pointed star
+	        const starSvg = '<svg viewBox="0 0 24 24"><path d="M12 0L14 10L24 12L14 14L12 24L10 14L0 12L10 10L12 0Z"/></svg>';
+	        return `
+<div id="gamebyte-splash">
+  <!-- Ambient light rays -->
+  <div class="gb-light-rays"></div>
+
+  <!-- Lens flare glow -->
+  <div class="gb-lens-flare"></div>
+
+  <div class="gamebyte-logo-wrapper">
+    <!-- Orbital rings -->
+    <div class="gb-orbit gb-orbit-1">
+      <div class="gb-orbit-dot"></div>
+    </div>
+    <div class="gb-orbit gb-orbit-2"></div>
+    <div class="gb-orbit gb-orbit-3"></div>
+
+    <!-- Energy ripples -->
+    <div class="gb-ripple gb-ripple-1"></div>
+    <div class="gb-ripple gb-ripple-2"></div>
+    <div class="gb-ripple gb-ripple-3"></div>
+
+    <!-- 4-pointed star sparkles -->
+    <div class="gb-sparkles">
+      <div class="gb-star gb-star-1">${starSvg}</div>
+      <div class="gb-star gb-star-2">${starSvg}</div>
+      <div class="gb-star gb-star-3">${starSvg}</div>
+      <div class="gb-star gb-star-4">${starSvg}</div>
+      <div class="gb-star gb-star-5">${starSvg}</div>
+      <div class="gb-star gb-star-6">${starSvg}</div>
+    </div>
+
+    <!-- Floating particles -->
+    <div class="gb-particles">
+      <div class="gb-particle gb-particle-1"></div>
+      <div class="gb-particle gb-particle-2"></div>
+      <div class="gb-particle gb-particle-3"></div>
+      <div class="gb-particle gb-particle-4"></div>
+      <div class="gb-particle gb-particle-5"></div>
+      <div class="gb-particle gb-particle-6"></div>
+      <div class="gb-particle gb-particle-7"></div>
+      <div class="gb-particle gb-particle-8"></div>
+    </div>
+
+    <!-- Logo -->
+    <div class="gamebyte-logo">
+      <img src="${cfg.logoUrl}" alt="GameByte" />
+    </div>
+  </div>
+</div>`;
+	    }
+	    /**
+	     * Get complete inline code (CSS + HTML) for embedding
+	     */
+	    static getInlineCode(config = {}) {
+	        return {
+	            css: GameSplash.getInlineCSS(config),
+	            html: GameSplash.getInlineHTML(config)
+	        };
+	    }
+	}
+	GameSplash.instance = null;
+
+	/**
+	 * GameLoading - Canvas-based loading screen (Pixi.js)
+	 *
+	 * Shows after GameSplash, with:
+	 * - Game logo/background
+	 * - "Loading" text (Pixi UI style)
+	 * - Optional progress bar (Pixi UI style)
+	 *
+	 * Usage:
+	 * const loading = new GameLoading({ ... });
+	 * stage.addChild(loading.getContainer());
+	 * loading.setProgress(50);
+	 * await loading.hide();
+	 */
+	const DEFAULT_CONFIG$3 = {
+	    width: 400,
+	    height: 600,
+	    backgroundColor: 0x1a1a2e,
+	    backgroundImage: '',
+	    logoUrl: '',
+	    logoEmoji: '🎮',
+	    title: '',
+	    loadingText: 'Loading',
+	    showProgress: false,
+	    progressColor: 0x6366f1,
+	    progressBgColor: 0x2a2a4e
+	};
+	/**
+	 * GameLoading - Pixi.js based loading screen
+	 */
+	class GameLoading extends EventEmitter {
+	    constructor(config) {
+	        super();
+	        this.progressBar = null;
+	        this.progressFill = null;
+	        this.loadingText = null;
+	        this.currentProgress = 0;
+	        this.config = { ...DEFAULT_CONFIG$3, ...config };
+	        const gfx = graphics();
+	        this.container = gfx.createContainer();
+	        // Ensure font is loaded
+	        loadFrameworkFont();
+	        this.createBackground();
+	        this.createLogo();
+	        this.createLoadingText();
+	        if (this.config.showProgress) {
+	            this.createProgressBar();
+	        }
+	    }
+	    createBackground() {
+	        const gfx = graphics();
+	        // Solid color background (always shown as base)
+	        const bg = gfx.createGraphics();
+	        bg.rect(0, 0, this.config.width, this.config.height);
+	        bg.fill({ color: this.config.backgroundColor });
+	        this.container.addChild(bg);
+	        // Background image (optional, covers full screen)
+	        if (this.config.backgroundImage) {
+	            this.loadBackgroundImage();
+	        }
+	    }
+	    loadBackgroundImage() {
+	        const gfx = graphics();
+	        const imageUrl = this.config.backgroundImage;
+	        // Load image first, then create sprite
+	        const img = new Image();
+	        img.onload = () => {
+	            try {
+	                // Create texture from loaded image
+	                const texture = gfx.createTexture(img);
+	                const bgSprite = gfx.createSprite(texture);
+	                // Scale to cover entire screen
+	                bgSprite.width = this.config.width;
+	                bgSprite.height = this.config.height;
+	                // Insert at back (index 1, after solid color bg at index 0)
+	                const container = this.container;
+	                if (container.addChildAt) {
+	                    container.addChildAt(bgSprite, 1);
+	                }
+	                else {
+	                    this.container.addChild(bgSprite);
+	                }
+	            }
+	            catch (e) {
+	                console.warn('GameLoading: Failed to create background sprite', e);
+	            }
+	        };
+	        img.onerror = (e) => {
+	            console.warn('GameLoading: Failed to load background image', e);
+	        };
+	        img.src = imageUrl;
+	    }
+	    createLogo() {
+	        const gfx = graphics();
+	        const centerX = this.config.width / 2;
+	        const centerY = this.config.height / 2 - 60;
+	        if (this.config.logoEmoji) {
+	            const emoji = gfx.createText(this.config.logoEmoji, {
+	                fontSize: 80,
+	                fill: 0xFFFFFF
+	            });
+	            if (emoji.anchor)
+	                emoji.anchor.set(0.5);
+	            emoji.x = centerX;
+	            emoji.y = centerY;
+	            this.container.addChild(emoji);
+	        }
+	        // Title if provided
+	        if (this.config.title) {
+	            const title = gfx.createText(this.config.title, {
+	                fontSize: 36,
+	                fill: 0xFFFFFF,
+	                fontFamily: getFrameworkFontFamily(),
+	                fontWeight: 'bold'
+	            });
+	            if (title.anchor)
+	                title.anchor.set(0.5);
+	            title.x = centerX;
+	            title.y = centerY + 70;
+	            this.container.addChild(title);
+	        }
+	    }
+	    createLoadingText() {
+	        const gfx = graphics();
+	        const centerX = this.config.width / 2;
+	        const bottomY = this.config.height - (this.config.showProgress ? 80 : 60);
+	        // "Loading" text with Pixi UI style (Lilita One font, white with shadow)
+	        this.loadingText = gfx.createText(this.config.loadingText, {
+	            fontSize: 24,
+	            fill: 0xFFFFFF,
+	            fontFamily: getFrameworkFontFamily(),
+	            fontWeight: 'bold',
+	            dropShadow: {
+	                alpha: 0.4,
+	                angle: Math.PI / 4,
+	                blur: 4,
+	                color: 0x000000,
+	                distance: 3
+	            }
+	        });
+	        if (this.loadingText.anchor)
+	            this.loadingText.anchor.set(0.5);
+	        this.loadingText.x = centerX;
+	        this.loadingText.y = bottomY;
+	        this.container.addChild(this.loadingText);
+	    }
+	    createProgressBar() {
+	        const gfx = graphics();
+	        const centerX = this.config.width / 2;
+	        const bottomY = this.config.height - 40;
+	        const barWidth = Math.min(200, this.config.width - 60);
+	        const barHeight = 8;
+	        // Background bar
+	        this.progressBar = gfx.createGraphics();
+	        this.progressBar.roundRect(0, 0, barWidth, barHeight, 4);
+	        this.progressBar.fill({ color: this.config.progressBgColor });
+	        this.progressBar.x = centerX - barWidth / 2;
+	        this.progressBar.y = bottomY;
+	        this.container.addChild(this.progressBar);
+	        // Fill bar (starts at 0 width)
+	        this.progressFill = gfx.createGraphics();
+	        this.progressFill.x = centerX - barWidth / 2;
+	        this.progressFill.y = bottomY;
+	        this.container.addChild(this.progressFill);
+	        // Store bar width for progress updates
+	        this.progressFill._maxWidth = barWidth;
+	        this.progressFill._barHeight = barHeight;
+	    }
+	    /**
+	     * Set loading progress (0-100)
+	     */
+	    setProgress(progress) {
+	        this.currentProgress = Math.min(100, Math.max(0, progress));
+	        if (this.progressFill) {
+	            const maxWidth = this.progressFill._maxWidth || 200;
+	            const barHeight = this.progressFill._barHeight || 8;
+	            const fillWidth = (this.currentProgress / 100) * maxWidth;
+	            this.progressFill.clear();
+	            if (fillWidth > 0) {
+	                this.progressFill.roundRect(0, 0, fillWidth, barHeight, 4);
+	                this.progressFill.fill({ color: this.config.progressColor });
+	            }
+	        }
+	        this.emit('progress', this.currentProgress);
+	        if (this.currentProgress >= 100) {
+	            this.emit('complete');
+	        }
+	    }
+	    /**
+	     * Get current progress
+	     */
+	    getProgress() {
+	        return this.currentProgress;
+	    }
+	    /**
+	     * Set loading text
+	     */
+	    setLoadingText(text) {
+	        this.config.loadingText = text;
+	    }
+	    /**
+	     * Hide loading screen with fade animation
+	     */
+	    async hide() {
+	        // Fade out animation
+	        return new Promise((resolve) => {
+	            let alpha = 1;
+	            const fadeOut = () => {
+	                alpha -= 0.05;
+	                this.container.alpha = alpha;
+	                if (alpha <= 0) {
+	                    this.container.visible = false;
+	                    this.emit('hidden');
+	                    resolve();
+	                }
+	                else {
+	                    requestAnimationFrame(fadeOut);
+	                }
+	            };
+	            fadeOut();
+	        });
+	    }
+	    /**
+	     * Show loading screen
+	     */
+	    show() {
+	        this.container.visible = true;
+	        this.container.alpha = 1;
+	    }
+	    /**
+	     * Get the container for adding to stage
+	     */
+	    getContainer() {
+	        return this.container;
+	    }
+	    /**
+	     * Set position
+	     */
+	    setPosition(x, y) {
+	        this.container.x = x;
+	        this.container.y = y;
+	    }
+	    /**
+	     * Destroy and clean up
+	     */
+	    destroy() {
+	        this.container.destroy({ children: true });
+	    }
+	}
+
+	/**
 	 * Animation utilities for UI components
 	 */
 	/**
@@ -41601,7 +41465,7 @@
 	        // Background pill shape with configurable colors
 	        const bg = graphics().createGraphics();
 	        const bgColor = res.backgroundColor || this.getDefaultBgColor(res.type);
-	        const borderColor = res.borderColor || this.darkenColor(bgColor, 0.3);
+	        const borderColor = res.borderColor || darkenColor(bgColor, 0.3);
 	        // Outer shadow for depth
 	        bg.roundRect(-halfWidth - 1, -halfHeight + 2, actualWidth + 2, height, height / 2);
 	        bg.fill({ color: 0x000000, alpha: 0.3 });
@@ -41633,7 +41497,7 @@
 	        this.resourceTexts.set(res.type, valueText);
 	        // Max label (e.g., "MAX")
 	        if (res.label) {
-	            const labelBgColor = res.labelBackgroundColor || this.darkenColor(bgColor, 0.2);
+	            const labelBgColor = res.labelBackgroundColor || darkenColor(bgColor, 0.2);
 	            const labelBg = graphics().createGraphics();
 	            labelBg.roundRect(valueText.x + valueText.width + 5, -10, 36, 20, 5);
 	            labelBg.fill({ color: labelBgColor });
@@ -41711,7 +41575,7 @@
 	        }
 	        g.poly(vertices);
 	        g.fill({ color: color });
-	        g.stroke({ color: this.darkenColor(color, 0.3), width: 1.5 });
+	        g.stroke({ color: darkenColor(color, 0.3), width: 1.5 });
 	    }
 	    /**
 	     * Draw coin icon
@@ -41720,7 +41584,7 @@
 	        // Outer circle
 	        g.circle(0, 0, size);
 	        g.fill({ color: color });
-	        g.stroke({ color: this.darkenColor(color, 0.3), width: 2 });
+	        g.stroke({ color: darkenColor(color, 0.3), width: 2 });
 	        // Inner highlight
 	        g.circle(-size * 0.2, -size * 0.2, size * 0.3);
 	        g.fill({ color: 0xFFFFFF, alpha: 0.4 });
@@ -41738,7 +41602,7 @@
 	        ];
 	        g.poly(vertices);
 	        g.fill({ color: color });
-	        g.stroke({ color: this.darkenColor(color, 0.3), width: 1.5 });
+	        g.stroke({ color: darkenColor(color, 0.3), width: 1.5 });
 	        // Highlight
 	        const highlightVertices = [
 	            0, -size * 0.7,
@@ -41763,7 +41627,7 @@
 	        ];
 	        g.poly(vertices);
 	        g.fill({ color: color });
-	        g.stroke({ color: this.darkenColor(color, 0.3), width: 1 });
+	        g.stroke({ color: darkenColor(color, 0.3), width: 1 });
 	    }
 	    /**
 	     * Create add/plus button
@@ -41776,7 +41640,7 @@
 	        const bg = graphics().createGraphics();
 	        bg.roundRect(-size / 2, -size / 2, size, size, 6);
 	        bg.fill({ color: addBtnColor });
-	        bg.stroke({ color: this.darkenColor(addBtnColor, 0.3), width: 2 });
+	        bg.stroke({ color: darkenColor(addBtnColor, 0.3), width: 2 });
 	        container.addChild(bg);
 	        // Plus sign
 	        const plus = graphics().createText('+', {
@@ -41825,15 +41689,6 @@
 	            default:
 	                return 0x2C3E50;
 	        }
-	    }
-	    /**
-	     * Darken a color
-	     */
-	    darkenColor(color, amount) {
-	        const r = Math.max(0, ((color >> 16) & 0xFF) - Math.floor(255 * amount));
-	        const g = Math.max(0, ((color >> 8) & 0xFF) - Math.floor(255 * amount));
-	        const b = Math.max(0, (color & 0xFF) - Math.floor(255 * amount));
-	        return (r << 16) | (g << 8) | b;
 	    }
 	    /**
 	     * Format value with abbreviation for large numbers
@@ -41885,445 +41740,6 @@
 	        this.resourceTexts.clear();
 	        this.removeAllListeners();
 	    }
-	}
-
-	/**
-	 * Game-style UI theme inspired by mobile games like Brawl Stars, Candy Crush, etc.
-	 * Features vibrant colors, multi-layer effects, and bold visual design.
-	 */
-	class GameStyleUITheme {
-	    constructor() {
-	        this.name = 'game-style';
-	        // Vibrant game-style color palette
-	        this.colors = {
-	            // Primary action color (bright orange/yellow for Play buttons)
-	            primary: { r: 255, g: 180, b: 0, a: 1 }, // Golden yellow
-	            secondary: { r: 0, g: 180, b: 255, a: 1 }, // Bright cyan
-	            // Background colors (sky blue gradient base)
-	            background: { r: 0, g: 140, b: 220, a: 1 }, // Sky blue
-	            surface: { r: 30, g: 100, b: 180, a: 1 }, // Darker blue surface
-	            // Text colors
-	            text: { r: 255, g: 255, b: 255, a: 1 }, // White with stroke
-	            textSecondary: { r: 200, g: 220, b: 255, a: 1 }, // Light blue-white
-	            // Status colors (game-style vibrant)
-	            success: { r: 50, g: 205, b: 50, a: 1 }, // Lime green
-	            warning: { r: 255, g: 165, b: 0, a: 1 }, // Orange
-	            error: { r: 255, g: 60, b: 60, a: 1 }, // Bright red
-	            // Utility
-	            overlay: { r: 0, g: 0, b: 0, a: 0.6 }
-	        };
-	        // Game-style specific colors
-	        this.gameColors = {
-	            // Button colors
-	            buttonYellow: { top: 0xFFD700, bottom: 0xFFA500, border: 0xCC8800 },
-	            buttonGreen: { top: 0x50C878, bottom: 0x228B22, border: 0x1A6B1A },
-	            buttonBlue: { top: 0x4DA6FF, bottom: 0x0066CC, border: 0x004C99 },
-	            buttonRed: { top: 0xFF6B6B, bottom: 0xCC3333, border: 0x992626 },
-	            buttonPurple: { top: 0xB388FF, bottom: 0x7C4DFF, border: 0x5C3DB8 },
-	            // UI element colors
-	            panelDark: 0x1A237E,
-	            panelLight: 0x3949AB,
-	            borderDark: 0x0D1B2A,
-	            borderMedium: 0x1B3A5C,
-	            // Resource colors
-	            coinGold: 0xFFD700,
-	            gemPurple: 0x9C27B0,
-	            heartRed: 0xFF4081,
-	            energyBlue: 0x00BCD4,
-	            // Level path
-	            pathActive: 0xFFD54F,
-	            pathInactive: 0x5C6BC0,
-	            pathCompleted: 0x4CAF50,
-	            // Hexagon level button
-	            hexBlue: { fill: 0x3D85C6, border: 0x1A3A5C, highlight: 0x6DB3F2 },
-	            hexLocked: { fill: 0x5C5C5C, border: 0x3A3A3A, highlight: 0x7A7A7A }
-	        };
-	        // Bold typography for games
-	        this.typography = {
-	            fontFamily: '"Lilita One", "Arial Black", sans-serif',
-	            sizes: {
-	                small: 16,
-	                medium: 22,
-	                large: 32,
-	                xlarge: 48
-	            },
-	            weights: {
-	                normal: 600,
-	                bold: 800
-	            }
-	        };
-	        // Generous spacing for touch targets
-	        this.spacing = {
-	            xs: 6,
-	            sm: 12,
-	            md: 20,
-	            lg: 32,
-	            xl: 48
-	        };
-	        // Rounded corners for game feel
-	        this.radius = {
-	            sm: 8,
-	            md: 16,
-	            lg: 24,
-	            full: 9999
-	        };
-	        // Bold shadows for depth
-	        this.shadows = {
-	            sm: '0 3px 0 rgba(0, 0, 0, 0.3), 0 4px 8px rgba(0, 0, 0, 0.2)',
-	            md: '0 5px 0 rgba(0, 0, 0, 0.3), 0 8px 16px rgba(0, 0, 0, 0.25)',
-	            lg: '0 8px 0 rgba(0, 0, 0, 0.3), 0 12px 24px rgba(0, 0, 0, 0.3)'
-	        };
-	        // Bouncy animations
-	        this.animations = {
-	            fast: 150,
-	            normal: 300,
-	            slow: 500
-	        };
-	    }
-	}
-	/**
-	 * Game style color utilities
-	 */
-	const GameStyleColors = {
-	    // Pre-defined button color schemes - No Ads popup style (solid color, black border, jellybean)
-	    YELLOW_BUTTON: {
-	        gradientTop: 0xFFD966, // Golden yellow (solid)
-	        gradientBottom: 0xFFD966, // Same - solid color
-	        border: 0x000000, // Black outer border
-	        shadow: 0xCC9900, // Darker yellow shadow
-	        highlight: 0xFFFFFF, // White highlight (25% alpha applied in code)
-	        text: 0xFFFFFF,
-	        textStroke: 0x805500,
-	        jellybean: 0xFFFBE6 // Light cream jellybean
-	    },
-	    GREEN_BUTTON: {
-	        gradientTop: 0x2DE45A, // Main green (No Ads popup style)
-	        gradientBottom: 0x2DE45A, // Same - solid color
-	        border: 0x000000, // Black outer border
-	        shadow: 0x28A165, // Green shadow/depth
-	        highlight: 0xFFFFFF, // White highlight (25% alpha applied in code)
-	        text: 0xFFFFFF,
-	        textStroke: 0x1A4D1A,
-	        jellybean: 0xE6FCE9 // Jellybean gloss color
-	    },
-	    BLUE_BUTTON: {
-	        gradientTop: 0x4DA6FF, // Bright blue (solid)
-	        gradientBottom: 0x4DA6FF, // Same - solid color
-	        border: 0x000000, // Black outer border
-	        shadow: 0x2E7BC9, // Darker blue shadow
-	        highlight: 0xFFFFFF, // White highlight (25% alpha applied in code)
-	        text: 0xFFFFFF,
-	        textStroke: 0x1A4B7A,
-	        jellybean: 0xE6F3FF // Light blue jellybean
-	    },
-	    RED_BUTTON: {
-	        gradientTop: 0xE85C5C, // Coral red (solid)
-	        gradientBottom: 0xE85C5C, // Same - solid color
-	        border: 0x000000, // Black outer border
-	        shadow: 0xB34040, // Darker red shadow
-	        highlight: 0xFFFFFF, // White highlight (25% alpha applied in code)
-	        text: 0xFFFFFF,
-	        textStroke: 0x5C0D0D,
-	        jellybean: 0xFFE6E6 // Light pink jellybean
-	    },
-	    PURPLE_BUTTON: {
-	        gradientTop: 0xAD6DD6, // Lavender (solid)
-	        gradientBottom: 0xAD6DD6, // Same - solid color
-	        border: 0x000000, // Black outer border
-	        shadow: 0x8050B0, // Darker purple shadow
-	        highlight: 0xFFFFFF, // White highlight (25% alpha applied in code)
-	        text: 0xFFFFFF,
-	        textStroke: 0x3D1A54,
-	        jellybean: 0xF3E6FF // Light lavender jellybean
-	    },
-	    // Cream/Beige Play Button (Candy Crush style - keeps gradient for variety)
-	    CREAM_BUTTON: {
-	        gradientTop: 0xFFFBF0,
-	        gradientBottom: 0xF5E6C8,
-	        border: 0x000000, // Black outer border
-	        shadow: 0xD4A857,
-	        highlight: 0xFFFFFF,
-	        text: 0x8B6914,
-	        textStroke: 0xD4A857,
-	        jellybean: 0xFFFFFF // White jellybean
-	    },
-	    // Hexagon level colors
-	    HEXAGON_BLUE: {
-	        fill: 0x4DA6FF,
-	        fillBottom: 0x2E7BC9,
-	        border: 0x1A3A5C,
-	        highlight: 0x7DBFFF,
-	        text: 0xFFFFFF,
-	        textStroke: 0x1A3A5C
-	    },
-	    HEXAGON_LOCKED: {
-	        fill: 0x6B7280,
-	        fillBottom: 0x4B5563,
-	        border: 0x374151,
-	        highlight: 0x9CA3AF,
-	        text: 0xD1D5DB,
-	        textStroke: 0x1F2937
-	    },
-	    HEXAGON_COMPLETED: {
-	        fill: 0x4ADE80,
-	        fillBottom: 0x22C55E,
-	        border: 0x166534,
-	        highlight: 0x86EFAC,
-	        text: 0xFFFFFF,
-	        textStroke: 0x166534
-	    },
-	    HEXAGON_CURRENT: {
-	        fill: 0x818CF8,
-	        fillBottom: 0x6366F1,
-	        border: 0x3730A3,
-	        highlight: 0xA5B4FC,
-	        text: 0xFFFFFF,
-	        textStroke: 0x3730A3,
-	        glow: 0x818CF8
-	    },
-	    // Candy Crush style hexagon with golden border
-	    HEXAGON_CANDY_BLUE: {
-	        fill: 0x5DADE2,
-	        fillBottom: 0x3498DB,
-	        border: 0xF1C40F,
-	        highlight: 0x85C1E9,
-	        text: 0xFFFFFF,
-	        textStroke: 0x21618C,
-	        outerBorder: 0xD4AC0D
-	    },
-	    HEXAGON_CANDY_CURRENT: {
-	        fill: 0x7FB3D5,
-	        fillBottom: 0x5499C7,
-	        border: 0xF1C40F,
-	        highlight: 0xA9CCE3,
-	        text: 0xFFFFFF,
-	        textStroke: 0x2471A3,
-	        outerBorder: 0xD4AC0D,
-	        glow: 0x5DADE2
-	    },
-	    HEXAGON_CANDY_LOCKED: {
-	        fill: 0x7F8C8D,
-	        fillBottom: 0x5D6D7E,
-	        border: 0x95A5A6,
-	        highlight: 0xAEB6BF,
-	        text: 0xBDC3C7,
-	        textStroke: 0x2C3E50,
-	        outerBorder: 0x566573
-	    },
-	    // Panel color schemes (matches No Ads popup style)
-	    PANEL_BLUE: {
-	        fillTop: 0x41A7FB, // Light blue (same as No Ads modal bg)
-	        fillBottom: 0x41A7FB, // Solid color, no gradient
-	        borderOuter: 0x1e3a5f, // Dark navy border
-	        borderInner: 0x1e3a5f, // Same - single border layer
-	        borderWidth: 4, // Thinner border like No Ads
-	        titleColor: 0xFFFFFF,
-	        titleStroke: 0x1a2a3a, // Darker stroke for title
-	        headerBg: 0x2889F0, // Darker blue header
-	        closeButtonBg: 0xE84C4C,
-	        closeButtonBorder: 0xA83340,
-	        closeButtonX: 0xFFFFFF
-	    },
-	    PANEL_PURPLE: {
-	        fillTop: 0xA478DC,
-	        fillBottom: 0x7B4DB8,
-	        borderOuter: 0x4A2878,
-	        borderInner: 0x5A3888,
-	        borderWidth: 8,
-	        titleColor: 0xFFFFFF,
-	        titleStroke: 0x4A2878,
-	        closeButtonBg: 0xE84C4C,
-	        closeButtonBorder: 0x8B2020,
-	        closeButtonX: 0xFFFFFF
-	    },
-	    PANEL_GREEN: {
-	        fillTop: 0x6FCF6F,
-	        fillBottom: 0x4CAF50,
-	        borderOuter: 0x2E7D32,
-	        borderInner: 0x388E3C,
-	        borderWidth: 8,
-	        titleColor: 0xFFFFFF,
-	        titleStroke: 0x2E7D32,
-	        closeButtonBg: 0xE84C4C,
-	        closeButtonBorder: 0x8B2020,
-	        closeButtonX: 0xFFFFFF
-	    },
-	    PANEL_ORANGE: {
-	        fillTop: 0xFFB74D,
-	        fillBottom: 0xFF9800,
-	        borderOuter: 0xE65100,
-	        borderInner: 0xF57C00,
-	        borderWidth: 8,
-	        titleColor: 0xFFFFFF,
-	        titleStroke: 0xE65100,
-	        closeButtonBg: 0xE84C4C,
-	        closeButtonBorder: 0x8B2020,
-	        closeButtonX: 0xFFFFFF
-	    },
-	    PANEL_DARK: {
-	        fillTop: 0x3D4A5C,
-	        fillBottom: 0x2C3E50,
-	        borderOuter: 0x1A252F,
-	        borderInner: 0x2A3F4F,
-	        borderWidth: 8,
-	        titleColor: 0xFFFFFF,
-	        titleStroke: 0x1A252F,
-	        closeButtonBg: 0xE84C4C,
-	        closeButtonBorder: 0x8B2020,
-	        closeButtonX: 0xFFFFFF
-	    },
-	    PANEL_RED: {
-	        fillTop: 0xE57373,
-	        fillBottom: 0xD32F2F,
-	        borderOuter: 0x8B1A1A,
-	        borderInner: 0xB71C1C,
-	        borderWidth: 8,
-	        titleColor: 0xFFFFFF,
-	        titleStroke: 0x8B1A1A,
-	        closeButtonBg: 0x333333,
-	        closeButtonBorder: 0x1A1A1A,
-	        closeButtonX: 0xFFFFFF
-	    },
-	    // Top Bar Resource Pill Colors
-	    TOP_BAR_LIVES: {
-	        background: 0x1A1A2A,
-	        border: 0x0D0D15,
-	        iconColor: 0xFF4081,
-	        textColor: 0xFFFFFF,
-	        labelBackground: 0x2A2A3A,
-	        labelColor: 0xFFFFFF
-	    },
-	    TOP_BAR_COINS: {
-	        background: 0x4CAF50,
-	        border: 0x2E7D32,
-	        iconColor: 0xFFD700,
-	        textColor: 0xFFFFFF,
-	        addButtonBg: 0x66BB6A,
-	        addButtonBorder: 0x43A047
-	    },
-	    // Bottom Navigation Colors
-	    BOTTOM_NAV: {
-	        background: 0x1A237E,
-	        topBorder: 0x3949AB,
-	        itemBackground: 0x283593,
-	        itemHighlight: 0x3949AB,
-	        itemActive: 0x5C6BC0,
-	        textColor: 0xFFFFFF,
-	        lockedColor: 0x757575
-	    },
-	    // ═══════════════════════════════════════════════════════════════
-	    // @pixi/ui Wrapper Component Colors (Jellybean Style)
-	    // ═══════════════════════════════════════════════════════════════
-	    // Input field colors
-	    GAME_INPUT: {
-	        background: 0x2A3A4A,
-	        backgroundFocus: 0x3A4A5A,
-	        border: 0x000000,
-	        borderInner: 0x1A2A3A,
-	        shadow: 0x1A2530,
-	        text: 0xFFFFFF,
-	        placeholder: 0x8A9AAA,
-	        cursor: 0xFFFFFF,
-	        selection: 0x4DA6FF,
-	        highlight: 0xFFFFFF
-	    },
-	    // ScrollBox colors
-	    GAME_SCROLLBOX: {
-	        background: 0x2A3A4A,
-	        border: 0x000000,
-	        borderInner: 0x1A2A3A,
-	        shadow: 0x1A2530,
-	        scrollbarTrack: 0x1A2A3A,
-	        scrollbarThumb: 0x5A6A7A,
-	        scrollbarThumbHover: 0x7A8A9A,
-	        highlight: 0xFFFFFF
-	    },
-	    // Select/Dropdown colors
-	    GAME_SELECT: {
-	        triggerBg: 0x4DA6FF,
-	        triggerBorder: 0x000000,
-	        triggerShadow: 0x2E7BC9,
-	        triggerHighlight: 0xFFFFFF,
-	        dropdownBg: 0x2A3A4A,
-	        dropdownBorder: 0x000000,
-	        dropdownShadow: 0x1A2530,
-	        itemHover: 0x3A4A5A,
-	        itemSelected: 0x4DA6FF,
-	        text: 0xFFFFFF,
-	        arrow: 0xFFFFFF
-	    },
-	    // CheckBox colors
-	    GAME_CHECKBOX: {
-	        boxBg: 0x2A3A4A,
-	        boxBorder: 0x000000,
-	        boxShadow: 0x1A2530,
-	        boxChecked: 0x4DA6FF,
-	        checkmark: 0xFFFFFF,
-	        highlight: 0xFFFFFF,
-	        text: 0xFFFFFF
-	    },
-	    // RadioGroup colors
-	    GAME_RADIO: {
-	        circleBg: 0x2A3A4A,
-	        circleBorder: 0x000000,
-	        circleShadow: 0x1A2530,
-	        circleSelected: 0x4DA6FF,
-	        dot: 0xFFFFFF,
-	        highlight: 0xFFFFFF,
-	        text: 0xFFFFFF
-	    },
-	    // List colors (minimal - mostly container)
-	    GAME_LIST: {
-	        background: 0x2A3A4A,
-	        border: 0x000000,
-	        divider: 0x3A4A5A
-	    }
-	};
-	/**
-	 * Create a canvas gradient for game buttons
-	 */
-	function createGameButtonGradient(ctx, x, y, width, height, colorTop, colorBottom) {
-	    const gradient = ctx.createLinearGradient(x, y, x, y + height);
-	    gradient.addColorStop(0, numberToHex(colorTop));
-	    gradient.addColorStop(0.5, numberToHex(colorTop));
-	    gradient.addColorStop(0.5, numberToHex(colorBottom));
-	    gradient.addColorStop(1, numberToHex(colorBottom));
-	    return gradient;
-	}
-	/**
-	 * Create a vertical gradient for backgrounds
-	 */
-	function createSkyGradient(ctx, width, height) {
-	    const gradient = ctx.createLinearGradient(0, 0, 0, height);
-	    gradient.addColorStop(0, '#0066CC');
-	    gradient.addColorStop(0.3, '#0088EE');
-	    gradient.addColorStop(0.6, '#00AAFF');
-	    gradient.addColorStop(1, '#66CCFF');
-	    return gradient;
-	}
-	/**
-	 * Convert hex number to CSS color string
-	 */
-	function numberToHex(num) {
-	    return `#${num.toString(16).padStart(6, '0')}`;
-	}
-	/**
-	 * Lighten a color by a percentage
-	 */
-	function lightenColor(color, percent) {
-	    const r = Math.min(255, ((color >> 16) & 0xFF) + Math.floor(255 * percent));
-	    const g = Math.min(255, ((color >> 8) & 0xFF) + Math.floor(255 * percent));
-	    const b = Math.min(255, (color & 0xFF) + Math.floor(255 * percent));
-	    return (r << 16) | (g << 8) | b;
-	}
-	/**
-	 * Darken a color by a percentage
-	 */
-	function darkenColor$1(color, percent) {
-	    const r = Math.max(0, ((color >> 16) & 0xFF) - Math.floor(255 * percent));
-	    const g = Math.max(0, ((color >> 8) & 0xFF) - Math.floor(255 * percent));
-	    const b = Math.max(0, (color & 0xFF) - Math.floor(255 * percent));
-	    return (r << 16) | (g << 8) | b;
 	}
 
 	/**
@@ -42384,7 +41800,7 @@
 	        this.backgroundGraphics.fill({ color: lightenColor(backgroundColor, 0.2) });
 	        // Top shadow line
 	        this.backgroundGraphics.rect(0, 3, width, 2);
-	        this.backgroundGraphics.fill({ color: darkenColor$1(backgroundColor, 0.3), alpha: 0.5 });
+	        this.backgroundGraphics.fill({ color: darkenColor(backgroundColor, 0.3), alpha: 0.5 });
 	    }
 	    /**
 	     * Create navigation items
@@ -42761,6 +42177,7 @@
 	            bottomNavItems: config.bottomNavItems || this.getDefaultNavItems(),
 	            defaultTab: config.defaultTab || 'play',
 	            backgroundColor: config.backgroundColor || 0x1a1a2e,
+	            backgroundImage: config.backgroundImage,
 	        };
 	        this.tabContents = config.tabContents || new Map();
 	        const factory = graphics();
@@ -42807,6 +42224,42 @@
 	        this.background.clear();
 	        this.background.rect(0, 0, width, height);
 	        this.background.fill({ color: this.hubConfig.backgroundColor || 0x1a1a2e });
+	        // Load background image if provided
+	        if (this.hubConfig.backgroundImage && !this.backgroundSprite) {
+	            this.loadBackgroundImage(width, height);
+	        }
+	    }
+	    /**
+	     * Load background image
+	     */
+	    loadBackgroundImage(width, height) {
+	        const factory = graphics();
+	        const imageUrl = this.hubConfig.backgroundImage;
+	        const img = new Image();
+	        img.onload = () => {
+	            try {
+	                const texture = factory.createTexture(img);
+	                this.backgroundSprite = factory.createSprite(texture);
+	                this.backgroundSprite.width = width;
+	                this.backgroundSprite.height = height;
+	                // Insert after solid background (index 1)
+	                const container = this.container;
+	                if (container.addChildAt) {
+	                    container.addChildAt(this.backgroundSprite, 1);
+	                }
+	                else {
+	                    // Fallback - add after background
+	                    this.container.addChild(this.backgroundSprite);
+	                }
+	            }
+	            catch (e) {
+	                console.warn('HubScreen: Failed to create background sprite', e);
+	            }
+	        };
+	        img.onerror = (e) => {
+	            console.warn('HubScreen: Failed to load background image', e);
+	        };
+	        img.src = imageUrl;
 	    }
 	    /**
 	     * Create top bar
@@ -42898,6 +42351,11 @@
 	    onResize(width, height) {
 	        // Redraw background
 	        this.drawBackground(width, height);
+	        // Resize background sprite
+	        if (this.backgroundSprite) {
+	            this.backgroundSprite.width = width;
+	            this.backgroundSprite.height = height;
+	        }
 	        // Reposition bottom nav
 	        if (this.bottomNav) {
 	            this.bottomNav.setPosition(0, height - this.BOTTOM_NAV_HEIGHT);
@@ -42917,6 +42375,7 @@
 	        this.topBar?.destroy();
 	        this.bottomNav?.destroy();
 	        this.currentContent?.destroy({ children: true });
+	        this.backgroundSprite = undefined;
 	        this.tabContents.clear();
 	        super.destroy();
 	    }
@@ -42964,7 +42423,6 @@
 	            fontSize: config.fontSize || 28,
 	            fontFamily: config.fontFamily || getFrameworkFontFamily(),
 	            colorScheme: config.colorScheme || GameStyleColors.GREEN_BUTTON,
-	            buttonStyle: config.buttonStyle || 'raised', // 'raised' or 'flat'
 	            borderRadius: config.borderRadius || 14,
 	            borderWidth: config.borderWidth || 1,
 	            shadowOffset: config.shadowOffset || 3,
@@ -43046,12 +42504,10 @@
 	    }
 	    /**
 	     * Render all button graphics - Mobile game style with 3D effect
-	     * Supports two styles:
-	     * - 'raised': Drop shadow style (Candy Crush)
-	     * - 'flat': Bottom edge style (modern mobile games)
+	     * Uses raised style: Drop shadow style (Candy Crush)
 	     */
 	    render() {
-	        const { width, height, borderRadius, borderWidth, shadowOffset, colorScheme, buttonStyle, disabled } = this.config;
+	        const { width, height, borderRadius, borderWidth, shadowOffset, colorScheme, disabled } = this.config;
 	        // Clear all graphics
 	        this.borderGraphics.clear();
 	        this.shadowGraphics.clear();
@@ -43426,15 +42882,6 @@
 	    const secs = Math.floor(seconds % 60);
 	    return `${mins}:${secs.toString().padStart(2, '0')}`;
 	}
-	/**
-	 * Darken a color by a given amount (0-1)
-	 */
-	function darkenColor(color, amount) {
-	    const r = Math.max(0, ((color >> 16) & 0xff) - Math.floor(255 * amount));
-	    const g = Math.max(0, ((color >> 8) & 0xff) - Math.floor(255 * amount));
-	    const b = Math.max(0, (color & 0xff) - Math.floor(255 * amount));
-	    return (r << 16) | (g << 8) | b;
-	}
 
 	/**
 	 * GameHUDScreen - Game screen with HUD overlay
@@ -43577,7 +43024,6 @@
 	                width: 44,
 	                height: 44,
 	                fontSize: 18,
-	                buttonStyle: 'flat',
 	                colorScheme: GameStyleColors.BLUE_BUTTON,
 	            });
 	            this.pauseButton.setPosition(width - 44 - this.HUD_PADDING, (this.HUD_HEIGHT - 44) / 2);
@@ -44718,7 +44164,7 @@
 	        // 3. Main fill with gradient (top lighter, bottom darker)
 	        const fillSize = size - borderWidth * 2;
 	        const fillTop = colorScheme.fill;
-	        const fillBottom = colorScheme.fillBottom || darkenColor$1(colorScheme.fill, 0.15);
+	        const fillBottom = colorScheme.fillBottom || darkenColor(colorScheme.fill, 0.15);
 	        // Draw hexagon shape with native FillGradient
 	        this.drawHexagon(this.fillGraphics, 0, pressOffset, fillSize);
 	        // Create native FillGradient (Pixi.js v8)
@@ -45052,7 +44498,7 @@
 	        // Highlight
 	        this.pathGraphics.moveTo(x1, y1 - 2);
 	        this.pathGraphics.lineTo(x2, y2 - 2);
-	        this.pathGraphics.stroke({ color: this.lightenColor(color, 0.3), width: width * 0.4, cap: 'round' });
+	        this.pathGraphics.stroke({ color: lightenColor(color, 0.3), width: width * 0.4, cap: 'round' });
 	    }
 	    /**
 	     * Create hexagon buttons for each level
@@ -45177,15 +44623,6 @@
 	            }
 	        };
 	        requestAnimationFrame(animate);
-	    }
-	    /**
-	     * Lighten a color
-	     */
-	    lightenColor(color, amount) {
-	        const r = Math.min(255, ((color >> 16) & 0xFF) + Math.floor(255 * amount));
-	        const g = Math.min(255, ((color >> 8) & 0xFF) + Math.floor(255 * amount));
-	        const b = Math.min(255, (color & 0xFF) + Math.floor(255 * amount));
-	        return (r << 16) | (g << 8) | b;
 	    }
 	    /**
 	     * Public API
@@ -56653,8 +56090,8 @@
 	        const { innerRadius, outerRadius, rayCount, rayWidth, color, alphaCenter, alphaEdge } = this.config;
 	        // Create radial gradient circle
 	        const gradientCircle = factory.createGraphics();
-	        const circleGradient = new PIXI__namespace.FillGradient({
-	            type: 'radial',
+	        // Create radial gradient using graphics factory abstraction
+	        const circleGradient = factory.createRadialGradient({
 	            center: { x: 0.5, y: 0.5 },
 	            innerRadius: innerRadius / (outerRadius * 2),
 	            outerCenter: { x: 0.5, y: 0.5 },
@@ -56666,7 +56103,7 @@
 	                { offset: 1, color: hexToRgba(color, alphaEdge) }
 	            ]
 	        });
-	        gradientCircle.circle(0, 0, outerRadius).fill(circleGradient);
+	        gradientCircle.circle(0, 0, outerRadius).fill(circleGradient.native);
 	        // Create ray mask
 	        const rayMask = factory.createGraphics();
 	        for (let i = 0; i < rayCount; i++) {
@@ -56679,7 +56116,7 @@
 	            rayMask.closePath();
 	        }
 	        rayMask.fill(0xffffff);
-	        // Apply mask
+	        // Apply mask - need to cast to any for mask property access
 	        gradientCircle.mask = rayMask;
 	        this.container.addChild(rayMask);
 	        this.container.addChild(gradientCircle);
@@ -56693,9 +56130,8 @@
 	    buildGlobalMethod() {
 	        const factory = getGraphicsFactory();
 	        const { innerRadius, outerRadius, rayCount, rayWidth, color, alphaCenter, alphaEdge } = this.config;
-	        // Global radial gradient centered at origin
-	        const radialGradient = new PIXI__namespace.FillGradient({
-	            type: 'radial',
+	        // Create radial gradient using graphics factory abstraction (global texture space)
+	        const radialGradient = factory.createRadialGradient({
 	            center: { x: 0, y: 0 },
 	            innerRadius: 0,
 	            outerCenter: { x: 0, y: 0 },
@@ -56720,7 +56156,7 @@
 	            rays.lineTo(Math.cos(endAngle) * innerRadius, Math.sin(endAngle) * innerRadius);
 	            rays.closePath();
 	        }
-	        rays.fill(radialGradient);
+	        rays.fill(radialGradient.native);
 	        this.container.addChild(rays);
 	        this.raysGraphics = rays;
 	    }
@@ -58231,17 +57667,20 @@
 	    }
 	    /**
 	     * Initialize the layout system with PIXI
-	     * @param PIXI - The PIXI namespace object
+	     * @param PIXI - The PIXI namespace object (kept for backward compatibility)
 	     */
 	    initialize(PIXI) {
 	        this.PIXI = PIXI;
+	        // Use graphics abstraction for container creation
+	        const { graphics } = require('../graphics/GraphicsEngine');
+	        const factory = graphics();
 	        // Create main container that holds everything
-	        this.mainContainer = new PIXI.Container();
+	        this.mainContainer = factory.createContainer();
 	        // Create graphics for letterbox background
-	        this.letterboxGraphics = new PIXI.Graphics();
+	        this.letterboxGraphics = factory.createGraphics();
 	        this.mainContainer.addChild(this.letterboxGraphics);
 	        // Create game container that will be positioned in the safe area
-	        this.gameContainer = new PIXI.Container();
+	        this.gameContainer = factory.createContainer();
 	        this.mainContainer.addChild(this.gameContainer);
 	        // Set up resize handler
 	        this.resizeHandler = () => {
@@ -58553,478 +57992,245 @@
 	}
 
 	/**
-	 * Three.js Graphics Factory Implementation
+	 * DesignScaler - Design Resolution Scaling Utility
 	 *
-	 * Provides Three.js-based implementations of framework graphics primitives.
-	 * Uses CSS2DRenderer for UI elements, allowing HTML/CSS-based UI in 3D scenes.
+	 * Enables building game worlds at a fixed "design resolution" that automatically
+	 * scales to fit any screen size while maintaining aspect ratio.
+	 *
+	 * This solves the common mobile game problem where elements need to maintain
+	 * their relative positions and physics behavior across different screen sizes.
+	 *
+	 * @example
+	 * ```typescript
+	 * // Create scaler with design resolution
+	 * const scaler = new DesignScaler({
+	 *   width: 400,
+	 *   height: 600
+	 * });
+	 *
+	 * // Initialize with current screen size
+	 * scaler.initialize(window.innerWidth, window.innerHeight);
+	 *
+	 * // Add the scaled container to your stage
+	 * stage.addChild(scaler.getContainer());
+	 *
+	 * // Add game elements using design coordinates
+	 * const platform = createPlatform(100, 400, 120, 20);
+	 * scaler.addChild(platform);
+	 *
+	 * // On window resize
+	 * window.addEventListener('resize', () => {
+	 *   scaler.resize(window.innerWidth, window.innerHeight);
+	 * });
+	 *
+	 * // Convert coordinates if needed
+	 * const designPos = scaler.screenToDesign(touchX, touchY);
+	 * const screenPos = scaler.designToScreen(playerX, playerY);
+	 * ```
 	 */
 	/**
-	 * Base Three.js Display Object Wrapper
+	 * DesignScaler class for managing design resolution scaling
 	 */
-	class ThreeDisplayObjectBase extends EventEmitter {
-	    constructor(element) {
-	        super();
-	        this.element = element;
-	        this.css2dObject = new CSS2DRenderer_js.CSS2DObject(element);
-	        // Apply default styles for consistent behavior
-	        this.element.style.position = 'absolute';
-	        this.element.style.pointerEvents = 'auto';
-	    }
-	    get x() {
-	        return this.css2dObject.position.x;
-	    }
-	    set x(value) {
-	        this.css2dObject.position.x = value;
-	    }
-	    get y() {
-	        return this.css2dObject.position.y;
-	    }
-	    set y(value) {
-	        this.css2dObject.position.y = value;
-	    }
-	    get rotation() {
-	        return this.css2dObject.rotation.z;
-	    }
-	    set rotation(value) {
-	        this.css2dObject.rotation.z = value;
-	    }
-	    get scale() {
-	        return {
-	            x: this.css2dObject.scale.x,
-	            y: this.css2dObject.scale.y,
+	class DesignScaler {
+	    /**
+	     * Create a new DesignScaler
+	     * @param config - Design resolution configuration
+	     */
+	    constructor(config) {
+	        this.screenWidth = 0;
+	        this.screenHeight = 0;
+	        this.currentScale = 1;
+	        this.offsetX = 0;
+	        this.offsetY = 0;
+	        this.config = {
+	            width: config.width,
+	            height: config.height,
+	            scaleMode: config.scaleMode || 'fit',
+	            align: config.align || 'center',
 	        };
+	        const gfx = graphics();
+	        this.container = gfx.createContainer();
 	    }
-	    set scale(value) {
-	        this.css2dObject.scale.set(value.x, value.y, 1);
+	    /**
+	     * Initialize the scaler with screen dimensions
+	     * @param screenWidth - Current screen/canvas width
+	     * @param screenHeight - Current screen/canvas height
+	     */
+	    initialize(screenWidth, screenHeight) {
+	        this.screenWidth = screenWidth;
+	        this.screenHeight = screenHeight;
+	        this.updateTransform();
 	    }
-	    get alpha() {
-	        return parseFloat(this.element.style.opacity || '1');
+	    /**
+	     * Resize handler - call this when screen size changes
+	     * @param screenWidth - New screen width
+	     * @param screenHeight - New screen height
+	     */
+	    resize(screenWidth, screenHeight) {
+	        this.screenWidth = screenWidth;
+	        this.screenHeight = screenHeight;
+	        this.updateTransform();
 	    }
-	    set alpha(value) {
-	        this.element.style.opacity = value.toString();
+	    /**
+	     * Update the container's scale and position
+	     */
+	    updateTransform() {
+	        const { width, height, scaleMode, align } = this.config;
+	        // Calculate scale factors
+	        const scaleX = this.screenWidth / width;
+	        const scaleY = this.screenHeight / height;
+	        // Determine final scale based on mode
+	        if (scaleMode === 'fill') {
+	            // Stretch to fill (may distort)
+	            this.container.scale.x = scaleX;
+	            this.container.scale.y = scaleY;
+	            this.currentScale = Math.min(scaleX, scaleY); // For coordinate conversion
+	            this.offsetX = 0;
+	            this.offsetY = 0;
+	            this.container.x = 0;
+	            this.container.y = 0;
+	        }
+	        else {
+	            // Fit mode - maintain aspect ratio
+	            this.currentScale = Math.min(scaleX, scaleY);
+	            this.container.scale.x = this.currentScale;
+	            this.container.scale.y = this.currentScale;
+	            // Calculate offset based on alignment
+	            const scaledWidth = width * this.currentScale;
+	            const scaledHeight = height * this.currentScale;
+	            switch (align) {
+	                case 'top-left':
+	                    this.offsetX = 0;
+	                    this.offsetY = 0;
+	                    break;
+	                case 'top-center':
+	                    this.offsetX = (this.screenWidth - scaledWidth) / 2;
+	                    this.offsetY = 0;
+	                    break;
+	                case 'bottom-center':
+	                    this.offsetX = (this.screenWidth - scaledWidth) / 2;
+	                    this.offsetY = this.screenHeight - scaledHeight;
+	                    break;
+	                case 'center':
+	                default:
+	                    this.offsetX = (this.screenWidth - scaledWidth) / 2;
+	                    this.offsetY = (this.screenHeight - scaledHeight) / 2;
+	                    break;
+	            }
+	            this.container.x = this.offsetX;
+	            this.container.y = this.offsetY;
+	        }
 	    }
-	    get visible() {
-	        return this.css2dObject.visible;
+	    /**
+	     * Get the scaled container to add to your stage
+	     * @returns The container that holds all scaled game elements
+	     */
+	    getContainer() {
+	        return this.container;
 	    }
-	    set visible(value) {
-	        this.css2dObject.visible = value;
-	        this.element.style.display = value ? 'block' : 'none';
-	    }
-	    get interactive() {
-	        return this.element.style.pointerEvents === 'auto';
-	    }
-	    set interactive(value) {
-	        this.element.style.pointerEvents = value ? 'auto' : 'none';
-	    }
-	    get cursor() {
-	        return this.element.style.cursor;
-	    }
-	    set cursor(value) {
-	        this.element.style.cursor = value || 'default';
-	    }
-	    getCSS2DObject() {
-	        return this.css2dObject;
-	    }
-	    destroy() {
-	        this.element.remove();
-	        this.removeAllListeners();
-	    }
-	}
-	/**
-	 * Three.js Container Wrapper
-	 */
-	class ThreeContainerWrapper extends ThreeDisplayObjectBase {
-	    constructor() {
-	        const div = document.createElement('div');
-	        div.style.transformStyle = 'preserve-3d';
-	        super(div);
-	        this.children = [];
-	    }
+	    /**
+	     * Add a child to the scaled container
+	     * @param child - The display object to add
+	     */
 	    addChild(child) {
-	        this.children.push(child);
-	        // Add CSS2D object if it's a Three wrapper
-	        if (child.getCSS2DObject) {
-	            this.css2dObject.add(child.getCSS2DObject());
-	        }
-	        return child;
+	        this.container.addChild(child);
 	    }
+	    /**
+	     * Remove a child from the scaled container
+	     * @param child - The display object to remove
+	     */
 	    removeChild(child) {
-	        const index = this.children.indexOf(child);
-	        if (index !== -1) {
-	            this.children.splice(index, 1);
-	            if (child.getCSS2DObject) {
-	                this.css2dObject.remove(child.getCSS2DObject());
-	            }
-	        }
-	        return child;
+	        this.container.removeChild(child);
 	    }
-	    removeChildren() {
-	        while (this.children.length > 0) {
-	            this.removeChild(this.children[0]);
-	        }
+	    /**
+	     * Remove all children from the scaled container
+	     */
+	    removeAllChildren() {
+	        this.container.removeChildren();
 	    }
-	    getChildAt(index) {
-	        return this.children[index];
-	    }
-	    getChildIndex(child) {
-	        return this.children.indexOf(child);
-	    }
-	    setChildIndex(child, index) {
-	        const currentIndex = this.children.indexOf(child);
-	        if (currentIndex !== -1) {
-	            this.children.splice(currentIndex, 1);
-	            this.children.splice(index, 0, child);
-	        }
-	    }
-	}
-	/**
-	 * Three.js Graphics Wrapper (HTML Canvas-based)
-	 * Implements Pixi v8 modern API using HTML5 Canvas
-	 */
-	class ThreeGraphicsWrapper extends ThreeDisplayObjectBase {
-	    constructor() {
-	        const canvas = document.createElement('canvas');
-	        canvas.width = 800;
-	        canvas.height = 600;
-	        super(canvas);
-	        this.pathStarted = false;
-	        this.canvas = canvas;
-	        this.ctx = canvas.getContext('2d');
-	    }
-	    clear() {
-	        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-	        return this;
-	    }
-	    // Pixi v8 Modern API - Shape methods
-	    rect(x, y, width, height) {
-	        this.ctx.beginPath();
-	        this.ctx.rect(x, y, width, height);
-	        this.pathStarted = true;
-	        return this;
-	    }
-	    roundRect(x, y, width, height, radius) {
-	        this.ctx.beginPath();
-	        this.ctx.roundRect(x, y, width, height, radius);
-	        this.pathStarted = true;
-	        return this;
-	    }
-	    circle(x, y, radius) {
-	        this.ctx.beginPath();
-	        this.ctx.arc(x, y, radius, 0, Math.PI * 2);
-	        this.pathStarted = true;
-	        return this;
-	    }
-	    ellipse(x, y, width, height) {
-	        this.ctx.beginPath();
-	        this.ctx.ellipse(x, y, width / 2, height / 2, 0, 0, Math.PI * 2);
-	        this.pathStarted = true;
-	        return this;
-	    }
-	    poly(points) {
-	        this.ctx.beginPath();
-	        if (Array.isArray(points) && typeof points[0] === 'number') {
-	            const numPoints = points;
-	            this.ctx.moveTo(numPoints[0], numPoints[1]);
-	            for (let i = 2; i < numPoints.length; i += 2) {
-	                this.ctx.lineTo(numPoints[i], numPoints[i + 1]);
-	            }
-	        }
-	        else {
-	            const objPoints = points;
-	            this.ctx.moveTo(objPoints[0].x, objPoints[0].y);
-	            for (let i = 1; i < objPoints.length; i++) {
-	                this.ctx.lineTo(objPoints[i].x, objPoints[i].y);
-	            }
-	        }
-	        this.ctx.closePath();
-	        this.pathStarted = true;
-	        return this;
-	    }
-	    // Fill and stroke
-	    fill(options) {
-	        if (options) {
-	            const color = options.color !== undefined ? options.color : 0xffffff;
-	            const alpha = options.alpha !== undefined ? options.alpha : 1;
-	            this.ctx.fillStyle = this.colorToHex(color);
-	            this.ctx.globalAlpha = alpha;
-	        }
-	        this.ctx.fill();
-	        this.ctx.globalAlpha = 1;
-	        this.pathStarted = false;
-	        return this;
-	    }
-	    stroke(options) {
-	        if (options) {
-	            if (options.color !== undefined) {
-	                this.ctx.strokeStyle = this.colorToHex(options.color);
-	            }
-	            if (options.width !== undefined) {
-	                this.ctx.lineWidth = options.width;
-	            }
-	            if (options.alpha !== undefined) {
-	                this.ctx.globalAlpha = options.alpha;
-	            }
-	        }
-	        this.ctx.stroke();
-	        this.ctx.globalAlpha = 1;
-	        this.pathStarted = false;
-	        return this;
-	    }
-	    // Line drawing
-	    moveTo(x, y) {
-	        if (!this.pathStarted) {
-	            this.ctx.beginPath();
-	            this.pathStarted = true;
-	        }
-	        this.ctx.moveTo(x, y);
-	        return this;
-	    }
-	    lineTo(x, y) {
-	        if (!this.pathStarted) {
-	            this.ctx.beginPath();
-	            this.pathStarted = true;
-	        }
-	        this.ctx.lineTo(x, y);
-	        return this;
-	    }
-	    // Arc and path methods
-	    arc(cx, cy, radius, startAngle, endAngle, anticlockwise) {
-	        if (!this.pathStarted) {
-	            this.ctx.beginPath();
-	            this.pathStarted = true;
-	        }
-	        this.ctx.arc(cx, cy, radius, startAngle, endAngle, anticlockwise);
-	        return this;
-	    }
-	    closePath() {
-	        this.ctx.closePath();
-	        return this;
-	    }
-	    // Texture support
-	    texture(texture) {
-	        // For Three.js/CSS2D Canvas, we can't directly use Pixi textures
-	        // This is a no-op for CSS-based graphics
-	        return this;
-	    }
-	    colorToHex(color) {
-	        return '#' + color.toString(16).padStart(6, '0');
-	    }
-	}
-	/**
-	 * Three.js Text Wrapper
-	 */
-	class ThreeTextWrapper extends ThreeDisplayObjectBase {
-	    constructor(text, style) {
-	        const div = document.createElement('div');
-	        super(div);
-	        this._text = text;
-	        this._style = style || {};
-	        this.element.textContent = text;
-	        this.applyStyle(this._style);
-	        this.initializeAnchor();
-	    }
-	    initializeAnchor() {
-	        this._anchor = {
-	            x: 0,
-	            y: 0,
-	            set: (x, y) => {
-	                const yVal = y !== undefined ? y : x;
-	                this.element.style.transformOrigin = `${x * 100}% ${yVal * 100}%`;
-	                this._anchor.x = x;
-	                this._anchor.y = yVal;
-	            }
+	    /**
+	     * Convert screen coordinates to design coordinates
+	     * Useful for touch/mouse input handling
+	     * @param screenX - X position in screen space
+	     * @param screenY - Y position in screen space
+	     * @returns Position in design space
+	     */
+	    screenToDesign(screenX, screenY) {
+	        return {
+	            x: (screenX - this.offsetX) / this.currentScale,
+	            y: (screenY - this.offsetY) / this.currentScale,
 	        };
 	    }
-	    get text() {
-	        return this._text;
-	    }
-	    set text(value) {
-	        this._text = value;
-	        this.element.textContent = value;
-	    }
-	    get style() {
-	        return this._style;
-	    }
-	    set style(value) {
-	        this._style = value;
-	        this.applyStyle(value);
-	    }
-	    get width() {
-	        return this.element.offsetWidth;
-	    }
-	    get height() {
-	        return this.element.offsetHeight;
-	    }
-	    get anchor() {
-	        return this._anchor;
-	    }
-	    set anchor(value) {
-	        if (value && this._anchor) {
-	            this._anchor.x = value.x;
-	            this._anchor.y = value.y;
-	            this.element.style.transformOrigin = `${value.x * 100}% ${value.y * 100}%`;
-	        }
-	    }
-	    applyStyle(style) {
-	        if (style.fontFamily)
-	            this.element.style.fontFamily = style.fontFamily;
-	        if (style.fontSize)
-	            this.element.style.fontSize = `${style.fontSize}px`;
-	        if (style.fontWeight)
-	            this.element.style.fontWeight = style.fontWeight;
-	        if (style.fill !== undefined) {
-	            if (typeof style.fill === 'number') {
-	                this.element.style.color = '#' + style.fill.toString(16).padStart(6, '0');
-	            }
-	            else {
-	                this.element.style.color = style.fill;
-	            }
-	        }
-	        if (style.align)
-	            this.element.style.textAlign = style.align;
-	        if (style.wordWrap)
-	            this.element.style.whiteSpace = 'normal';
-	        if (style.wordWrapWidth)
-	            this.element.style.maxWidth = `${style.wordWrapWidth}px`;
-	        // Handle Pixi v8 dropShadow object format
-	        if (style.dropShadow && typeof style.dropShadow === 'object') {
-	            const shadow = style.dropShadow;
-	            if (shadow.color !== undefined && shadow.distance !== undefined) {
-	                const color = typeof shadow.color === 'number'
-	                    ? '#' + shadow.color.toString(16).padStart(6, '0')
-	                    : shadow.color;
-	                this.element.style.textShadow = `${shadow.distance}px ${shadow.distance}px ${shadow.blur || 0}px ${color}`;
-	            }
-	        }
-	    }
-	}
-	/**
-	 * Three.js Sprite Wrapper
-	 */
-	class ThreeSpriteWrapper extends ThreeDisplayObjectBase {
-	    constructor(texture) {
-	        const img = document.createElement('img');
-	        super(img);
-	        this._width = 0;
-	        this._height = 0;
-	        this.img = img;
-	        this.initializeAnchor();
-	        if (typeof texture === 'string') {
-	            this.img.src = texture;
-	            this._texture = { width: 0, height: 0, destroy: () => { } };
-	        }
-	        else {
-	            this._texture = texture;
-	            // Texture should be a canvas or image URL
-	        }
-	    }
-	    initializeAnchor() {
-	        this._anchor = {
-	            x: 0,
-	            y: 0,
-	            set: (x, y) => {
-	                this.element.style.transformOrigin = `${x * 100}% ${y * 100}%`;
-	                this._anchor.x = x;
-	                this._anchor.y = y;
-	            }
+	    /**
+	     * Convert design coordinates to screen coordinates
+	     * Useful for positioning UI elements relative to game objects
+	     * @param designX - X position in design space
+	     * @param designY - Y position in design space
+	     * @returns Position in screen space
+	     */
+	    designToScreen(designX, designY) {
+	        return {
+	            x: designX * this.currentScale + this.offsetX,
+	            y: designY * this.currentScale + this.offsetY,
 	        };
 	    }
-	    get texture() {
-	        return this._texture;
+	    /**
+	     * Get the current scale factor
+	     * @returns Current scale multiplier
+	     */
+	    getScale() {
+	        return this.currentScale;
 	    }
-	    set texture(value) {
-	        this._texture = value;
+	    /**
+	     * Get the design resolution
+	     * @returns Design width and height
+	     */
+	    getDesignSize() {
+	        return {
+	            width: this.config.width,
+	            height: this.config.height,
+	        };
 	    }
-	    get width() {
-	        return this._width || this.img.width;
+	    /**
+	     * Get the current screen size
+	     * @returns Screen width and height
+	     */
+	    getScreenSize() {
+	        return {
+	            width: this.screenWidth,
+	            height: this.screenHeight,
+	        };
 	    }
-	    set width(value) {
-	        this._width = value;
-	        this.img.width = value;
+	    /**
+	     * Get the current offset (for 'fit' mode with centering)
+	     * @returns X and Y offset
+	     */
+	    getOffset() {
+	        return {
+	            x: this.offsetX,
+	            y: this.offsetY,
+	        };
 	    }
-	    get height() {
-	        return this._height || this.img.height;
+	    /**
+	     * Check if a screen position is within the game world bounds
+	     * @param screenX - X position in screen space
+	     * @param screenY - Y position in screen space
+	     * @returns True if within bounds
+	     */
+	    isInBounds(screenX, screenY) {
+	        const design = this.screenToDesign(screenX, screenY);
+	        return (design.x >= 0 &&
+	            design.x <= this.config.width &&
+	            design.y >= 0 &&
+	            design.y <= this.config.height);
 	    }
-	    set height(value) {
-	        this._height = value;
-	        this.img.height = value;
-	    }
-	    get anchor() {
-	        return this._anchor;
-	    }
-	    set anchor(value) {
-	        if (value && this._anchor) {
-	            this._anchor.x = value.x;
-	            this._anchor.y = value.y;
-	            this.element.style.transformOrigin = `${value.x * 100}% ${value.y * 100}%`;
-	        }
-	    }
-	    get tint() {
-	        return undefined; // TODO: Implement color filter
-	    }
-	    set tint(value) {
-	        // TODO: Implement color filter
-	    }
-	}
-	/**
-	 * Three.js Texture Wrapper
-	 */
-	class ThreeTextureWrapper {
-	    constructor(source) {
-	        this.source = source;
-	    }
-	    get width() {
-	        if (typeof this.source === 'string')
-	            return 0;
-	        return this.source.width;
-	    }
-	    get height() {
-	        if (typeof this.source === 'string')
-	            return 0;
-	        return this.source.height;
-	    }
+	    /**
+	     * Destroy the scaler and its container
+	     */
 	    destroy() {
-	        // Nothing to clean up for DOM elements
-	    }
-	    getSource() {
-	        return this.source;
+	        this.container.destroy({ children: true });
 	    }
 	}
-	/**
-	 * Three.js Graphics Factory
-	 */
-	class ThreeGraphicsFactory {
-	    createContainer() {
-	        return new ThreeContainerWrapper();
-	    }
-	    createGraphics() {
-	        return new ThreeGraphicsWrapper();
-	    }
-	    createText(text, style) {
-	        return new ThreeTextWrapper(text, style);
-	    }
-	    createSprite(texture) {
-	        return new ThreeSpriteWrapper(texture);
-	    }
-	    createTexture(source) {
-	        return new ThreeTextureWrapper(source);
-	    }
-	    createCanvasTexture(width, height, draw) {
-	        const canvas = document.createElement('canvas');
-	        canvas.width = width;
-	        canvas.height = height;
-	        const ctx = canvas.getContext('2d');
-	        if (ctx) {
-	            draw(ctx);
-	        }
-	        return new ThreeTextureWrapper(canvas);
-	    }
-	}
-
-	var ThreeGraphicsFactory$1 = /*#__PURE__*/Object.freeze({
-		__proto__: null,
-		ThreeGraphicsFactory: ThreeGraphicsFactory
-	});
 
 	/**
 	 * Layout Styles & Presets
@@ -59820,7 +59026,7 @@
 	     * Create a layout-enabled container
 	     */
 	    createContainer(layout = {}) {
-	        const container = new PIXI__namespace.Container();
+	        const container = graphics().createContainer();
 	        container.layout = layout;
 	        return container;
 	    }
@@ -60156,8 +59362,7 @@
 	function createMergeGame() {
 	    const app = createGame();
 	    // Register merge service provider
-	    const { MergeServiceProvider: MSP } = require('./services/MergeServiceProvider');
-	    app.register(new MSP());
+	    app.register(new MergeServiceProvider());
 	    return app;
 	}
 	// Default export for convenient importing
@@ -60212,7 +59417,6 @@
 	exports.AudioFacade = Audio;
 	exports.AudioServiceProvider = AudioServiceProvider;
 	exports.BaseScene = BaseScene;
-	exports.BaseScene3D = BaseScene3D;
 	exports.BaseUIComponent = BaseUIComponent;
 	exports.BaseUIScreen = BaseUIScreen;
 	exports.BrowserFeatureDetector = BrowserFeatureDetector;
@@ -60227,6 +59431,7 @@
 	exports.DarkGamingUITheme = DarkGamingUITheme;
 	exports.DefaultSceneManager = DefaultSceneManager;
 	exports.DefaultUITheme = DefaultUITheme;
+	exports.DesignScaler = DesignScaler;
 	exports.DeviceDetector = DeviceDetector;
 	exports.EventEmitter = EventEmitter;
 	exports.Facade = Facade;
@@ -60268,6 +59473,7 @@
 	exports.GameInputColors = GameInputColors;
 	exports.GameLayoutPresets = GameLayoutPresets;
 	exports.GameList = GameList;
+	exports.GameLoading = GameLoading;
 	exports.GameLoopOptimizer = GameLoopOptimizer;
 	exports.GameModalPanel = GameModalPanel;
 	exports.GamePanel = GamePanel;
@@ -60279,6 +59485,7 @@
 	exports.GameSelectColors = GameSelectColors;
 	exports.GameSlider = GameSlider;
 	exports.GameSliderColors = GameSliderColors;
+	exports.GameSplash = GameSplash;
 	exports.GameStyleButton = GameStyleButton;
 	exports.GameStyleColors = GameStyleColors;
 	exports.GameStylePanel = GameStylePanel;
@@ -60292,7 +59499,6 @@
 	exports.GraphicsEngine = GraphicsEngine;
 	exports.HexagonLevelButton = HexagonLevelButton;
 	exports.HubScreen = HubScreen;
-	exports.HybridRenderer = HybridRenderer;
 	exports.Input = Input$1;
 	exports.InputServiceProvider = InputServiceProvider;
 	exports.LayoutPresets = LayoutPresets;
@@ -60354,10 +59560,6 @@
 	exports.StarBurstEffect = StarBurstEffect;
 	exports.SunburstEffect = SunburstEffect;
 	exports.Themes = Themes;
-	exports.ThreeCompatibility = ThreeCompatibility;
-	exports.ThreeGraphicsFactory = ThreeGraphicsFactory;
-	exports.ThreeRenderer = ThreeRenderer;
-	exports.ThreeVersionDetector = ThreeVersionDetector;
 	exports.TopBar = TopBar;
 	exports.UI = UI;
 	exports.UIButton = UIButton;
@@ -60391,7 +59593,7 @@
 	exports.createSpacing = createSpacing;
 	exports.createStack = createStack;
 	exports.createState = createState;
-	exports.darkenColor = darkenColor$1;
+	exports.darkenColor = darkenColor;
 	exports.default = GameByteFramework;
 	exports.drawToTexture = drawToTexture;
 	exports.getFrameworkFontFamily = getFrameworkFontFamily;

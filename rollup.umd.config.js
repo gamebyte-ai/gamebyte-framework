@@ -5,7 +5,7 @@ import commonjs from '@rollup/plugin-commonjs';
 
 const require = createRequire(import.meta.url);
 
-// UMD bundle configuration for browser globals
+// Main UMD bundle configuration for browser globals (2D focused, no Three.js dependency)
 // Note: @pixi/layout cannot be bundled into UMD due to its use of dynamic imports
 // Demos that need layout must use ESM modules
 const umdConfig = {
@@ -23,7 +23,8 @@ const umdConfig = {
       'three/examples/jsm/renderers/CSS2DRenderer.js': 'THREE'
     },
     sourcemap: true,
-    exports: 'named'
+    exports: 'named',
+    inlineDynamicImports: true
   },
   external: [
     'pixi.js',
@@ -52,4 +53,41 @@ const umdConfig = {
   ]
 };
 
-export default umdConfig;
+// Three.js Toolkit UMD bundle (for 3D games)
+// Load this AFTER gamebyte.umd.js and THREE.js
+const threeToolkitConfig = {
+  input: 'src/three-toolkit.ts',
+  output: {
+    file: 'dist/gamebyte-three.umd.js',
+    format: 'umd',
+    name: 'GameByteThree',
+    globals: {
+      'three': 'THREE',
+      'eventemitter3': 'EventEmitter3'
+    },
+    sourcemap: true,
+    exports: 'named'
+  },
+  external: [
+    'three',
+    /^three\/examples\/jsm\//
+  ],
+  plugins: [
+    nodeResolve({
+      preferBuiltins: false,
+      browser: true
+    }),
+    commonjs(),
+    typescript({
+      typescript: require('typescript'),
+      clean: true,
+      tsconfigOverride: {
+        compilerOptions: {
+          declaration: false // Skip declaration files for UMD
+        }
+      }
+    })
+  ]
+};
+
+export default [umdConfig, threeToolkitConfig];

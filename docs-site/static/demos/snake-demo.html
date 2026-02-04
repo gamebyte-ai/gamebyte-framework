@@ -28,21 +28,44 @@
 </head>
 <body>
     <h1>Snake Game</h1>
-    <p>Arrow keys to change direction</p>
+    <p>GameByte Framework Demo - Full Game Flow</p>
     <div id="game-container"></div>
     <div class="info">
-        Eat food to grow! Don't hit the walls or yourself!
+        Arrow keys to change direction. Eat food to grow!
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
 
     <script>
+        const {
+            createGame,
+            graphics,
+            loadFrameworkFont,
+            SplashScreen,
+            GameStyleButton,
+            GameStyleColors,
+            GameTopBar,
+            ResultScreen,
+            CelebrationManager
+        } = GameByteFramework;
+
         const CONFIG = { width: 500, height: 500 };
         const GRID_SIZE = 20;
         const GRID_WIDTH = CONFIG.width / GRID_SIZE;
         const GRID_HEIGHT = CONFIG.height / GRID_SIZE;
 
         let app;
+        let gameState = 'splash'; // 'splash' -> 'menu' -> 'playing' -> 'gameover'
+
+        // UI Components
+        let splashScreen;
+        let mainMenuContainer;
+        let gameTopBar;
+        let resultScreen;
+
+        // Snake game state
         let snake = [];
         let snakeGraphics = [];
         let direction = { x: 1, y: 0 };
@@ -54,13 +77,14 @@
         let score = 0;
         let highScore = 0;
         let speed = 150;
-        let gameOver = false;
-        let paused = false;
         let lastMove = 0;
-        let scoreText, highScoreText, messageText;
         let gridContainer;
+        let gameContainer;
 
         async function init() {
+            // Load framework font
+            await loadFrameworkFont();
+
             app = new PIXI.Application();
             await app.init({
                 width: CONFIG.width,
@@ -70,17 +94,132 @@
             });
             document.getElementById('game-container').appendChild(app.canvas);
 
-            drawGrid();
-            createUI();
             setupInput();
-            initGame();
+            showSplashScreen();
 
             app.ticker.add(gameLoop);
         }
 
+        function showSplashScreen() {
+            gameState = 'splash';
+
+            splashScreen = new SplashScreen({
+                title: 'SNAKE',
+                subtitle: 'A GameByte Demo',
+                duration: 2000,
+                backgroundColor: 0x1a1a2e,
+                titleColor: 0x2ECC71,
+                subtitleColor: 0x8892b0
+            });
+
+            splashScreen.on('complete', () => {
+                app.stage.removeChild(splashScreen.getContainer());
+                showMainMenu();
+            });
+
+            app.stage.addChild(splashScreen.getContainer());
+        }
+
+        function showMainMenu() {
+            gameState = 'menu';
+
+            const factory = graphics();
+            mainMenuContainer = factory.createContainer();
+
+            // Title
+            const title = factory.createText('SNAKE', {
+                fontFamily: 'Lilita One',
+                fontSize: 72,
+                fill: 0x2ECC71,
+                align: 'center'
+            });
+            title.anchor.set(0.5);
+            title.x = CONFIG.width / 2;
+            title.y = 120;
+            mainMenuContainer.addChild(title);
+
+            // High score display
+            if (highScore > 0) {
+                const highScoreText = factory.createText(`Best: ${highScore}`, {
+                    fontFamily: 'Lilita One',
+                    fontSize: 24,
+                    fill: 0xF39C12,
+                    align: 'center'
+                });
+                highScoreText.anchor.set(0.5);
+                highScoreText.x = CONFIG.width / 2;
+                highScoreText.y = 200;
+                mainMenuContainer.addChild(highScoreText);
+            }
+
+            // Play button
+            const playButton = new GameStyleButton({
+                text: 'PLAY',
+                variant: 'primary',
+                width: 200,
+                height: 60,
+                fontSize: 28
+            });
+
+            const playContainer = playButton.getContainer();
+            playContainer.x = CONFIG.width / 2 - 100;
+            playContainer.y = 280;
+
+            playButton.on('click', () => {
+                app.stage.removeChild(mainMenuContainer);
+                startGame();
+            });
+
+            mainMenuContainer.addChild(playContainer);
+
+            // Instructions
+            const instructions = factory.createText('Use Arrow Keys to Move', {
+                fontFamily: 'Lilita One',
+                fontSize: 16,
+                fill: 0x8892b0,
+                align: 'center'
+            });
+            instructions.anchor.set(0.5);
+            instructions.x = CONFIG.width / 2;
+            instructions.y = 380;
+            mainMenuContainer.addChild(instructions);
+
+            app.stage.addChild(mainMenuContainer);
+        }
+
+        function startGame() {
+            gameState = 'playing';
+            score = 0;
+            speed = 150;
+
+            // Create game container
+            gameContainer = new PIXI.Container();
+            app.stage.addChild(gameContainer);
+
+            // Draw grid
+            drawGrid();
+
+            // Create top bar
+            gameTopBar = new GameTopBar({
+                width: CONFIG.width,
+                title: 'SNAKE',
+                showCoins: false,
+                showLives: false
+            });
+            gameTopBar.updateScore(score);
+
+            app.stage.addChild(gameTopBar.getContainer());
+
+            // Initialize snake game
+            initSnake();
+
+            // Start game loop
+            lastMove = Date.now();
+        }
+
         function drawGrid() {
             gridContainer = new PIXI.Container();
-            app.stage.addChild(gridContainer);
+            gameContainer.addChild(gridContainer);
 
             const grid = new PIXI.Graphics();
             grid.rect(0, 0, CONFIG.width, CONFIG.height);
@@ -100,75 +239,7 @@
             gridContainer.addChild(grid);
         }
 
-        function createUI() {
-            const uiBg = new PIXI.Graphics();
-            uiBg.roundRect(5, 5, 180, 30, 5);
-            uiBg.fill({ color: 0x000000, alpha: 0.5 });
-            app.stage.addChild(uiBg);
-
-            scoreText = new PIXI.Text({
-                text: 'Score: 0',
-                style: { fontSize: 16, fill: 0x2ECC71, fontWeight: 'bold' }
-            });
-            scoreText.x = 10;
-            scoreText.y = 10;
-            app.stage.addChild(scoreText);
-
-            highScoreText = new PIXI.Text({
-                text: 'Best: 0',
-                style: { fontSize: 14, fill: 0xF39C12 }
-            });
-            highScoreText.x = 110;
-            highScoreText.y = 12;
-            app.stage.addChild(highScoreText);
-
-            messageText = new PIXI.Text({
-                text: '',
-                style: { fontSize: 28, fill: 0xFFFFFF, fontWeight: 'bold' }
-            });
-            messageText.anchor.set(0.5);
-            messageText.x = CONFIG.width / 2;
-            messageText.y = CONFIG.height / 2;
-            app.stage.addChild(messageText);
-        }
-
-        function setupInput() {
-            window.addEventListener('keydown', (e) => {
-                if (gameOver) {
-                    if (e.code === 'Space') restart();
-                    return;
-                }
-
-                switch (e.code) {
-                    case 'ArrowUp':
-                    case 'KeyW':
-                        if (direction.y !== 1) nextDirection = { x: 0, y: -1 };
-                        break;
-                    case 'ArrowDown':
-                    case 'KeyS':
-                        if (direction.y !== -1) nextDirection = { x: 0, y: 1 };
-                        break;
-                    case 'ArrowLeft':
-                    case 'KeyA':
-                        if (direction.x !== 1) nextDirection = { x: -1, y: 0 };
-                        break;
-                    case 'ArrowRight':
-                    case 'KeyD':
-                        if (direction.x !== -1) nextDirection = { x: 1, y: 0 };
-                        break;
-                    case 'Space':
-                        paused = !paused;
-                        messageText.text = paused ? 'PAUSED' : '';
-                        break;
-                }
-
-                if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
-                    e.preventDefault();
-                }
-            });
-        }
-
-        function initGame() {
+        function initSnake() {
             // Clear old snake
             snakeGraphics.forEach(s => gridContainer.removeChild(s));
             snakeGraphics = [];
@@ -203,7 +274,6 @@
                 segment.stroke({ color: 0x2ECC71, width: 2 });
 
                 // Eyes
-                const eyeOffset = direction.x !== 0 ? 5 : 3;
                 segment.circle(direction.x > 0 ? 13 : 7, direction.y > 0 ? 13 : 7, 3);
                 segment.fill({ color: 0xFFFFFF });
                 segment.circle(direction.x > 0 ? 13 : 7, direction.y > 0 ? 13 : 7, 1.5);
@@ -278,8 +348,37 @@
             gridContainer.addChild(specialFoodGraphic);
         }
 
+        function setupInput() {
+            window.addEventListener('keydown', (e) => {
+                if (gameState !== 'playing') return;
+
+                switch (e.code) {
+                    case 'ArrowUp':
+                    case 'KeyW':
+                        if (direction.y !== 1) nextDirection = { x: 0, y: -1 };
+                        break;
+                    case 'ArrowDown':
+                    case 'KeyS':
+                        if (direction.y !== -1) nextDirection = { x: 0, y: 1 };
+                        break;
+                    case 'ArrowLeft':
+                    case 'KeyA':
+                        if (direction.x !== 1) nextDirection = { x: -1, y: 0 };
+                        break;
+                    case 'ArrowRight':
+                    case 'KeyD':
+                        if (direction.x !== -1) nextDirection = { x: 1, y: 0 };
+                        break;
+                }
+
+                if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+                    e.preventDefault();
+                }
+            });
+        }
+
         function gameLoop(ticker) {
-            if (gameOver || paused) return;
+            if (gameState !== 'playing') return;
 
             const now = Date.now();
             if (now - lastMove < speed) return;
@@ -317,6 +416,7 @@
                 score += 10;
                 ate = true;
                 speed = Math.max(50, speed - 2);
+                gameTopBar.updateScore(score);
                 spawnFood();
             }
 
@@ -324,6 +424,7 @@
             if (specialFood && newHead.x === specialFood.x && newHead.y === specialFood.y) {
                 score += 50;
                 ate = true;
+                gameTopBar.updateScore(score);
                 // Add extra segments
                 for (let i = 0; i < 2; i++) {
                     const tail = snake[snake.length - 1];
@@ -339,7 +440,6 @@
 
             // Update graphics
             updateSnakeGraphics();
-            scoreText.text = `Score: ${score}`;
 
             // Update special food timer
             if (specialFood) {
@@ -380,25 +480,47 @@
         }
 
         function endGame() {
-            gameOver = true;
+            gameState = 'gameover';
+
+            // Update high score
             if (score > highScore) {
                 highScore = score;
-                highScoreText.text = `Best: ${highScore}`;
             }
-            messageText.text = `GAME OVER\nScore: ${score}\nPress SPACE to restart`;
-            messageText.style.fill = 0xE74C3C;
+
+            // Clean up game container
+            app.stage.removeChild(gameContainer);
+            if (gameTopBar) {
+                app.stage.removeChild(gameTopBar.getContainer());
+            }
+
+            // Show result screen
+            showResultScreen();
         }
 
-        function restart() {
-            score = 0;
-            speed = 150;
-            gameOver = false;
-            paused = false;
-            messageText.text = '';
-            messageText.style.fill = 0xFFFFFF;
-            scoreText.text = 'Score: 0';
-            removeSpecialFood();
-            initGame();
+        function showResultScreen() {
+            const isNewHighScore = score === highScore && score > 0;
+
+            resultScreen = new ResultScreen({
+                title: isNewHighScore ? 'NEW RECORD!' : 'GAME OVER',
+                score: score,
+                stars: Math.min(3, Math.floor(score / 100)),
+                message: isNewHighScore ? `Amazing! You scored ${score} points!` : `You scored ${score} points`,
+                showCoins: false,
+                buttonText: 'PLAY AGAIN'
+            });
+
+            resultScreen.on('continue', () => {
+                app.stage.removeChild(resultScreen.getContainer());
+                showMainMenu();
+            });
+
+            app.stage.addChild(resultScreen.getContainer());
+
+            // Show celebration if new high score
+            if (isNewHighScore && score > 0) {
+                const celebration = new CelebrationManager(app.stage);
+                celebration.celebrate('victory');
+            }
         }
 
         init().catch(console.error);

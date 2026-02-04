@@ -47,8 +47,6 @@
       "Bash(while read commit)",
       "Bash(do echo \"=== Commit: $commit ===\")",
       "Skill(brainstorming)",
-      "mcp__context7__resolve-library-id",
-      "mcp__context7__query-docs",
       "WebSearch",
       "Skill(commit-commands:commit)",
       "Bash(node --check:*)",
@@ -74,7 +72,8 @@
       "Bash(then echo \"✅ $demo\")",
       "Bash(else echo \"❌ MISSING: $demo\")",
       "Bash(fi)",
-      "Bash(done)"
+      "Bash(done)",
+      "mcp__gemini-imagen4__generate_image"
     ],
     "deny": [],
     "ask": []

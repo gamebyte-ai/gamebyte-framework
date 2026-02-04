@@ -28,15 +28,28 @@
 </head>
 <body>
     <h1>Flappy Bird</h1>
-    <p>Click, tap, or press Space to flap</p>
+    <p>GameByte Framework Demo - Full Game Flow</p>
     <div id="game-container"></div>
     <div class="info">
-        Fly through the gaps! Don't hit the pipes!
+        Features: SplashScreen, Main Menu, GameTopBar, ResultScreen
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
 
     <script>
+        const {
+            createGame,
+            graphics,
+            loadFrameworkFont,
+            SplashScreen,
+            GameStyleButton,
+            GameStyleColors,
+            GameTopBar,
+            ResultScreen
+        } = GameByteFramework;
+
         const CONFIG = { width: 400, height: 600 };
         const GRAVITY = 0.5;
         const FLAP_FORCE = -9;
@@ -44,19 +57,29 @@
         const PIPE_GAP = 150;
         const PIPE_SPAWN_INTERVAL = 90;
 
-        let app, bird, ground;
+        let app, game;
+        let bird, ground;
         let pipes = [];
         let clouds = [];
         let particles = [];
         let score = 0, highScore = 0;
-        let gameStarted = false, gameOver = false;
         let frameCount = 0;
-        let scoreText, highScoreText, messageText;
         let birdVelocity = 0;
         let birdRotation = 0;
         let wingAngle = 0;
 
+        // UI components
+        let splashScreen, mainMenuContainer, gameTopBar, resultScreen;
+        let playButton, tapInstruction;
+
+        // Game states: 'splash' -> 'menu' -> 'playing' -> 'gameover'
+        let gameState = 'splash';
+
         async function init() {
+            // Load framework font
+            await loadFrameworkFont();
+
+            // Initialize Pixi app
             app = new PIXI.Application();
             await app.init({
                 width: CONFIG.width,
@@ -66,13 +89,235 @@
             });
             document.getElementById('game-container').appendChild(app.canvas);
 
+            // Create game environment
             createBackground();
             createBird();
             createGround();
-            createUI();
+
+            // Initialize UI components
+            createSplashScreen();
+            createMainMenu();
+            createGameTopBar();
+            createResultScreen();
+
+            // Setup input
             setupInput();
 
+            // Start with splash screen
+            showSplashScreen();
+
             app.ticker.add(gameLoop);
+        }
+
+        function createSplashScreen() {
+            splashScreen = new SplashScreen({
+                title: 'FLAPPY',
+                subtitle: 'BIRD',
+                backgroundColor: 0x70C5CE,
+                textColor: 0xFFFFFF,
+                duration: 2000
+            });
+
+            const container = splashScreen.getContainer();
+            container.visible = false;
+            app.stage.addChild(container);
+
+            splashScreen.on('complete', () => {
+                container.visible = false;
+                showMainMenu();
+            });
+        }
+
+        function createMainMenu() {
+            mainMenuContainer = new PIXI.Container();
+            mainMenuContainer.visible = false;
+
+            // Title
+            const titleText = new PIXI.Text({
+                text: 'FLAPPY BIRD',
+                style: {
+                    fontSize: 48,
+                    fill: 0xFFFFFF,
+                    fontWeight: 'bold',
+                    fontFamily: 'Lilita One, Arial',
+                    stroke: { color: 0x000000, width: 5 }
+                }
+            });
+            titleText.anchor.set(0.5);
+            titleText.x = CONFIG.width / 2;
+            titleText.y = 150;
+            mainMenuContainer.addChild(titleText);
+
+            // Play button
+            playButton = new GameStyleButton({
+                width: 200,
+                height: 60,
+                label: 'PLAY',
+                variant: 'primary'
+            });
+            const playButtonContainer = playButton.getContainer();
+            playButtonContainer.x = CONFIG.width / 2;
+            playButtonContainer.y = CONFIG.height / 2;
+            mainMenuContainer.addChild(playButtonContainer);
+
+            playButton.on('click', () => {
+                startGame();
+            });
+
+            // Tap instruction
+            tapInstruction = new PIXI.Text({
+                text: 'Tap anywhere to flap!',
+                style: {
+                    fontSize: 20,
+                    fill: 0xFFFFFF,
+                    fontFamily: 'Lilita One, Arial',
+                    stroke: { color: 0x000000, width: 3 }
+                }
+            });
+            tapInstruction.anchor.set(0.5);
+            tapInstruction.x = CONFIG.width / 2;
+            tapInstruction.y = CONFIG.height / 2 + 80;
+            mainMenuContainer.addChild(tapInstruction);
+
+            // High score
+            if (highScore > 0) {
+                const highScoreText = new PIXI.Text({
+                    text: `Best: ${highScore}`,
+                    style: {
+                        fontSize: 18,
+                        fill: 0xFFFFFF,
+                        fontFamily: 'Arial'
+                    }
+                });
+                highScoreText.anchor.set(0.5);
+                highScoreText.x = CONFIG.width / 2;
+                highScoreText.y = CONFIG.height / 2 + 120;
+                mainMenuContainer.addChild(highScoreText);
+            }
+
+            app.stage.addChild(mainMenuContainer);
+        }
+
+        function createGameTopBar() {
+            gameTopBar = new GameTopBar({
+                width: CONFIG.width,
+                showLives: false,
+                showCoins: false
+            });
+
+            const container = gameTopBar.getContainer();
+            container.visible = false;
+            app.stage.addChild(container);
+
+            // Update score display
+            gameTopBar.setScore(0);
+        }
+
+        function createResultScreen() {
+            resultScreen = new ResultScreen({
+                width: CONFIG.width,
+                height: CONFIG.height,
+                variant: 'defeat'
+            });
+
+            const container = resultScreen.getContainer();
+            container.visible = false;
+            app.stage.addChild(container);
+
+            resultScreen.on('replay', () => {
+                restartGame();
+            });
+
+            resultScreen.on('home', () => {
+                backToMenu();
+            });
+        }
+
+        function showSplashScreen() {
+            gameState = 'splash';
+            const container = splashScreen.getContainer();
+            container.visible = true;
+            splashScreen.show();
+        }
+
+        function showMainMenu() {
+            gameState = 'menu';
+            mainMenuContainer.visible = true;
+            gameTopBar.getContainer().visible = false;
+            resultScreen.getContainer().visible = false;
+
+            // Reset bird to idle position
+            bird.x = 80;
+            bird.y = CONFIG.height / 2;
+            bird.rotation = 0;
+            birdVelocity = 0;
+            birdRotation = 0;
+        }
+
+        function startGame() {
+            gameState = 'playing';
+            mainMenuContainer.visible = false;
+            gameTopBar.getContainer().visible = true;
+            resultScreen.getContainer().visible = false;
+
+            // Reset game state
+            score = 0;
+            frameCount = 0;
+            birdVelocity = 0;
+            birdRotation = 0;
+            gameTopBar.setScore(0);
+
+            // Clear pipes and particles
+            pipes.forEach(pipe => app.stage.removeChild(pipe));
+            pipes = [];
+            particles.forEach(p => app.stage.removeChild(p));
+            particles = [];
+
+            // Reset bird
+            bird.x = 80;
+            bird.y = CONFIG.height / 2;
+            bird.rotation = 0;
+        }
+
+        function endGame() {
+            gameState = 'gameover';
+
+            if (score > highScore) {
+                highScore = score;
+            }
+
+            // Hide game UI
+            gameTopBar.getContainer().visible = false;
+
+            // Show result screen
+            const variant = score > highScore / 2 ? 'victory' : 'defeat';
+            resultScreen.setVariant(variant);
+            resultScreen.setScore(score);
+            resultScreen.setBestScore(highScore);
+
+            const container = resultScreen.getContainer();
+            container.visible = true;
+            resultScreen.show();
+
+            // Death animation
+            birdVelocity = -5;
+        }
+
+        function restartGame() {
+            resultScreen.getContainer().visible = false;
+            startGame();
+        }
+
+        function backToMenu() {
+            resultScreen.getContainer().visible = false;
+
+            // Clear game elements
+            pipes.forEach(pipe => app.stage.removeChild(pipe));
+            pipes = [];
+            particles.forEach(p => app.stage.removeChild(p));
+            particles = [];
+
+            showMainMenu();
         }
 
         function createBackground() {
@@ -184,56 +429,10 @@
             app.stage.addChild(ground);
         }
 
-        function createUI() {
-            scoreText = new PIXI.Text({
-                text: '0',
-                style: {
-                    fontSize: 48,
-                    fill: 0xFFFFFF,
-                    fontWeight: 'bold',
-                    stroke: { color: 0x000000, width: 4 }
-                }
-            });
-            scoreText.anchor.set(0.5, 0);
-            scoreText.x = CONFIG.width / 2;
-            scoreText.y = 50;
-            app.stage.addChild(scoreText);
-
-            highScoreText = new PIXI.Text({
-                text: 'Best: 0',
-                style: { fontSize: 16, fill: 0xFFFFFF }
-            });
-            highScoreText.anchor.set(0.5, 0);
-            highScoreText.x = CONFIG.width / 2;
-            highScoreText.y = 100;
-            highScoreText.visible = false;
-            app.stage.addChild(highScoreText);
-
-            messageText = new PIXI.Text({
-                text: 'Tap to Start',
-                style: {
-                    fontSize: 28,
-                    fill: 0xFFFFFF,
-                    fontWeight: 'bold',
-                    stroke: { color: 0x000000, width: 3 }
-                }
-            });
-            messageText.anchor.set(0.5);
-            messageText.x = CONFIG.width / 2;
-            messageText.y = CONFIG.height / 2 + 100;
-            app.stage.addChild(messageText);
-        }
-
         function setupInput() {
             const flap = () => {
-                if (gameOver) {
-                    restart();
-                    return;
-                }
-                if (!gameStarted) {
-                    gameStarted = true;
-                    messageText.visible = false;
-                }
+                if (gameState !== 'playing') return;
+
                 birdVelocity = FLAP_FORCE;
                 createFlapParticles();
             };
@@ -245,7 +444,12 @@
                 }
             });
 
-            app.canvas.addEventListener('pointerdown', flap);
+            app.canvas.addEventListener('pointerdown', (e) => {
+                // Don't flap if clicking on UI elements
+                if (gameState === 'playing') {
+                    flap();
+                }
+            });
         }
 
         function createPipe() {
@@ -259,13 +463,11 @@
             // Top pipe
             const topPipe = createPipeGraphics(gapY - PIPE_GAP / 2, true);
             pipeContainer.addChild(topPipe);
-            pipeContainer.topPipe = topPipe;
 
             // Bottom pipe
             const bottomPipe = createPipeGraphics(CONFIG.height - 80 - (gapY + PIPE_GAP / 2), false);
             bottomPipe.y = gapY + PIPE_GAP / 2;
             pipeContainer.addChild(bottomPipe);
-            pipeContainer.bottomPipe = bottomPipe;
 
             // Add behind bird but in front of background
             const birdIndex = app.stage.children.indexOf(bird);
@@ -336,23 +538,23 @@
         function gameLoop() {
             frameCount++;
 
-            // Animate clouds
+            // Animate clouds (always)
             clouds.forEach(cloud => {
                 cloud.x -= cloud.speed;
                 if (cloud.x < -100) cloud.x = CONFIG.width + 50;
             });
 
-            // Animate bird wing
+            // Animate bird wing (always)
             wingAngle += 0.3;
             bird.wing.rotation = Math.sin(wingAngle) * 0.5;
 
-            if (!gameStarted) {
-                // Idle animation
+            // Idle animation when in menu or splash
+            if (gameState === 'menu' || gameState === 'splash') {
                 bird.y = CONFIG.height / 2 + Math.sin(frameCount / 20) * 10;
                 return;
             }
 
-            if (gameOver) return;
+            if (gameState !== 'playing') return;
 
             // Bird physics
             birdVelocity += GRAVITY;
@@ -377,7 +579,7 @@
                 if (!pipe.scored && pipe.x + 30 < bird.x) {
                     pipe.scored = true;
                     score++;
-                    scoreText.text = score.toString();
+                    gameTopBar.setScore(score);
                 }
 
                 // Remove off-screen pipes
@@ -432,51 +634,6 @@
                     particles.splice(i, 1);
                 }
             }
-        }
-
-        function endGame() {
-            gameOver = true;
-
-            if (score > highScore) {
-                highScore = score;
-            }
-
-            highScoreText.text = `Best: ${highScore}`;
-            highScoreText.visible = true;
-            messageText.text = `Game Over!\nScore: ${score}\nTap to Restart`;
-            messageText.visible = true;
-
-            // Death animation
-            birdVelocity = -5;
-        }
-
-        function restart() {
-            // Remove pipes
-            pipes.forEach(pipe => app.stage.removeChild(pipe));
-            pipes = [];
-
-            // Remove particles
-            particles.forEach(p => app.stage.removeChild(p));
-            particles = [];
-
-            // Reset state
-            score = 0;
-            frameCount = 0;
-            gameStarted = false;
-            gameOver = false;
-            birdVelocity = 0;
-            birdRotation = 0;
-
-            // Reset bird
-            bird.x = 80;
-            bird.y = CONFIG.height / 2;
-            bird.rotation = 0;
-
-            // Reset UI
-            scoreText.text = '0';
-            highScoreText.visible = false;
-            messageText.text = 'Tap to Start';
-            messageText.visible = true;
         }
 
         init().catch(console.error);

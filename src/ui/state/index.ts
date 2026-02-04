@@ -11,4 +11,4 @@ export {
   resolveValue,
   type StateListener,
   type ReactiveState
-} from './ReactiveState';
+} from './ReactiveState.js';

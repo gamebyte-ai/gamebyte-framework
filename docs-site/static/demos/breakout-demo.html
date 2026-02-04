@@ -27,28 +27,44 @@
     </style>
 </head>
 <body>
-    <h1>Breakout</h1>
-    <p>Mouse or Arrow keys to move paddle, Space to launch ball</p>
+    <h1>Breakout with GameByte Framework</h1>
+    <p>Full game flow: Splash → Menu → Gameplay → Result Screen</p>
     <div id="game-container"></div>
     <div class="info">
-        Break all the bricks! Don't let the ball fall!
+        Mouse/Arrow keys to move paddle, Space to launch ball
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
 
     <script>
+        const {
+            createGame,
+            graphics,
+            loadFrameworkFont,
+            SplashScreen,
+            GameStyleButton,
+            GameStyleColors,
+            GameTopBar,
+            ResultScreen,
+            CelebrationManager
+        } = GameByteFramework;
+
         const CONFIG = { width: 600, height: 500 };
 
-        let app, paddle, ball;
-        let bricks = [];
-        let particles = [];
-        let powerups = [];
+        // Game state
+        let game, app, gameContainer;
+        let currentState = 'splash';
+        let paddle, ball, bricks = [], particles = [], powerups = [];
         let score = 0, lives = 3, level = 1;
-        let ballLaunched = false, gameOver = false, gameWon = false;
-        let scoreText, livesText, levelText, messageText;
-        let keys = {};
-        let mouseX = CONFIG.width / 2;
+        let ballLaunched = false;
+        let keys = {}, mouseX = CONFIG.width / 2;
 
+        // UI components
+        let splashScreen, menuContainer, topBar, resultScreen, celebrationManager;
+
+        // Constants
         const PADDLE_WIDTH = 100;
         const PADDLE_HEIGHT = 15;
         const BALL_RADIUS = 8;
@@ -59,6 +75,10 @@
         const BRICK_PADDING = 4;
 
         async function init() {
+            // Load framework font
+            await loadFrameworkFont();
+
+            // Create Pixi app
             app = new PIXI.Application();
             await app.init({
                 width: CONFIG.width,
@@ -68,13 +88,137 @@
             });
             document.getElementById('game-container').appendChild(app.canvas);
 
+            // Create game container for gameplay elements
+            gameContainer = new PIXI.Container();
+            gameContainer.visible = false;
+            app.stage.addChild(gameContainer);
+
+            // Initialize celebration manager
+            celebrationManager = new CelebrationManager(app.stage, CONFIG.width, CONFIG.height);
+
+            // Setup input
+            setupInput();
+
+            // Show splash screen
+            showSplash();
+        }
+
+        function showSplash() {
+            currentState = 'splash';
+
+            splashScreen = new SplashScreen({
+                title: 'BREAKOUT',
+                subtitle: 'Break all the bricks!',
+                backgroundColor: 0x1a1a2e,
+                titleColor: 0xFFD700,
+                subtitleColor: 0x8892b0
+            });
+
+            app.stage.addChild(splashScreen.getContainer());
+
+            splashScreen.on('complete', () => {
+                app.stage.removeChild(splashScreen.getContainer());
+                splashScreen.destroy();
+                showMenu();
+            });
+
+            splashScreen.show();
+        }
+
+        function showMenu() {
+            currentState = 'menu';
+
+            // Create menu container
+            menuContainer = new PIXI.Container();
+            app.stage.addChild(menuContainer);
+
+            // Title
+            const factory = graphics();
+            const title = factory.createText('BREAKOUT', {
+                fontSize: 56,
+                fill: 0xFFD700,
+                fontWeight: 'bold'
+            });
+            title.anchor.set(0.5);
+            title.x = CONFIG.width / 2;
+            title.y = 120;
+            menuContainer.addChild(title);
+
+            // Subtitle
+            const subtitle = factory.createText('Break all the bricks to win!', {
+                fontSize: 20,
+                fill: 0x8892b0
+            });
+            subtitle.anchor.set(0.5);
+            subtitle.x = CONFIG.width / 2;
+            subtitle.y = 180;
+            menuContainer.addChild(subtitle);
+
+            // Play button
+            const playButton = new GameStyleButton({
+                text: 'PLAY',
+                width: 200,
+                height: 60,
+                color: GameStyleColors.SUCCESS,
+                fontSize: 24
+            });
+            playButton.getContainer().x = (CONFIG.width - 200) / 2;
+            playButton.getContainer().y = 280;
+            menuContainer.addChild(playButton.getContainer());
+
+            playButton.on('click', startGame);
+        }
+
+        function startGame() {
+            currentState = 'playing';
+
+            // Remove menu
+            if (menuContainer) {
+                app.stage.removeChild(menuContainer);
+                menuContainer.destroy({ children: true });
+                menuContainer = null;
+            }
+
+            // Reset game state
+            score = 0;
+            lives = 3;
+            level = 1;
+            ballLaunched = false;
+
+            // Show game container
+            gameContainer.visible = true;
+
+            // Clear any existing game objects
+            if (paddle) gameContainer.removeChild(paddle);
+            if (ball) gameContainer.removeChild(ball);
+            bricks.forEach(b => gameContainer.removeChild(b));
+            bricks = [];
+            particles.forEach(p => gameContainer.removeChild(p));
+            particles = [];
+            powerups.forEach(p => gameContainer.removeChild(p));
+            powerups = [];
+
+            // Create game objects
             createPaddle();
             createBall();
             createBricks();
-            createUI();
-            setupInput();
 
+            // Create top bar
+            topBar = new GameTopBar({
+                width: CONFIG.width,
+                backgroundColor: 0x0a0a15,
+                textColor: 0xFFFFFF
+            });
+            app.stage.addChild(topBar.getContainer());
+
+            // Update top bar
+            updateTopBar();
+
+            // Start game loop
             app.ticker.add(gameLoop);
+
+            // Show launch message
+            showMessage('Press SPACE to launch', 0x8892b0);
         }
 
         function createPaddle() {
@@ -89,7 +233,8 @@
 
             paddle.x = (CONFIG.width - PADDLE_WIDTH) / 2;
             paddle.y = CONFIG.height - 40;
-            app.stage.addChild(paddle);
+            paddle.scale = { x: 1, y: 1 };
+            gameContainer.addChild(paddle);
         }
 
         function createBall() {
@@ -105,13 +250,13 @@
             ball.y = CONFIG.height - 55;
             ball.vx = 0;
             ball.vy = 0;
-            app.stage.addChild(ball);
+            gameContainer.addChild(ball);
         }
 
         function createBricks() {
             const colors = [0xE74C3C, 0xE67E22, 0xF1C40F, 0x2ECC71, 0x3498DB];
             const startX = (CONFIG.width - (BRICK_COLS * (BRICK_WIDTH + BRICK_PADDING))) / 2;
-            const startY = 60;
+            const startY = 100;
 
             for (let row = 0; row < BRICK_ROWS; row++) {
                 for (let col = 0; col < BRICK_COLS; col++) {
@@ -127,48 +272,12 @@
                     brick.x = startX + col * (BRICK_WIDTH + BRICK_PADDING);
                     brick.y = startY + row * (BRICK_HEIGHT + BRICK_PADDING);
                     brick.row = row;
-                    brick.health = row < 2 ? 2 : 1; // Top rows need 2 hits
+                    brick.health = row < 2 ? 2 : 1;
                     brick.color = colors[row];
-                    app.stage.addChild(brick);
+                    gameContainer.addChild(brick);
                     bricks.push(brick);
                 }
             }
-        }
-
-        function createUI() {
-            scoreText = new PIXI.Text({
-                text: 'Score: 0',
-                style: { fontSize: 18, fill: 0xFFFFFF }
-            });
-            scoreText.x = 10;
-            scoreText.y = 10;
-            app.stage.addChild(scoreText);
-
-            livesText = new PIXI.Text({
-                text: '❤️❤️❤️',
-                style: { fontSize: 18 }
-            });
-            livesText.x = CONFIG.width - 80;
-            livesText.y = 10;
-            app.stage.addChild(livesText);
-
-            levelText = new PIXI.Text({
-                text: 'Level 1',
-                style: { fontSize: 16, fill: 0xF39C12 }
-            });
-            levelText.anchor.set(0.5, 0);
-            levelText.x = CONFIG.width / 2;
-            levelText.y = 10;
-            app.stage.addChild(levelText);
-
-            messageText = new PIXI.Text({
-                text: 'Press SPACE to launch',
-                style: { fontSize: 20, fill: 0x8892b0 }
-            });
-            messageText.anchor.set(0.5);
-            messageText.x = CONFIG.width / 2;
-            messageText.y = CONFIG.height / 2 + 50;
-            app.stage.addChild(messageText);
         }
 
         function setupInput() {
@@ -176,10 +285,8 @@
                 keys[e.code] = true;
                 if (e.code === 'Space') {
                     e.preventDefault();
-                    if (!ballLaunched && !gameOver && !gameWon) {
+                    if (currentState === 'playing' && !ballLaunched) {
                         launchBall();
-                    } else if (gameOver || gameWon) {
-                        restart();
                     }
                 }
             });
@@ -191,10 +298,8 @@
             });
 
             app.canvas.addEventListener('click', () => {
-                if (!ballLaunched && !gameOver && !gameWon) {
+                if (currentState === 'playing' && !ballLaunched) {
                     launchBall();
-                } else if (gameOver || gameWon) {
-                    restart();
                 }
             });
         }
@@ -205,11 +310,11 @@
             const speed = 6 + level;
             ball.vx = Math.cos(angle) * speed;
             ball.vy = Math.sin(angle) * speed;
-            messageText.text = '';
+            hideMessage();
         }
 
         function gameLoop(ticker) {
-            if (gameOver || gameWon) return;
+            if (currentState !== 'playing') return;
 
             // Paddle movement
             if (keys['ArrowLeft'] || keys['KeyA']) {
@@ -223,11 +328,11 @@
             paddle.x += (mouseX - PADDLE_WIDTH / 2 - paddle.x) * 0.2;
 
             // Paddle bounds
-            paddle.x = Math.max(0, Math.min(CONFIG.width - PADDLE_WIDTH, paddle.x));
+            paddle.x = Math.max(0, Math.min(CONFIG.width - PADDLE_WIDTH * paddle.scale.x, paddle.x));
 
             // Ball on paddle before launch
             if (!ballLaunched) {
-                ball.x = paddle.x + PADDLE_WIDTH / 2;
+                ball.x = paddle.x + (PADDLE_WIDTH * paddle.scale.x) / 2;
                 ball.y = CONFIG.height - 55;
                 return;
             }
@@ -245,8 +350,8 @@
                 ball.x = CONFIG.width - BALL_RADIUS;
                 ball.vx *= -1;
             }
-            if (ball.y - BALL_RADIUS < 0) {
-                ball.y = BALL_RADIUS;
+            if (ball.y - BALL_RADIUS < 40) {
+                ball.y = 40 + BALL_RADIUS;
                 ball.vy *= -1;
             }
 
@@ -257,14 +362,14 @@
             }
 
             // Paddle collision
+            const paddleWidth = PADDLE_WIDTH * paddle.scale.x;
             if (ball.vy > 0 &&
                 ball.y + BALL_RADIUS > paddle.y &&
                 ball.y + BALL_RADIUS < paddle.y + PADDLE_HEIGHT + 10 &&
                 ball.x > paddle.x - BALL_RADIUS &&
-                ball.x < paddle.x + PADDLE_WIDTH + BALL_RADIUS) {
+                ball.x < paddle.x + paddleWidth + BALL_RADIUS) {
 
-                // Calculate bounce angle based on where ball hit paddle
-                const hitPos = (ball.x - paddle.x) / PADDLE_WIDTH; // 0 to 1
+                const hitPos = (ball.x - paddle.x) / paddleWidth;
                 const angle = (hitPos - 0.5) * Math.PI * 0.7 - Math.PI / 2;
                 const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
 
@@ -272,7 +377,6 @@
                 ball.vy = Math.sin(angle) * speed;
                 ball.y = paddle.y - BALL_RADIUS;
 
-                // Ensure ball goes up
                 if (ball.vy > 0) ball.vy *= -1;
 
                 createHitParticles(ball.x, ball.y, 0x3498DB);
@@ -287,7 +391,6 @@
                     ball.y + BALL_RADIUS > brick.y &&
                     ball.y - BALL_RADIUS < brick.y + BRICK_HEIGHT) {
 
-                    // Determine which side was hit
                     const overlapLeft = ball.x + BALL_RADIUS - brick.x;
                     const overlapRight = brick.x + BRICK_WIDTH - (ball.x - BALL_RADIUS);
                     const overlapTop = ball.y + BALL_RADIUS - brick.y;
@@ -306,10 +409,10 @@
 
                     if (brick.health <= 0) {
                         createHitParticles(brick.x + BRICK_WIDTH / 2, brick.y + BRICK_HEIGHT / 2, brick.color);
-                        app.stage.removeChild(brick);
+                        gameContainer.removeChild(brick);
                         bricks.splice(i, 1);
                         score += (BRICK_ROWS - brick.row) * 10;
-                        scoreText.text = `Score: ${score}`;
+                        updateTopBar();
 
                         // Check win
                         if (bricks.length === 0) {
@@ -321,11 +424,10 @@
                             spawnPowerup(brick.x + BRICK_WIDTH / 2, brick.y + BRICK_HEIGHT / 2);
                         }
                     } else {
-                        // Visual feedback for damaged brick
                         brick.alpha = 0.6;
                     }
 
-                    break; // Only one brick collision per frame
+                    break;
                 }
             }
 
@@ -335,21 +437,20 @@
                 powerup.y += 3;
                 powerup.rotation += 0.05;
 
-                // Collect powerup
+                const paddleWidth = PADDLE_WIDTH * paddle.scale.x;
                 if (powerup.y > paddle.y &&
                     powerup.y < paddle.y + PADDLE_HEIGHT + 20 &&
                     powerup.x > paddle.x &&
-                    powerup.x < paddle.x + PADDLE_WIDTH) {
+                    powerup.x < paddle.x + paddleWidth) {
 
                     applyPowerup(powerup.type);
-                    app.stage.removeChild(powerup);
+                    gameContainer.removeChild(powerup);
                     powerups.splice(i, 1);
                     continue;
                 }
 
-                // Remove if off screen
                 if (powerup.y > CONFIG.height) {
-                    app.stage.removeChild(powerup);
+                    gameContainer.removeChild(powerup);
                     powerups.splice(i, 1);
                 }
             }
@@ -359,12 +460,12 @@
                 const p = particles[i];
                 p.x += p.vx;
                 p.y += p.vy;
-                p.vy += 0.2; // gravity
+                p.vy += 0.2;
                 p.life -= 0.02;
                 p.alpha = p.life;
 
                 if (p.life <= 0) {
-                    app.stage.removeChild(p);
+                    gameContainer.removeChild(p);
                     particles.splice(i, 1);
                 }
             }
@@ -380,7 +481,7 @@
                 particle.vx = (Math.random() - 0.5) * 6;
                 particle.vy = (Math.random() - 0.5) * 6;
                 particle.life = 1;
-                app.stage.addChild(particle);
+                gameContainer.addChild(particle);
                 particles.push(particle);
             }
         }
@@ -397,7 +498,7 @@
             powerup.x = x;
             powerup.y = y;
             powerup.type = types[typeIndex];
-            app.stage.addChild(powerup);
+            gameContainer.addChild(powerup);
             powerups.push(powerup);
         }
 
@@ -423,37 +524,33 @@
                     break;
                 case 'extraLife':
                     lives = Math.min(lives + 1, 5);
-                    livesText.text = '❤️'.repeat(lives);
+                    updateTopBar();
                     break;
             }
         }
 
         function loseLife() {
             lives--;
-            livesText.text = '❤️'.repeat(lives);
+            updateTopBar();
             ballLaunched = false;
             ball.vx = 0;
             ball.vy = 0;
 
             if (lives <= 0) {
-                gameOver = true;
-                messageText.text = `GAME OVER\nScore: ${score}\nClick to restart`;
-                messageText.style.fill = 0xE74C3C;
+                endGame(false);
             } else {
-                messageText.text = 'Press SPACE to launch';
-                messageText.style.fill = 0x8892b0;
+                showMessage('Press SPACE to launch', 0x8892b0);
             }
         }
 
         function nextLevel() {
             level++;
-            levelText.text = `Level ${level}`;
             ballLaunched = false;
             ball.vx = 0;
             ball.vy = 0;
 
             // Clear powerups
-            powerups.forEach(p => app.stage.removeChild(p));
+            powerups.forEach(p => gameContainer.removeChild(p));
             powerups = [];
 
             // Reset paddle
@@ -462,38 +559,90 @@
             // Create new bricks
             createBricks();
 
-            messageText.text = `Level ${level}!\nPress SPACE`;
-            messageText.style.fill = 0x2ECC71;
+            showMessage(`Level ${level}!\nPress SPACE`, 0x2ECC71);
         }
 
-        function restart() {
-            // Clear everything
-            bricks.forEach(b => app.stage.removeChild(b));
-            particles.forEach(p => app.stage.removeChild(p));
-            powerups.forEach(p => app.stage.removeChild(p));
-            bricks = [];
-            particles = [];
-            powerups = [];
+        function endGame(won) {
+            currentState = 'gameover';
 
-            score = 0;
-            lives = 3;
-            level = 1;
-            gameOver = false;
-            gameWon = false;
-            ballLaunched = false;
+            // Stop game loop
+            app.ticker.remove(gameLoop);
 
-            paddle.x = (CONFIG.width - PADDLE_WIDTH) / 2;
-            paddle.scale.x = 1;
-            ball.vx = 0;
-            ball.vy = 0;
+            // Hide game container and top bar
+            gameContainer.visible = false;
+            if (topBar) {
+                app.stage.removeChild(topBar.getContainer());
+                topBar.destroy();
+                topBar = null;
+            }
 
-            scoreText.text = 'Score: 0';
-            livesText.text = '❤️❤️❤️';
-            levelText.text = 'Level 1';
-            messageText.text = 'Press SPACE to launch';
-            messageText.style.fill = 0x8892b0;
+            // Show celebration if won
+            if (won) {
+                celebrationManager.celebrate();
+            }
 
-            createBricks();
+            // Show result screen
+            resultScreen = new ResultScreen({
+                title: won ? 'VICTORY!' : 'GAME OVER',
+                score: score,
+                highScore: score,
+                backgroundColor: 0x1a1a2e,
+                titleColor: won ? 0x2ECC71 : 0xE74C3C
+            });
+
+            app.stage.addChild(resultScreen.getContainer());
+
+            resultScreen.on('retry', () => {
+                app.stage.removeChild(resultScreen.getContainer());
+                resultScreen.destroy();
+                resultScreen = null;
+                showMenu();
+            });
+
+            resultScreen.on('menu', () => {
+                app.stage.removeChild(resultScreen.getContainer());
+                resultScreen.destroy();
+                resultScreen = null;
+                showMenu();
+            });
+
+            resultScreen.show();
+        }
+
+        function updateTopBar() {
+            if (topBar) {
+                topBar.setLeftText(`Score: ${score}`);
+                topBar.setCenterText(`Level ${level}`);
+                topBar.setRightText('❤️'.repeat(lives));
+            }
+        }
+
+        let messageText = null;
+
+        function showMessage(text, color) {
+            if (!messageText) {
+                const factory = graphics();
+                messageText = factory.createText(text, {
+                    fontSize: 20,
+                    fill: color,
+                    align: 'center'
+                });
+                messageText.anchor.set(0.5);
+                messageText.x = CONFIG.width / 2;
+                messageText.y = CONFIG.height / 2 + 50;
+                gameContainer.addChild(messageText);
+            } else {
+                messageText.text = text;
+                messageText.style.fill = color;
+            }
+        }
+
+        function hideMessage() {
+            if (messageText) {
+                gameContainer.removeChild(messageText);
+                messageText.destroy();
+                messageText = null;
+            }
         }
 
         init().catch(console.error);

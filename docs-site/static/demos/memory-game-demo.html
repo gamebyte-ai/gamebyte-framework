@@ -23,27 +23,49 @@
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
         }
         canvas { display: block; }
-        .info { color: #8892b0; margin-top: 20px; font-size: 12px; text-align: center; }
     </style>
 </head>
 <body>
     <h1>Memory Game</h1>
-    <p>Find all matching pairs!</p>
+    <p>GameByte Framework Full Game Flow Demo</p>
     <div id="game-container"></div>
-    <div class="info">
-        Click cards to flip them. Match all pairs to win!
-    </div>
 
+    <!-- Three.js is required before gamebyte.umd.js -->
     <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
 
     <script>
+        const {
+            createGame,
+            graphics,
+            loadFrameworkFont,
+            SplashScreen,
+            GameStyleButton,
+            GameStyleColors,
+            GameTopBar,
+            ResultScreen,
+            CelebrationManager
+        } = GameByteFramework;
+
         const CONFIG = { width: 500, height: 550 };
         const CARD_WIDTH = 80;
         const CARD_HEIGHT = 100;
         const ROWS = 4;
         const COLS = 4;
+        const SYMBOLS = ['🍎', '🍊', '🍋', '🍇', '🍓', '🍒', '🥝', '🍑'];
 
         let app;
+        let gameState = 'splash'; // splash -> menu -> playing -> gameover
+
+        // UI components
+        let splashScreen;
+        let menuContainer;
+        let topBar;
+        let resultScreen;
+        let celebrationManager;
+
+        // Game state
         let cards = [];
         let flippedCards = [];
         let matchedPairs = 0;
@@ -53,11 +75,12 @@
         let canFlip = true;
         let gameStarted = false;
         let gameOver = false;
-        let scoreText, movesText, timerText, messageText;
-
-        const SYMBOLS = ['🍎', '🍊', '🍋', '🍇', '🍓', '🍒', '🥝', '🍑'];
+        let gameContainer;
 
         async function init() {
+            // Load font first
+            await loadFrameworkFont();
+
             app = new PIXI.Application();
             await app.init({
                 width: CONFIG.width,
@@ -67,50 +90,126 @@
             });
             document.getElementById('game-container').appendChild(app.canvas);
 
-            createUI();
-            createCards();
+            // Initialize celebration manager
+            celebrationManager = new CelebrationManager(app.stage, CONFIG.width, CONFIG.height);
+
+            // Show splash screen
+            showSplash();
         }
 
-        function createUI() {
-            const uiBg = new PIXI.Graphics();
-            uiBg.roundRect(10, 10, CONFIG.width - 20, 40, 8);
-            uiBg.fill({ color: 0x000000, alpha: 0.3 });
-            app.stage.addChild(uiBg);
+        function showSplash() {
+            gameState = 'splash';
 
-            movesText = new PIXI.Text({
-                text: 'Moves: 0',
-                style: { fontSize: 16, fill: 0xFFFFFF }
+            splashScreen = new SplashScreen({
+                title: 'MEMORY MATCH',
+                subtitle: 'Find All Pairs!',
+                titleColor: GameStyleColors.PRIMARY,
+                subtitleColor: GameStyleColors.TEXT_SECONDARY,
+                backgroundColor: 0x1a1a2e,
+                logoEmoji: '🧠',
+                duration: 2000
             });
-            movesText.x = 20;
-            movesText.y = 20;
-            app.stage.addChild(movesText);
 
-            timerText = new PIXI.Text({
-                text: '⏱️ 0:00',
-                style: { fontSize: 16, fill: 0xF39C12 }
-            });
-            timerText.anchor.set(0.5, 0);
-            timerText.x = CONFIG.width / 2;
-            timerText.y = 20;
-            app.stage.addChild(timerText);
+            splashScreen.getContainer().x = 0;
+            splashScreen.getContainer().y = 0;
+            app.stage.addChild(splashScreen.getContainer());
 
-            scoreText = new PIXI.Text({
-                text: 'Pairs: 0/8',
-                style: { fontSize: 16, fill: 0x2ECC71 }
+            splashScreen.on('complete', () => {
+                app.stage.removeChild(splashScreen.getContainer());
+                showMenu();
             });
-            scoreText.anchor.set(1, 0);
-            scoreText.x = CONFIG.width - 20;
-            scoreText.y = 20;
-            app.stage.addChild(scoreText);
+        }
 
-            messageText = new PIXI.Text({
-                text: '',
-                style: { fontSize: 28, fill: 0xFFFFFF, fontWeight: 'bold' }
+        function showMenu() {
+            gameState = 'menu';
+
+            const factory = graphics();
+            menuContainer = factory.createContainer();
+
+            // Title
+            const titleText = factory.createText('MEMORY MATCH', {
+                fontSize: 48,
+                fill: GameStyleColors.PRIMARY,
+                fontWeight: 'bold'
             });
-            messageText.anchor.set(0.5);
-            messageText.x = CONFIG.width / 2;
-            messageText.y = CONFIG.height / 2;
-            app.stage.addChild(messageText);
+            titleText.anchor.set(0.5);
+            titleText.x = CONFIG.width / 2;
+            titleText.y = 120;
+            menuContainer.addChild(titleText);
+
+            // Subtitle
+            const subtitleText = factory.createText('Match all pairs to win!', {
+                fontSize: 20,
+                fill: GameStyleColors.TEXT_SECONDARY
+            });
+            subtitleText.anchor.set(0.5);
+            subtitleText.x = CONFIG.width / 2;
+            subtitleText.y = 180;
+            menuContainer.addChild(subtitleText);
+
+            // Play button
+            const playButton = new GameStyleButton({
+                text: 'PLAY',
+                width: 200,
+                height: 60,
+                style: 'primary'
+            });
+            playButton.getContainer().x = CONFIG.width / 2 - 100;
+            playButton.getContainer().y = CONFIG.height / 2 - 30;
+            playButton.on('click', () => {
+                app.stage.removeChild(menuContainer);
+                startGame();
+            });
+            menuContainer.addChild(playButton.getContainer());
+
+            // Instructions
+            const instructionsText = factory.createText(
+                'Click cards to flip them\nFind matching pairs',
+                {
+                    fontSize: 16,
+                    fill: GameStyleColors.TEXT_SECONDARY,
+                    align: 'center'
+                }
+            );
+            instructionsText.anchor.set(0.5);
+            instructionsText.x = CONFIG.width / 2;
+            instructionsText.y = CONFIG.height - 100;
+            menuContainer.addChild(instructionsText);
+
+            app.stage.addChild(menuContainer);
+        }
+
+        function startGame() {
+            gameState = 'playing';
+
+            // Create game container
+            const factory = graphics();
+            gameContainer = factory.createContainer();
+            app.stage.addChild(gameContainer);
+
+            // Create top bar
+            topBar = new GameTopBar({
+                width: CONFIG.width,
+                leftIcon: '⏱️',
+                leftText: '0:00',
+                rightIcon: '👟',
+                rightText: 'Moves: 0',
+                backgroundColor: 0x000000,
+                backgroundAlpha: 0.3
+            });
+            gameContainer.addChild(topBar.getContainer());
+
+            // Reset game state
+            cards = [];
+            flippedCards = [];
+            matchedPairs = 0;
+            moves = 0;
+            timer = 0;
+            canFlip = true;
+            gameStarted = false;
+            gameOver = false;
+
+            createCards();
         }
 
         function createCards() {
@@ -153,8 +252,8 @@
             // Card back
             const back = new PIXI.Graphics();
             back.roundRect(0, 0, CARD_WIDTH, CARD_HEIGHT, 10);
-            back.fill({ color: 0x3498DB });
-            back.stroke({ color: 0x2980B9, width: 3 });
+            back.fill({ color: GameStyleColors.PRIMARY });
+            back.stroke({ color: GameStyleColors.PRIMARY_DARK, width: 3 });
 
             // Pattern on back
             const pattern = new PIXI.Graphics();
@@ -163,7 +262,7 @@
                     pattern.circle(20 + i * 20, 18 + j * 22, 5);
                 }
             }
-            pattern.fill({ color: 0x2980B9, alpha: 0.5 });
+            pattern.fill({ color: GameStyleColors.PRIMARY_DARK, alpha: 0.5 });
 
             const backContainer = new PIXI.Container();
             backContainer.addChild(back);
@@ -207,7 +306,7 @@
                 }
             });
 
-            app.stage.addChild(card);
+            gameContainer.addChild(card);
             return card;
         }
 
@@ -225,7 +324,7 @@
 
             if (flippedCards.length === 2) {
                 moves++;
-                movesText.text = `Moves: ${moves}`;
+                topBar.updateRightText(`Moves: ${moves}`);
                 canFlip = false;
 
                 const [card1, card2] = flippedCards;
@@ -233,7 +332,6 @@
                 if (card1.symbol === card2.symbol) {
                     // Match!
                     matchedPairs++;
-                    scoreText.text = `Pairs: ${matchedPairs}/8`;
 
                     card1.isMatched = true;
                     card2.isMatched = true;
@@ -314,10 +412,11 @@
             timer++;
             const minutes = Math.floor(timer / 60);
             const seconds = timer % 60;
-            timerText.text = `⏱️ ${minutes}:${seconds.toString().padStart(2, '0')}`;
+            topBar.updateLeftText(`${minutes}:${seconds.toString().padStart(2, '0')}`);
         }
 
         function winGame() {
+            gameState = 'gameover';
             gameOver = true;
             clearInterval(timerInterval);
 
@@ -330,54 +429,32 @@
             const timePenalty = timer * 2;
             const finalScore = Math.max(0, baseScore - movesPenalty - timePenalty);
 
-            messageText.text = `🎉 You Win! 🎉\nMoves: ${moves}\nTime: ${minutes}:${seconds.toString().padStart(2, '0')}\nScore: ${finalScore}\n\nClick to play again`;
-            messageText.style.fill = 0x2ECC71;
+            // Trigger celebration
+            celebrationManager.celebrate('win');
 
-            // Create overlay
-            const overlay = new PIXI.Graphics();
-            overlay.rect(0, 0, CONFIG.width, CONFIG.height);
-            overlay.fill({ color: 0x000000, alpha: 0.7 });
-            overlay.eventMode = 'static';
-            overlay.cursor = 'pointer';
-            overlay.on('pointerdown', restart);
-            app.stage.addChild(overlay);
+            // Show result screen after a short delay
+            setTimeout(() => {
+                resultScreen = new ResultScreen({
+                    title: 'Victory!',
+                    message: `Completed in ${moves} moves`,
+                    score: finalScore,
+                    stars: finalScore > 700 ? 3 : finalScore > 500 ? 2 : 1,
+                    showReplay: true,
+                    showHome: false,
+                    showShare: false
+                });
 
-            // Move message to top
-            app.stage.removeChild(messageText);
-            app.stage.addChild(messageText);
-        }
+                resultScreen.getContainer().x = 0;
+                resultScreen.getContainer().y = 0;
 
-        function restart() {
-            // Remove old cards and overlay
-            cards.forEach(card => app.stage.removeChild(card));
-            cards = [];
-            flippedCards = [];
+                resultScreen.on('replay', () => {
+                    app.stage.removeChild(resultScreen.getContainer());
+                    app.stage.removeChild(gameContainer);
+                    startGame();
+                });
 
-            // Remove overlay if exists
-            const overlay = app.stage.children.find(child =>
-                child instanceof PIXI.Graphics && child.eventMode === 'static'
-            );
-            if (overlay && overlay !== app.stage.children[0]) {
-                app.stage.removeChild(overlay);
-            }
-
-            // Reset state
-            matchedPairs = 0;
-            moves = 0;
-            timer = 0;
-            canFlip = true;
-            gameStarted = false;
-            gameOver = false;
-
-            clearInterval(timerInterval);
-
-            // Reset UI
-            movesText.text = 'Moves: 0';
-            timerText.text = '⏱️ 0:00';
-            scoreText.text = 'Pairs: 0/8';
-            messageText.text = '';
-
-            createCards();
+                app.stage.addChild(resultScreen.getContainer());
+            }, 1000);
         }
 
         init().catch(console.error);

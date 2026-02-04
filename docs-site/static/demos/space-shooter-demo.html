@@ -16,6 +16,7 @@
 </head>
 <body>
     <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
     <script src="/gamebyte.umd.js"></script>
 
     <script>
@@ -23,23 +24,28 @@
         // Space Shooter Demo - GameByte Framework Components
         // =====================================================
         // Showcases:
-        // - createGame() and graphics() abstraction
+        // - SplashScreen for game intro
+        // - Simple Main Menu with GameStyleButton
         // - GameTopBar for score/lives/wave display
         // - GameStyleButton for mobile fire button
         // - VirtualJoystick for mobile movement
         // - ResultScreen for game over state
+        // - CelebrationManager for confetti effects
         // - game.on('update') for game loop
+        // Game states: 'splash' -> 'menu' -> 'playing' -> 'gameover'
         // =====================================================
 
         const {
             createGame,
             graphics,
             loadFrameworkFont,
-            GameTopBar,
+            SplashScreen,
             GameStyleButton,
             GameStyleColors,
+            GameTopBar,
             ResultScreen,
-            VirtualJoystick
+            VirtualJoystick,
+            CelebrationManager
         } = GameByteFramework;
 
         const CONFIG = {
@@ -55,12 +61,12 @@
         let player, playerEngine;
         let bullets = [], enemyBullets = [], enemies = [], stars = [], explosions = [];
         let score = 0, lives = 3, wave = 1;
-        let gameState = 'playing';
+        let gameState = 'splash'; // States: 'splash' -> 'menu' -> 'playing' -> 'gameover'
         let lastShot = 0, playerInvincible = 0;
         let keys = { left: false, right: false, up: false, down: false, fire: false };
 
         // Framework UI Components
-        let topBar, joystick, fireButton, resultScreen;
+        let splashScreen, mainMenu, topBar, joystick, fireButton, resultScreen, celebrationManager;
 
         const canvas = document.createElement('canvas');
         canvas.width = window.innerWidth;
@@ -101,12 +107,140 @@
             // Create stars
             createStars();
 
-            // Create player
+            // Create player (hidden initially)
             createPlayer();
+            player.visible = false;
 
             // UI Container
             uiContainer = gfx.createContainer();
             mainContainer.addChild(uiContainer);
+
+            // === FRAMEWORK COMPONENT: SplashScreen ===
+            showSplashScreen();
+
+            // === FRAMEWORK COMPONENT: CelebrationManager ===
+            celebrationManager = new CelebrationManager(worldContainer, {
+                width: CONFIG.width,
+                height: CONFIG.height,
+                maxParticles: 150,
+                particleSpeed: { min: 3, max: 8 },
+                gravity: 0.3
+            });
+
+            // Keyboard input
+            setupInput();
+
+            // Game loop
+            game.on('update', (dt) => {
+                if (gameState === 'playing') {
+                    updateGame(dt);
+                }
+
+                // Update celebration effects
+                celebrationManager.update(dt);
+            });
+
+            window.addEventListener('resize', handleResize);
+            game.start();
+        }
+
+        // === SPLASH SCREEN ===
+        function showSplashScreen() {
+            splashScreen = new SplashScreen({
+                title: 'SPACE SHOOTER',
+                subtitle: 'Defend the Galaxy',
+                backgroundColor: 0x0a0a20,
+                titleColor: 0x3498DB,
+                subtitleColor: 0x5DADE2,
+                onComplete: () => {
+                    if (splashScreen) {
+                        uiContainer.removeChild(splashScreen.getContainer());
+                        splashScreen = null;
+                    }
+                    showMainMenu();
+                }
+            });
+
+            splashScreen.setPosition(
+                (CONFIG.width - splashScreen.getWidth()) / 2,
+                (CONFIG.height - splashScreen.getHeight()) / 2
+            );
+            uiContainer.addChild(splashScreen.getContainer());
+            splashScreen.show();
+        }
+
+        // === MAIN MENU ===
+        function showMainMenu() {
+            gameState = 'menu';
+
+            // Menu container
+            mainMenu = gfx.createContainer();
+
+            // Title
+            const title = gfx.createText('SPACE SHOOTER', {
+                fontSize: 48,
+                fill: 0x3498DB,
+                fontWeight: 'bold',
+                align: 'center'
+            });
+            title.anchor.set(0.5, 0.5);
+            title.x = CONFIG.width / 2;
+            title.y = CONFIG.height / 3;
+            mainMenu.addChild(title);
+
+            // Subtitle
+            const subtitle = gfx.createText('Defend the Galaxy', {
+                fontSize: 20,
+                fill: 0x5DADE2,
+                align: 'center'
+            });
+            subtitle.anchor.set(0.5, 0.5);
+            subtitle.x = CONFIG.width / 2;
+            subtitle.y = CONFIG.height / 3 + 60;
+            mainMenu.addChild(subtitle);
+
+            // Play button
+            const playButton = new GameStyleButton({
+                text: 'PLAY',
+                width: 200,
+                height: 60,
+                fontSize: 24,
+                colorScheme: GameStyleColors.GREEN_BUTTON,
+                cornerRadius: 10
+            });
+            playButton.setPosition(
+                (CONFIG.width - 200) / 2,
+                CONFIG.height / 2 + 40
+            );
+            playButton.on('click', startGame);
+            mainMenu.addChild(playButton.getContainer());
+
+            // Instructions text
+            const instructions = gfx.createText(
+                'Arrow Keys or WASD to Move\nSpace to Fire',
+                {
+                    fontSize: 16,
+                    fill: 0x95A5A6,
+                    align: 'center'
+                }
+            );
+            instructions.anchor.set(0.5, 0.5);
+            instructions.x = CONFIG.width / 2;
+            instructions.y = CONFIG.height - 100;
+            mainMenu.addChild(instructions);
+
+            uiContainer.addChild(mainMenu);
+        }
+
+        // === START GAME ===
+        function startGame() {
+            if (mainMenu) {
+                uiContainer.removeChild(mainMenu);
+                mainMenu = null;
+            }
+
+            gameState = 'playing';
+            player.visible = true;
 
             // === FRAMEWORK COMPONENT: GameTopBar ===
             topBar = new GameTopBar({
@@ -179,21 +313,8 @@
                 uiContainer.addChild(fireButton.getContainer());
             }
 
-            // Keyboard input
-            setupInput();
-
             // Spawn first wave
             spawnWave();
-
-            // Game loop
-            game.on('update', (dt) => {
-                if (gameState === 'playing') {
-                    updateGame(dt);
-                }
-            });
-
-            window.addEventListener('resize', handleResize);
-            game.start();
         }
 
         function createStars() {
@@ -440,6 +561,15 @@
                         enemies[j].health--;
                         if (enemies[j].health <= 0) {
                             createExplosion(enemies[j].x, enemies[j].y, 0xE74C3C);
+
+                            // Confetti effect on kill
+                            celebrationManager.burst({
+                                x: enemies[j].x,
+                                y: enemies[j].y,
+                                particleCount: 15,
+                                colors: [0xE74C3C, 0x9B59B6, 0xF39C12, 0x3498DB]
+                            });
+
                             worldContainer.removeChild(enemies[j]);
                             enemies.splice(j, 1);
                             score += 100 * wave;
@@ -482,6 +612,14 @@
             if (enemies.length === 0) {
                 wave++;
                 uiContainer.waveText.text = `Wave ${wave}`;
+
+                // Celebration for completing wave
+                celebrationManager.fullScreen({
+                    duration: 1500,
+                    particleCount: 50,
+                    colors: [0x00FF00, 0x3498DB, 0xF39C12]
+                });
+
                 spawnWave();
             }
         }
@@ -534,7 +672,7 @@
                 resultScreen = null;
             }
 
-            // Clear bullets and enemies
+            // Clear game elements
             bullets.forEach(b => worldContainer.removeChild(b));
             enemyBullets.forEach(b => worldContainer.removeChild(b));
             enemies.forEach(e => worldContainer.removeChild(e));
@@ -545,22 +683,41 @@
             enemies = [];
             explosions = [];
 
+            // Clear UI components
+            if (topBar) {
+                uiContainer.removeChild(topBar.getContainer());
+                topBar = null;
+            }
+
+            if (uiContainer.waveText) {
+                uiContainer.removeChild(uiContainer.waveText);
+                uiContainer.waveText = null;
+            }
+
+            if (joystick) {
+                uiContainer.removeChild(joystick.getContainer());
+                joystick = null;
+            }
+
+            if (fireButton) {
+                uiContainer.removeChild(fireButton.getContainer());
+                fireButton = null;
+            }
+
             // Reset state
             score = 0;
             lives = 3;
             wave = 1;
-            gameState = 'playing';
             playerInvincible = 0;
 
             player.x = CONFIG.width / 2;
             player.y = CONFIG.height - 80;
             player.alpha = 1;
 
-            topBar.updateResource('lives', lives);
-            topBar.updateResource('coins', score);
-            uiContainer.waveText.text = 'Wave 1';
-
-            spawnWave();
+            // Return to main menu
+            gameState = 'menu';
+            player.visible = false;
+            showMainMenu();
         }
 
         function handleResize() {

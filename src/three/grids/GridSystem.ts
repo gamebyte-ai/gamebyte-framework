@@ -1,6 +1,11 @@
 import { Vector3 } from 'three';
 
 /**
+ * Common neighbor modes for grid systems
+ */
+export type NeighborMode = '4-way' | '8-way' | '6-way';
+
+/**
  * Grid coordinate for square/rectangular grids
  */
 export interface GridCoord {

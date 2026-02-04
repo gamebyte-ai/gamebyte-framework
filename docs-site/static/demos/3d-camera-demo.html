@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Camera Demo - GameByte Framework</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #1a1a2e;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        .controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 12px;
+            color: white;
+            z-index: 100;
+            min-width: 240px;
+        }
+        .controls h3 {
+            margin-bottom: 15px;
+            color: #4CAF50;
+            font-size: 18px;
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #aaa;
+        }
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            background: #333;
+            color: white;
+        }
+        .btn:hover {
+            background: #444;
+        }
+        .btn.active {
+            background: #4CAF50;
+        }
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .slider-group input {
+            flex: 1;
+        }
+        .slider-group span {
+            min-width: 40px;
+            text-align: right;
+            font-family: monospace;
+        }
+        .info-panel {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 12px;
+            color: white;
+            font-size: 12px;
+            z-index: 100;
+        }
+        .info-panel h4 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 3px 0;
+        }
+        .info-row span:first-child { color: #888; }
+        .info-row span:last-child { font-family: monospace; }
+        .instructions {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 12px;
+            color: white;
+            font-size: 12px;
+            z-index: 100;
+        }
+        .instructions h4 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+        .instructions ul {
+            list-style: none;
+            padding: 0;
+        }
+        .instructions li {
+            margin: 5px 0;
+            color: #ccc;
+        }
+        .instructions li strong {
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+
+    <div class="controls">
+        <h3>Camera Controls</h3>
+
+        <div class="control-group">
+            <label>Camera Type</label>
+            <div class="btn-group">
+                <button class="btn active" id="btn-isometric">Isometric</button>
+                <button class="btn" id="btn-strategy">Strategy</button>
+            </div>
+        </div>
+
+        <div class="control-group" id="iso-controls">
+            <label>View Size</label>
+            <div class="slider-group">
+                <input type="range" id="view-size" min="5" max="30" value="15">
+                <span id="view-size-val">15</span>
+            </div>
+            <label>Angle (Y Rotation)</label>
+            <div class="slider-group">
+                <input type="range" id="iso-angle" min="0" max="360" value="45">
+                <span id="iso-angle-val">45</span>
+            </div>
+        </div>
+
+        <div class="control-group" id="strategy-controls" style="display: none;">
+            <label>Distance</label>
+            <div class="slider-group">
+                <input type="range" id="strat-distance" min="5" max="50" value="20">
+                <span id="strat-distance-val">20</span>
+            </div>
+            <label>Tilt</label>
+            <div class="slider-group">
+                <input type="range" id="strat-tilt" min="20" max="80" value="45">
+                <span id="strat-tilt-val">45</span>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>Zoom</label>
+            <div class="slider-group">
+                <input type="range" id="zoom" min="0.5" max="3" step="0.1" value="1">
+                <span id="zoom-val">1.0</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="info-panel">
+        <h4>Camera Info</h4>
+        <div class="info-row">
+            <span>Type:</span>
+            <span id="info-type">Isometric</span>
+        </div>
+        <div class="info-row">
+            <span>Position:</span>
+            <span id="info-pos">0, 0, 0</span>
+        </div>
+        <div class="info-row">
+            <span>Zoom:</span>
+            <span id="info-zoom">1.0</span>
+        </div>
+    </div>
+
+    <div class="instructions">
+        <h4>Instructions</h4>
+        <ul>
+            <li><strong>Drag</strong> to pan camera</li>
+            <li><strong>Scroll</strong> to zoom</li>
+            <li><strong>Shift+Drag</strong> to rotate (Strategy)</li>
+        </ul>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
+    <script>
+        const { IsometricCamera, StrategyCamera, CameraController } = GameByteFramework;
+
+        let scene, renderer;
+        let isoCamera, stratCamera, currentCamera;
+        let cameraController;
+        let currentType = 'isometric';
+
+        function init() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a1a2e);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            document.getElementById('container').appendChild(renderer.domElement);
+
+            // Create cameras
+            createCameras();
+
+            // Create scene content
+            createSceneContent();
+
+            // Setup controls
+            setupControls();
+
+            // Start animation
+            animate();
+
+            // Handle resize
+            window.addEventListener('resize', onResize);
+        }
+
+        function createCameras() {
+            const aspect = window.innerWidth / window.innerHeight;
+
+            // Isometric Camera
+            isoCamera = new IsometricCamera({
+                viewSize: 15,
+                aspectRatio: aspect,
+                angle: 45
+            });
+
+            // Strategy Camera
+            stratCamera = new StrategyCamera({
+                fov: 60,
+                aspectRatio: aspect,
+                distance: 20,
+                tilt: 45
+            });
+
+            // Start with isometric
+            currentCamera = isoCamera;
+
+            // Camera Controller
+            cameraController = new CameraController({
+                camera: currentCamera.getThreeCamera(),
+                domElement: renderer.domElement,
+                enablePan: true,
+                enableZoom: true,
+                enableRotate: false,
+                panSpeed: 1,
+                zoomSpeed: 0.5,
+                minZoom: 0.5,
+                maxZoom: 3,
+                bounds: {
+                    minX: -20,
+                    maxX: 20,
+                    minZ: -20,
+                    maxZ: 20
+                }
+            });
+        }
+
+        function createSceneContent() {
+            // Ground
+            const groundGeom = new THREE.PlaneGeometry(40, 40);
+            const groundMat = new THREE.MeshStandardMaterial({
+                color: 0x2a3142,
+                roughness: 0.8
+            });
+            const ground = new THREE.Mesh(groundGeom, groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // Grid helper
+            const grid = new THREE.GridHelper(40, 20, 0x444444, 0x333333);
+            scene.add(grid);
+
+            // Create some objects
+            const colors = [0x4CAF50, 0x2196F3, 0xFF9800, 0xE91E63, 0x9C27B0];
+
+            for (let x = -8; x <= 8; x += 4) {
+                for (let z = -8; z <= 8; z += 4) {
+                    const height = 0.5 + Math.random() * 2;
+                    const geom = new THREE.BoxGeometry(1.5, height, 1.5);
+                    const mat = new THREE.MeshStandardMaterial({
+                        color: colors[Math.floor(Math.random() * colors.length)],
+                        roughness: 0.5,
+                        metalness: 0.2
+                    });
+                    const mesh = new THREE.Mesh(geom, mat);
+                    mesh.position.set(x, height / 2, z);
+                    mesh.castShadow = true;
+                    mesh.receiveShadow = true;
+                    scene.add(mesh);
+                }
+            }
+
+            // Lights
+            const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambient);
+
+            const directional = new THREE.DirectionalLight(0xffffff, 0.8);
+            directional.position.set(10, 20, 10);
+            directional.castShadow = true;
+            directional.shadow.mapSize.width = 2048;
+            directional.shadow.mapSize.height = 2048;
+            directional.shadow.camera.near = 0.1;
+            directional.shadow.camera.far = 50;
+            directional.shadow.camera.left = -20;
+            directional.shadow.camera.right = 20;
+            directional.shadow.camera.top = 20;
+            directional.shadow.camera.bottom = -20;
+            scene.add(directional);
+        }
+
+        function setupControls() {
+            // Camera type buttons
+            document.getElementById('btn-isometric').addEventListener('click', () => {
+                switchCamera('isometric');
+            });
+            document.getElementById('btn-strategy').addEventListener('click', () => {
+                switchCamera('strategy');
+            });
+
+            // View size slider (isometric)
+            document.getElementById('view-size').addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value);
+                document.getElementById('view-size-val').textContent = value;
+                isoCamera.setViewSize(value);
+                isoCamera.updateProjection();
+            });
+
+            // Angle slider (isometric)
+            document.getElementById('iso-angle').addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value);
+                document.getElementById('iso-angle-val').textContent = value;
+                isoCamera.setAngle(value);
+            });
+
+            // Distance slider (strategy)
+            document.getElementById('strat-distance').addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value);
+                document.getElementById('strat-distance-val').textContent = value;
+                stratCamera.setDistance(value);
+            });
+
+            // Tilt slider (strategy)
+            document.getElementById('strat-tilt').addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value);
+                document.getElementById('strat-tilt-val').textContent = value;
+                stratCamera.setTilt(value);
+            });
+
+            // Zoom slider
+            document.getElementById('zoom').addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value);
+                document.getElementById('zoom-val').textContent = value.toFixed(1);
+                currentCamera.setZoom(value);
+            });
+        }
+
+        function switchCamera(type) {
+            currentType = type;
+
+            // Update button states
+            document.getElementById('btn-isometric').classList.toggle('active', type === 'isometric');
+            document.getElementById('btn-strategy').classList.toggle('active', type === 'strategy');
+
+            // Toggle control panels
+            document.getElementById('iso-controls').style.display = type === 'isometric' ? 'block' : 'none';
+            document.getElementById('strategy-controls').style.display = type === 'strategy' ? 'block' : 'none';
+
+            // Update info
+            document.getElementById('info-type').textContent = type === 'isometric' ? 'Isometric' : 'Strategy';
+
+            // Switch camera
+            currentCamera = type === 'isometric' ? isoCamera : stratCamera;
+
+            // Update controller
+            cameraController.updateConfig({
+                camera: currentCamera.getThreeCamera(),
+                enableRotate: type === 'strategy'
+            });
+
+            // Sync zoom slider
+            document.getElementById('zoom').value = currentCamera.getZoom();
+            document.getElementById('zoom-val').textContent = currentCamera.getZoom().toFixed(1);
+        }
+
+        function onResize() {
+            const aspect = window.innerWidth / window.innerHeight;
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+            isoCamera.setAspectRatio(aspect);
+            isoCamera.updateProjection();
+
+            stratCamera.setAspectRatio(aspect);
+        }
+
+        function updateInfo() {
+            const pos = currentCamera.getPosition();
+            document.getElementById('info-pos').textContent =
+                `${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}, ${pos.z.toFixed(1)}`;
+            document.getElementById('info-zoom').textContent = currentCamera.getZoom().toFixed(2);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Update camera controller
+            cameraController.update(1/60);
+
+            // Update info panel
+            updateInfo();
+
+            // Render
+            renderer.render(scene, currentCamera.getThreeCamera());
+        }
+
+        init();
+    </script>
+</body>
+</html>

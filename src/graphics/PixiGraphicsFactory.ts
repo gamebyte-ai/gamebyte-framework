@@ -90,10 +90,20 @@ export class PixiGraphicsFactory implements IGraphicsFactory {
 
   createText(text: string, style?: ITextStyle): IText {
     // Pixi v8: new PIXI.Text({ text, style })
-    // Apply framework default font if not specified
+    // Apply framework defaults: font, stroke outline, and drop shadow for readability
     const styleWithDefaults: ITextStyle = {
       fontFamily: getFrameworkFontFamily(),
-      ...style
+      // Default stroke for text outline (improves readability on any background)
+      stroke: { color: 0x000000, width: 3 },
+      // Default drop shadow for depth
+      dropShadow: {
+        color: 0x000000,
+        alpha: 0.5,
+        angle: Math.PI / 4,
+        blur: 4,
+        distance: 2
+      },
+      ...style  // User styles override defaults
     };
     const pixiStyle = PixiGraphicsFactory.convertToPixiV8Style(styleWithDefaults);
     return new PIXI.Text({ text, style: pixiStyle }) as any;

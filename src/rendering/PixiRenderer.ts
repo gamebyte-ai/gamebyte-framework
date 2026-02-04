@@ -1,7 +1,8 @@
 import { EventEmitter } from 'eventemitter3';
 import { Renderer, RenderingMode, RendererOptions, RendererStats } from '../contracts/Renderer';
-import { PixiCompatibility, PixiRendererOptions, RenderingCompatibility } from '../utils/RendererCompatibility';
-import { PixiVersionDetector } from '../utils/VersionDetection';
+import { PixiCompatibility, RenderingCompatibility } from '../utils/PixiCompatibility';
+import type { PixiRendererOptions } from '../utils/PixiCompatibility';
+import { PixiVersionDetector } from '../utils/PixiVersionDetection';
 import { ResponsiveScaleCalculator, ResponsiveConfig, ResponsiveSize } from '../utils/ResponsiveHelper';
 import * as PIXI from 'pixi.js';
 

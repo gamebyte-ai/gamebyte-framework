@@ -4,28 +4,102 @@
   "version": "1.2.0",
   "description": "A comprehensive JavaScript game engine framework that unifies 2D and 3D game development with Laravel-inspired architecture",
   "main": "dist/index.js",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "sideEffects": false,
   "exports": {
     ".": {
       "import": "./dist/index.js",
       "require": "./dist/index.cjs.js",
       "types": "./dist/index.d.ts"
     },
-    "./2d": {
-      "import": "./dist/renderers/pixi2d.js",
-      "types": "./dist/renderers/pixi2d.d.ts"
+    "./core": {
+      "import": "./dist/core/index.js",
+      "types": "./dist/core/index.d.ts"
     },
-    "./3d": {
-      "import": "./dist/renderers/three3d.js",
-      "types": "./dist/renderers/three3d.d.ts"
+    "./rendering": {
+      "import": "./dist/rendering/index.js",
+      "types": "./dist/rendering/index.d.ts"
     },
-    "./physics2d": {
+    "./ui": {
+      "import": "./dist/ui/index.js",
+      "types": "./dist/ui/index.d.ts"
+    },
+    "./ui/components": {
+      "import": "./dist/ui/components/index.js",
+      "types": "./dist/ui/components/index.d.ts"
+    },
+    "./ui/screens": {
+      "import": "./dist/ui/screens/index.js",
+      "types": "./dist/ui/screens/index.d.ts"
+    },
+    "./ui/panels": {
+      "import": "./dist/ui/panels/index.js",
+      "types": "./dist/ui/panels/index.d.ts"
+    },
+    "./ui/effects": {
+      "import": "./dist/ui/effects/index.js",
+      "types": "./dist/ui/effects/index.d.ts"
+    },
+    "./ui/themes": {
+      "import": "./dist/ui/themes/index.js",
+      "types": "./dist/ui/themes/index.d.ts"
+    },
+    "./audio": {
+      "import": "./dist/audio/index.js",
+      "types": "./dist/audio/index.d.ts"
+    },
+    "./input": {
+      "import": "./dist/input/index.js",
+      "types": "./dist/input/index.d.ts"
+    },
+    "./physics": {
+      "import": "./dist/physics/index.js",
+      "types": "./dist/physics/index.d.ts"
+    },
+    "./physics/2d": {
       "import": "./dist/physics/matter2d.js",
       "types": "./dist/physics/matter2d.d.ts"
     },
-    "./physics3d": {
+    "./physics/3d": {
       "import": "./dist/physics/cannon3d.js",
       "types": "./dist/physics/cannon3d.d.ts"
+    },
+    "./graphics": {
+      "import": "./dist/graphics/index.js",
+      "types": "./dist/graphics/index.d.ts"
+    },
+    "./scenes": {
+      "import": "./dist/scenes/index.js",
+      "types": "./dist/scenes/index.d.ts"
+    },
+    "./layout": {
+      "import": "./dist/layout/index.js",
+      "types": "./dist/layout/index.d.ts"
+    },
+    "./facades": {
+      "import": "./dist/facades/index.js",
+      "types": "./dist/facades/index.d.ts"
+    },
+    "./contracts": {
+      "import": "./dist/contracts/index.js",
+      "types": "./dist/contracts/index.d.ts"
+    },
+    "./utils": {
+      "import": "./dist/utils/index.js",
+      "types": "./dist/utils/index.d.ts"
+    },
+    "./performance": {
+      "import": "./dist/performance/index.js",
+      "types": "./dist/performance/index.d.ts"
+    },
+    "./three-toolkit": {
+      "import": "./dist/three/index.js",
+      "types": "./dist/three/index.d.ts"
+    },
+    "./merge": {
+      "import": "./dist/merge/index.js",
+      "types": "./dist/merge/index.d.ts"
     }
   },
   "scripts": {
@@ -57,7 +131,8 @@
     "mobile-games",
     "2d",
     "3d",
-    "framework"
+    "framework",
+    "tree-shaking"
   ],
   "author": "GameByte Team",
   "license": "MIT",
@@ -101,6 +176,17 @@
     "matter-js": ">=0.19.0",
     "pixi.js": "^8.15.0",
     "three": ">=0.150.0"
+  },
+  "peerDependenciesMeta": {
+    "three": {
+      "optional": true
+    },
+    "cannon-es": {
+      "optional": true
+    },
+    "matter-js": {
+      "optional": true
+    }
   },
   "files": [
     "dist/**/*",

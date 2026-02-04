@@ -1,7 +1,7 @@
 import { SimpleScreen } from './SimpleScreen.js';
 import { GameTopBar, ResourceItemConfig } from '../components/GameTopBar.js';
 import { GameBottomNav, NavItemConfig } from '../components/GameBottomNav.js';
-import { IContainer, IGraphics } from '../../contracts/Graphics.js';
+import { IContainer, IGraphics, ISprite } from '../../contracts/Graphics.js';
 import { graphics } from '../../graphics/GraphicsEngine.js';
 
 /**
@@ -28,8 +28,10 @@ export interface HubScreenConfig {
   // Content
   tabContents?: Map<string, () => IContainer>;
 
-  // Colors
+  // Colors & Background
   backgroundColor?: number;
+  /** Background image URL or base64 data URI */
+  backgroundImage?: string;
 }
 
 /**
@@ -63,6 +65,7 @@ export class HubScreen extends SimpleScreen {
   private bottomNav?: GameBottomNav;
   private contentArea: IContainer;
   private background: IGraphics;
+  private backgroundSprite?: ISprite;
 
   private currentTabId: string = '';
   private currentContent?: IContainer;
@@ -84,6 +87,7 @@ export class HubScreen extends SimpleScreen {
       bottomNavItems: config.bottomNavItems || this.getDefaultNavItems(),
       defaultTab: config.defaultTab || 'play',
       backgroundColor: config.backgroundColor || 0x1a1a2e,
+      backgroundImage: config.backgroundImage,
     };
 
     this.tabContents = config.tabContents || new Map();
@@ -142,6 +146,44 @@ export class HubScreen extends SimpleScreen {
     this.background.clear();
     this.background.rect(0, 0, width, height);
     this.background.fill({ color: this.hubConfig.backgroundColor || 0x1a1a2e });
+
+    // Load background image if provided
+    if (this.hubConfig.backgroundImage && !this.backgroundSprite) {
+      this.loadBackgroundImage(width, height);
+    }
+  }
+
+  /**
+   * Load background image
+   */
+  private loadBackgroundImage(width: number, height: number): void {
+    const factory = graphics();
+    const imageUrl = this.hubConfig.backgroundImage!;
+
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const texture = factory.createTexture(img);
+        this.backgroundSprite = factory.createSprite(texture);
+        this.backgroundSprite.width = width;
+        this.backgroundSprite.height = height;
+
+        // Insert after solid background (index 1)
+        const container = this.container as any;
+        if (container.addChildAt) {
+          container.addChildAt(this.backgroundSprite, 1);
+        } else {
+          // Fallback - add after background
+          this.container.addChild(this.backgroundSprite as any);
+        }
+      } catch (e) {
+        console.warn('HubScreen: Failed to create background sprite', e);
+      }
+    };
+    img.onerror = (e) => {
+      console.warn('HubScreen: Failed to load background image', e);
+    };
+    img.src = imageUrl;
   }
 
   /**
@@ -249,6 +291,12 @@ export class HubScreen extends SimpleScreen {
     // Redraw background
     this.drawBackground(width, height);
 
+    // Resize background sprite
+    if (this.backgroundSprite) {
+      this.backgroundSprite.width = width;
+      this.backgroundSprite.height = height;
+    }
+
     // Reposition bottom nav
     if (this.bottomNav) {
       this.bottomNav.setPosition(0, height - this.BOTTOM_NAV_HEIGHT);
@@ -270,6 +318,7 @@ export class HubScreen extends SimpleScreen {
     this.topBar?.destroy();
     this.bottomNav?.destroy();
     this.currentContent?.destroy({ children: true });
+    this.backgroundSprite = undefined;
     this.tabContents.clear();
     super.destroy();
   }

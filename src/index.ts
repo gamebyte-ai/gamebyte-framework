@@ -12,7 +12,9 @@ export { ServiceContainer } from './core/ServiceContainer';
 export { DefaultSceneManager } from './core/DefaultSceneManager';
 
 // Base Scene Implementations
-export { BaseScene, BaseScene3D } from './scenes/BaseScene';
+export { BaseScene } from './scenes/BaseScene';
+// NOTE: BaseScene3D is available in gamebyte-three.umd.js bundle
+// For ESM/bundlers: import { BaseScene3D } from 'gamebyte-framework/three-toolkit'
 
 // Third-party dependencies (bundled)
 export { EventEmitter } from 'eventemitter3';
@@ -206,11 +208,9 @@ export {
 // Rendering System
 export { PixiRenderer } from './rendering/PixiRenderer';
 export type { PixiRendererConfig } from './rendering/PixiRenderer';
-export { ThreeRenderer } from './rendering/ThreeRenderer';
-export type { ThreeRendererConfig } from './rendering/ThreeRenderer';
-export { HybridRenderer } from './rendering/HybridRenderer';
-export type { HybridRendererConfig } from './rendering/HybridRenderer';
 export { RendererFactory } from './rendering/RendererFactory';
+// NOTE: ThreeRenderer and HybridRenderer are in gamebyte-three.umd.js bundle
+// For ESM/bundlers: import { ThreeRenderer, HybridRenderer } from 'gamebyte-framework/three-toolkit'
 
 // Audio System
 export { AudioServiceProvider } from './services/AudioServiceProvider';
@@ -330,6 +330,10 @@ export type {
 // UI Screen Components
 export { BaseUIScreen } from './ui/screens/BaseUIScreen';
 export { SplashScreen } from './ui/screens/SplashScreen';
+export { GameSplash } from './ui/splash/GameSplash';
+export type { GameSplashConfig } from './ui/splash/GameSplash';
+export { GameLoading } from './ui/splash/GameLoading';
+export type { GameLoadingConfig } from './ui/splash/GameLoading';
 // LoadingScreen temporarily disabled - file doesn't exist yet
 // export { LoadingScreen } from './ui/screens/LoadingScreen';
 // MainMenuScreen temporarily disabled - needs refactoring to work with UIComponent
@@ -514,22 +518,22 @@ export { RenderingOptimizer as RenderingOptimizerClass } from './performance/Ren
 export { MobileOptimizer as MobileOptimizerClass } from './performance/MobileOptimizer';
 export { PerformanceDebugOverlay as PerformanceDebugOverlayClass, PerformanceProfiler as PerformanceProfilerClass } from './performance/PerformanceDebugOverlay';
 
-// Version Detection & Compatibility Utilities
+// Version Detection & Compatibility Utilities (Pixi.js only in main bundle)
 export {
   PixiVersionDetector,
-  ThreeVersionDetector,
   BrowserFeatureDetector,
   FrameworkCompatibility
-} from './utils/VersionDetection';
-export type { VersionInfo, FeatureSupport } from './utils/VersionDetection';
+} from './utils/PixiVersionDetection';
+export type { VersionInfo, FeatureSupport } from './utils/PixiVersionDetection';
+// NOTE: ThreeVersionDetector is available in gamebyte-three.umd.js bundle
 
 // Renderer Compatibility Helpers
 export {
   PixiCompatibility,
-  ThreeCompatibility,
   RenderingCompatibility
-} from './utils/RendererCompatibility';
-export type { PixiRendererOptions, ThreeRendererOptions } from './utils/RendererCompatibility';
+} from './utils/PixiCompatibility';
+export type { PixiRendererOptions } from './utils/PixiCompatibility';
+// NOTE: ThreeCompatibility and ThreeRendererOptions are in gamebyte-three.umd.js
 
 // Responsive Helper Utilities
 export {
@@ -546,6 +550,10 @@ export {
   createSafeAreaLayout
 } from './utils/SafeAreaLayout';
 export type { SafeAreaLayoutConfig, SafeAreaBounds } from './utils/SafeAreaLayout';
+
+// Design Resolution Scaling
+export { DesignScaler } from './utils/DesignScaler';
+export type { DesignScalerConfig, Point as DesignPoint } from './utils/DesignScaler';
 
 // Graphics Abstraction Layer
 export type {
@@ -568,7 +576,7 @@ export type {
 export { GraphicsEngine, graphics, drawToTexture } from './graphics/GraphicsEngine';
 export type { DrawToTextureOptions } from './graphics/GraphicsEngine';
 export { PixiGraphicsFactory } from './graphics/PixiGraphicsFactory';
-export { ThreeGraphicsFactory } from './graphics/ThreeGraphicsFactory';
+// NOTE: ThreeGraphicsFactory is available in the separate gamebyte-three.umd.js bundle
 
 // Gradient System (Native Pixi.js v8 FillGradient)
 export {
@@ -584,6 +592,12 @@ export type {
   LinearGradientOptions,
   RadialGradientOptions
 } from './graphics/GradientFactory';
+
+// Three.js 3D Game Toolkit
+// NOTE: Three.js toolkit is available as a separate bundle (gamebyte-three.umd.js)
+// to avoid requiring Three.js for 2D-only games.
+// For ESM/bundlers, import directly from 'gamebyte-framework/three-toolkit'
+// or import individual components from 'gamebyte-framework/three/*'
 
 // Layout System (@pixi/layout - Yoga-powered flexbox)
 export {
@@ -659,6 +673,7 @@ import { InputServiceProvider } from './services/InputServiceProvider';
 import { PhysicsServiceProvider } from './services/PhysicsServiceProvider';
 import { PerformanceServiceProvider } from './services/PerformanceServiceProvider';
 import { AudioServiceProvider } from './services/AudioServiceProvider';
+import { MergeServiceProvider } from './services/MergeServiceProvider';
 import { ServiceContainer } from './core/ServiceContainer';
 import { RenderingMode } from './contracts/Renderer';
 import { Assets } from './facades/Assets';
@@ -753,8 +768,7 @@ export function createMergeGame(): GameByte {
   const app = createGame();
 
   // Register merge service provider
-  const { MergeServiceProvider: MSP } = require('./services/MergeServiceProvider');
-  app.register(new MSP());
+  app.register(new MergeServiceProvider());
 
   return app;
 }

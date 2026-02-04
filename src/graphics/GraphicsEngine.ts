@@ -66,11 +66,16 @@ export class GraphicsEngine implements IGraphicsEngine {
    */
   static async initialize3D(): Promise<void> {
     try {
-      const { ThreeGraphicsFactory } = await import('./ThreeGraphicsFactory');
+      // Use computed import path to prevent Rollup from statically analyzing
+      // and inlining the ThreeGraphicsFactory module
+      const modulePath = './ThreeGraphicsFactory';
+      const module = await import(/* webpackIgnore: true */ modulePath);
+      const { ThreeGraphicsFactory } = module;
       GraphicsEngine.instance = new GraphicsEngine(RenderingMode.RENDERER_3D, new ThreeGraphicsFactory());
     } catch (error) {
       throw new Error(
         'Failed to load ThreeGraphicsFactory. Make sure Three.js is available. ' +
+        'For UMD users, load gamebyte-three.umd.js after Three.js. ' +
         'Error: ' + (error instanceof Error ? error.message : String(error))
       );
     }

@@ -4,7 +4,7 @@ import { EventEmitter } from 'eventemitter3';
 /**
  * Configuration options for IsometricCamera
  */
-export interface IsometricCameraOptions {
+export interface IsometricCameraConfig {
   /**
    * World units visible vertically (height of the view frustum)
    * @default 10
@@ -91,7 +91,7 @@ export class IsometricCamera extends EventEmitter<IsometricCameraEvents> {
   // True isometric tilt: atan(1/√2) ≈ 35.264°
   private static readonly TRUE_ISOMETRIC_TILT = Math.atan(1 / Math.sqrt(2)) * (180 / Math.PI);
 
-  constructor(options: IsometricCameraOptions = {}) {
+  constructor(options: IsometricCameraConfig = {}) {
     super();
 
     const {

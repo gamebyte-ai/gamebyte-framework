@@ -21,6 +21,7 @@ import {
   ILinearGradientConfig,
   IRadialGradientConfig,
 } from '../contracts/Graphics';
+import { getFrameworkFontFamily } from '../ui/utils/FontLoader';
 
 /**
  * Base Three.js Display Object Wrapper
@@ -561,7 +562,22 @@ export class ThreeGraphicsFactory implements IGraphicsFactory {
   }
 
   createText(text: string, style?: ITextStyle): IText {
-    return new ThreeTextWrapper(text, style);
+    // Apply framework defaults: font, stroke outline, and drop shadow for readability
+    const styleWithDefaults: ITextStyle = {
+      fontFamily: getFrameworkFontFamily(),
+      // Default stroke for text outline (improves readability on any background)
+      stroke: { color: 0x000000, width: 3 },
+      // Default drop shadow for depth
+      dropShadow: {
+        color: 0x000000,
+        alpha: 0.5,
+        angle: Math.PI / 4,
+        blur: 4,
+        distance: 2
+      },
+      ...style  // User styles override defaults
+    };
+    return new ThreeTextWrapper(text, styleWithDefaults);
   }
 
   createSprite(texture: ITexture | string): ISprite {
