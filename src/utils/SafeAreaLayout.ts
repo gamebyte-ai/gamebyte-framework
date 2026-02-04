@@ -9,6 +9,8 @@
  * - Fills letterbox areas with background color/pattern
  */
 
+import { graphics } from '../graphics/GraphicsEngine.js';
+
 /**
  * Configuration for SafeAreaLayout
  */
@@ -153,7 +155,6 @@ export class SafeAreaLayout {
     this.PIXI = PIXI;
 
     // Use graphics abstraction for container creation
-    const { graphics } = require('../graphics/GraphicsEngine');
     const factory = graphics();
 
     // Create main container that holds everything

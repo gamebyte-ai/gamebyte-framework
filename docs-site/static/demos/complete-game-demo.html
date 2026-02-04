@@ -35,6 +35,8 @@
             createGame,
             graphics,
             loadFrameworkFont,
+            GraphicsEngine,
+            RenderingMode,
             // Screens
             SplashScreen,
             HubScreen,
@@ -86,6 +88,7 @@
 
         async function init() {
             await loadFrameworkFont();
+            GraphicsEngine.initialize(RenderingMode.RENDERER_2D);
 
             game = createGame();
             await game.initialize(canvas, '2d');
@@ -106,7 +109,7 @@
             stage.addChild(mainContainer);
 
             // Celebration manager
-            celebration = new CelebrationManager(mainContainer);
+            celebration = new CelebrationManager(mainContainer, CONFIG.width, CONFIG.height);
 
             // Start with splash screen
             showSplashScreen();
@@ -668,11 +671,7 @@
         // ==================== WIN SCREEN ====================
         function showWinScreen(gameContainer) {
             // Celebrate!
-            celebration.celebrate({
-                type: 'confetti',
-                duration: 3000,
-                intensity: 'high'
-            });
+            celebration.victory({ confetti: true, sound: false });
 
             const resultScreen = new ResultScreen({
                 type: 'victory',
@@ -681,28 +680,33 @@
                 score: gameState.score,
                 stars: 3,
                 rewards: [
-                    { icon: '⭐', label: 'Stars', value: gameState.score },
-                    { icon: '🪙', label: 'Coins', value: 50 }
+                    { icon: '⭐', amount: gameState.score, label: 'Stars' },
+                    { icon: '🪙', amount: 50, label: 'Coins' }
                 ],
                 actions: [
-                    { id: 'next', label: 'NEXT LEVEL', primary: true },
-                    { id: 'menu', label: 'MENU' }
-                ],
-                onAction: (actionId) => {
-                    if (actionId === 'next') {
-                        gameState.currentLevel++;
-                        showGameScreen();
-                    } else {
-                        showHubScreen();
+                    {
+                        text: 'NEXT LEVEL',
+                        style: 'primary',
+                        onClick: () => {
+                            gameState.currentLevel++;
+                            showGameScreen();
+                        }
+                    },
+                    {
+                        text: 'MENU',
+                        style: 'secondary',
+                        onClick: () => showHubScreen()
                     }
-                }
+                ]
             });
 
+            resultScreen.initialize(CONFIG.width, CONFIG.height);
             resultScreen.setPosition(
                 (CONFIG.width - 320) / 2,
                 (CONFIG.height - 450) / 2
             );
             gameContainer.addChild(resultScreen.getContainer());
+            resultScreen.show();
         }
 
         // ==================== UTILITIES ====================

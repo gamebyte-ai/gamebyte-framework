@@ -48,7 +48,9 @@
             GameStyleColors,
             GameTopBar,
             ResultScreen,
-            CelebrationManager
+            CelebrationManager,
+            GraphicsEngine,
+            RenderingMode
         } = GameByteFramework;
 
         const CONFIG = { width: 600, height: 500 };
@@ -77,6 +79,9 @@
         async function init() {
             // Load framework font
             await loadFrameworkFont();
+
+            // Initialize GraphicsEngine for graphics() function
+            GraphicsEngine.initialize(RenderingMode.RENDERER_2D);
 
             // Create Pixi app
             app = new PIXI.Application();
@@ -578,7 +583,7 @@
 
             // Show celebration if won
             if (won) {
-                celebrationManager.celebrate();
+                celebrationManager.victory({ confetti: true, sound: false });
             }
 
             // Show result screen

@@ -417,12 +417,15 @@ gamebyte-framework/
 
 ## 🎓 Live Demos
 
-- **[Demo Hub](./index.html)** - All demos in one place
-- **[Modern UI](./test-ui-modern.html)** - Beautiful button components
-- **[TopBar System](./test-ui-umd.html)** - Complete UI system
-- **[2D Simple](./test-umd-simple.html)** - Basic 2D rendering
-- **[3D Direct API](./test-3d-simple.html)** - Three.js integration
-- **[Graphics API](./test-graphics-api.html)** - Graphics abstraction
+All demos are available in the `docs-site/static/demos/` directory:
+
+- **[Demo Index](./docs-site/static/demos/)** - All demos in one place
+- **[Platformer Game](./docs-site/static/demos/platformer-demo.html)** - Complete hyper-casual platformer
+- **[Space Shooter](./docs-site/static/demos/space-shooter-demo.html)** - Arcade shooter with particles
+- **[Breakout](./docs-site/static/demos/breakout-demo.html)** - Classic brick breaker
+- **[Memory Game](./docs-site/static/demos/memory-game-demo.html)** - Card matching game
+- **[Snake](./docs-site/static/demos/snake-demo.html)** - Classic snake game
+- **[UI Showcase](./docs-site/static/demos/game-ui-showcase.html)** - UI component gallery
 
 ---
 

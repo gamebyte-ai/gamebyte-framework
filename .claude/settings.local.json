@@ -73,7 +73,10 @@
       "Bash(else echo \"❌ MISSING: $demo\")",
       "Bash(fi)",
       "Bash(done)",
-      "mcp__gemini-imagen4__generate_image"
+      "mcp__gemini-imagen4__generate_image",
+      "Bash(du:*)",
+      "Bash(for:*)",
+      "Bash(# README veya başka yerden bu dosyalara referans var mı? grep -rn \"\"demo-archero\\\\|showcase.html\\\\|test-ui-umd\\\\|test-3d-simple\\\\|example-minimal\"\" README.md package.json)"
     ],
     "deny": [],
     "ask": []

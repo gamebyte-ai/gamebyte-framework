@@ -40,6 +40,8 @@
             createGame,
             graphics,
             loadFrameworkFont,
+            GraphicsEngine,
+            RenderingMode,
             SplashScreen,
             GameStyleButton,
             GameStyleColors,
@@ -80,6 +82,7 @@
         async function init() {
             // Load font first
             await loadFrameworkFont();
+            GraphicsEngine.initialize(RenderingMode.RENDERER_2D);
 
             app = new PIXI.Application();
             await app.init({
@@ -430,7 +433,7 @@
             const finalScore = Math.max(0, baseScore - movesPenalty - timePenalty);
 
             // Trigger celebration
-            celebrationManager.celebrate('win');
+            celebrationManager.victory({ confetti: true, sound: false });
 
             // Show result screen after a short delay
             setTimeout(() => {

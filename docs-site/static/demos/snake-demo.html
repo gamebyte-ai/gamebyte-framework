@@ -43,12 +43,13 @@
             createGame,
             graphics,
             loadFrameworkFont,
-            SplashScreen,
             GameStyleButton,
             GameStyleColors,
             GameTopBar,
             ResultScreen,
-            CelebrationManager
+            CelebrationManager,
+            GraphicsEngine,
+            RenderingMode
         } = GameByteFramework;
 
         const CONFIG = { width: 500, height: 500 };
@@ -85,6 +86,9 @@
             // Load framework font
             await loadFrameworkFont();
 
+            // Initialize GraphicsEngine for graphics() function
+            GraphicsEngine.initialize(RenderingMode.RENDERER_2D);
+
             app = new PIXI.Application();
             await app.init({
                 width: CONFIG.width,
@@ -103,21 +107,51 @@
         function showSplashScreen() {
             gameState = 'splash';
 
-            splashScreen = new SplashScreen({
-                title: 'SNAKE',
-                subtitle: 'A GameByte Demo',
-                duration: 2000,
-                backgroundColor: 0x1a1a2e,
-                titleColor: 0x2ECC71,
-                subtitleColor: 0x8892b0
-            });
+            splashScreen = new PIXI.Container();
 
-            splashScreen.on('complete', () => {
-                app.stage.removeChild(splashScreen.getContainer());
+            // Background
+            const bg = new PIXI.Graphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill({ color: 0x1a1a2e });
+            splashScreen.addChild(bg);
+
+            // Title
+            const title = new PIXI.Text({
+                text: 'SNAKE',
+                style: {
+                    fontFamily: 'Lilita One',
+                    fontSize: 72,
+                    fill: 0x2ECC71,
+                    align: 'center'
+                }
+            });
+            title.anchor.set(0.5);
+            title.x = CONFIG.width / 2;
+            title.y = CONFIG.height / 2 - 30;
+            splashScreen.addChild(title);
+
+            // Subtitle
+            const subtitle = new PIXI.Text({
+                text: 'A GameByte Demo',
+                style: {
+                    fontFamily: 'Lilita One',
+                    fontSize: 20,
+                    fill: 0x8892b0,
+                    align: 'center'
+                }
+            });
+            subtitle.anchor.set(0.5);
+            subtitle.x = CONFIG.width / 2;
+            subtitle.y = CONFIG.height / 2 + 30;
+            splashScreen.addChild(subtitle);
+
+            app.stage.addChild(splashScreen);
+
+            // Auto-advance after 2 seconds
+            setTimeout(() => {
+                app.stage.removeChild(splashScreen);
                 showMainMenu();
-            });
-
-            app.stage.addChild(splashScreen.getContainer());
+            }, 2000);
         }
 
         function showMainMenu() {
@@ -518,8 +552,8 @@
 
             // Show celebration if new high score
             if (isNewHighScore && score > 0) {
-                const celebration = new CelebrationManager(app.stage);
-                celebration.celebrate('victory');
+                const celebration = new CelebrationManager(app.stage, CONFIG.width, CONFIG.height);
+                celebration.victory({ confetti: true, sound: false });
             }
         }
 

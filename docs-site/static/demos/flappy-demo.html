@@ -43,6 +43,8 @@
             createGame,
             graphics,
             loadFrameworkFont,
+            GraphicsEngine,
+            RenderingMode,
             SplashScreen,
             GameStyleButton,
             GameStyleColors,
@@ -78,6 +80,7 @@
         async function init() {
             // Load framework font
             await loadFrameworkFont();
+            GraphicsEngine.initialize(RenderingMode.RENDERER_2D);
 
             // Initialize Pixi app
             app = new PIXI.Application();
@@ -215,11 +218,11 @@
 
         function createResultScreen() {
             resultScreen = new ResultScreen({
-                width: CONFIG.width,
-                height: CONFIG.height,
-                variant: 'defeat'
+                type: 'defeat',
+                title: 'GAME OVER'
             });
 
+            resultScreen.initialize(CONFIG.width, CONFIG.height);
             const container = resultScreen.getContainer();
             container.visible = false;
             app.stage.addChild(container);

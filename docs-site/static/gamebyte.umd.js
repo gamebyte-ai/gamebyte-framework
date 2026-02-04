@@ -18349,6 +18349,7 @@
 	        // Internal state
 	        this._autoAdvanceTimer = null;
 	        this._loadingProgress = 0;
+	        this._pixiContainer = null;
 	        this.config = {
 	            brandName: 'GameByte',
 	            backgroundColor: { r: 18, g: 18, b: 18, a: 1 }, // Dark background
@@ -18607,12 +18608,77 @@
 	        }
 	    }
 	    /**
+	     * Get PIXI container for direct stage manipulation
+	     * Creates a simple visual representation of the splash screen
+	     * Uses PIXI directly to avoid GraphicsEngine initialization requirement
+	     */
+	    getContainer() {
+	        if (this._pixiContainer) {
+	            return this._pixiContainer;
+	        }
+	        // Use PIXI directly (available globally when using UMD bundle)
+	        const PIXI = window.PIXI;
+	        if (!PIXI) {
+	            throw new Error('PIXI not found. Make sure pixi.js is loaded before using SplashScreen.getContainer()');
+	        }
+	        this._pixiContainer = new PIXI.Container();
+	        // Create background
+	        const bg = new PIXI.Graphics();
+	        bg.rect(0, 0, window.innerWidth, window.innerHeight);
+	        const bgColor = this.config.backgroundColor || { r: 18, g: 18, b: 18, a: 1 };
+	        const bgColorHex = (bgColor.r << 16) | (bgColor.g << 8) | bgColor.b;
+	        bg.fill({ color: bgColorHex, alpha: bgColor.a || 1 });
+	        this._pixiContainer.addChild(bg);
+	        // Create brand text
+	        const textColor = this.config.textColor || { r: 255, g: 255, b: 255};
+	        const textColorHex = (textColor.r << 16) | (textColor.g << 8) | textColor.b;
+	        const brandText = new PIXI.Text({
+	            text: this.config.brandName || 'GameByte',
+	            style: {
+	                fontFamily: 'Lilita One, Arial',
+	                fontSize: 48,
+	                fill: textColorHex,
+	                align: 'center'
+	            }
+	        });
+	        brandText.anchor.set(0.5);
+	        brandText.x = window.innerWidth / 2;
+	        brandText.y = window.innerHeight / 2 - 20;
+	        this._pixiContainer.addChild(brandText);
+	        // Create loading text
+	        const loadingText = new PIXI.Text({
+	            text: this.config.loadingText || 'Loading...',
+	            style: {
+	                fontFamily: 'Lilita One, Arial',
+	                fontSize: 18,
+	                fill: textColorHex,
+	                align: 'center'
+	            }
+	        });
+	        loadingText.anchor.set(0.5);
+	        loadingText.alpha = 0.7;
+	        loadingText.x = window.innerWidth / 2;
+	        loadingText.y = window.innerHeight / 2 + 40;
+	        this._pixiContainer.addChild(loadingText);
+	        // Auto-advance timer
+	        if (this.config.duration && this.config.duration > 0) {
+	            setTimeout(() => {
+	                this.emit('complete');
+	            }, this.config.duration);
+	        }
+	        return this._pixiContainer;
+	    }
+	    /**
 	     * Cleanup
 	     */
 	    destroy() {
 	        if (this._autoAdvanceTimer) {
 	            clearTimeout(this._autoAdvanceTimer);
 	            this._autoAdvanceTimer = null;
+	        }
+	        if (this._pixiContainer) {
+	            this._pixiContainer.destroy({ children: true });
+	            this._pixiContainer = null;
 	        }
 	        super.destroy();
 	    }
@@ -57672,7 +57738,6 @@
 	    initialize(PIXI) {
 	        this.PIXI = PIXI;
 	        // Use graphics abstraction for container creation
-	        const { graphics } = require('../graphics/GraphicsEngine');
 	        const factory = graphics();
 	        // Create main container that holds everything
 	        this.mainContainer = factory.createContainer();
