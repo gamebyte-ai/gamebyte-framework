@@ -99,7 +99,8 @@ export class TextureLoader3D extends EventEmitter<TextureLoader3DEvents> {
           this.applyOptions(texture, { ...this.config.defaults, ...options });
           this.cache.set(fullUrl, texture);
           this.emit('load', texture, fullUrl);
-          resolve(texture);
+          // Return clone to keep cache pristine (consistent with cache hit behavior)
+          resolve(texture.clone());
         },
         (progress) => {
           const percent = progress.total > 0 ? progress.loaded / progress.total : 0;

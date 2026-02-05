@@ -97,6 +97,18 @@
       "import": "./dist/three/index.js",
       "types": "./dist/three/index.d.ts"
     },
+    "./three/lights": {
+      "import": "./dist/three/lights/index.js",
+      "types": "./dist/three/lights/index.d.ts"
+    },
+    "./three/loaders": {
+      "import": "./dist/three/loaders/index.js",
+      "types": "./dist/three/loaders/index.d.ts"
+    },
+    "./three/animation": {
+      "import": "./dist/three/animation/index.js",
+      "types": "./dist/three/animation/index.d.ts"
+    },
     "./merge": {
       "import": "./dist/merge/index.js",
       "types": "./dist/merge/index.d.ts"
