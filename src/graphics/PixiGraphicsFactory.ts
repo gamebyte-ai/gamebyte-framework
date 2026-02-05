@@ -17,6 +17,13 @@ import {
   IFillGradient,
   ILinearGradientConfig,
   IRadialGradientConfig,
+  IFilter,
+  IMask,
+  IBlurFilterOptions,
+  IColorMatrixFilterOptions,
+  IDropShadowFilterOptions,
+  IGlowFilterOptions,
+  IOutlineFilterOptions,
 } from '../contracts/Graphics';
 import { getFrameworkFontFamily } from '../ui/utils/FontLoader';
 
@@ -73,6 +80,58 @@ class PixiSpriteWrapper extends PIXI.Sprite implements ISprite {
     } else {
       super(texture as PIXI.Texture);
     }
+  }
+}
+
+/**
+ * Pixi.js Filter Wrapper
+ */
+class PixiFilterWrapper implements IFilter {
+  private filter: PIXI.Filter;
+  readonly type: string;
+
+  constructor(filter: PIXI.Filter, type: string) {
+    this.filter = filter;
+    this.type = type;
+  }
+
+  get enabled(): boolean {
+    return this.filter.enabled;
+  }
+
+  set enabled(value: boolean) {
+    this.filter.enabled = value;
+  }
+
+  get native(): PIXI.Filter {
+    return this.filter;
+  }
+
+  destroy(): void {
+    this.filter.destroy();
+  }
+}
+
+/**
+ * Pixi.js Mask Wrapper
+ */
+class PixiMaskWrapper implements IMask {
+  private _native: PIXI.Graphics | PIXI.Sprite;
+  readonly type: 'graphics' | 'sprite' | 'color';
+  inverted?: boolean;
+
+  constructor(native: PIXI.Graphics | PIXI.Sprite, type: 'graphics' | 'sprite') {
+    this._native = native;
+    this.type = type;
+    this.inverted = false;
+  }
+
+  get native(): PIXI.Graphics | PIXI.Sprite {
+    return this._native;
+  }
+
+  destroy(): void {
+    this._native.destroy();
   }
 }
 
@@ -159,6 +218,69 @@ export class PixiGraphicsFactory implements IGraphicsFactory {
       textureSpace: config.textureSpace || 'local',
     });
     return new PixiFillGradientWrapper(gradient, 'radial');
+  }
+
+  // ============================================
+  // FILTERS (Pixi.js v8)
+  // Core filters: BlurFilter, ColorMatrixFilter, DisplacementFilter, NoiseFilter, AlphaFilter
+  // Extended filters require 'pixi-filters' package
+  // ============================================
+
+  createBlurFilter(options: IBlurFilterOptions = {}): IFilter {
+    const filter = new PIXI.BlurFilter({
+      strength: options.strength ?? 8,
+      quality: options.quality ?? 4,
+      kernelSize: options.kernelSize ?? 5,
+    });
+    return new PixiFilterWrapper(filter, 'blur');
+  }
+
+  createColorMatrixFilter(options: IColorMatrixFilterOptions = {}): IFilter {
+    const filter = new PIXI.ColorMatrixFilter();
+    if (options.matrix && options.matrix.length === 20) {
+      // ColorMatrix requires exactly 20 values
+      filter.matrix = options.matrix as any;
+    }
+    return new PixiFilterWrapper(filter, 'colorMatrix');
+  }
+
+  createDropShadowFilter(options: IDropShadowFilterOptions = {}): IFilter {
+    // DropShadowFilter requires 'pixi-filters' package
+    // Fallback: simulate with ColorMatrixFilter + blur
+    console.warn('DropShadowFilter requires pixi-filters package. Using BlurFilter as fallback.');
+    const blur = options.blur ?? 4;
+    const filter = new PIXI.BlurFilter({ strength: blur });
+    return new PixiFilterWrapper(filter, 'dropShadow');
+  }
+
+  createGlowFilter(options: IGlowFilterOptions = {}): IFilter {
+    // GlowFilter requires 'pixi-filters' package
+    // Fallback: simulate with blur
+    console.warn('GlowFilter requires pixi-filters package. Using BlurFilter as fallback.');
+    const distance = options.distance ?? 10;
+    const filter = new PIXI.BlurFilter({ strength: distance * 0.5 });
+    return new PixiFilterWrapper(filter, 'glow');
+  }
+
+  createOutlineFilter(options: IOutlineFilterOptions = {}): IFilter {
+    // OutlineFilter requires 'pixi-filters' package
+    // No good fallback available
+    console.warn('OutlineFilter requires pixi-filters package. No fallback available.');
+    // Return a no-op filter
+    const filter = new PIXI.AlphaFilter({ alpha: 1 });
+    return new PixiFilterWrapper(filter, 'outline');
+  }
+
+  // ============================================
+  // MASKS (Pixi.js v8)
+  // ============================================
+
+  createMaskFromGraphics(graphics: IGraphics): IMask {
+    return new PixiMaskWrapper(graphics as unknown as PIXI.Graphics, 'graphics');
+  }
+
+  createMaskFromSprite(sprite: ISprite): IMask {
+    return new PixiMaskWrapper(sprite as unknown as PIXI.Sprite, 'sprite');
   }
 
   /**

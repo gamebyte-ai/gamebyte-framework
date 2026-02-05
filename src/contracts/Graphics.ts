@@ -8,6 +8,115 @@
 import { EventEmitter } from 'eventemitter3';
 
 /**
+ * Blend modes for compositing graphics (Pixi.js v8)
+ * Matches PIXI.BLEND_MODES exactly
+ */
+export type BlendMode =
+  | 'inherit'
+  | 'normal'
+  | 'add'
+  | 'multiply'
+  | 'screen'
+  | 'darken'
+  | 'lighten'
+  | 'erase'
+  | 'color-dodge'
+  | 'color-burn'
+  | 'linear-burn'
+  | 'linear-dodge'
+  | 'linear-light'
+  | 'hard-light'
+  | 'soft-light'
+  | 'pin-light'
+  | 'difference'
+  | 'exclusion'
+  | 'overlay'
+  | 'saturation'
+  | 'color'
+  | 'luminosity'
+  | 'normal-npm'
+  | 'add-npm'
+  | 'screen-npm'
+  | 'none'
+  | 'subtract'
+  | 'divide'
+  | 'vivid-light'
+  | 'hard-mix'
+  | 'negation'
+  | 'min'
+  | 'max';
+
+/**
+ * Filter interface for visual effects
+ */
+export interface IFilter {
+  readonly type: string;
+  enabled: boolean;
+  /** Native filter object */
+  readonly native: any;
+  destroy(): void;
+}
+
+/**
+ * Blur filter options
+ */
+export interface IBlurFilterOptions {
+  strength?: number;
+  quality?: number;
+  kernelSize?: number;
+}
+
+/**
+ * Color matrix filter options
+ */
+export interface IColorMatrixFilterOptions {
+  matrix?: number[];
+}
+
+/**
+ * Drop shadow filter options
+ */
+export interface IDropShadowFilterOptions {
+  offset?: { x: number; y: number };
+  color?: number;
+  alpha?: number;
+  blur?: number;
+  quality?: number;
+}
+
+/**
+ * Glow filter options
+ */
+export interface IGlowFilterOptions {
+  distance?: number;
+  outerStrength?: number;
+  innerStrength?: number;
+  color?: number;
+  quality?: number;
+}
+
+/**
+ * Outline filter options
+ */
+export interface IOutlineFilterOptions {
+  thickness?: number;
+  color?: number;
+  quality?: number;
+}
+
+/**
+ * Mask interface for clipping
+ */
+export interface IMask {
+  readonly type: 'graphics' | 'sprite' | 'color';
+  /** Native mask object */
+  readonly native: any;
+  /** Inverted mask */
+  inverted?: boolean;
+  destroy(): void;
+}
+
+/**
  * Base display object interface
  */
 export interface IDisplayObject extends EventEmitter {
@@ -21,6 +130,15 @@ export interface IDisplayObject extends EventEmitter {
   cursor?: string;
   eventMode?: 'none' | 'passive' | 'auto' | 'static' | 'dynamic';
 
+  /** Blend mode for compositing */
+  blendMode?: BlendMode;
+
+  /**
+   * Filters applied to this display object
+   * Can be native Pixi.js filters or wrapped IFilter objects
+   */
+  filters?: any;
+
   destroy(options?: any): void;
 }
 
@@ -30,6 +148,12 @@ export interface IDisplayObject extends EventEmitter {
 export interface IContainer extends IDisplayObject {
   children: IDisplayObject[];
   hitArea?: { contains(x: number, y: number): boolean } | any;
+
+  /**
+   * Mask for clipping children
+   * Can be a graphics object, sprite, IMask wrapper, or native mask value
+   */
+  mask?: IMask | IGraphics | ISprite | any;
 
   addChild(child: IDisplayObject): IDisplayObject;
   removeChild(child: IDisplayObject): IDisplayObject;
@@ -197,6 +321,17 @@ export interface IGraphicsFactory {
   // Gradient creation (Pixi v8 FillGradient)
   createLinearGradient(config: ILinearGradientConfig): IFillGradient;
   createRadialGradient(config: IRadialGradientConfig): IFillGradient;
+
+  // Filter creation (Pixi v8)
+  createBlurFilter(options?: IBlurFilterOptions): IFilter;
+  createColorMatrixFilter(options?: IColorMatrixFilterOptions): IFilter;
+  createDropShadowFilter(options?: IDropShadowFilterOptions): IFilter;
+  createGlowFilter(options?: IGlowFilterOptions): IFilter;
+  createOutlineFilter(options?: IOutlineFilterOptions): IFilter;
+
+  // Mask creation
+  createMaskFromGraphics(graphics: IGraphics): IMask;
+  createMaskFromSprite(sprite: ISprite): IMask;
 }
 
 /**

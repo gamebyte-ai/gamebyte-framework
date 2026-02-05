@@ -203,5 +203,16 @@ export type {
   IRadialGradientConfig,
   IColorStop,
   IStrokeStyle,
-  IDropShadowStyle
+  IDropShadowStyle,
+  // Filters
+  IFilter,
+  IBlurFilterOptions,
+  IColorMatrixFilterOptions,
+  IDropShadowFilterOptions,
+  IGlowFilterOptions,
+  IOutlineFilterOptions,
+  // Masks
+  IMask,
+  // Blend Modes
+  BlendMode
 } from './Graphics.js';
