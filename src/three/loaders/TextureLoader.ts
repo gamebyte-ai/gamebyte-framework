@@ -166,7 +166,7 @@ export class TextureLoader3D extends EventEmitter<TextureLoader3DEvents> {
    * Create a data texture from raw data
    */
   createDataTexture(
-    data: Uint8Array | Float32Array,
+    data: Uint8Array<ArrayBuffer> | Float32Array<ArrayBuffer>,
     width: number,
     height: number,
     format: THREE.PixelFormat = THREE.RGBAFormat,

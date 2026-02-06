@@ -444,7 +444,7 @@ export class AssetBundleBuilder {
     try {
       const parsed = JSON.parse(text);
       const minified = JSON.stringify(parsed);
-      return new TextEncoder().encode(minified);
+      return new TextEncoder().encode(minified).buffer as ArrayBuffer;
     } catch {
       return data; // Return original if parsing fails
     }

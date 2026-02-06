@@ -3,6 +3,7 @@ import { ServiceContainer } from './ServiceContainer.js';
 import { ServiceProvider } from '../contracts/ServiceProvider.js';
 import { Renderer, RenderingMode, RendererOptions } from '../contracts/Renderer.js';
 import { GraphicsEngine } from '../graphics/GraphicsEngine.js';
+import type { ResponsiveConfig } from '../utils/ResponsiveHelper.js';
 
 /**
  * Quick game configuration options
@@ -26,8 +27,19 @@ export interface QuickGameConfig {
   antialias?: boolean;
   /** Resolution / pixel ratio */
   resolution?: number;
-  /** Resize canvas to fill container */
+  /**
+   * Resize canvas to fill container.
+   * When true, automatically enables responsive mode with container-based tracking.
+   * Uses config.width/height as base design dimensions for scale calculation.
+   */
   resizeToContainer?: boolean;
+  /**
+   * Enable responsive scaling.
+   * - `true`: Uses config.width/height as base dimensions with mobile-first defaults
+   * - Object: Custom responsive config (baseWidth, baseHeight, minScale, maxScale)
+   * When used with resizeToContainer, container is tracked automatically.
+   */
+  responsive?: boolean | Omit<ResponsiveConfig, 'container'>;
   /** Additional renderer options */
   rendererOptions?: RendererOptions;
 }
@@ -177,16 +189,6 @@ export class GameByte extends EventEmitter {
       }
     }
 
-    // Handle resize to container
-    if (config.resizeToContainer && containerElement) {
-      game.resizeObserver = new ResizeObserver(() => {
-        canvas.width = containerElement!.clientWidth;
-        canvas.height = containerElement!.clientHeight;
-        game.emit('resize', canvas.width, canvas.height);
-      });
-      game.resizeObserver.observe(containerElement);
-    }
-
     // Determine rendering mode (default to 2D)
     let mode: RenderingMode;
     switch (config.mode) {
@@ -202,7 +204,7 @@ export class GameByte extends EventEmitter {
     }
 
     // Build renderer options
-    const rendererOptions: RendererOptions = {
+    const rendererOptions: Record<string, unknown> = {
       width: config.width || canvas.width,
       height: config.height || canvas.height,
       backgroundColor: config.backgroundColor,
@@ -211,8 +213,36 @@ export class GameByte extends EventEmitter {
       ...config.rendererOptions
     };
 
+    // Responsive resize integration
+    // When resizeToContainer is true, automatically enable responsive mode with container tracking.
+    // This replaces the old manual ResizeObserver that only updated canvas dimensions.
+    const baseWidth = (config.width || canvas.width) as number;
+    const baseHeight = (config.height || canvas.height) as number;
+
+    if (config.resizeToContainer && containerElement) {
+      // Container-based responsive: tracks container size via ResizeObserver + scale calculation
+      const userResponsive = typeof config.responsive === 'object' ? config.responsive : null;
+      rendererOptions.responsive = {
+        baseWidth: userResponsive?.baseWidth ?? baseWidth,
+        baseHeight: userResponsive?.baseHeight ?? baseHeight,
+        minScale: userResponsive?.minScale,
+        maxScale: userResponsive?.maxScale,
+        container: containerElement
+      };
+    } else if (config.responsive) {
+      // Window-based responsive: tracks window size
+      const userResponsive = typeof config.responsive === 'object' ? config.responsive : null;
+      rendererOptions.responsive = {
+        baseWidth: userResponsive?.baseWidth ?? baseWidth,
+        baseHeight: userResponsive?.baseHeight ?? baseHeight,
+        minScale: userResponsive?.minScale,
+        maxScale: userResponsive?.maxScale
+      };
+    }
+
     // Initialize game (this sets up update/render event hooks automatically)
-    await game.initialize(canvas, mode, rendererOptions);
+    // rendererOptions may contain renderer-specific fields (e.g., responsive) beyond RendererOptions
+    await game.initialize(canvas, mode, rendererOptions as RendererOptions);
 
     // Auto-start if requested
     if (config.autoStart !== false) {
