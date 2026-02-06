@@ -682,6 +682,30 @@ export interface AudioManager {
   emit<K extends keyof AudioEvents>(event: K, data: AudioEvents[K]): boolean;
 }
 
+// ─── Procedural Audio Preset Types ──────────────
+
+/**
+ * Built-in procedural game sound types.
+ */
+export type GameSoundType =
+  | 'hit' | 'pickup' | 'explosion' | 'laser' | 'powerUp'
+  | 'death' | 'click' | 'jump' | 'land' | 'coin'
+  | 'error' | 'success' | 'whoosh' | 'thrust' | 'nearMiss';
+
+/**
+ * Configuration for procedural game sound playback.
+ */
+export interface GameSoundConfig {
+  /** Volume 0-1 (default: 0.3) */
+  volume?: number;
+  /** Pitch multiplier (default: 1.0) */
+  pitch?: number;
+  /** Override duration in seconds */
+  duration?: number;
+  /** Random variation 0-1 (default: 0) */
+  variation?: number;
+}
+
 /**
  * Procedural audio generator
  */

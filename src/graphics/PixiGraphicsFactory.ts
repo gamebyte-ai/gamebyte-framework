@@ -246,8 +246,11 @@ export class PixiGraphicsFactory implements IGraphicsFactory {
 
   createDropShadowFilter(options: IDropShadowFilterOptions = {}): IFilter {
     // DropShadowFilter requires 'pixi-filters' package
-    // Fallback: simulate with ColorMatrixFilter + blur
-    console.warn('DropShadowFilter requires pixi-filters package. Using BlurFilter as fallback.');
+    // Fallback: BlurFilter only (limited shadow effect)
+    console.warn(
+      'DropShadowFilter requires pixi-filters package (npm install pixi-filters). ' +
+      'Using BlurFilter as limited fallback.'
+    );
     const blur = options.blur ?? 4;
     const filter = new PIXI.BlurFilter({ strength: blur });
     return new PixiFilterWrapper(filter, 'dropShadow');
@@ -255,8 +258,11 @@ export class PixiGraphicsFactory implements IGraphicsFactory {
 
   createGlowFilter(options: IGlowFilterOptions = {}): IFilter {
     // GlowFilter requires 'pixi-filters' package
-    // Fallback: simulate with blur
-    console.warn('GlowFilter requires pixi-filters package. Using BlurFilter as fallback.');
+    // Fallback: BlurFilter only (limited glow effect)
+    console.warn(
+      'GlowFilter requires pixi-filters package (npm install pixi-filters). ' +
+      'Using BlurFilter as limited fallback.'
+    );
     const distance = options.distance ?? 10;
     const filter = new PIXI.BlurFilter({ strength: distance * 0.5 });
     return new PixiFilterWrapper(filter, 'glow');
@@ -265,7 +271,10 @@ export class PixiGraphicsFactory implements IGraphicsFactory {
   createOutlineFilter(options: IOutlineFilterOptions = {}): IFilter {
     // OutlineFilter requires 'pixi-filters' package
     // No good fallback available
-    console.warn('OutlineFilter requires pixi-filters package. No fallback available.');
+    console.warn(
+      'OutlineFilter requires pixi-filters package (npm install pixi-filters). ' +
+      'No fallback available - returning no-op filter.'
+    );
     // Return a no-op filter
     const filter = new PIXI.AlphaFilter({ alpha: 1 });
     return new PixiFilterWrapper(filter, 'outline');

@@ -57,7 +57,9 @@ export type {
   AudioAnalytics,
   AudioPerformanceMetrics,
   AudioEvents,
-  AudioPosition
+  AudioPosition,
+  GameSoundType,
+  GameSoundConfig
 } from './contracts/Audio';
 export {
   AudioPerformanceTier,
@@ -176,7 +178,9 @@ export type {
   PerformanceDebugOverlay as PerformanceDebugOverlayType,
   PerformanceProfiler as PerformanceProfilerType,
   ProfilingResult,
-  GameLoopConfig
+  GameLoopConfig,
+  QualityTier,
+  AdaptiveConfig
 } from './contracts/Performance';
 export {
   DevicePerformanceTier,
@@ -571,7 +575,16 @@ export type {
   IRadialGradientConfig,
   IColorStop,
   IStrokeStyle,
-  IDropShadowStyle
+  IDropShadowStyle,
+  // Filters & Masks (Pixi.js v8)
+  BlendMode,
+  IFilter,
+  IMask,
+  IBlurFilterOptions,
+  IColorMatrixFilterOptions,
+  IDropShadowFilterOptions,
+  IGlowFilterOptions,
+  IOutlineFilterOptions
 } from './contracts/Graphics';
 export { GraphicsEngine, graphics, drawToTexture } from './graphics/GraphicsEngine';
 export type { DrawToTextureOptions } from './graphics/GraphicsEngine';
@@ -651,6 +664,76 @@ export type {
 export { createState, computed, isReactive, resolveValue } from './ui/state';
 export type { StateListener, ReactiveState } from './ui/state';
 
+// ═══════════════════════════════════════════════════
+// Feature Expansion: New Modules
+// ═══════════════════════════════════════════════════
+
+// Tick System (Component-Level Render Loop)
+export { TickSystem } from './tick/TickSystem';
+export { TickServiceProvider } from './services/TickServiceProvider';
+export { Tick } from './facades/Tick';
+export type {
+  ITickSystem,
+  TickState,
+  TickSubscriptionHandle,
+  TickSubscribeOptions
+} from './contracts/Tick';
+
+// Resource Tracker (Auto-Dispose / Resource Lifecycle)
+export { ResourceTracker } from './resources/ResourceTracker';
+export { ResourceScope } from './resources/ResourceScope';
+export { DisposableRegistry } from './resources/DisposableRegistry';
+export { ResourceServiceProvider } from './services/ResourceServiceProvider';
+export { Resources } from './facades/Resources';
+export type { IResourceTracker, IResourceScope, DisposerEntry } from './contracts/Resources';
+
+// 3D Pointer Event System (available via three-toolkit sub-path)
+export type {
+  IRaycastEventSystem,
+  PointerEvent3DType,
+  PointerEvent3DData,
+  PointerEvent3DHandler
+} from './contracts/PointerEvents3D';
+
+// Procedural Audio Presets (Game Sounds)
+export { GameSoundPresets } from './audio/procedural/GameSoundPresets';
+
+// Performance Advisor (Adaptive Quality)
+export { PerformanceAdvisor } from './performance/PerformanceAdvisor';
+export { QualityTierManager } from './performance/QualityTierManager';
+
+// Instance Manager (available via three-toolkit sub-path)
+export type { IInstanceManager, IInstanceHandle } from './contracts/Instancing';
+
+// Post-Processing Pipeline
+export { PostProcessingPipeline } from './postprocessing/PostProcessingPipeline';
+export { PostProcessingServiceProvider } from './services/PostProcessingServiceProvider';
+export { PostProcessing } from './facades/PostProcessing';
+export type { IPostProcessingPipeline, IPostProcessingEffect } from './contracts/PostProcessing';
+
+// Environment System
+export { EnvironmentSystem } from './environment/EnvironmentSystem';
+export { EnvironmentServiceProvider } from './services/EnvironmentServiceProvider';
+export { Environment } from './facades/Environment';
+export type { IEnvironmentSystem, EnvironmentConfig } from './contracts/Environment';
+
+// Prefab / Entity Component System
+export { PrefabSystem } from './prefabs/PrefabSystem';
+export { PrefabServiceProvider } from './services/PrefabServiceProvider';
+export { Prefabs } from './facades/Prefabs';
+export type {
+  IPrefabSystem,
+  IEntity,
+  PrefabConfig,
+  PrimitiveConfig,
+  ComponentLifecycle
+} from './contracts/Prefab';
+
+// Smart Asset Pipeline
+export { SmartAssetPipeline } from './assets/SmartAssetPipeline';
+export { AssetPipelineServiceProvider } from './services/AssetPipelineServiceProvider';
+export type { IAssetPipeline, AssetManifest } from './contracts/AssetPipeline';
+
 // Types
 export type {
   GameConfig,
@@ -674,6 +757,12 @@ import { PhysicsServiceProvider } from './services/PhysicsServiceProvider';
 import { PerformanceServiceProvider } from './services/PerformanceServiceProvider';
 import { AudioServiceProvider } from './services/AudioServiceProvider';
 import { MergeServiceProvider } from './services/MergeServiceProvider';
+import { TickServiceProvider } from './services/TickServiceProvider';
+import { ResourceServiceProvider } from './services/ResourceServiceProvider';
+import { PostProcessingServiceProvider } from './services/PostProcessingServiceProvider';
+import { EnvironmentServiceProvider } from './services/EnvironmentServiceProvider';
+import { PrefabServiceProvider } from './services/PrefabServiceProvider';
+import { AssetPipelineServiceProvider } from './services/AssetPipelineServiceProvider';
 import { ServiceContainer } from './core/ServiceContainer';
 import { RenderingMode } from './contracts/Renderer';
 import { Assets } from './facades/Assets';
@@ -687,6 +776,11 @@ import { Physics } from './facades/Physics';
 import { Performance } from './facades/Performance';
 import { Audio as AudioFacadeExport } from './facades/Audio';
 import { Merge as MergeFacadeExport } from './facades/Merge';
+import { Tick as TickFacadeExport } from './facades/Tick';
+import { Resources as ResourcesFacadeExport } from './facades/Resources';
+import { PostProcessing as PostProcessingFacadeExport } from './facades/PostProcessing';
+import { Environment as EnvironmentFacadeExport } from './facades/Environment';
+import { Prefabs as PrefabsFacadeExport } from './facades/Prefabs';
 
 // Import QuickGameConfig for the createGame function
 import type { QuickGameConfig } from './core/GameByte';
@@ -734,6 +828,14 @@ export function createGame(config?: QuickGameConfig): GameByte | Promise<GameByt
   app.register(new PhysicsServiceProvider());
   app.register(new PerformanceServiceProvider());
   app.register(new AudioServiceProvider());
+
+  // Register new feature service providers
+  app.register(new TickServiceProvider());
+  app.register(new ResourceServiceProvider());
+  app.register(new PostProcessingServiceProvider());
+  app.register(new EnvironmentServiceProvider());
+  app.register(new PrefabServiceProvider());
+  app.register(new AssetPipelineServiceProvider());
 
   return app;
 }
@@ -794,7 +896,12 @@ const GameByteFramework = {
   Physics: null as any,  // Will be set after app initialization
   Performance: null as any, // Will be set after app initialization
   Audio: null as any,      // Will be set after app initialization
-  Merge: null as any       // Will be set after app initialization
+  Merge: null as any,      // Will be set after app initialization
+  Tick: null as any,       // Will be set after app initialization
+  Resources: null as any,  // Will be set after app initialization
+  PostProcessing: null as any, // Will be set after app initialization
+  Environment: null as any,    // Will be set after app initialization
+  Prefabs: null as any         // Will be set after app initialization
 };
 
 export default GameByteFramework;
@@ -819,4 +926,9 @@ export function initializeFacades(app: GameByte): void {
   GameByteFramework.Performance = Performance;
   GameByteFramework.Audio = AudioFacadeExport;
   GameByteFramework.Merge = MergeFacadeExport;
+  GameByteFramework.Tick = TickFacadeExport;
+  GameByteFramework.Resources = ResourcesFacadeExport;
+  GameByteFramework.PostProcessing = PostProcessingFacadeExport;
+  GameByteFramework.Environment = EnvironmentFacadeExport;
+  GameByteFramework.Prefabs = PrefabsFacadeExport;
 }

@@ -48,12 +48,19 @@ export type BlendMode =
 
 /**
  * Filter interface for visual effects
+ *
+ * IMPORTANT: Filters allocate GPU resources. Call destroy() when no longer needed
+ * to prevent memory leaks, especially in long-running applications.
  */
 export interface IFilter {
   readonly type: string;
   enabled: boolean;
   /** Native filter object */
   readonly native: any;
+  /**
+   * Dispose of filter resources.
+   * MUST be called when the filter is no longer needed to free GPU memory.
+   */
   destroy(): void;
 }
 
@@ -106,6 +113,9 @@ export interface IOutlineFilterOptions {
 
 /**
  * Mask interface for clipping
+ *
+ * IMPORTANT: Masks may allocate GPU resources. Call destroy() when no longer needed
+ * to prevent memory leaks, especially in long-running applications.
  */
 export interface IMask {
   readonly type: 'graphics' | 'sprite' | 'color';
@@ -113,6 +123,10 @@ export interface IMask {
   readonly native: any;
   /** Inverted mask */
   inverted?: boolean;
+  /**
+   * Dispose of mask resources.
+   * MUST be called when the mask is no longer needed to free GPU memory.
+   */
   destroy(): void;
 }
 
@@ -296,11 +310,18 @@ export interface IRadialGradientConfig {
 
 /**
  * Fill gradient interface (Pixi v8 FillGradient abstraction)
+ *
+ * IMPORTANT: Gradients allocate GPU resources. Call destroy() when no longer needed
+ * to prevent memory leaks, especially in long-running applications.
  */
 export interface IFillGradient {
   readonly type: 'linear' | 'radial';
   /** Get the native gradient object for use with graphics.fill() */
   readonly native: any;
+  /**
+   * Dispose of gradient resources.
+   * MUST be called when the gradient is no longer needed to free GPU memory.
+   */
   destroy(): void;
 }
 

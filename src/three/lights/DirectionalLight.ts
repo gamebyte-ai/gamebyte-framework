@@ -125,12 +125,19 @@ export class DirectionalLight {
     return this;
   }
 
-  /** Update shadow map size */
+  /**
+   * Update shadow map size. Disposes the current shadow map so Three.js
+   * recreates it at the new resolution on the next render frame.
+   * Safe to call even if the light is about to be removed from the scene.
+   */
   setShadowMapSize(size: number): this {
     this.light.shadow.mapSize.width = size;
     this.light.shadow.mapSize.height = size;
-    this.light.shadow.map?.dispose();
-    this.light.shadow.map = null;
+    if (this.light.shadow.map) {
+      this.light.shadow.map.dispose();
+      this.light.shadow.map = null;
+    }
+    this.light.shadow.needsUpdate = true;
     return this;
   }
 

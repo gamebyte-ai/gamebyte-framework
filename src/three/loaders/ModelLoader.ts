@@ -186,10 +186,23 @@ export class ModelLoader extends EventEmitter<ModelLoaderEvents> {
 
   /**
    * Clone a model (for reusing cached models)
+   * @internal Used internally for cache management
    */
   private cloneModel(model: LoadedModel): LoadedModel {
+    const clonedScene = model.scene.clone();
+    // Deep-clone materials so each instance is independent
+    clonedScene.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        if (Array.isArray(child.material)) {
+          child.material = child.material.map(m => m.clone());
+        } else if (child.material) {
+          child.material = child.material.clone();
+        }
+      }
+    });
+
     return {
-      scene: model.scene.clone(),
+      scene: clonedScene,
       animations: model.animations.map(clip => clip.clone()),
       scenes: model.scenes.map(scene => scene.clone()),
       cameras: model.cameras.map(camera => camera.clone()),
@@ -199,9 +212,22 @@ export class ModelLoader extends EventEmitter<ModelLoaderEvents> {
   }
 
   /**
-   * Dispose of a model's resources
+   * Dispose of a model's GPU resources (geometries, materials, textures)
+   *
+   * IMPORTANT: Models returned by load() and getCached() are clones.
+   * You are responsible for disposing them when no longer needed to prevent memory leaks.
+   *
+   * @example
+   * ```typescript
+   * const model = await loader.load('/models/character.glb');
+   * scene.add(model.scene);
+   *
+   * // When done with the model
+   * loader.disposeModel(model);
+   * scene.remove(model.scene);
+   * ```
    */
-  private disposeModel(model: LoadedModel): void {
+  disposeModel(model: LoadedModel): void {
     model.scene.traverse((object) => {
       if (object instanceof THREE.Mesh) {
         object.geometry?.dispose();

@@ -68,3 +68,16 @@ export { TextureLoader3D, type TextureLoader3DConfig, type TextureOptions } from
 
 // Animation
 export { AnimationController, type AnimationControllerConfig, type PlayOptions } from './animation/AnimationController.js';
+
+// Events (3D Pointer Event System)
+export { RaycastEventSystem } from './events/RaycastEventSystem.js';
+export type {
+  IRaycastEventSystem,
+  PointerEvent3DType,
+  PointerEvent3DData,
+  PointerEvent3DHandler
+} from './events/index.js';
+
+// Instancing (GPU Instance Manager)
+export { InstanceManager } from './instancing/InstanceManager.js';
+export type { IInstanceManager, IInstanceHandle } from './instancing/index.js';
