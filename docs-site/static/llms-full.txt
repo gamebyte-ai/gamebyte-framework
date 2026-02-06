@@ -1,6 +1,6 @@
 # GameByte Framework - Full API Reference
-# Version: 1.0.0
-# For AI Agents - Complete API in single file (~15KB)
+# Version: 1.2.1
+# For AI Agents - Complete API in single file
 
 ## SETUP
 ```typescript
@@ -30,6 +30,28 @@ const service = game.make<MyService>('my.service');
 | audio | AudioManager | Music, SFX, spatial |
 | assets | AssetManager | Asset loading |
 | physics | PhysicsManager | 2D/3D physics |
+| tick | TickSystem | Component-level render loop |
+| resources | ResourceTracker | Resource lifecycle management |
+| postprocessing | PostProcessingPipeline | Post-processing effects |
+| environment | EnvironmentSystem | 3D skybox/fog/lighting (deferred) |
+| prefabs | PrefabSystem | Prefab/entity system (deferred) |
+| asset.pipeline | SmartAssetPipeline | Smart asset loading (deferred) |
+
+## FACADES (Static Access)
+```typescript
+import {
+  Renderer, Scenes, UI, Audio, Input, Physics, Performance,
+  Assets, Tick, Resources, PostProcessing, Environment, Prefabs
+} from 'gamebyte-framework';
+
+Renderer.start();
+await Scenes.switchTo('game');
+Audio.playMusic('background');
+Tick.subscribe(({ delta }) => update(delta));
+Resources.createScope('level-1');
+PostProcessing.add('bloom', { intensity: 0.5 });
+Environment.preset('sunset');
+```
 
 ## SCENES
 ```typescript
@@ -45,6 +67,31 @@ class MyScene extends BaseScene {
 const sceneManager = game.make<SceneManager>('scene.manager');
 sceneManager.add(new MyScene());
 await sceneManager.switchTo('id', { type: 'fade', duration: 500 });
+```
+
+## TRANSITIONS
+```typescript
+await sceneManager.switchTo('game', {
+    type: 'fade', // 'none' | 'fade' | 'slide' | 'zoom'
+    duration: 500,
+    direction: 'left', // for slide
+    color: 0x000000 // for fade
+});
+```
+
+## GRAPHICS ABSTRACTION (Renderer-Agnostic)
+```typescript
+import { graphics } from 'gamebyte-framework';
+
+const gfx = graphics();
+const container = gfx.createContainer();
+const rect = gfx.createGraphics();
+rect.rect(0, 0, 100, 50).fill({ color: 0x4CAF50 }); // Pixi v8 API
+rect.roundRect(0, 0, 100, 50, 10).fill({ color: 0xFF0000, alpha: 0.8 });
+rect.stroke({ color: 0x000000, width: 2 });
+const text = gfx.createText('Hello', { fontSize: 24, fill: 0xffffff });
+const sprite = gfx.createSprite(texture);
+container.addChild(rect, text);
 ```
 
 ## UI COMPONENTS
@@ -69,6 +116,36 @@ btn.setEnabled(false);
 scene.container.addChild(btn.getContainer());
 ```
 
+### GameStyleButton (Game-Style)
+```typescript
+import { GameStyleButton, GameStyleColors, GameButtons } from 'gamebyte-framework';
+
+const btn = new GameStyleButton({
+    text: 'Play',
+    width: 200,
+    height: 70,
+    fontSize: 28,
+    colorScheme: GameStyleColors.YELLOW_BUTTON,
+    borderRadius: 14,
+    shadowOffset: 3,
+    disabled: false
+});
+btn.on('click', () => startGame());
+btn.on('press', () => {}); btn.on('release', () => {});
+btn.on('hover', () => {}); btn.on('hoverEnd', () => {});
+btn.setText('New Text');
+btn.setDisabled(true);
+btn.setColorScheme(GameStyleColors.GREEN_BUTTON);
+
+// Factory shortcuts
+const playBtn = GameButtons.play('PLAY', 200, 70);    // Yellow
+const okBtn = GameButtons.success('OK', 150, 60);     // Green
+const deleteBtn = GameButtons.danger('Delete');         // Red
+const specialBtn = GameButtons.special('Upgrade');      // Purple
+const closeBtn = GameButtons.close(40);                 // Small X button
+const pauseBtn = GameButtons.pause(40);                 // Pause icon
+```
+
 ### UIPanel
 ```typescript
 const panel = new UIPanel({
@@ -84,6 +161,26 @@ const panel = new UIPanel({
 panel.addChild(child);
 ```
 
+### GameStylePanel (Game-Style)
+```typescript
+import { GameStylePanel, GameStyleColors } from 'gamebyte-framework';
+
+const panel = new GameStylePanel({
+    width: 350,
+    height: 400,
+    title: 'Settings',
+    showCloseButton: true,
+    colorScheme: GameStyleColors.PANEL_BLUE,
+    borderRadius: 18,
+    padding: 20,
+    onClose: () => panel.hide()
+});
+panel.addContent(childComponent.getContainer());
+panel.show(); panel.hide();
+panel.setTitle('New Title');
+panel.on('close', () => {});
+```
+
 ### UIText
 ```typescript
 const text = new UIText({
@@ -96,7 +193,7 @@ const text = new UIText({
 text.setText('New text');
 ```
 
-### TopBar
+### TopBar (HUD Resources)
 ```typescript
 const topBar = new TopBar({
     width: 800,
@@ -129,30 +226,26 @@ bar.setValue(50, true);
 ```typescript
 import { GameTooltip, GameTooltipColors } from 'gamebyte-framework';
 
-// Basic tooltip
 const tooltip = new GameTooltip({
     text: 'Coming Soon',
-    tailPosition: 'bottom-left',
-    colorScheme: GameTooltipColors.CYAN
-});
-tooltip.setPosition(100, 50);
-stage.addChild(tooltip.getContainer());
-
-// Configuration options
-const tooltip = new GameTooltip({
-    text: 'Multi-line\ntooltip text',
-    maxWidth: 200,              // Auto word-wrap width
-    padding: 12,                // Inner padding
+    maxWidth: 200,
+    padding: 12,
     fontSize: 16,
     borderRadius: 10,
     borderWidth: 3,
     tailPosition: 'bottom-left', // 12 positions + 'none'
     tailSize: 10,
     showShadow: true,
-    shadowOffset: 4,
-    shadowAlpha: 0.3,
     colorScheme: GameTooltipColors.CYAN
 });
+tooltip.setPosition(100, 50);
+stage.addChild(tooltip.getContainer());
+tooltip.show(); tooltip.hide(); tooltip.toggle();
+tooltip.setText('New text');
+tooltip.setTailPosition('top-center');
+tooltip.setColorScheme(GameTooltipColors.GREEN);
+tooltip.getSize();        // { width, height }
+tooltip.getTotalBounds(); // includes tail and shadow
 
 // Tail positions (12 options)
 // 'bottom-left' | 'bottom-center' | 'bottom-right'
@@ -160,37 +253,262 @@ const tooltip = new GameTooltip({
 // 'left-top'    | 'left-center'   | 'left-bottom'
 // 'right-top'   | 'right-center'  | 'right-bottom'
 // 'none'
+```
 
-// Color schemes
-GameTooltipColors.CYAN    // Light blue (default, matches "Coming Soon" style)
-GameTooltipColors.YELLOW  // Warning style
-GameTooltipColors.GREEN   // Success style
-GameTooltipColors.RED     // Error style
-GameTooltipColors.PURPLE  // Pro tip style
-GameTooltipColors.DARK    // Dark tooltip (for light backgrounds)
-GameTooltipColors.WHITE   // White tooltip (for dark backgrounds)
+### GameToggle
+```typescript
+import { GameToggle, GameToggleColors } from 'gamebyte-framework';
 
-// Custom color scheme
-const customScheme = {
-    background: 0xFF6B6B,
-    border: 0x8B0000,
-    text: 0xFFFFFF,
-    textStroke: 0x8B0000, // optional
-    shadow: 0x000000      // optional
+const toggle = new GameToggle({
+    width: 70, height: 36,
+    value: false,
+    colorScheme: GameToggleColors.DEFAULT,
+    disabled: false
+});
+toggle.on('change', (value: boolean) => console.log(value));
+toggle.toggle();
+toggle.setValue(true);
+toggle.setDisabled(true);
+// Color schemes: DEFAULT (green), BLUE, ORANGE, PURPLE
+```
+
+### GameSlider
+```typescript
+import { GameSlider, GameSliderColors } from 'gamebyte-framework';
+
+const slider = new GameSlider({
+    width: 200, height: 36,
+    min: 0, max: 100, value: 50, step: 1,
+    colorScheme: GameSliderColors.DEFAULT,
+    disabled: false
+});
+slider.on('change', (value: number) => console.log(value));
+slider.getValue(); slider.setValue(75);
+// Color schemes: DEFAULT (blue), GREEN, ORANGE, PURPLE, RED
+```
+
+### GameBottomNav
+```typescript
+import { GameBottomNav, NavItemType } from 'gamebyte-framework';
+
+const nav = new GameBottomNav({
+    width: 720,
+    height: 90,
+    backgroundColor: 0x1A237E,
+    activeIndex: 0,
+    items: [
+        { id: 'shop', type: NavItemType.shop, label: 'Shop' },
+        { id: 'play', type: NavItemType.play, label: 'Play' },
+        { id: 'profile', type: NavItemType.profile, label: 'Profile', badge: 3 }
+    ]
+});
+nav.on('item-click', (id, item) => console.log(id));
+nav.setItemBadge('profile', 5);
+nav.setItemLocked('shop', true);
+```
+
+### ArcheroMenu (Animated Bottom Menu)
+```typescript
+import { ArcheroMenu, ARCHERO_COLORS } from 'gamebyte-framework';
+
+const menu = new ArcheroMenu({
+    sections: [
+        { name: 'Shop', icon: '🏪', iconColor: ARCHERO_COLORS.green },
+        { name: 'Play', icon: '⚔️', iconColor: ARCHERO_COLORS.activeYellow },
+        { name: 'Heroes', icon: '🦸', iconColor: ARCHERO_COLORS.blue }
+    ],
+    activeSection: 1,
+    enableParticles: true,
+    canvasWidth: 1080,
+    canvasHeight: 1920
+});
+menu.on('section-changed', (index, section) => {});
+menu.setActiveSection(0);
+menu.update(deltaTime); // for particle animation
+```
+
+### HexagonLevelButton
+```typescript
+import { HexagonLevelButton } from 'gamebyte-framework';
+
+const levelBtn = new HexagonLevelButton({
+    level: 1,
+    size: 80,
+    state: 'available', // 'locked' | 'available' | 'current' | 'completed'
+    showStars: true,
+    stars: 2 // 0-3
+});
+levelBtn.on('click', ({ level }) => startLevel(level));
+levelBtn.setState('completed');
+levelBtn.setStars(3);
+```
+
+## SCREEN NAVIGATION (ScreenManager)
+```typescript
+import { ScreenManager, HubScreen, GameHUDScreen, ResultScreen } from 'gamebyte-framework';
+
+const screenManager = new ScreenManager({
+    container: stage,
+    width: 720,
+    height: 1280,
+    defaultTransition: 'slide',
+    transitionDuration: 300
+});
+
+screenManager.push(new HubScreen({ /* config */ }));
+screenManager.push(gameScreen, 'slide');
+screenManager.pop(); // go back
+screenManager.replace(newScreen, 'fade'); // replace current
+screenManager.popToRoot(); // pop to first screen
+screenManager.getCurrentScreen();
+screenManager.on('screen-pushed', () => {});
+screenManager.on('screen-popped', () => {});
+```
+
+### HubScreen (Main Menu)
+```typescript
+const hub = new HubScreen({
+    topBarResources: [{ type: 'coins', icon: coinTex, value: 1000 }],
+    showSettings: true,
+    onSettingsClick: () => showSettings(),
+    bottomNavItems: navItems,
+    defaultTab: 'play',
+    backgroundColor: 0x1a1a2e
+});
+hub.switchTab('shop');
+hub.updateResource('coins', 2000);
+```
+
+### GameHUDScreen (In-Game HUD)
+```typescript
+const hud = new GameHUDScreen({
+    hudConfig: {
+        showScore: true, showTimer: true, showPauseButton: true,
+        showLives: true, livesMax: 3,
+        showProgress: true, progressMax: 100
+    },
+    onPause: () => pauseGame()
+});
+hud.setScore(1500); hud.addScore(100);
+hud.setTime(120); // seconds
+hud.setLives(2); hud.loseLife();
+hud.setProgress(75);
+hud.togglePause();
+hud.on('pause', () => {}); hud.on('resume', () => {});
+const gameContainer = hud.getGameContainer(); // attach game objects here
+```
+
+### ResultScreen (Victory/Defeat)
+```typescript
+const result = new ResultScreen({
+    type: 'victory', // 'victory' | 'defeat'
+    score: 15000,
+    bestScore: 20000,
+    stars: 3,
+    rewards: [
+        { icon: coinTex, amount: 500, label: 'Coins' },
+        { icon: gemTex, amount: 10, label: 'Gems' }
+    ],
+    actions: [
+        { text: 'Next Level', style: 'primary', onClick: () => nextLevel() },
+        { text: 'Retry', style: 'secondary', onClick: () => retry() }
+    ]
+});
+```
+
+## PANELS (Modal & Bottom Sheet)
+```typescript
+import { GameModalPanel, GameBottomSheet, PanelManager } from 'gamebyte-framework';
+
+// Modal - centered with scale animation
+const modal = new GameModalPanel({
+    width: 350, height: 400,
+    title: 'Settings',
+    showCloseButton: true,
+    animationDuration: 250
+});
+modal.addContent(settingsContent);
+modal.show(); modal.hide();
+
+// Bottom Sheet - slides up from bottom
+const sheet = new GameBottomSheet({
+    width: 720, height: 'half', // number | 'auto' | 'half' | 'full'
+    title: 'Inventory',
+    showHandle: true,
+    dragToClose: true,
+    animationDuration: 300
+});
+sheet.initialize(screenWidth, screenHeight); // required
+sheet.addContent(inventoryContent);
+sheet.show();
+
+// PanelManager - overlay management
+const panelManager = new PanelManager({ container: stage });
+panelManager.show(modal);
+panelManager.dismiss();
+```
+
+## LAYOUT SYSTEM (@pixi/layout - Yoga Flexbox)
+```typescript
+import {
+    LayoutPresets, GameLayoutPresets,
+    createFlexRow, createFlexColumn, createGrid
+} from 'gamebyte-framework';
+
+// Enable flexbox on any container
+container.layout = {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 20
 };
 
-// Methods
-tooltip.setText('New text');
-tooltip.setTailPosition('top-center');
-tooltip.setColorScheme(GameTooltipColors.GREEN);
-tooltip.setPosition(x, y);
-tooltip.show();
-tooltip.hide();
-tooltip.toggle();
-tooltip.isVisible();
-tooltip.getSize();        // { width, height }
-tooltip.getTotalBounds(); // includes tail and shadow
-tooltip.destroy();
+// Built-in presets
+container.layout = LayoutPresets.center;       // center content
+container.layout = LayoutPresets.topBar;        // fixed top bar
+container.layout = LayoutPresets.bottomBar;     // fixed bottom bar
+container.layout = LayoutPresets.grid;          // wrapping grid
+container.layout = LayoutPresets.stack;         // overlapping children
+
+// Game-specific presets
+container.layout = GameLayoutPresets.gameScreen;      // full game HUD
+container.layout = GameLayoutPresets.safeArea;        // notch-aware
+container.layout = GameLayoutPresets.touchButton;     // 44pt min target
+container.layout = GameLayoutPresets.currencyDisplay; // icon + value
+container.layout = GameLayoutPresets.shopItem;        // shop item card
+container.layout = GameLayoutPresets.settingsMenu;    // settings layout
+
+// Helper functions
+row.layout = createFlexRow({ gap: 16, justify: 'space-between' });
+col.layout = createFlexColumn({ gap: 10, align: 'stretch' });
+grid.layout = createGrid({ columns: 3, gap: 8, itemWidth: 80 });
+```
+
+## REACTIVE STATE MANAGEMENT
+```typescript
+import { createState, computed, isReactive, resolveValue } from 'gamebyte-framework';
+
+// Create reactive state (Vue/Svelte-inspired)
+const gameState = createState({ score: 0, health: 100, level: 1 });
+
+// Direct property access triggers updates
+gameState.score += 100;
+
+// Subscribe to changes
+gameState.on('score', (newVal, oldVal) => updateScoreUI(newVal));
+gameState.on('health', (newVal) => updateHealthBar(newVal));
+
+// Batch updates (single notification)
+gameState.batch(s => {
+    s.score += 50;
+    s.health -= 10;
+});
+
+// Computed values (auto-update when dependencies change)
+const total = computed(() => gameState.score * gameState.level);
+
+// Unsubscribe
+gameState.off('score', handler);
 ```
 
 ## INPUT
@@ -267,17 +585,39 @@ Assets.on('progress', (p) => loadingBar.setValue(p * 100));
 
 ## RENDERING
 
-### 2D (Pixi.js)
+### 2D (Pixi.js v8)
 ```typescript
+// IMPORTANT: Use Pixi v8 API, NOT legacy v7
 const sprite = PIXI.Sprite.from('texture.png');
 sprite.anchor.set(0.5);
 sprite.position.set(x, y);
 scene.container.addChild(sprite);
 
-const graphics = new PIXI.Graphics();
-graphics.beginFill(0x4CAF50);
-graphics.drawRect(0, 0, 100, 50);
-graphics.endFill();
+// Pixi v8 Graphics API
+const gfx = new PIXI.Graphics();
+gfx.rect(0, 0, 100, 50);                      // NOT drawRect
+gfx.fill({ color: 0x4CAF50, alpha: 0.8 });    // NOT beginFill/endFill
+gfx.stroke({ color: 0x000000, width: 2 });     // NOT lineStyle
+
+// Rounded rect
+gfx.roundRect(0, 0, 200, 100, 12);
+gfx.fill({ color: 0x2196F3 });
+
+// Circle
+gfx.circle(50, 50, 30);
+gfx.fill({ color: 0xFF5722 });
+
+// Gradient (v8 native)
+import { FillGradient } from 'pixi.js';
+const gradient = new FillGradient({
+    type: 'linear',
+    colorStops: [
+        { offset: 0, color: 'red' },
+        { offset: 1, color: 'blue' }
+    ],
+    textureSpace: 'local'
+});
+gfx.rect(0, 0, 100, 100).fill(gradient);
 ```
 
 ### 3D (Three.js)
@@ -287,19 +627,52 @@ const mesh = new THREE.Mesh(
     new THREE.MeshStandardMaterial({ color: 0x4CAF50 })
 );
 scene3D.add(mesh);
-
-const light = new THREE.DirectionalLight(0xffffff, 1);
-scene3D.add(light);
 ```
 
-## TRANSITIONS
+### 3D Lights
 ```typescript
-await sceneManager.switchTo('game', {
-    type: 'fade', // 'none' | 'fade' | 'slide' | 'zoom'
-    duration: 500,
-    direction: 'left', // for slide
-    color: 0x000000 // for fade
+import {
+    AmbientLight, DirectionalLight, PointLight,
+    SpotLight, HemisphereLight
+} from '@gamebyte/framework/three-toolkit';
+
+const sun = new DirectionalLight({ color: 0xffffff, intensity: 1 });
+sun.setPosition(10, 10, 10).enableShadows(2048);
+sun.setShadowMapSize(2048);
+
+const ambient = new AmbientLight({ color: 0x404040, intensity: 0.5 });
+const point = new PointLight({ color: 0xff0000, intensity: 2, distance: 10 });
+const spot = new SpotLight({ color: 0xffffff, intensity: 1, angle: Math.PI / 6 });
+const hemi = new HemisphereLight({ skyColor: 0x87CEEB, groundColor: 0x362907 });
+```
+
+### 3D Cameras
+```typescript
+import { CameraController, IsometricCamera, StrategyCamera } from '@gamebyte/framework/three-toolkit';
+
+const iso = new IsometricCamera(scene, canvas);
+const strategy = new StrategyCamera(scene, canvas); // RTS pan/zoom
+```
+
+### 3D Model Loading
+```typescript
+import { ModelLoader } from '@gamebyte/framework/three-toolkit';
+
+const loader = new ModelLoader({ enableDraco: true, basePath: '/models/' });
+const result = await loader.load('character.glb', {
+    onProgress: (p) => console.log(`${p * 100}%`)
 });
+scene.add(result.scene);
+
+// Animations
+const mixer = new THREE.AnimationMixer(result.scene);
+mixer.clipAction(result.animations[0]).play();
+
+// Cache management
+await loader.preload(['/models/a.glb', '/models/b.glb']);
+loader.isCached('/models/a.glb'); // true
+loader.disposeModel(result); // free GPU resources
+loader.clearCache(); // clear all cached models
 ```
 
 ## CONFIGURATION
@@ -313,10 +686,1524 @@ const game = createGame({
 });
 ```
 
+## TICK SYSTEM (Component-Level Render Loop)
+```typescript
+import { Tick, TickSystem } from 'gamebyte-framework';
+
+// Subscribe with priority ordering (lower = runs first)
+const handle = Tick.subscribe(({ delta, elapsed, fps }) => {
+    player.move(delta); // delta is in seconds
+}, 0); // priority 0 = default
+
+// Priority ordering
+Tick.subscribe(updatePhysics, -10);   // runs first
+Tick.subscribe(updateAnimation, 0);    // default
+Tick.subscribe(updateParticles, 10);   // runs last
+
+// Fixed timestep for deterministic physics (Gaffer pattern)
+Tick.subscribe(physicsStep, -10, { fixedStep: 1/60 });
+
+// One-shot callback
+Tick.runOnce(({ elapsed }) => console.log('Time:', elapsed));
+
+// Pause/resume individual subscriptions
+handle.pause();
+handle.resume();
+handle.unsubscribe();
+
+// Pause/resume entire system
+Tick.pause();
+Tick.resume();
+
+// TickState (passed to each callback, reused object - zero GC):
+interface TickState {
+    delta: number;    // seconds
+    deltaMs: number;  // milliseconds
+    elapsed: number;  // total seconds
+    frame: number;    // frame count
+    fps: number;      // EMA-smoothed FPS
+}
+```
+
+## RESOURCE LIFECYCLE (Auto-Dispose)
+```typescript
+import { Resources, ResourceTracker, ResourceScope } from 'gamebyte-framework';
+
+// Create named scopes for resource grouping
+const levelScope = Resources.createScope('level-1');
+
+// Track resources - returns same resource for chaining
+const geo = levelScope.track(new THREE.BoxGeometry(1, 1, 1));
+const mat = levelScope.track(new THREE.MeshStandardMaterial({ color: 0xff0000 }));
+
+// Child scopes dispose before parent (cascading cleanup)
+const enemyScope = levelScope.createChild('enemies');
+const enemyGeo = enemyScope.track(new THREE.SphereGeometry(0.5));
+
+// Reference counting for shared resources
+levelScope.track(sharedTexture); // ref count: 1
+enemyScope.track(sharedTexture); // ref count: 2
+enemyScope.release(sharedTexture); // ref count: 1 (not disposed yet)
+
+// Dispose an entire scope (all tracked resources auto-cleaned)
+Resources.disposeScope('level-1'); // disposes child scopes first, then parent
+
+// Custom disposer for your own types
+Resources.registerDisposer(
+    (obj) => obj instanceof MyCustomResource,
+    (obj) => obj.cleanup()
+);
+
+// Pre-registered disposers:
+// - THREE.BufferGeometry → .dispose()
+// - THREE.Material → .dispose()
+// - THREE.Texture → .dispose()
+// - PIXI.* → .destroy()
+// - Fallback: duck-type .dispose() or .destroy()
+```
+
+## 3D POINTER EVENTS (Raycasting)
+```typescript
+import { RaycastEventSystem } from '@gamebyte/framework/three-toolkit';
+
+const events = new RaycastEventSystem();
+events.setScene(scene, camera, canvas);
+
+// DOM-like events on 3D objects
+events.enable(cube); // make object interactive
+events.on(cube, 'click', (e) => {
+    console.log('Hit at', e.point);    // world-space intersection
+    console.log('Distance:', e.distance);
+    console.log('Normal:', e.normal);   // surface normal
+    console.log('UV:', e.uv);           // texture coordinates
+});
+
+// Hover events
+events.on(cube, 'pointerenter', () => cube.scale.setScalar(1.1));
+events.on(cube, 'pointerleave', () => cube.scale.setScalar(1.0));
+
+// All supported event types:
+// 'click' | 'dblclick' | 'contextmenu'
+// 'pointerdown' | 'pointerup' | 'pointermove'
+// 'pointerenter' | 'pointerleave' | 'pointerover' | 'pointerout'
+
+// Bubble propagation with stopPropagation()
+events.on(childMesh, 'click', (e) => {
+    e.stopPropagation(); // don't fire on parent
+});
+
+// Performance: layer-based filtering, move throttling (20Hz mobile / 60Hz desktop)
+// Cleanup fires pointerleave for hovered objects
+events.destroy();
+```
+
+## ADAPTIVE PERFORMANCE (Quality Tiers)
+```typescript
+import { PerformanceAdvisor, QualityTierManager } from 'gamebyte-framework';
+
+const advisor = new PerformanceAdvisor();
+
+// Enable with hysteresis configuration
+advisor.enable({
+    targetFps: 55,
+    downgradeThreshold: 45,   // below this → downgrade
+    upgradeThreshold: 58,     // above this → upgrade
+    // Dead zone: 45-58 FPS = no action (prevents oscillation)
+    stabilityWindow: 2,       // seconds of stable FPS before acting
+    upgradeBackoffMultiplier: 2, // exponential backoff
+    maxUpgradeBackoff: 16,    // max seconds between upgrades
+    thermalProtection: true   // detect device overheating
+});
+
+// Feed FPS samples (typically wired to TickSystem)
+advisor.sample(fps);
+
+// Listen for quality changes
+advisor.onQualityChange((tier, direction) => {
+    console.log(`Quality: ${tier.name} (${direction})`);
+    renderer.setPixelRatio(tier.dpr);
+    if (!tier.shadowsEnabled) disableShadows();
+    if (!tier.postProcessing) PostProcessing.enabled = false;
+});
+
+// Manual quality regression (e.g., during heavy interaction)
+advisor.regress();
+
+// Set specific tier
+advisor.setTier('low');
+
+// Register custom tier
+advisor.registerTier('potato', {
+    name: 'potato', dpr: 0.5, shadowMapSize: 256,
+    shadowsEnabled: false, postProcessing: false,
+    drawDistance: 50, particleMultiplier: 0.25,
+    textureResolution: 'low', antialiasing: false, maxLights: 2
+});
+
+// Default tiers: ultra-low → low → medium → high → ultra
+// Thermal detection: monitors FPS degradation over 30s windows
+```
+
+## POST-PROCESSING PIPELINE
+```typescript
+import { PostProcessing, PostProcessingPipeline } from 'gamebyte-framework';
+
+// Uses pmndrs/postprocessing for automatic effect merging
+// 5 effects → 1-2 render passes (not 5 separate passes)
+
+// Add effects (built-in factories)
+PostProcessing.add('bloom', { intensity: 0.5, threshold: 0.8, smoothing: 0.075 });
+PostProcessing.add('vignette', { darkness: 0.3, offset: 0.5 });
+PostProcessing.add('fxaa'); // no params needed
+PostProcessing.add('chromaticAberration', { offset: 0.001 });
+PostProcessing.add('ssao', { samples: 16, rings: 4, intensity: 1.0 });
+PostProcessing.add('dof', { focusDistance: 0.02, focalLength: 0.05, bokehScale: 2.0 });
+PostProcessing.add('toneMapping', { mode: 1 }); // ACESFilmic
+
+// Modify / toggle / remove
+PostProcessing.get('bloom')?.setParams({ intensity: 1.0 });
+PostProcessing.get('bloom')!.enabled = false;
+PostProcessing.remove('chromaticAberration');
+PostProcessing.enabled = false; // disable entire pipeline
+
+// Register custom effect factory
+PostProcessing.registerEffect('myEffect', (params) => {
+    return new MyCustomPmndrsEffect(params);
+});
+
+// Effect priorities (lower = processed first):
+// ssao(5) → bloom(10) → dof(20) → chromaticAberration(40) →
+// vignette(50) → toneMapping(90) → fxaa(100)
+
+// Graceful degradation: if pmndrs/postprocessing not installed,
+// effects are registered but not applied, render() falls back to standard
+```
+
+## ENVIRONMENT SYSTEM (3D)
+```typescript
+import { Environment, EnvironmentSystem } from 'gamebyte-framework';
+
+// Built-in presets: 'day', 'sunset', 'night', 'overcast'
+Environment.preset('sunset');
+
+// Smooth transition between presets
+await Environment.transitionTo('night', 5.0); // 5 second lerp
+
+// HDRI environment map
+await Environment.setHDRI('/hdris/studio.hdr', { resolution: 512 });
+
+// Procedural sky shader
+Environment.setProceduralSky({ turbidity: 2, rayleigh: 1, mieCoefficient: 0.005 });
+
+// Fog
+Environment.setFog({ color: '#aaccee', near: 10, far: 100, type: 'linear' });
+Environment.setFog({ color: '#aaccee', type: 'exponential', density: 0.02 });
+Environment.clearFog();
+
+// Register custom preset
+Environment.registerPreset('underwater', {
+    sunPosition: [0, -1, 0],
+    sunColor: '#4488aa',
+    sunIntensity: 0.3,
+    ambientIntensity: 0.6,
+    skyColor: '#003366',
+    groundColor: '#001122',
+    fog: { color: '#003355', near: 5, far: 30, type: 'exponential', density: 0.05 }
+});
+
+// Get current config
+const config = Environment.getConfig();
+```
+
+## PREFAB / ENTITY SYSTEM
+```typescript
+import { Prefabs, PrefabSystem } from 'gamebyte-framework';
+
+// Register prefab definitions (JSON-serializable)
+Prefabs.register({
+    id: 'enemy',
+    name: 'Enemy Soldier',
+    visual: { type: 'model', url: '/models/enemy.glb' },
+    transform: { position: [0, 0, 0], scale: 1 },
+    physics: { type: 'dynamic', mass: 1, collider: 'box' },
+    components: { health: { current: 100, max: 100 } },
+    tags: ['npc', 'hostile']
+});
+
+// Template inheritance (extends)
+Prefabs.register({
+    id: 'boss', name: 'Boss',
+    extends: 'enemy', // inherits visual, physics, etc.
+    transform: { scale: 2 },
+    components: { health: { current: 500, max: 500 } }
+});
+
+// Spawn entities
+const enemy = await Prefabs.spawn('enemy', { position: [0, 0, 5] });
+
+// Entity API
+enemy.addComponent('ai', { state: 'patrol', speed: 2 });
+const health = enemy.getComponent<{ current: number }>('health');
+enemy.hasComponent('ai'); // true
+enemy.removeComponent('ai');
+enemy.getTags(); // ['npc', 'hostile']
+enemy.hasTag('hostile'); // true
+enemy.object; // THREE.Object3D or IContainer
+
+// Query entities
+const npcs = Prefabs.getEntitiesByTag('npc');
+const all = Prefabs.getEntities();
+
+// Despawn
+Prefabs.despawn(enemy);
+
+// Serialize/deserialize (save/load)
+const save = Prefabs.serialize();
+await Prefabs.deserialize(save);
+
+// Component lifecycle hooks
+interface ComponentLifecycle {
+    onAttach?(entity: IEntity): void;
+    onDetach?(entity: IEntity): void;
+    onUpdate?(entity: IEntity, delta: number): void;
+    onDestroy?(entity: IEntity): void;
+}
+```
+
+## SMART ASSET PIPELINE
+```typescript
+import { SmartAssetPipeline } from 'gamebyte-framework';
+
+const pipeline = new SmartAssetPipeline();
+
+// Register manifest (scenes and their required assets)
+pipeline.registerManifest({
+    scenes: {
+        level1: ['player-tex', 'enemy-tex', 'bg-music', 'level-data'],
+        level2: ['player-tex', 'boss-tex', 'boss-music', 'level-data']
+    },
+    assets: {
+        'player-tex': { url: '/textures/player.png', type: 'texture', priority: 'critical' },
+        'enemy-tex': { url: '/textures/enemy.png', type: 'texture', priority: 'high' },
+        'boss-tex': { url: '/textures/boss.png', type: 'texture', priority: 'high' },
+        'bg-music': { url: '/audio/bgm.mp3', type: 'audio', priority: 'low' },
+        'boss-music': { url: '/audio/boss.mp3', type: 'audio', priority: 'normal' },
+        'level-data': { url: '/data/levels.json', type: 'json', priority: 'critical' }
+    }
+});
+
+// Load scene (respects priority: critical → high → normal → low)
+pipeline.on('progress', (progress, assetId) => {
+    loadingBar.setProgress(progress); // 0-1
+});
+await pipeline.loadScene('level1');
+
+// Get loaded assets
+const playerTex = pipeline.get<HTMLImageElement>('player-tex');
+const levelData = pipeline.get<any>('level-data');
+
+// Memory management
+pipeline.setMemoryBudget(256); // 256MB max
+pipeline.unloadUnused(); // LRU eviction (frequency-boosted)
+
+// Preload next scene in background
+pipeline.preloadInBackground(['boss-tex', 'boss-music']);
+
+// Load critical assets immediately
+await pipeline.loadCritical(['player-tex', 'level-data']);
+
+// Scene switch auto-cancels pending loads
+await pipeline.loadScene('level2'); // aborts level1 remaining loads
+
+// Events: 'progress', 'asset:loaded', 'asset:failed', 'asset:evicted', 'scene:loaded'
+```
+
+## PROCEDURAL AUDIO (No Audio Files)
+```typescript
+import { GameSoundPresets } from 'gamebyte-framework';
+
+const sounds = new GameSoundPresets();
+
+// Play built-in sound
+sounds.play('explosion');
+sounds.play('coin', { volume: 0.5, pitch: 1.2, variation: 0.3 });
+
+// 15 built-in types:
+// 'hit' | 'pickup' | 'explosion' | 'laser' | 'powerUp'
+// 'death' | 'click' | 'jump' | 'land' | 'coin'
+// 'error' | 'success' | 'whoosh' | 'thrust' | 'nearMiss'
+
+// Configuration
+interface GameSoundConfig {
+    volume?: number;     // 0-1 (default: 0.3)
+    pitch?: number;      // multiplier (default: 1.0)
+    duration?: number;   // override seconds
+    variation?: number;  // random variation 0-1
+}
+
+// Register custom procedural sound
+sounds.register('custom', (ctx: AudioContext, config: GameSoundConfig) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain).connect(ctx.destination);
+    // ... custom synthesis
+});
+
+// Lazy AudioContext (respects browser autoplay policy)
+// Zero file overhead - all sounds are generated procedurally
+```
+
+## GPU INSTANCING (Three.js)
+```typescript
+import { InstanceManager } from '@gamebyte/framework/three-toolkit';
+
+const im = new InstanceManager(scene);
+
+// Create instances (auto-switches to InstancedMesh at threshold)
+const model = await loader.load('tree.glb');
+for (let i = 0; i < 100; i++) {
+    const tree = im.createInstance('tree', model.scene);
+    tree.setPosition(Math.random() * 100, 0, Math.random() * 100);
+    tree.setRotation(0, Math.random() * Math.PI * 2, 0);
+    tree.setScale(0.8 + Math.random() * 0.4, 1, 0.8 + Math.random() * 0.4);
+    tree.setColor(0x228B22); // per-instance color
+}
+
+// Control instancing threshold (default: 3)
+im.setThreshold(5);
+
+// Per-instance control
+handle.setVisible(false);
+handle.dispose(); // O(1) removal via swap-with-last
+
+// Query
+im.getInstanceCount('tree'); // 100
+im.isInstanced('tree'); // true
+
+// Cleanup
+im.removeAll('tree');
+im.dispose();
+
+// Strategy: 1-2 copies → Mesh clone, 3+ → InstancedMesh
+```
+
+## FORM COMPONENTS
+
+### GameCheckBox
+```typescript
+import { GameCheckBox, GameCheckBoxColors } from '@gamebyte/framework';
+
+const checkbox = new GameCheckBox({
+  label: 'Sound Effects',
+  checked: true,
+  size: 28,
+  fontSize: 18,
+  colorScheme: GameCheckBoxColors.DEFAULT,
+  disabled: false,
+  onChange: (checked) => console.log('Checked:', checked)
+});
+stage.addChild(checkbox.getContainer());
+
+checkbox.toggle();
+checkbox.isChecked(); // boolean
+checkbox.setChecked(true);
+checkbox.setDisabled(false);
+
+// Color schemes: DEFAULT, GREEN, ORANGE, PURPLE, RED
+```
+
+### GameRadioGroup
+```typescript
+import { GameRadioGroup, GameRadioColors } from '@gamebyte/framework';
+
+const radio = new GameRadioGroup({
+  options: [
+    { label: 'Easy', value: 'easy' },
+    { label: 'Normal', value: 'normal' },
+    { label: 'Hard', value: 'hard' }
+  ],
+  selectedValue: 'normal',
+  direction: 'vertical', // 'vertical' | 'horizontal'
+  gap: 12,
+  size: 24,
+  colorScheme: GameRadioColors.DEFAULT,
+  onChange: (value) => console.log('Selected:', value)
+});
+stage.addChild(radio.getContainer());
+
+radio.getValue(); // string
+radio.setValue('hard');
+radio.setDisabled(false);
+
+// Color schemes: DEFAULT, GREEN, ORANGE, PURPLE
+```
+
+### GameInput
+```typescript
+import { GameInput, GameInputColors } from '@gamebyte/framework';
+
+const input = new GameInput({
+  width: 250,
+  height: 44,
+  placeholder: 'Enter name...',
+  value: '',
+  maxLength: 20,
+  fontSize: 18,
+  colorScheme: GameInputColors.DEFAULT,
+  disabled: false,
+  onChange: (value) => console.log('Changed:', value),
+  onEnter: (value) => console.log('Submitted:', value)
+});
+stage.addChild(input.getContainer());
+
+input.getValue(); // string
+input.setValue('Player1');
+input.focus();
+input.blur();
+input.setDisabled(false);
+
+// Wraps @pixi/ui Input with jellybean styling
+// Color schemes: DEFAULT, DARK, LIGHT
+```
+
+### GameSelect
+```typescript
+import { GameSelect, GameSelectColors } from '@gamebyte/framework';
+
+const select = new GameSelect({
+  width: 200,
+  height: 44,
+  placeholder: 'Select Level',
+  options: [
+    { label: 'Level 1', value: '1' },
+    { label: 'Level 2', value: '2' },
+    { label: 'Level 3', value: '3' }
+  ],
+  selectedValue: '',
+  colorScheme: GameSelectColors.DEFAULT,
+  onChange: (value) => loadLevel(value)
+});
+stage.addChild(select.getContainer());
+
+select.getValue();       // string
+select.setValue('2');
+select.setOptions([...newOptions]);
+select.open();
+select.close();
+select.isOpen();         // boolean
+select.setDisabled(false);
+
+// Color schemes: DEFAULT, GREEN, PURPLE, ORANGE
+```
+
+### GameScrollBox
+```typescript
+import { GameScrollBox, GameScrollBoxColors } from '@gamebyte/framework';
+
+const scrollBox = new GameScrollBox({
+  width: 300,
+  height: 400,
+  padding: 10,
+  scrollDirection: 'vertical', // 'vertical' | 'horizontal'
+  colorScheme: GameScrollBoxColors.DEFAULT,
+  showScrollbar: true
+});
+stage.addChild(scrollBox.getContainer());
+
+scrollBox.addItem(someContainer);
+scrollBox.removeItem(someContainer);
+scrollBox.scrollToPosition(100);
+scrollBox.scrollToTop();
+scrollBox.scrollToBottom();
+
+// Wraps @pixi/ui ScrollBox with game styling
+// Color schemes: DEFAULT, DARK, LIGHT
+```
+
+### GameList
+```typescript
+import { GameList } from '@gamebyte/framework';
+
+const menu = new GameList({
+  direction: 'vertical', // 'vertical' | 'horizontal'
+  gap: 12,
+  padding: 0
+});
+menu.addItem(button1.getContainer());
+menu.addItem(button2.getContainer());
+stage.addChild(menu.getContainer());
+
+menu.removeItem(button1.getContainer());
+menu.getItems();      // IContainer[]
+menu.clear();
+menu.getItemCount();  // number
+menu.setGap(16);
+
+// Wraps @pixi/ui List with automatic layout
+```
+
+## VIRTUAL JOYSTICK
+
+```typescript
+import { VirtualJoystick, JoystickMoveData, JoystickDirection } from '@gamebyte/framework';
+
+// Dynamic joystick (appears on touch)
+const joystick = new VirtualJoystick({
+  mode: 'dynamic', // 'fixed' | 'dynamic'
+  activationZone: { x: 0, y: 0, width: 0.5, height: 1 }, // left half
+  size: 120,
+  knobSize: 48,
+  deadZone: 0.1,
+  maxDistance: 48,
+  hideWhenIdle: true,
+  style: {
+    baseColor: 0x000000, baseAlpha: 0.3,
+    knobColor: 0xFFFFFF, knobAlpha: 0.8,
+    borderColor: 0xFFFFFF, borderWidth: 2, borderAlpha: 0.5
+  }
+});
+scene.addChild(joystick.getContainer());
+
+joystick.on('move', (data: JoystickMoveData) => {
+  // data.vector: { x, y } normalized -1 to 1
+  // data.angle: degrees (0-360, 0=right, 90=down)
+  // data.magnitude: 0-1 distance from center
+  // data.direction: JoystickDirection (8-way + 'idle')
+  player.velocity.x = data.vector.x * speed;
+  player.velocity.y = data.vector.y * speed;
+});
+joystick.on('start', () => {});
+joystick.on('end', () => {});
+
+// Fixed joystick
+const fixed = new VirtualJoystick({
+  mode: 'fixed',
+  position: { x: 100, y: 500 },
+  size: 140
+});
+
+joystick.getData();    // JoystickMoveData
+joystick.getVector();  // { x, y }
+joystick.isPressed();  // boolean
+joystick.show(); joystick.hide();
+joystick.enable(); joystick.disable();
+joystick.destroy();
+
+// JoystickDirection: 'idle' | 'up' | 'down' | 'left' | 'right'
+//   | 'up-left' | 'up-right' | 'down-left' | 'down-right'
+```
+
+## GAME TOP BAR (Game-Style)
+
+```typescript
+import { GameTopBar, ResourceType } from '@gamebyte/framework';
+
+const topBar = new GameTopBar({
+  width: 360,
+  height: 52,
+  resources: [
+    { type: 'lives', value: 5, max: 5, showAddButton: true, onAddClick: () => showShop() },
+    { type: 'coins', value: 1500, showAddButton: true },
+    { type: 'gems', value: 42, showAddButton: true },
+    { type: 'energy', value: 80, max: 100 }
+  ],
+  showSettings: true,
+  onSettingsClick: () => openSettings()
+});
+stage.addChild(topBar.getContainer());
+
+// Update resources with animation
+topBar.updateResource('coins', 2000, true); // type, value, animate
+topBar.updateResource('lives', 3);
+
+// ResourceType: 'lives' | 'coins' | 'gems' | 'energy'
+// Built-in icons: heart (lives), coin, gem, energy bolt
+// Each resource is a pill-shaped container with icon + count + optional add button
+```
+
+## VISUAL EFFECTS
+
+### ConfettiSystem
+```typescript
+import { ConfettiSystem } from '@gamebyte/framework';
+
+const confetti = new ConfettiSystem(container, screenWidth, screenHeight);
+
+// Rain (victory, level complete)
+confetti.rain({
+  particleCount: 80,
+  duration: 2000,
+  gravity: 0.5,
+  spread: 60,
+  colors: [0xFFD700, 0xFF6B6B, 0x6BCB77, 0x4D96FF],
+  shapes: ['rect', 'circle', 'star'],
+  size: { min: 4, max: 12 }
+});
+
+// Burst from a point (star earned, reward)
+confetti.burst(x, y, { particleCount: 50 });
+
+// Fountain (shoots up then falls - jackpot, bonus)
+confetti.fountain(x, y, { particleCount: 50 });
+
+// Update in game loop
+confetti.update(deltaTime);
+confetti.clear();
+confetti.getIsActive(); // boolean
+confetti.getParticleCount(); // number
+
+// Events: 'rain-started', 'burst-started', 'fountain-started', 'complete'
+```
+
+### ShineEffect
+```typescript
+import { ShineEffect, ShimmerInstance } from '@gamebyte/framework';
+
+const shine = new ShineEffect(container);
+
+// Shimmer (continuous diagonal light sweep on an object)
+const shimmer: ShimmerInstance = shine.shimmer(coinIcon, {
+  width: 20,
+  angle: -30,
+  speed: 2000,
+  color: 0xFFFFFF,
+  alpha: 0.4,
+  loop: true,
+  loopDelay: 1000
+});
+shimmer.stop();
+shimmer.pause();
+shimmer.resume();
+shimmer.isActive();
+
+// Sparkle (burst of star particles at a point)
+await shine.sparkle(x, y, {
+  particleCount: 8,
+  colors: [0xFFFFFF, 0xFFD700],
+  duration: 600,
+  radius: 30,
+  scale: { min: 0.3, max: 1 }
+});
+
+shine.update(deltaTime);
+shine.clear();
+```
+
+### StarBurstEffect
+```typescript
+import { StarBurstEffect, StarBurstInstance } from '@gamebyte/framework';
+
+const starburst = new StarBurstEffect(container);
+
+// Add continuous sparkles around a target object
+const zone: StarBurstInstance = starburst.addZone(targetObject, {
+  radius: 30,
+  count: 4,
+  colors: [0xFFFFFF, 0xFFF8DC, 0xFFD700],
+  duration: 800,
+  spawnDelayMin: 100,
+  spawnDelayMax: 400,
+  scale: { min: 0.2, max: 0.6 },
+  rotationSpeed: 0.025
+});
+zone.stop();
+zone.pause();
+zone.resume();
+zone.isActive();
+
+starburst.update(deltaTime);
+starburst.clear();
+```
+
+### CelebrationManager (Orchestrator)
+```typescript
+import { CelebrationManager, CelebrationPresets } from '@gamebyte/framework';
+
+const celebration = new CelebrationManager(container, screenWidth, screenHeight);
+
+// High-level celebration methods
+celebration.victory();                         // confetti rain
+celebration.defeat();                          // no visual (just sound)
+celebration.levelComplete();                   // confetti rain
+await celebration.starEarned(x, y, 1);        // burst + sparkle (starIndex: 1|2|3)
+await celebration.rewardReceived(x, y);        // burst + sparkle
+await celebration.jackpot(x, y);               // fountain + multi-sparkle
+
+// Add shimmer to valuable items
+celebration.addShimmer(coinIcon, 'gold');       // 'gold' | 'gem' | 'star'
+celebration.removeShimmer(coinIcon);
+
+// Add starburst to valuable items
+celebration.addStarburst(gemIcon, 'gem');       // 'gold' | 'gem' | 'star' | 'victory'
+celebration.removeStarburst(gemIcon);
+
+// Direct access
+celebration.sparkle(x, y, config);
+celebration.confettiRain(config);
+celebration.confettiBurst(x, y, config);
+celebration.confettiFountain(x, y, config);
+
+celebration.update(deltaTime);
+celebration.clear();
+celebration.destroy();
+
+// Presets: VICTORY, DEFEAT, STAR_EARNED, LEVEL_COMPLETE, REWARD, JACKPOT,
+//   GOLD_SHIMMER, GEM_SHIMMER, STAR_SHIMMER,
+//   GOLD_STARBURST, GEM_STARBURST, STAR_STARBURST, VICTORY_STARBURST
+```
+
+## SPLASH & LOADING SCREENS
+
+### GameSplash (HTML/CSS - Instant Load)
+```typescript
+import { GameSplash } from '@gamebyte/framework';
+
+// Initialize (creates DOM-based splash before canvas is ready)
+const splash = GameSplash.init({
+  logoUrl: '/img/logo.svg',
+  backgroundColor: '#0a0a1a',
+  glowColor: '#6366f1',
+  accentColor: '#a855f7',
+  duration: 1500  // auto-hide after 1.5s (0 = manual)
+});
+
+// Manual hide
+await splash.hide();
+
+// Set callback
+splash.onHide(() => startGame());
+
+// Static methods for embedding in HTML
+GameSplash.getInlineCSS(config);  // CSS string
+GameSplash.getInlineHTML(config); // HTML string
+
+// Features: ambient light rays, lens flare, orbital rings,
+//   energy ripples, sparkles, reduced-motion support
+```
+
+### GameLoading (Pixi.js Canvas Loading Screen)
+```typescript
+import { GameLoading } from '@gamebyte/framework';
+
+const loading = new GameLoading({
+  width: 400,
+  height: 600,
+  backgroundColor: 0x1a1a2e,
+  backgroundImage: '/img/bg.jpg',  // optional
+  logoUrl: '/img/logo.png',        // optional
+  logoEmoji: '🎮',                 // fallback if no URL
+  title: 'My Game',
+  loadingText: 'Loading',
+  showProgress: true,
+  progressColor: 0x6366f1,
+  progressBgColor: 0x2a2a4e
+});
+stage.addChild(loading.getContainer());
+
+loading.setProgress(50); // 0-100
+await loading.hide();    // fade out
+```
+
+## MERGE GAME SYSTEM
+
+```typescript
+import { MergeManager, MergeGrid, MergeItem, MergeCell, Merge } from '@gamebyte/framework';
+
+// Using Merge facade (requires createMergeGame())
+const game = createMergeGame();
+await game.initialize(canvas, '2d');
+
+Merge.createGame({
+  rows: 5, cols: 5,
+  cellWidth: 80, cellHeight: 80,
+  gap: 8, padding: 16,
+  maxTier: 10,
+  autoSpawn: true,
+  initialItems: 3,
+  tierColors: [0x9E9E9E, 0x4CAF50, 0x2196F3, 0x9C27B0, 0xFF9800, ...],
+  scoreMultiplier: 100,
+  hapticFeedback: true,
+  soundEnabled: true
+});
+scene.addChild(Merge.getContainer());
+Merge.start();
+
+// Direct MergeManager usage
+const manager = new MergeManager(config);
+manager.start();
+manager.spawnItem({ tier: 1 });
+manager.getScore();
+manager.getState(); // MergeGameState
+
+// MergeGrid (standalone component)
+const grid = new MergeGrid({
+  rows: 5, cols: 5, cellWidth: 80, cellHeight: 80, gap: 8,
+  lockedCells: [[0, 4], [4, 0]], // locked for progression
+  autoSpawn: true, maxTier: 10
+});
+grid.spawnItem({ tier: 1 });
+grid.on('merge-completed', (grid, resultItem, cell) => {});
+grid.on('grid-full', () => {});
+grid.on('max-tier-reached', () => {});
+
+// MergeItem
+// Config: { tier, maxTier, size, textures, tierColors, draggable, mergeable, data }
+// Events: 'drag-start', 'drag-move', 'drag-end', 'merge-start', 'merge-complete', 'tier-changed'
+// Default tier colors: Gray → Green → Blue → Purple → Orange → Red → Gold → Cyan → Pink → DeepPurple → Gold
+```
+
+## DESIGN & LAYOUT UTILITIES
+
+### DesignScaler
+```typescript
+import { DesignScaler } from '@gamebyte/framework';
+
+const scaler = new DesignScaler({
+  width: 400,       // design resolution width
+  height: 600,      // design resolution height
+  scaleMode: 'fit', // 'fit' | 'fill'
+  align: 'center'   // 'center' | 'top-left' | 'top-center' | 'bottom-center'
+});
+scaler.initialize(window.innerWidth, window.innerHeight);
+stage.addChild(scaler.getContainer());
+
+// Add game elements using design coordinates
+scaler.addChild(platform);
+
+// Coordinate conversion
+const designPos = scaler.screenToDesign(touchX, touchY);
+const screenPos = scaler.designToScreen(playerX, playerY);
+
+// Resize handler
+window.addEventListener('resize', () => {
+  scaler.resize(window.innerWidth, window.innerHeight);
+});
+```
+
+### SafeAreaLayout
+```typescript
+import { SafeAreaLayout, SafeAreaBounds } from '@gamebyte/framework';
+
+const layout = new SafeAreaLayout({
+  designWidth: 390,
+  designHeight: 844,
+  minAspectRatio: 0.4,
+  maxAspectRatio: 1.0,
+  backgroundColor: 0x1a1a2e,
+  showPattern: false,
+  patternOpacity: 0.05
+});
+
+// Get safe area bounds for current screen
+const bounds: SafeAreaBounds = layout.calculate(screenWidth, screenHeight);
+// bounds: { x, y, width, height, scale }
+```
+
+### ResponsiveScaleCalculator
+```typescript
+import { ResponsiveScaleCalculator } from '@gamebyte/framework';
+
+const responsive = new ResponsiveScaleCalculator({
+  baseWidth: 1080,
+  baseHeight: 1920,
+  minScale: 0.5,
+  maxScale: 2.0
+});
+
+// Auto-calculates scale from viewport
+// Fires callbacks on resize
+responsive.onResize((size) => {
+  // size: { width, height, scale }
+});
+```
+
+## THREE.JS TOOLKIT - GRID SYSTEM
+
+### SquareGrid
+```typescript
+import { SquareGrid, GridCoord } from '@gamebyte/framework/three-toolkit';
+
+const grid = new SquareGrid<string>({
+  width: 10,
+  height: 10,
+  cellSize: 1,
+  origin: [0, 0, 0],
+  originMode: 'center',    // 'center' | 'corner'
+  neighborMode: '4-way'    // '4-way' | '8-way'
+});
+
+const coord: GridCoord = grid.worldToCell(worldPos);      // Vector3 → GridCoord
+const worldPos = grid.cellToWorld({ x: 5, y: 3 });        // GridCoord → Vector3
+const neighbors = grid.getNeighbors({ x: 5, y: 3 });      // GridCoord[]
+grid.setWalkable({ x: 5, y: 3 }, false);                   // block cell
+grid.isWalkable({ x: 5, y: 3 });                           // boolean
+grid.setData({ x: 5, y: 3 }, 'wall');
+grid.getData({ x: 5, y: 3 });                              // string | undefined
+grid.isInBounds({ x: 5, y: 3 });                           // boolean
+```
+
+### HexGrid
+```typescript
+import { HexGrid, HexCoord } from '@gamebyte/framework/three-toolkit';
+
+const hex = new HexGrid<string>({
+  radius: 5,              // rings from center
+  hexSize: 1,             // flat-to-flat distance
+  orientation: 'flat',    // 'flat' | 'pointy'
+  origin: [0, 0, 0],
+  defaultMovementCost: 1
+});
+
+// Uses cube coordinates (q + r + s = 0)
+const coord: HexCoord = hex.worldToCell(worldPos);
+const worldPos = hex.cellToWorld({ q: 1, r: -1, s: 0 });
+const neighbors = hex.getNeighbors({ q: 1, r: -1, s: 0 }); // HexCoord[]
+hex.setWalkable({ q: 1, r: -1, s: 0 }, false);
+hex.setData({ q: 0, r: 0, s: 0 }, 'spawn');
+```
+
+### GridRenderer
+```typescript
+import { GridRenderer } from '@gamebyte/framework/three-toolkit';
+
+const renderer = new GridRenderer({
+  showGrid: true,
+  lineColor: 0x444444,
+  lineAlpha: 0.5,
+  lineWidth: 1,
+  highlightColor: 0x00ff00,
+  cellMaterial: 'standard', // 'basic' | 'standard' | THREE.Material
+  groundOffset: 0.01
+});
+renderer.setGrid(grid);      // pass SquareGrid or HexGrid
+scene.add(renderer);          // extends THREE.Group
+
+renderer.highlightCell(coord, color);
+renderer.clearHighlight(coord);
+renderer.fillCell(coord, color);
+renderer.clearFillCell(coord);
+renderer.clearAllHighlights();
+renderer.rebuild();
+renderer.dispose();
+```
+
+## THREE.JS TOOLKIT - INTERACTION
+
+### Object3DPicker
+```typescript
+import { Object3DPicker, PickResult } from '@gamebyte/framework/three-toolkit';
+
+const picker = new Object3DPicker(camera, canvas, {
+  layers: [0],
+  recursive: true,
+  sortByDistance: true
+});
+picker.addTarget(mesh);
+
+picker.on('pick', (result: PickResult) => {
+  // result: { object, point, distance, face, faceIndex, uv }
+});
+picker.on('hover-enter', (obj) => {});
+picker.on('hover-exit', (obj) => {});
+
+picker.update(); // call in game loop for hover detection
+picker.dispose();
+```
+
+### DragController
+```typescript
+import { DragController } from '@gamebyte/framework/three-toolkit';
+
+const drag = new DragController(camera, canvas, scene, {
+  plane: 'xz',        // 'xy' | 'xz' | 'yz'
+  planeHeight: 0,
+  snapToGrid: true,
+  showGhost: true,
+  ghostOpacity: 0.4
+});
+drag.addDraggable(mesh);
+
+drag.on('drag-start', (obj, position) => {});
+drag.on('drag-move', (obj, position) => {});
+drag.on('drag-end', (obj, position) => {});
+
+drag.dispose();
+```
+
+### GestureHandler3D
+```typescript
+import { GestureHandler3D } from '@gamebyte/framework/three-toolkit';
+
+const gestures = new GestureHandler3D(canvas, {
+  tapThreshold: 10,
+  tapDuration: 300,
+  longPressDelay: 500,
+  doubleTapDelay: 300,
+  pinchEnabled: true,
+  doubleTapEnabled: true
+});
+
+gestures.on('tap', (e) => { /* e.screenPos, e.worldPos */ });
+gestures.on('double-tap', (e) => {});
+gestures.on('long-press', (e) => {});
+gestures.on('drag-start', (e) => {});
+gestures.on('drag-move', (e) => { /* e.delta, e.startPos */ });
+gestures.on('drag-end', (e) => { /* e.velocity */ });
+gestures.on('pinch', (e) => { /* e.scale, e.center, e.delta */ });
+
+gestures.dispose();
+```
+
+## THREE.JS TOOLKIT - 3D UI
+
+### Billboard
+```typescript
+import { Billboard } from '@gamebyte/framework/three-toolkit';
+
+const billboard = new Billboard({
+  texture: myTexture,
+  size: [2, 1],              // width, height
+  offset: [0, 2, 0],        // above object
+  scaleWithDistance: false,
+  fixedSize: true,
+  opacity: 1
+});
+scene.add(billboard);
+billboard.update(camera); // call in game loop
+billboard.dispose();
+```
+
+### HealthBar3D
+```typescript
+import { HealthBar3D } from '@gamebyte/framework/three-toolkit';
+
+const healthBar = new HealthBar3D({
+  width: 1.5,
+  height: 0.15,
+  offset: [0, 2.5, 0],
+  fillColor: 0x00ff00,
+  lowHealthColor: 0xff0000,
+  lowHealthThreshold: 0.3,
+  animated: true,
+  hideWhenFull: false
+});
+scene.add(healthBar);
+
+healthBar.setHealth(0.75); // 0-1
+healthBar.update(camera);  // billboard facing
+healthBar.dispose();
+```
+
+### FloatingText
+```typescript
+import { FloatingText, FloatingTextAnimation } from '@gamebyte/framework/three-toolkit';
+
+const text = new FloatingText({
+  font: 'helvetiker',
+  color: 0xFFD700,
+  stroke: 0x000000,
+  strokeWidth: 0.02,
+  offset: [0, 2, 0],
+  animation: 'rise-fade', // 'rise-fade' | 'pop' | 'bounce' | 'none'
+  duration: 1500,
+  riseDistance: 2,
+  poolSize: 10
+});
+scene.add(text);
+
+text.spawn('+100', position, { color: 0xFFD700 });
+text.spawn('-25 HP', position, { color: 0xff0000, animation: 'pop' });
+text.update(deltaTime, camera);
+text.dispose();
+```
+
+### SelectionIndicator
+```typescript
+import { SelectionIndicator } from '@gamebyte/framework/three-toolkit';
+
+const selection = new SelectionIndicator({
+  type: 'ring',            // 'ring' | 'square' | 'hex' | 'custom'
+  size: 1.5,
+  color: 0x00ff00,
+  pulseEnabled: true,
+  rotateEnabled: true,
+  multiSelect: false
+});
+scene.add(selection);
+
+selection.select(mesh);
+selection.deselect(mesh);
+selection.clearAll();
+selection.isSelected(mesh); // boolean
+selection.update(deltaTime);
+selection.dispose();
+```
+
+## THREE.JS TOOLKIT - HELPERS
+
+### ObjectPool3D
+```typescript
+import { ObjectPool3D } from '@gamebyte/framework/three-toolkit';
+
+const pool = new ObjectPool3D({
+  factory: () => new THREE.Mesh(geometry, material),
+  initialSize: 20,
+  maxSize: 100,
+  onAcquire: (mesh) => { mesh.visible = true; },
+  onRelease: (mesh) => { mesh.visible = false; },
+  autoAddToScene: true
+});
+pool.setScene(scene);
+
+const obj = pool.acquire();
+pool.release(obj);
+pool.getActiveCount();  // number
+pool.getPoolSize();     // number
+pool.dispose();
+```
+
+### Pathfinder
+```typescript
+import { Pathfinder } from '@gamebyte/framework/three-toolkit';
+
+const pathfinder = new Pathfinder({
+  grid: squareGrid,           // any IGridSystem
+  allowDiagonals: true,
+  diagonalCost: 1.414,
+  heuristic: 'manhattan',     // 'manhattan' | 'euclidean' | 'chebyshev'
+  maxIterations: 10000
+});
+
+const path = pathfinder.findPath(
+  { x: 0, y: 0 },  // start
+  { x: 9, y: 9 }   // end
+); // GridCoord[] | null
+
+// Works with both SquareGrid and HexGrid
+```
+
+### StateMachine
+```typescript
+import { StateMachineInstance } from '@gamebyte/framework/three-toolkit';
+
+const fsm = new StateMachineInstance(enemy, {
+  initial: 'idle',
+  states: {
+    idle: {
+      onEnter: (entity) => entity.playAnimation('idle'),
+      onUpdate: (entity, dt) => entity.lookForPlayer(),
+      transitions: { 'spot-player': 'chase' }
+    },
+    chase: {
+      onEnter: (entity) => entity.playAnimation('run'),
+      onUpdate: (entity, dt) => entity.moveToPlayer(dt),
+      transitions: { 'reach-player': 'attack', 'lost-player': 'idle' }
+    },
+    attack: {
+      onEnter: (entity) => entity.playAnimation('attack'),
+      transitions: { 'attack-done': 'chase', 'player-dead': 'idle' }
+    }
+  }
+});
+
+fsm.update(deltaTime);          // calls current state's onUpdate
+fsm.trigger('spot-player');      // transition to 'chase'
+fsm.getCurrentState();           // string
+fsm.getHistory();                // string[] (last 10 states)
+
+fsm.on('state-enter', (name, entity) => {});
+fsm.on('state-exit', (name, entity) => {});
+fsm.on('transition', (from, to, trigger, entity) => {});
+```
+
+### TextureLoader3D
+```typescript
+import { TextureLoader3D } from '@gamebyte/framework/three-toolkit';
+
+const loader = new TextureLoader3D();
+
+const texture = await loader.load('/textures/diffuse.jpg');
+
+const texture = await loader.load('/textures/diffuse.jpg', {
+  wrapS: THREE.RepeatWrapping,
+  wrapT: THREE.RepeatWrapping,
+  repeat: { x: 2, y: 2 },
+  anisotropy: 4,
+  colorSpace: THREE.SRGBColorSpace,
+  generateMipmaps: true
+});
+
+// Load cubemap for skybox
+const cubeTexture = await loader.loadCubeMap(
+  ['px.jpg', 'nx.jpg', 'py.jpg', 'ny.jpg', 'pz.jpg', 'nz.jpg'],
+  '/textures/skybox/'
+);
+```
+
+### LightHelper
+```typescript
+import { LightHelper } from '@gamebyte/framework/three-toolkit';
+
+// Debug visualization helpers for lights
+scene.add(LightHelper.createDirectionalHelper(dirLight, 5));
+scene.add(LightHelper.createPointHelper(pointLight, 1));
+scene.add(LightHelper.createSpotHelper(spotLight));
+scene.add(LightHelper.createHemisphereHelper(hemiLight, 5));
+```
+
+### AnimationController
+```typescript
+import { AnimationController } from '@gamebyte/framework/three-toolkit';
+
+const controller = new AnimationController(model.scene, model.animations, {
+  defaultTransitionDuration: 0.5,
+  timeScale: 1,
+  clampWhenFinished: false
+});
+
+controller.play('walk');
+controller.play('attack', {
+  loop: THREE.LoopOnce,
+  clampWhenFinished: true,
+  crossFade: true,
+  crossFadeDuration: 0.3,
+  weight: 1
+});
+controller.crossFadeTo('run', 0.5);
+controller.pause(); controller.resume();
+controller.stop();
+controller.update(deltaTime);
+
+controller.on('play', (name) => {});
+controller.on('finished', (name) => {});
+controller.on('loop', (name) => {});
+controller.on('crossfadeComplete', (from, to) => {});
+controller.dispose();
+```
+
+## FACTORY FUNCTIONS
+
+```typescript
+import { createGame, createMobileGame, createMergeGame, initializeFacades } from '@gamebyte/framework';
+
+// Standard game
+const game = createGame();
+await game.initialize(canvas, '2d');
+game.start();
+
+// Mobile-optimized game
+const mobile = createMobileGame();
+await mobile.initialize(canvas, '2d');
+
+// Merge puzzle game (pre-registers MergeServiceProvider)
+const merge = createMergeGame();
+await merge.initialize(canvas, '2d');
+
+// Initialize facades for static access
+initializeFacades(game);
+```
+
+## COLOR SCHEMES
+
+### Button Colors (GameStyleColors)
+- `YELLOW_BUTTON` - Primary action (Play, Start)
+- `GREEN_BUTTON` - Success/confirm
+- `BLUE_BUTTON` - Secondary/info
+- `RED_BUTTON` - Danger/cancel
+- `PURPLE_BUTTON` - Special/premium
+
+### Panel Colors (GameStyleColors)
+- `PANEL_BLUE` - Blue panel
+- `PANEL_PURPLE` - Purple panel
+
+### Tooltip Colors (GameTooltipColors)
+- `CYAN` - Default, info style
+- `YELLOW` - Warning
+- `GREEN` - Success
+- `RED` - Error
+- `PURPLE` - Pro tip
+- `DARK` - Dark background
+- `WHITE` - Light background
+
+### Menu Colors (ARCHERO_COLORS)
+- `red`, `blue`, `purple`, `green`
+- `activeYellow`, `activeOrange`, `activeLightGold`
+- `navBg`, `navBgLight`, `separator`
+
+### Checkbox Colors (GameCheckBoxColors)
+- `DEFAULT`, `GREEN`, `ORANGE`, `PURPLE`, `RED`
+
+### Radio Colors (GameRadioColors)
+- `DEFAULT`, `GREEN`, `ORANGE`, `PURPLE`
+
+### Input Colors (GameInputColors)
+- `DEFAULT`, `DARK`, `LIGHT`
+
+### Select Colors (GameSelectColors)
+- `DEFAULT`, `GREEN`, `PURPLE`, `ORANGE`
+
+### ScrollBox Colors (GameScrollBoxColors)
+- `DEFAULT`, `DARK`, `LIGHT`
+
 ## KEY TYPES
 ```typescript
 type RenderMode = '2d' | '3d' | 'hybrid';
 type TransitionType = 'none' | 'fade' | 'slide' | 'zoom';
 interface Vector2 { x: number; y: number; }
 interface Vector3 { x: number; y: number; z: number; }
+
+// Quality tier (adaptive performance)
+interface QualityTier {
+    name: string; dpr: number; shadowMapSize: number;
+    shadowsEnabled: boolean; postProcessing: boolean;
+    drawDistance: number; particleMultiplier: number;
+    textureResolution: 'low' | 'medium' | 'high';
+    antialiasing: boolean; maxLights: number;
+}
+
+// Pointer event types (3D)
+type PointerEvent3DType =
+    | 'click' | 'dblclick' | 'contextmenu'
+    | 'pointerdown' | 'pointerup' | 'pointermove'
+    | 'pointerenter' | 'pointerleave' | 'pointerover' | 'pointerout';
+
+// Procedural sound types
+type GameSoundType =
+    | 'hit' | 'pickup' | 'explosion' | 'laser' | 'powerUp'
+    | 'death' | 'click' | 'jump' | 'land' | 'coin'
+    | 'error' | 'success' | 'whoosh' | 'thrust' | 'nearMiss';
+
+// Level button states
+type LevelState = 'locked' | 'available' | 'current' | 'completed';
+
+// Result screen types
+type ResultType = 'victory' | 'defeat';
+
+// Joystick direction (8-way + idle)
+type JoystickDirection = 'idle' | 'up' | 'down' | 'left' | 'right'
+    | 'up-left' | 'up-right' | 'down-left' | 'down-right';
+
+// Resource types for GameTopBar
+type ResourceType = 'lives' | 'coins' | 'gems' | 'energy';
+
+// Confetti shapes
+type ConfettiShape = 'rect' | 'circle' | 'star';
+
+// Floating text animations
+type FloatingTextAnimation = 'rise-fade' | 'pop' | 'bounce' | 'none';
+
+// Grid coordinates
+interface GridCoord { x: number; y: number; }
+interface HexCoord { q: number; r: number; s: number; }
+
+// Hex orientation
+type HexOrientation = 'flat' | 'pointy';
+
+// A* heuristic types
+type PathfinderHeuristic = 'manhattan' | 'euclidean' | 'chebyshev';
 ```
+
+## KEY EXPORTS
+
+### Core
+- `createGame()` - Entry point
+- `createMobileGame()` - Mobile-optimized entry point
+- `createMergeGame()` - Merge puzzle game entry point
+- `initializeFacades(app)` - Initialize facades for static access
+- `BaseScene`, `BaseScene3D` - Scene base classes
+- `graphics()` - Renderer-agnostic graphics factory
+
+### UI Components
+- `GameStyleButton`, `GameButtons` - Game-style buttons with factory shortcuts
+- `GameStylePanel` - Game-style panel with title/close
+- `GameTooltip`, `GameTooltipColors` - Speech bubble tooltip/popover
+- `GameTopBar`, `TopBar` - Resource bar (lives, coins, gems)
+- `GameBottomNav` - Bottom navigation
+- `ArcheroMenu`, `ARCHERO_COLORS` - Animated bottom menu with particles
+- `HexagonLevelButton`, `LevelPath` - Level selector
+- `GameToggle`, `GameToggleColors` - Toggle switch
+- `GameSlider`, `GameSliderColors` - Slider control
+- `VirtualJoystick` - Fixed/dynamic virtual joystick for mobile
+- `UIButton`, `UIPanel`, `UIText`, `UIProgressBar` - Basic UI
+
+### Form Components
+- `GameCheckBox`, `GameCheckBoxColors` - Jellybean checkbox with label
+- `GameRadioGroup`, `GameRadioColors` - Radio button group
+- `GameInput`, `GameInputColors` - Text input (wraps @pixi/ui Input)
+- `GameSelect`, `GameSelectColors` - Dropdown select
+- `GameScrollBox`, `GameScrollBoxColors` - Scrollable container (wraps @pixi/ui ScrollBox)
+- `GameList` - Layout list (wraps @pixi/ui List)
+
+### Visual Effects
+- `ConfettiSystem` - Confetti particles (rain, burst, fountain)
+- `ShineEffect` - Shimmer sweep + sparkle burst effects
+- `StarBurstEffect` - Continuous sparkle particles around objects
+- `CelebrationManager`, `CelebrationPresets` - Orchestrated celebrations
+
+### Splash & Loading
+- `GameSplash` - HTML/CSS instant-loading splash screen
+- `GameLoading` - Pixi.js canvas loading screen with progress bar
+
+### Screens & Panels
+- `ScreenManager` - Stack-based screen navigation
+- `PanelManager` - Modal/sheet overlay management
+- `HubScreen` - Main menu hub
+- `GameHUDScreen` - In-game HUD with score/timer/lives
+- `ResultScreen` - Victory/defeat screen
+- `GameModalPanel` - Centered modal
+- `GameBottomSheet` - Slide-up panel
+- `SimpleScreen` - Lightweight screen base
+
+### Feature Modules
+- `Tick` - Facade for component-level render loop
+- `Resources` - Facade for scoped resource lifecycle
+- `PostProcessing` - Facade for post-processing pipeline
+- `Environment` - Facade for 3D environment/skybox/fog
+- `Prefabs` - Facade for prefab/entity system
+- `Merge` - Facade for merge puzzle games
+- `TickSystem` - Render loop with priority ordering
+- `ResourceTracker`, `ResourceScope` - Auto-dispose lifecycle
+- `PerformanceAdvisor`, `QualityTierManager` - Adaptive quality
+- `PostProcessingPipeline` - pmndrs/postprocessing effect merging
+- `EnvironmentSystem` - Skybox, fog, sun, presets, transitions
+- `PrefabSystem` - JSON-driven prefabs with ECS-lite components
+- `SmartAssetPipeline` - Priority loading, memory budgets, LRU eviction
+- `GameSoundPresets` - 15 procedural game sound effects
+
+### Merge Game System
+- `MergeManager` - Complete merge game logic
+- `MergeGrid` - Merge puzzle grid component
+- `MergeItem` - Draggable/mergeable items
+- `MergeCell` - Individual grid cells
+
+### Design & Layout Utilities
+- `DesignScaler` - Design resolution scaling (fit/fill)
+- `SafeAreaLayout` - Safe area + letterbox approach
+- `ResponsiveScaleCalculator` - Responsive scale factors
+
+### Three.js Toolkit (sub-path: @gamebyte/framework/three-toolkit)
+- `RaycastEventSystem` - DOM-like 3D pointer events
+- `InstanceManager` - Automatic GPU instancing
+- `ModelLoader` - GLTF/GLB model loading with Draco support
+- `TextureLoader3D` - Enhanced texture loading with options
+- `AmbientLight`, `DirectionalLight`, `PointLight`, `SpotLight`, `HemisphereLight`
+- `LightHelper` - Debug visualization helpers for lights
+- `IsometricCamera`, `StrategyCamera`, `CameraController`
+- `AnimationController` - Animation clip management with crossfade
+- `SquareGrid`, `HexGrid` - Grid systems (square/hex)
+- `GridRenderer` - 3D grid visualization
+- `Object3DPicker` - Raycasting object picker
+- `DragController` - 3D drag-and-drop with snap-to-grid
+- `GestureHandler3D` - Tap, double-tap, long-press, pinch, drag
+- `Billboard` - Always-face-camera sprites
+- `HealthBar3D` - Floating health bars
+- `FloatingText` - Damage/score popup text
+- `SelectionIndicator` - Selection ring/square/hex
+- `ObjectPool3D` - Generic 3D object pooling
+- `Pathfinder` - A* pathfinding on grids
+- `StateMachineInstance` - Finite state machine for AI
+
+### State
+- `createState()` - Reactive state (Vue/Svelte-inspired)
+- `computed()` - Computed values
+- `isReactive()`, `resolveValue()` - Utilities

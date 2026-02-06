@@ -445,3 +445,46 @@ export interface ProfilingResult {
   minDuration: number;
   maxDuration: number;
 }
+
+// ─── Adaptive Performance System Types ──────────────
+
+/**
+ * Quality tier definition.
+ * Each tier describes a complete set of rendering quality settings.
+ */
+export interface QualityTier {
+  name: string;
+  dpr: number;
+  shadowMapSize: number;
+  shadowsEnabled: boolean;
+  postProcessing: boolean;
+  drawDistance: number;
+  particleMultiplier: number;
+  textureResolution: 'low' | 'medium' | 'high';
+  antialiasing: boolean;
+  maxLights: number;
+}
+
+/**
+ * Configuration for the adaptive performance system.
+ */
+export interface AdaptiveConfig {
+  /** Target FPS (default: 55) */
+  targetFps?: number;
+  /** Below this FPS → downgrade (default: 45) */
+  downgradeThreshold?: number;
+  /** Above this FPS → upgrade (default: 58) */
+  upgradeThreshold?: number;
+  /** Stability window in seconds before acting (default: 2) */
+  stabilityWindow?: number;
+  /** Exponential backoff multiplier for upgrades (default: 2) */
+  upgradeBackoffMultiplier?: number;
+  /** Max upgrade backoff in seconds (default: 16) */
+  maxUpgradeBackoff?: number;
+  /** Minimum allowed tier name */
+  minTier?: string;
+  /** Maximum allowed tier name */
+  maxTier?: string;
+  /** Enable thermal throttling detection (default: true) */
+  thermalProtection?: boolean;
+}

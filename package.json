@@ -1,7 +1,7 @@
 {
   "name": "@gamebyte/framework",
   "type": "module",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "A comprehensive JavaScript game engine framework that unifies 2D and 3D game development with Laravel-inspired architecture",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -97,9 +97,53 @@
       "import": "./dist/three/index.js",
       "types": "./dist/three/index.d.ts"
     },
+    "./three/lights": {
+      "import": "./dist/three/lights/index.js",
+      "types": "./dist/three/lights/index.d.ts"
+    },
+    "./three/loaders": {
+      "import": "./dist/three/loaders/index.js",
+      "types": "./dist/three/loaders/index.d.ts"
+    },
+    "./three/animation": {
+      "import": "./dist/three/animation/index.js",
+      "types": "./dist/three/animation/index.d.ts"
+    },
     "./merge": {
       "import": "./dist/merge/index.js",
       "types": "./dist/merge/index.d.ts"
+    },
+    "./tick": {
+      "import": "./dist/tick/index.js",
+      "types": "./dist/tick/index.d.ts"
+    },
+    "./resources": {
+      "import": "./dist/resources/index.js",
+      "types": "./dist/resources/index.d.ts"
+    },
+    "./three/events": {
+      "import": "./dist/three/events/index.js",
+      "types": "./dist/three/events/index.d.ts"
+    },
+    "./three/instancing": {
+      "import": "./dist/three/instancing/index.js",
+      "types": "./dist/three/instancing/index.d.ts"
+    },
+    "./postprocessing": {
+      "import": "./dist/postprocessing/index.js",
+      "types": "./dist/postprocessing/index.d.ts"
+    },
+    "./environment": {
+      "import": "./dist/environment/index.js",
+      "types": "./dist/environment/index.d.ts"
+    },
+    "./prefabs": {
+      "import": "./dist/prefabs/index.js",
+      "types": "./dist/prefabs/index.d.ts"
+    },
+    "./assets/pipeline": {
+      "import": "./dist/assets/pipeline-index.js",
+      "types": "./dist/assets/pipeline-index.d.ts"
     }
   },
   "scripts": {
@@ -175,6 +219,7 @@
     "cannon-es": ">=0.20.0",
     "matter-js": ">=0.19.0",
     "pixi.js": "^8.15.0",
+    "postprocessing": ">=6.30.0",
     "three": ">=0.150.0"
   },
   "peerDependenciesMeta": {
@@ -185,6 +230,9 @@
       "optional": true
     },
     "matter-js": {
+      "optional": true
+    },
+    "postprocessing": {
       "optional": true
     }
   },

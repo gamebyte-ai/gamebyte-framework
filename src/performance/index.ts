@@ -18,3 +18,6 @@ export { MemoryOptimizer } from './MemoryOptimizer.js';
 export { RenderingOptimizer } from './RenderingOptimizer.js';
 export { MobileOptimizer } from './MobileOptimizer.js';
 export { PerformanceDebugOverlay, PerformanceProfiler } from './PerformanceDebugOverlay.js';
+export { PerformanceAdvisor } from './PerformanceAdvisor.js';
+export { QualityTierManager } from './QualityTierManager.js';
+export type { QualityTier, AdaptiveConfig } from '../contracts/Performance.js';

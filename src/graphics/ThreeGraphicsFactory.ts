@@ -20,6 +20,13 @@ import {
   IFillGradient,
   ILinearGradientConfig,
   IRadialGradientConfig,
+  IFilter,
+  IMask,
+  IBlurFilterOptions,
+  IColorMatrixFilterOptions,
+  IDropShadowFilterOptions,
+  IGlowFilterOptions,
+  IOutlineFilterOptions,
 } from '../contracts/Graphics';
 import { getFrameworkFontFamily } from '../ui/utils/FontLoader';
 
@@ -613,5 +620,87 @@ export class ThreeGraphicsFactory implements IGraphicsFactory {
   createRadialGradient(_config: IRadialGradientConfig): IFillGradient {
     console.warn('ThreeGraphicsFactory: Gradients not supported in 3D renderer, use CSS gradients instead');
     return { type: 'radial', native: null, destroy: () => {} };
+  }
+
+  // ============================================
+  // FILTERS (CSS-based for Three.js/HTML elements)
+  // ============================================
+
+  createBlurFilter(options: IBlurFilterOptions = {}): IFilter {
+    const strength = options.strength ?? 8;
+    return {
+      type: 'blur',
+      enabled: true,
+      native: `blur(${strength}px)`,
+      destroy: () => {}
+    };
+  }
+
+  createColorMatrixFilter(_options: IColorMatrixFilterOptions = {}): IFilter {
+    console.warn('ThreeGraphicsFactory: ColorMatrix filter not supported in CSS, use grayscale/sepia/etc instead');
+    return {
+      type: 'colorMatrix',
+      enabled: true,
+      native: null,
+      destroy: () => {}
+    };
+  }
+
+  createDropShadowFilter(options: IDropShadowFilterOptions = {}): IFilter {
+    const x = options.offset?.x ?? 4;
+    const y = options.offset?.y ?? 4;
+    const blur = options.blur ?? 4;
+    const color = options.color ?? 0x000000;
+    const colorHex = '#' + color.toString(16).padStart(6, '0');
+    return {
+      type: 'dropShadow',
+      enabled: true,
+      native: `drop-shadow(${x}px ${y}px ${blur}px ${colorHex})`,
+      destroy: () => {}
+    };
+  }
+
+  createGlowFilter(options: IGlowFilterOptions = {}): IFilter {
+    const distance = options.distance ?? 10;
+    const color = options.color ?? 0xffffff;
+    const colorHex = '#' + color.toString(16).padStart(6, '0');
+    return {
+      type: 'glow',
+      enabled: true,
+      native: `drop-shadow(0 0 ${distance}px ${colorHex})`,
+      destroy: () => {}
+    };
+  }
+
+  createOutlineFilter(_options: IOutlineFilterOptions = {}): IFilter {
+    console.warn('ThreeGraphicsFactory: Outline filter not supported in CSS');
+    return {
+      type: 'outline',
+      enabled: true,
+      native: null,
+      destroy: () => {}
+    };
+  }
+
+  // ============================================
+  // MASKS (Not supported in CSS2D)
+  // ============================================
+
+  createMaskFromGraphics(_graphics: IGraphics): IMask {
+    console.warn('ThreeGraphicsFactory: Masks not supported in CSS2D renderer');
+    return {
+      type: 'graphics',
+      native: null,
+      destroy: () => {}
+    };
+  }
+
+  createMaskFromSprite(_sprite: ISprite): IMask {
+    console.warn('ThreeGraphicsFactory: Masks not supported in CSS2D renderer');
+    return {
+      type: 'sprite',
+      native: null,
+      destroy: () => {}
+    };
   }
 }

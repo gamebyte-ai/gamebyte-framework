@@ -53,3 +53,31 @@ export type { VersionInfo, FeatureSupport } from './utils/ThreeVersionDetection.
 
 // Scene Management (3D)
 export { BaseScene3D } from './scenes/BaseScene3D.js';
+
+// Lights
+export { DirectionalLight, type DirectionalLightConfig } from './lights/DirectionalLight.js';
+export { PointLight, type PointLightConfig } from './lights/PointLight.js';
+export { SpotLight, type SpotLightConfig } from './lights/SpotLight.js';
+export { AmbientLight, type AmbientLightConfig } from './lights/AmbientLight.js';
+export { HemisphereLight, type HemisphereLightConfig } from './lights/HemisphereLight.js';
+export { LightHelper } from './lights/LightHelper.js';
+
+// Loaders
+export { ModelLoader, type ModelLoaderConfig, type LoadedModel, type LoadOptions } from './loaders/ModelLoader.js';
+export { TextureLoader3D, type TextureLoader3DConfig, type TextureOptions } from './loaders/TextureLoader.js';
+
+// Animation
+export { AnimationController, type AnimationControllerConfig, type PlayOptions } from './animation/AnimationController.js';
+
+// Events (3D Pointer Event System)
+export { RaycastEventSystem } from './events/RaycastEventSystem.js';
+export type {
+  IRaycastEventSystem,
+  PointerEvent3DType,
+  PointerEvent3DData,
+  PointerEvent3DHandler
+} from './events/index.js';
+
+// Instancing (GPU Instance Manager)
+export { InstanceManager } from './instancing/InstanceManager.js';
+export type { IInstanceManager, IInstanceHandle } from './instancing/index.js';
