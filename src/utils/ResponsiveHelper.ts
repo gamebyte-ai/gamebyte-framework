@@ -25,6 +25,13 @@ export interface ResponsiveConfig {
    * Maximum scale factor (default: 2.0)
    */
   maxScale?: number;
+
+  /**
+   * Optional container element for container-based resize.
+   * When provided, uses ResizeObserver on container instead of window resize.
+   * Dimensions are taken from container.clientWidth/clientHeight.
+   */
+  container?: HTMLElement;
 }
 
 export interface ResponsiveSize {
@@ -41,9 +48,12 @@ export interface ResponsiveSize {
  * and scaled up/down based on actual viewport dimensions.
  */
 export class ResponsiveScaleCalculator {
-  private config: Required<ResponsiveConfig>;
+  private config: Required<Omit<ResponsiveConfig, 'container'>>;
+  private container: HTMLElement | null;
   private currentSize: ResponsiveSize;
   private resizeCallbacks: Array<(size: ResponsiveSize) => void> = [];
+  private resizeObserver: ResizeObserver | null = null;
+  private windowResizeHandler: (() => void) | null = null;
 
   constructor(config: ResponsiveConfig) {
     this.config = {
@@ -52,17 +62,19 @@ export class ResponsiveScaleCalculator {
       minScale: config.minScale ?? 0.5,
       maxScale: config.maxScale ?? 2.0
     };
+    this.container = config.container ?? null;
 
     this.currentSize = this.calculate();
     this.setupResizeObserver();
   }
 
   /**
-   * Calculate current responsive size and scale factor
+   * Calculate current responsive size and scale factor.
+   * Uses container dimensions if container is set, otherwise window dimensions.
    */
   calculate(): ResponsiveSize {
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+    const width = this.container ? this.container.clientWidth : window.innerWidth;
+    const height = this.container ? this.container.clientHeight : window.innerHeight;
 
     // Calculate scale factor based on width (mobile-first)
     const scale = Math.max(
@@ -113,24 +125,54 @@ export class ResponsiveScaleCalculator {
   }
 
   /**
-   * Set up window resize observer
+   * Set up resize observer — uses ResizeObserver on container or window resize event
    */
   private setupResizeObserver(): void {
-    window.addEventListener('resize', () => {
-      const oldScale = this.currentSize.scale;
-      this.currentSize = this.calculate();
+    if (this.container) {
+      // Container-based: use ResizeObserver for precise container tracking
+      this.resizeObserver = new ResizeObserver(() => {
+        this.handleResize();
+      });
+      this.resizeObserver.observe(this.container);
+    } else {
+      // Window-based: use window resize event
+      this.windowResizeHandler = () => {
+        this.handleResize();
+      };
+      window.addEventListener('resize', this.windowResizeHandler);
+    }
+  }
 
-      // Only trigger callbacks if scale changed significantly
-      if (Math.abs(this.currentSize.scale - oldScale) > 0.01) {
-        this.resizeCallbacks.forEach(callback => callback(this.currentSize));
-      }
-    });
+  /**
+   * Common resize handler — recalculates and notifies if changed
+   */
+  private handleResize(): void {
+    const oldSize = this.currentSize;
+    this.currentSize = this.calculate();
+
+    // Container mode: always notify (container dimensions are the source of truth)
+    // Window mode: only notify if scale changed significantly
+    const shouldNotify = this.container
+      ? (oldSize.width !== this.currentSize.width || oldSize.height !== this.currentSize.height)
+      : Math.abs(this.currentSize.scale - oldSize.scale) > 0.01;
+
+    if (shouldNotify) {
+      this.resizeCallbacks.forEach(callback => callback(this.currentSize));
+    }
   }
 
   /**
    * Destroy and clean up
    */
   destroy(): void {
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
+    if (this.windowResizeHandler) {
+      window.removeEventListener('resize', this.windowResizeHandler);
+      this.windowResizeHandler = null;
+    }
     this.resizeCallbacks = [];
   }
 }
