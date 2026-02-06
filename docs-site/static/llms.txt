@@ -1,6 +1,6 @@
 # GameByte Framework Documentation
 > Modern Mobile-First Game Development Framework
-> Version: 1.0.0
+> Version: 1.2.1
 
 ## Overview
 GameByte is a comprehensive JavaScript game framework that unifies 2D (Pixi.js v8) and 3D (Three.js) rendering with Laravel-inspired architecture. Mobile-optimized with 44px touch targets and performance features.
@@ -63,6 +63,43 @@ GameByte is a comprehensive JavaScript game framework that unifies 2D (Pixi.js v
 
 ## Assets
 - /assets/loading-caching - Asset management
+- /assets/smart-pipeline - Priority loading, memory budgets, LRU eviction
+
+## Tick System (Component-Level Render Loop)
+- /tick/overview - Per-component render loop with priority ordering
+- /tick/fixed-timestep - Deterministic physics at fixed intervals
+
+## Resource Lifecycle
+- /resources/overview - Auto-dispose, scoped resource tracking
+- /resources/scopes - Hierarchical cleanup (scene-level, entity-level)
+
+## 3D Pointer Events
+- /three/events/overview - DOM-like click/hover/drag on 3D objects
+- /three/events/raycasting - Layer-based filtering, BVH acceleration
+
+## Adaptive Performance
+- /performance/advisor - Auto quality tier adjustment with hysteresis
+- /performance/thermal - Thermal throttling detection
+
+## GPU Instancing
+- /three/instancing/overview - Automatic instanced rendering at 3+ copies
+
+## Post-Processing
+- /postprocessing/overview - Effect merging via pmndrs/postprocessing
+- /postprocessing/effects - Bloom, FXAA, Vignette, SSAO, DOF, ChromaticAberration
+
+## Environment System
+- /environment/overview - Skybox, fog, sun, ambient lighting
+- /environment/presets - Day, sunset, night, overcast presets
+- /environment/transitions - Smooth lerp between presets
+
+## Prefab / Entity System
+- /prefabs/overview - JSON-driven prefabs with template inheritance
+- /prefabs/components - ECS-lite component lifecycle hooks
+- /prefabs/serialization - Save/load entity state
+
+## Procedural Audio
+- /audio/procedural - 15 built-in game sounds (hit, explosion, coin, etc.)
 
 ## API Reference
 - /api-reference - Complete API documentation
@@ -136,6 +173,112 @@ screenManager.push(gameScreen, 'slide');
 screenManager.pop();
 ```
 
+### Tick System (Per-Component Render Loop)
+```typescript
+import { Tick } from '@gamebyte/framework';
+Tick.subscribe(({ delta }) => player.move(delta));
+Tick.subscribe(updatePhysics, -10);   // high priority (runs first)
+Tick.subscribe(updateParticles, 10);  // low priority (runs last)
+Tick.runOnce(({ elapsed }) => console.log('Time:', elapsed));
+```
+
+### Resource Lifecycle (Auto-Dispose)
+```typescript
+import { Resources } from '@gamebyte/framework';
+const scope = Resources.createScope('level-1');
+const geo = scope.track(new THREE.BoxGeometry(1, 1, 1));
+const mat = scope.track(new THREE.MeshStandardMaterial());
+Resources.disposeScope('level-1'); // both auto-disposed
+```
+
+### 3D Pointer Events
+```typescript
+import { RaycastEventSystem } from '@gamebyte/framework/three-toolkit';
+const events = new RaycastEventSystem();
+events.setScene(scene, camera, canvas);
+events.on(cube, 'click', (e) => console.log('Hit at', e.point));
+events.on(cube, 'pointerenter', () => cube.scale.setScalar(1.1));
+events.on(cube, 'pointerleave', () => cube.scale.setScalar(1.0));
+```
+
+### Adaptive Performance
+```typescript
+import { PerformanceAdvisor } from '@gamebyte/framework';
+const advisor = new PerformanceAdvisor();
+advisor.enable({ targetFps: 55, downgradeThreshold: 45, upgradeThreshold: 58 });
+advisor.onQualityChange((tier, dir) => console.log(tier.name, dir));
+advisor.regress(); // manual quality drop during heavy interaction
+```
+
+### Post-Processing
+```typescript
+import { PostProcessing } from '@gamebyte/framework';
+PostProcessing.add('bloom', { intensity: 0.5, threshold: 0.8 });
+PostProcessing.add('vignette', { darkness: 0.3 });
+PostProcessing.add('fxaa');
+PostProcessing.get('bloom')?.setParams({ intensity: 1.0 });
+```
+
+### Environment System
+```typescript
+import { Environment } from '@gamebyte/framework';
+Environment.preset('sunset');
+await Environment.transitionTo('night', 5.0); // 5s smooth transition
+await Environment.setHDRI('/hdris/studio.hdr');
+Environment.setFog({ color: '#aaccee', near: 10, far: 100, type: 'linear' });
+```
+
+### Prefab System
+```typescript
+import { Prefabs } from '@gamebyte/framework';
+Prefabs.register({
+  id: 'enemy', name: 'Enemy',
+  visual: { type: 'model', url: '/models/enemy.glb' },
+  tags: ['npc']
+});
+const enemy = await Prefabs.spawn('enemy', { position: [0, 0, 5] });
+enemy.addComponent('health', { current: 100, max: 100 });
+const npcs = Prefabs.getEntitiesByTag('npc');
+```
+
+### Smart Asset Pipeline
+```typescript
+import { SmartAssetPipeline } from '@gamebyte/framework';
+const pipeline = new SmartAssetPipeline();
+pipeline.registerManifest({
+  scenes: { level1: ['player', 'bg', 'music'] },
+  assets: {
+    player: { url: '/textures/player.png', type: 'texture', priority: 'critical' },
+    bg: { url: '/textures/bg.png', type: 'texture', priority: 'normal' },
+    music: { url: '/audio/bgm.mp3', type: 'audio', priority: 'low' }
+  }
+});
+pipeline.on('progress', (p) => loadingBar.setProgress(p));
+await pipeline.loadScene('level1');
+pipeline.setMemoryBudget(256); // 256MB max, LRU eviction
+```
+
+### Procedural Audio (No Audio Files Needed)
+```typescript
+import { GameSoundPresets } from '@gamebyte/framework';
+const sounds = new GameSoundPresets();
+sounds.play('explosion');
+sounds.play('coin', { volume: 0.5, pitch: 1.2, variation: 0.3 });
+// 15 built-in types: hit, pickup, explosion, laser, powerUp, death,
+//   click, jump, land, coin, error, success, whoosh, thrust, nearMiss
+```
+
+### GPU Instancing (Three.js)
+```typescript
+import { InstanceManager } from '@gamebyte/framework/three-toolkit';
+const im = new InstanceManager(scene);
+for (let i = 0; i < 100; i++) {
+  const tree = im.createInstance('tree', treeModel);
+  tree.setPosition(Math.random() * 100, 0, Math.random() * 100);
+}
+// Auto-switches to InstancedMesh at 3+ copies
+```
+
 ### Input
 ```typescript
 const input = game.make('input');
@@ -155,6 +298,25 @@ Physics.createBody({ x: 100, y: 100, width: 32, height: 48 });
 - `createGame()` - Entry point
 - `BaseScene`, `BaseScene3D` - Scene base classes
 - `graphics()` - Renderer-agnostic graphics factory
+
+### New Feature Modules
+- `Tick` - Facade for component-level render loop
+- `Resources` - Facade for scoped resource lifecycle management
+- `PostProcessing` - Facade for post-processing pipeline
+- `Environment` - Facade for 3D environment/skybox/fog
+- `Prefabs` - Facade for prefab/entity system
+- `TickSystem` - Component-level render loop with priority ordering
+- `ResourceTracker`, `ResourceScope` - Auto-dispose resource lifecycle
+- `PerformanceAdvisor`, `QualityTierManager` - Adaptive quality system
+- `PostProcessingPipeline` - Effect merging via pmndrs/postprocessing
+- `EnvironmentSystem` - Skybox, fog, sun, presets, transitions
+- `PrefabSystem` - JSON-driven prefabs with ECS-lite components
+- `SmartAssetPipeline` - Priority loading, memory budgets, LRU eviction
+- `GameSoundPresets` - 15 procedural game sound effects
+
+### Three.js Toolkit (sub-path: @gamebyte/framework/three-toolkit)
+- `RaycastEventSystem` - DOM-like 3D pointer events with raycasting
+- `InstanceManager` - Automatic GPU instancing at 3+ copies
 
 ### UI Components
 - `GameStyleButton`, `GameButtons` - Game-style buttons
@@ -190,6 +352,12 @@ Physics.createBody({ x: 100, y: 100, width: 32, height: 48 });
 - `audio` - Audio playback
 - `assets` - Asset loading
 - `physics` - Physics engine
+- `tick` - Component-level render loop (TickSystem)
+- `resources` - Resource lifecycle management (ResourceTracker)
+- `postprocessing` - Post-processing pipeline
+- `environment` - 3D environment system (deferred)
+- `prefabs` - Prefab/entity system (deferred)
+- `asset.pipeline` - Smart asset pipeline (deferred)
 
 ## Links
 - GitHub: https://github.com/nicholasdelucca/gamebyte-framework

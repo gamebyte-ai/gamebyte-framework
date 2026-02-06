@@ -1,6 +1,6 @@
 # GameByte Framework - Full API Reference
-# Version: 1.0.0
-# For AI Agents - Complete API in single file (~15KB)
+# Version: 1.2.1
+# For AI Agents - Complete API in single file
 
 ## SETUP
 ```typescript
@@ -30,6 +30,12 @@ const service = game.make<MyService>('my.service');
 | audio | AudioManager | Music, SFX, spatial |
 | assets | AssetManager | Asset loading |
 | physics | PhysicsManager | 2D/3D physics |
+| tick | TickSystem | Component-level render loop |
+| resources | ResourceTracker | Resource lifecycle management |
+| postprocessing | PostProcessingPipeline | Post-processing effects |
+| environment | EnvironmentSystem | 3D skybox/fog/lighting (deferred) |
+| prefabs | PrefabSystem | Prefab/entity system (deferred) |
+| asset.pipeline | SmartAssetPipeline | Smart asset loading (deferred) |
 
 ## SCENES
 ```typescript
@@ -313,10 +319,442 @@ const game = createGame({
 });
 ```
 
+## TICK SYSTEM (Component-Level Render Loop)
+```typescript
+import { Tick, TickSystem } from '@gamebyte/framework';
+
+// Subscribe with priority ordering (lower = runs first)
+const handle = Tick.subscribe(({ delta, elapsed, fps }) => {
+  player.move(delta); // delta is in seconds
+}, 0); // priority 0 = default
+
+// Priority ordering
+Tick.subscribe(updatePhysics, -10);   // runs first
+Tick.subscribe(updateAnimation, 0);    // default
+Tick.subscribe(updateParticles, 10);   // runs last
+
+// Fixed timestep for deterministic physics (Gaffer pattern)
+Tick.subscribe(physicsStep, -10, { fixedStep: 1/60 });
+
+// One-shot callback
+Tick.runOnce(({ elapsed }) => console.log('Time:', elapsed));
+
+// Pause/resume individual subscriptions
+handle.pause();
+handle.resume();
+handle.unsubscribe();
+
+// Pause/resume entire system
+Tick.pause();
+Tick.resume();
+
+// TickState (passed to each callback, reused object - zero GC):
+interface TickState {
+  delta: number;    // seconds
+  deltaMs: number;  // milliseconds
+  elapsed: number;  // total seconds
+  frame: number;    // frame count
+  fps: number;      // EMA-smoothed FPS
+}
+```
+
+## RESOURCE LIFECYCLE (Auto-Dispose)
+```typescript
+import { Resources, ResourceTracker, ResourceScope } from '@gamebyte/framework';
+
+// Create named scopes for resource grouping
+const levelScope = Resources.createScope('level-1');
+
+// Track resources - returns same resource for chaining
+const geo = levelScope.track(new THREE.BoxGeometry(1, 1, 1));
+const mat = levelScope.track(new THREE.MeshStandardMaterial({ color: 0xff0000 }));
+
+// Child scopes dispose before parent (cascading cleanup)
+const enemyScope = levelScope.createChild('enemies');
+const enemyGeo = enemyScope.track(new THREE.SphereGeometry(0.5));
+
+// Reference counting for shared resources
+levelScope.track(sharedTexture); // ref count: 1
+enemyScope.track(sharedTexture); // ref count: 2
+enemyScope.release(sharedTexture); // ref count: 1 (not disposed yet)
+
+// Dispose an entire scope (all tracked resources auto-cleaned)
+Resources.disposeScope('level-1'); // disposes child scopes first, then parent
+
+// Custom disposer for your own types
+Resources.registerDisposer(
+  (obj) => obj instanceof MyCustomResource,
+  (obj) => obj.cleanup()
+);
+
+// Pre-registered disposers:
+// - THREE.BufferGeometry → .dispose()
+// - THREE.Material → .dispose()
+// - THREE.Texture → .dispose()
+// - PIXI.* → .destroy()
+// - Fallback: duck-type .dispose() or .destroy()
+```
+
+## 3D POINTER EVENTS (Raycasting)
+```typescript
+import { RaycastEventSystem } from '@gamebyte/framework/three-toolkit';
+
+const events = new RaycastEventSystem();
+events.setScene(scene, camera, canvas);
+
+// DOM-like events on 3D objects
+events.enable(cube); // make object interactive
+events.on(cube, 'click', (e) => {
+  console.log('Hit at', e.point);    // world-space intersection
+  console.log('Distance:', e.distance);
+  console.log('Normal:', e.normal);   // surface normal
+  console.log('UV:', e.uv);           // texture coordinates
+});
+
+// Hover events
+events.on(cube, 'pointerenter', () => cube.scale.setScalar(1.1));
+events.on(cube, 'pointerleave', () => cube.scale.setScalar(1.0));
+
+// All supported event types:
+// 'click' | 'dblclick' | 'contextmenu'
+// 'pointerdown' | 'pointerup' | 'pointermove'
+// 'pointerenter' | 'pointerleave' | 'pointerover' | 'pointerout'
+
+// Bubble propagation with stopPropagation()
+events.on(childMesh, 'click', (e) => {
+  e.stopPropagation(); // don't fire on parent
+});
+
+// Performance: layer-based filtering, move throttling (20Hz mobile / 60Hz desktop)
+// Cleanup fires pointerleave for hovered objects
+events.destroy();
+```
+
+## ADAPTIVE PERFORMANCE (Quality Tiers)
+```typescript
+import { PerformanceAdvisor, QualityTierManager } from '@gamebyte/framework';
+
+const advisor = new PerformanceAdvisor();
+
+// Enable with hysteresis configuration
+advisor.enable({
+  targetFps: 55,
+  downgradeThreshold: 45,   // below this → downgrade
+  upgradeThreshold: 58,     // above this → upgrade
+  // Dead zone: 45-58 FPS = no action (prevents oscillation)
+  stabilityWindow: 2,       // seconds of stable FPS before acting
+  upgradeBackoffMultiplier: 2, // exponential backoff
+  maxUpgradeBackoff: 16,    // max seconds between upgrades
+  thermalProtection: true   // detect device overheating
+});
+
+// Feed FPS samples (typically wired to TickSystem)
+advisor.sample(fps);
+
+// Listen for quality changes
+advisor.onQualityChange((tier, direction) => {
+  console.log(`Quality: ${tier.name} (${direction})`);
+  renderer.setPixelRatio(tier.dpr);
+  if (!tier.shadowsEnabled) disableShadows();
+  if (!tier.postProcessing) PostProcessing.enabled = false;
+});
+
+// Manual quality regression (e.g., during heavy interaction)
+advisor.regress();
+
+// Set specific tier
+advisor.setTier('low');
+
+// Register custom tier
+advisor.registerTier('potato', {
+  name: 'potato', dpr: 0.5, shadowMapSize: 256,
+  shadowsEnabled: false, postProcessing: false,
+  drawDistance: 50, particleMultiplier: 0.25,
+  textureResolution: 'low', antialiasing: false, maxLights: 2
+});
+
+// Default tiers: ultra-low → low → medium → high → ultra
+// Thermal detection: monitors FPS degradation over 30s windows
+```
+
+## POST-PROCESSING PIPELINE
+```typescript
+import { PostProcessing, PostProcessingPipeline } from '@gamebyte/framework';
+
+// Uses pmndrs/postprocessing for automatic effect merging
+// 5 effects → 1-2 render passes (not 5 separate passes)
+
+// Add effects (built-in factories)
+PostProcessing.add('bloom', { intensity: 0.5, threshold: 0.8, smoothing: 0.075 });
+PostProcessing.add('vignette', { darkness: 0.3, offset: 0.5 });
+PostProcessing.add('fxaa'); // no params needed
+PostProcessing.add('chromaticAberration', { offset: 0.001 });
+PostProcessing.add('ssao', { samples: 16, rings: 4, intensity: 1.0 });
+PostProcessing.add('dof', { focusDistance: 0.02, focalLength: 0.05, bokehScale: 2.0 });
+PostProcessing.add('toneMapping', { mode: 1 }); // ACESFilmic
+
+// Modify effect parameters
+PostProcessing.get('bloom')?.setParams({ intensity: 1.0 });
+
+// Enable/disable individual effects
+PostProcessing.get('bloom')!.enabled = false;
+
+// Enable/disable entire pipeline
+PostProcessing.enabled = false;
+
+// Remove effect
+PostProcessing.remove('chromaticAberration');
+
+// Register custom effect factory
+PostProcessing.registerEffect('myEffect', (params) => {
+  return new MyCustomPmndrsEffect(params);
+});
+
+// Effect priorities (lower = processed first):
+// ssao(5) → bloom(10) → dof(20) → chromaticAberration(40) →
+// vignette(50) → toneMapping(90) → fxaa(100)
+
+// Graceful degradation: if pmndrs/postprocessing not installed,
+// effects are registered but not applied, render() falls back to standard
+```
+
+## ENVIRONMENT SYSTEM (3D)
+```typescript
+import { Environment, EnvironmentSystem } from '@gamebyte/framework';
+
+// Built-in presets: 'day', 'sunset', 'night', 'overcast'
+Environment.preset('sunset');
+
+// Smooth transition between presets
+await Environment.transitionTo('night', 5.0); // 5 second lerp
+
+// HDRI environment map
+await Environment.setHDRI('/hdris/studio.hdr', { resolution: 512 });
+
+// Procedural sky shader
+Environment.setProceduralSky({ turbidity: 2, rayleigh: 1, mieCoefficient: 0.005 });
+
+// Fog
+Environment.setFog({ color: '#aaccee', near: 10, far: 100, type: 'linear' });
+Environment.setFog({ color: '#aaccee', type: 'exponential', density: 0.02 });
+Environment.clearFog();
+
+// Register custom preset
+Environment.registerPreset('underwater', {
+  sunPosition: [0, -1, 0],
+  sunColor: '#4488aa',
+  sunIntensity: 0.3,
+  ambientIntensity: 0.6,
+  skyColor: '#003366',
+  groundColor: '#001122',
+  fog: { color: '#003355', near: 5, far: 30, type: 'exponential', density: 0.05 }
+});
+
+// Get current config
+const config = Environment.getConfig();
+```
+
+## PREFAB / ENTITY SYSTEM
+```typescript
+import { Prefabs, PrefabSystem } from '@gamebyte/framework';
+
+// Register prefab definitions (JSON-serializable)
+Prefabs.register({
+  id: 'enemy',
+  name: 'Enemy Soldier',
+  visual: { type: 'model', url: '/models/enemy.glb' },
+  transform: { position: [0, 0, 0], scale: 1 },
+  physics: { type: 'dynamic', mass: 1, collider: 'box' },
+  components: { health: { current: 100, max: 100 } },
+  tags: ['npc', 'hostile']
+});
+
+// Template inheritance (extends)
+Prefabs.register({
+  id: 'boss',
+  name: 'Boss',
+  extends: 'enemy', // inherits visual, physics, etc.
+  transform: { scale: 2 },
+  components: { health: { current: 500, max: 500 } }
+});
+
+// Spawn entities
+const enemy = await Prefabs.spawn('enemy', { position: [0, 0, 5] });
+
+// Entity API
+enemy.addComponent('ai', { state: 'patrol', speed: 2 });
+const health = enemy.getComponent<{ current: number }>('health');
+enemy.hasComponent('ai'); // true
+enemy.removeComponent('ai');
+enemy.getTags(); // ['npc', 'hostile']
+enemy.hasTag('hostile'); // true
+enemy.object; // THREE.Object3D or IContainer
+
+// Query entities
+const npcs = Prefabs.getEntitiesByTag('npc');
+const all = Prefabs.getEntities();
+
+// Despawn
+Prefabs.despawn(enemy);
+
+// Serialize/deserialize (save/load)
+const save = Prefabs.serialize();
+await Prefabs.deserialize(save);
+
+// Component lifecycle hooks
+interface ComponentLifecycle {
+  onAttach?(entity: IEntity): void;
+  onDetach?(entity: IEntity): void;
+  onUpdate?(entity: IEntity, delta: number): void;
+  onDestroy?(entity: IEntity): void;
+}
+```
+
+## SMART ASSET PIPELINE
+```typescript
+import { SmartAssetPipeline } from '@gamebyte/framework';
+
+const pipeline = new SmartAssetPipeline();
+
+// Register manifest (scenes and their required assets)
+pipeline.registerManifest({
+  scenes: {
+    level1: ['player-tex', 'enemy-tex', 'bg-music', 'level-data'],
+    level2: ['player-tex', 'boss-tex', 'boss-music', 'level-data']
+  },
+  assets: {
+    'player-tex': { url: '/textures/player.png', type: 'texture', priority: 'critical' },
+    'enemy-tex': { url: '/textures/enemy.png', type: 'texture', priority: 'high' },
+    'boss-tex': { url: '/textures/boss.png', type: 'texture', priority: 'high' },
+    'bg-music': { url: '/audio/bgm.mp3', type: 'audio', priority: 'low' },
+    'boss-music': { url: '/audio/boss.mp3', type: 'audio', priority: 'normal' },
+    'level-data': { url: '/data/levels.json', type: 'json', priority: 'critical' }
+  }
+});
+
+// Load scene (respects priority: critical → high → normal → low)
+pipeline.on('progress', (progress, assetId) => {
+  loadingBar.setProgress(progress); // 0-1
+});
+await pipeline.loadScene('level1');
+
+// Get loaded assets
+const playerTex = pipeline.get<HTMLImageElement>('player-tex');
+const levelData = pipeline.get<any>('level-data');
+
+// Memory management
+pipeline.setMemoryBudget(256); // 256MB max
+pipeline.unloadUnused(); // LRU eviction (frequency-boosted)
+
+// Preload next scene in background
+pipeline.preloadInBackground(['boss-tex', 'boss-music']);
+
+// Load critical assets immediately
+await pipeline.loadCritical(['player-tex', 'level-data']);
+
+// Scene switch auto-cancels pending loads
+await pipeline.loadScene('level2'); // aborts level1 remaining loads
+
+// Adaptive concurrency: 2-4 on mobile, 4-8 on desktop
+// Format fallback: WebP → PNG, KTX2 → standard
+// Events: 'progress', 'asset:loaded', 'asset:failed', 'asset:evicted', 'scene:loaded'
+```
+
+## PROCEDURAL AUDIO (No Audio Files)
+```typescript
+import { GameSoundPresets } from '@gamebyte/framework';
+
+const sounds = new GameSoundPresets();
+
+// Play built-in sound
+sounds.play('explosion');
+sounds.play('coin', { volume: 0.5, pitch: 1.2, variation: 0.3 });
+
+// 15 built-in types:
+// 'hit' | 'pickup' | 'explosion' | 'laser' | 'powerUp'
+// 'death' | 'click' | 'jump' | 'land' | 'coin'
+// 'error' | 'success' | 'whoosh' | 'thrust' | 'nearMiss'
+
+// Configuration
+interface GameSoundConfig {
+  volume?: number;     // 0-1 (default: 0.3)
+  pitch?: number;      // multiplier (default: 1.0)
+  duration?: number;   // override seconds
+  variation?: number;  // random variation 0-1
+}
+
+// Register custom procedural sound
+sounds.register('custom', (ctx: AudioContext, config: GameSoundConfig) => {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain).connect(ctx.destination);
+  // ... custom synthesis
+});
+
+// Lazy AudioContext (respects browser autoplay policy)
+// Zero file overhead - all sounds are generated procedurally
+```
+
+## GPU INSTANCING (Three.js)
+```typescript
+import { InstanceManager } from '@gamebyte/framework/three-toolkit';
+
+const im = new InstanceManager(scene);
+
+// Create instances (auto-switches to InstancedMesh at threshold)
+const model = await loader.load('tree.glb');
+for (let i = 0; i < 100; i++) {
+  const tree = im.createInstance('tree', model.scene);
+  tree.setPosition(Math.random() * 100, 0, Math.random() * 100);
+  tree.setRotation(0, Math.random() * Math.PI * 2, 0);
+  tree.setScale(0.8 + Math.random() * 0.4, 0.8 + Math.random() * 0.4, 0.8 + Math.random() * 0.4);
+  tree.setColor(0x228B22); // per-instance color
+}
+
+// Control instancing threshold (default: 3)
+im.setThreshold(5);
+
+// Per-instance control
+handle.setVisible(false);
+handle.dispose(); // O(1) removal via swap-with-last
+
+// Query
+im.getInstanceCount('tree'); // 100
+im.isInstanced('tree'); // true
+
+// Cleanup
+im.removeAll('tree');
+im.dispose();
+
+// Strategy: 1-2 copies → Mesh clone, 3+ → InstancedMesh
+// Reused Matrix4/Vector3 objects (zero GC in hot path)
+```
+
 ## KEY TYPES
 ```typescript
 type RenderMode = '2d' | '3d' | 'hybrid';
 type TransitionType = 'none' | 'fade' | 'slide' | 'zoom';
 interface Vector2 { x: number; y: number; }
 interface Vector3 { x: number; y: number; z: number; }
+
+// Quality tier (adaptive performance)
+interface QualityTier {
+  name: string; dpr: number; shadowMapSize: number;
+  shadowsEnabled: boolean; postProcessing: boolean;
+  drawDistance: number; particleMultiplier: number;
+  textureResolution: 'low' | 'medium' | 'high';
+  antialiasing: boolean; maxLights: number;
+}
+
+// Pointer event types (3D)
+type PointerEvent3DType =
+  | 'click' | 'dblclick' | 'contextmenu'
+  | 'pointerdown' | 'pointerup' | 'pointermove'
+  | 'pointerenter' | 'pointerleave' | 'pointerover' | 'pointerout';
+
+// Procedural sound types
+type GameSoundType =
+  | 'hit' | 'pickup' | 'explosion' | 'laser' | 'powerUp'
+  | 'death' | 'click' | 'jump' | 'land' | 'coin'
+  | 'error' | 'success' | 'whoosh' | 'thrust' | 'nearMiss';
 ```
