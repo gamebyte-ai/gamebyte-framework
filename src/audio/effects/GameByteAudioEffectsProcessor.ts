@@ -502,7 +502,7 @@ export class GameByteAudioEffectsProcessor extends EventEmitter<AudioEvents> imp
   /**
    * Create distortion curve
    */
-  private createDistortionCurve(amount: number): Float32Array {
+  private createDistortionCurve(amount: number): Float32Array<ArrayBuffer> {
     const samples = 44100;
     const curve = new Float32Array(samples);
     const deg = Math.PI / 180;

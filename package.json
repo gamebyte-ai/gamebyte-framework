@@ -152,7 +152,6 @@
     "@rollup/plugin-commonjs": "^25.0.7",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@rollup/plugin-wasm": "^6.2.2",
-    "@rollup/rollup-linux-arm64-gnu": "^4.57.1",
     "@types/jest": "^29.5.14",
     "@types/matter-js": "^0.19.0",
     "@types/three": "^0.169.0",
