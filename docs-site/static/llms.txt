@@ -1,6 +1,6 @@
 # GameByte Framework Documentation
 > Modern Mobile-First Game Development Framework
-> Version: 1.2.1
+> Version: 1.3.0
 
 ## Overview
 GameByte is a comprehensive JavaScript game framework that unifies 2D (Pixi.js v8) and 3D (Three.js) rendering with Laravel-inspired architecture. Mobile-optimized with 44px touch targets and performance features.
