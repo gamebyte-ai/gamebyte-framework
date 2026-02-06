@@ -34,7 +34,7 @@ jobs:
           cache-dependency-path: docs-site/package-lock.json
 
       - name: Install dependencies
-        run: cd docs-site && npm ci
+        run: cd docs-site && npm install
 
       - name: Build documentation
         run: cd docs-site && npm run build
