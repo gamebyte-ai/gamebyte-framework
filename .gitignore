@@ -140,3 +140,6 @@ benchmark-results/
 # Performance profiling
 *.cpuprofile
 *.heapprofile
+
+# Git worktrees
+.worktrees/
