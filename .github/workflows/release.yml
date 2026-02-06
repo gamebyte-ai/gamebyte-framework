@@ -16,11 +16,14 @@ on:
         type: boolean
         default: false
 
+permissions:
+  contents: write
+
 jobs:
   release:
     name: Create Release
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -84,15 +87,14 @@ jobs:
         git push origin "v${{ inputs.version }}"
 
     - name: Create GitHub Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
+      continue-on-error: true
       with:
         tag_name: ${{ inputs.version && format('v{0}', inputs.version) || github.ref_name }}
         body: ${{ steps.changelog.outputs.CHANGELOG }}
         files: |
           dist/*.js
           dist/*.d.ts
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
     - name: Publish to npm
       run: npm publish --access public
