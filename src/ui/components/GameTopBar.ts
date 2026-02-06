@@ -105,7 +105,7 @@ export class GameTopBar extends EventEmitter {
   private createSettingsButton(): void {
     const buttonSize = this.config.height - 10;
     this.settingsButton = graphics().createContainer();
-    this.settingsButton.x = this.config.padding;
+    this.settingsButton.x = this.config.padding + buttonSize / 2;
     this.settingsButton.y = this.config.height / 2;
 
     // Background circle
