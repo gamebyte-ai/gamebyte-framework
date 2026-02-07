@@ -80,8 +80,8 @@ const config: Config = {
 
     // Announcement bar (optional)
     announcementBar: {
-      id: 'ai_friendly',
-      content: '🤖 AI-Agent Friendly! Check out <a href="/llms.txt">llms.txt</a> for AI integration',
+      id: 'v1_3_0_release',
+      content: '🚀 v1.3.0 released! 10 new feature modules — <a href="/changelog/v1.3.0">See what\'s new</a>',
       backgroundColor: '#7C44EA',
       textColor: '#ffffff',
       isCloseable: true,
@@ -111,6 +111,11 @@ const config: Config = {
         {
           to: '/ai-agent-guide',
           label: 'AI Agents',
+          position: 'left',
+        },
+        {
+          to: '/changelog',
+          label: 'Changelog',
           position: 'left',
         },
         {

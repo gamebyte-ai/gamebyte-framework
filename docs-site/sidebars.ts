@@ -167,6 +167,14 @@ const sidebars: SidebarsConfig = {
         'ai-agent-guide/quick-reference',
       ],
     },
+    {
+      type: 'category',
+      label: 'Changelog',
+      items: [
+        'changelog/changelog',
+        'changelog/v1.3.0',
+      ],
+    },
   ],
 };
 
