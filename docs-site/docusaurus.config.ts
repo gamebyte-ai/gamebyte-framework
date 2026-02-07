@@ -281,7 +281,7 @@ const config: Config = {
       attributes: {
         rel: 'apple-touch-icon',
         sizes: '180x180',
-        href: '/img/favicon.svg',
+        href: '/img/apple-touch-icon.png',
       },
     },
     {
