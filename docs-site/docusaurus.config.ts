@@ -48,6 +48,37 @@ const config: Config = {
         theme: {
           customCss: './src/css/custom.css',
         },
+      sitemap: {
+          lastmod: 'date',
+          changefreq: 'weekly',
+          priority: 0.5,
+          filename: 'sitemap.xml',
+          createSitemapItems: async (params) => {
+            const {defaultCreateSitemapItems, ...rest} = params;
+            const items = await defaultCreateSitemapItems(rest);
+            return items.map((item) => {
+              if (item.url.endsWith('/') || item.url.includes('/overview')) {
+                return {...item, priority: 1.0, changefreq: 'weekly' as const};
+              }
+              if (item.url.includes('/getting-started/')) {
+                return {...item, priority: 0.9, changefreq: 'monthly' as const};
+              }
+              if (item.url.includes('/api-reference')) {
+                return {...item, priority: 0.8, changefreq: 'weekly' as const};
+              }
+              if (item.url.includes('/changelog')) {
+                return {...item, priority: 0.7, changefreq: 'monthly' as const};
+              }
+              if (item.url.includes('/core-concepts/') || item.url.includes('/rendering/')) {
+                return {...item, priority: 0.7, changefreq: 'monthly' as const};
+              }
+              if (item.url.includes('/ai-agent-guide')) {
+                return {...item, priority: 0.6, changefreq: 'monthly' as const};
+              }
+              return item;
+            });
+          },
+        },
       } satisfies Preset.Options,
     ],
   ],
@@ -153,6 +184,10 @@ const config: Config = {
             {
               label: 'API Reference',
               to: '/api-reference',
+            },
+            {
+              label: 'Changelog',
+              to: '/changelog',
             },
           ],
         },
@@ -265,10 +300,13 @@ const config: Config = {
         '@context': 'https://schema.org',
         '@type': 'SoftwareApplication',
         name: 'GameByte Framework',
-        description: 'Modern Mobile-First Game Development Framework for Building Hit Games',
+        description: 'Modern Mobile-First Game Development Framework for Building Hit Games. Supports 2D (Pixi.js v8) and 3D (Three.js) rendering with Laravel-inspired architecture.',
         url: 'https://docs.gamebyte.dev',
         applicationCategory: 'DeveloperApplication',
         operatingSystem: 'Cross-platform',
+        softwareVersion: '1.3.0',
+        programmingLanguage: 'TypeScript',
+        runtimePlatform: 'Node.js',
         offers: {
           '@type': 'Offer',
           price: '0',
@@ -278,6 +316,28 @@ const config: Config = {
           '@type': 'Organization',
           name: 'GameByte',
           url: 'https://gamebyte.ai',
+        },
+        codeRepository: 'https://github.com/gamebyte-ai/gamebyte-framework',
+        license: 'https://opensource.org/licenses/MIT',
+      }),
+    },
+    {
+      tagName: 'script',
+      attributes: {
+        type: 'application/ld+json',
+      },
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: 'GameByte Framework Documentation',
+        url: 'https://docs.gamebyte.dev',
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: {
+            '@type': 'EntryPoint',
+            urlTemplate: 'https://docs.gamebyte.dev/search?q={search_term_string}',
+          },
+          'query-input': 'required name=search_term_string',
         },
       }),
     },

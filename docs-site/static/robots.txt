@@ -1,0 +1,22 @@
+# GameByte Framework Documentation
+# https://docs.gamebyte.dev
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://docs.gamebyte.dev/sitemap.xml
+
+# AI/LLM discovery
+# llms.txt: https://docs.gamebyte.dev/llms.txt
+# llms-full.txt: https://docs.gamebyte.dev/llms-full.txt
+
+# Crawl-delay for polite bots
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: SemrushBot
+Crawl-delay: 10
+
+# Block build artifacts
+Disallow: /assets/js/*.map

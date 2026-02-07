@@ -1,11 +1,74 @@
 ---
 id: changelog
-title: Changelog
-description: All notable changes to GameByte Framework
+title: Changelog — GameByte Framework Release History
+description: "Complete release history for GameByte Framework. Track new features, breaking changes, migration guides, and version updates for this mobile-first game development framework."
 sidebar_position: 1
 slug: /changelog
-keywords: [changelog, releases, versions, updates, migration]
+keywords: [gamebyte changelog, release history, version updates, breaking changes, migration guide, game framework releases, gamebyte v1.3, gamebyte v1.2, what's new gamebyte]
+image: /img/changelog/changelog-timeline.png
+last_update:
+  date: 2026-02-06
+  author: GameByte Team
+llm_summary: "GameByte changelog listing all releases from v0.1.0 to v1.3.0. Latest release v1.3.0 adds 10 feature modules: TickSystem, ResourceTracker, RaycastEventSystem, PerformanceAdvisor, InstanceManager, PostProcessingPipeline, EnvironmentSystem, PrefabSystem, SmartAssetPipeline, GameSoundPresets."
 ---
+
+<!-- llm-context: changelog, release-history, version-updates, breaking-changes, migration, gamebyte-framework -->
+
+import Head from '@docusaurus/Head';
+
+<Head>
+  <meta property="og:type" content="article" />
+  <meta property="article:published_time" content="2026-02-06T00:00:00Z" />
+  <meta property="article:modified_time" content="2026-02-06T00:00:00Z" />
+  <meta property="article:section" content="Changelog" />
+  <meta property="article:tag" content="release" />
+  <meta property="article:tag" content="changelog" />
+  <meta property="article:tag" content="game framework" />
+  <link rel="canonical" href="https://docs.gamebyte.dev/changelog" />
+  <script type="application/ld+json">
+  {JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": "GameByte Framework Release History",
+    "description": "Complete changelog for GameByte Framework — a modern mobile-first game development framework",
+    "url": "https://docs.gamebyte.dev/changelog",
+    "numberOfItems": 5,
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "v1.3.0 — Comprehensive Feature Expansion",
+        "url": "https://docs.gamebyte.dev/changelog/v1.3.0",
+        "description": "10 new feature modules, 5 facades, 15,000+ lines of production code"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "v1.2.1 — Bug Fixes",
+        "url": "https://github.com/gamebyte-ai/gamebyte-framework/releases/tag/v1.2.1"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": "v1.2.0 — @pixi/ui Integration",
+        "url": "https://github.com/gamebyte-ai/gamebyte-framework/releases/tag/v1.2.0"
+      },
+      {
+        "@type": "ListItem",
+        "position": 4,
+        "name": "v1.1.0 — AI-Agent-Friendly Framework",
+        "url": "https://github.com/gamebyte-ai/gamebyte-framework/releases/tag/v1.1.0"
+      },
+      {
+        "@type": "ListItem",
+        "position": 5,
+        "name": "v0.1.0 — Initial Release",
+        "url": "https://github.com/gamebyte-ai/gamebyte-framework/releases/tag/v0.1.0"
+      }
+    ]
+  })}
+  </script>
+</Head>
 
 # Changelog
 
