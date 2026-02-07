@@ -1460,7 +1460,7 @@ import { GameSplash } from '@gamebyte/framework';
 
 // Initialize (creates DOM-based splash before canvas is ready)
 const splash = GameSplash.init({
-  logoUrl: '/img/logo.svg',
+  logoUrl: '/img/logo-icon.svg',
   backgroundColor: '#0a0a1a',
   glowColor: '#6366f1',
   accentColor: '#a855f7',
