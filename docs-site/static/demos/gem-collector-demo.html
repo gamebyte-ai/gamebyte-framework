@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - Gem Collector Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
+        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
+        #game-container { border-radius: 12px; overflow: hidden; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4); }
+        canvas { display: block; }
+        .info { color: #8892b0; margin-top: 20px; font-size: 12px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Gem Collector</h1>
+    <p>GameByte Asset System - Loading, Progress & Caching</p>
+    <div id="game-container"></div>
+    <div class="info">Arrow keys or tap sides to move. Catch gems, avoid bombs!</div>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
+    <script>
+    const {
+        createGame, graphics, loadFrameworkFont,
+        SplashScreen, GameStyleButton,
+        GameTopBar, ResultScreen, CelebrationManager
+    } = GameByteFramework;
+
+    const WIDTH = 500;
+    const HEIGHT = 600;
+
+    // Game state
+    let gameState = 'splash';
+    let score = 0;
+    let currentLevel = 1;
+    let gemsCollected = 0;
+    const GEMS_PER_LEVEL = 10;
+    const TOTAL_LEVELS = 3;
+
+    // Game objects
+    let basket = null;
+    let basketTargetX = 250;
+    let gems = [];
+    let topBar = null;
+    let loadingContainer = null;
+    let progressBar = null;
+    let loadingText = null;
+    let statusText = null;
+
+    // Containers
+    let splashContainer, menuContainer, gameContainer, loadingScreenContainer;
+
+    // GameByte game instance and factory
+    let game;
+    const factory = graphics();
+
+    // Splash Screen
+    function createSplash() {
+        splashContainer = factory.createContainer();
+
+        const title = factory.createText('GEM COLLECTOR', {
+            fontSize: 48,
+            fill: 0xFFD700,
+            fontFamily: 'Lilita One, Arial, sans-serif',
+            align: 'center'
+        });
+        title.anchor.set(0.5);
+        title.x = 250;
+        title.y = 250;
+
+        const emoji = factory.createText('\u{1F48E}', {
+            fontSize: 80,
+            align: 'center'
+        });
+        emoji.anchor.set(0.5);
+        emoji.x = 250;
+        emoji.y = 350;
+
+        splashContainer.addChild(title);
+        splashContainer.addChild(emoji);
+        game.stage.addChild(splashContainer);
+
+        setTimeout(() => {
+            game.stage.removeChild(splashContainer);
+            createMenu();
+        }, 2000);
+    }
+
+    // Menu Screen
+    function createMenu() {
+        gameState = 'menu';
+        menuContainer = factory.createContainer();
+
+        const title = factory.createText('GEM COLLECTOR', {
+            fontSize: 42,
+            fill: 0xFFD700,
+            fontFamily: 'Lilita One, Arial, sans-serif',
+            align: 'center'
+        });
+        title.anchor.set(0.5);
+        title.x = 250;
+        title.y = 150;
+
+        const subtitle = factory.createText('Catch gems, avoid bombs!', {
+            fontSize: 20,
+            fill: 0x8892b0,
+            fontFamily: 'Lilita One, Arial, sans-serif',
+            align: 'center'
+        });
+        subtitle.anchor.set(0.5);
+        subtitle.x = 250;
+        subtitle.y = 220;
+
+        const playBtn = new GameStyleButton({
+            text: 'PLAY',
+            width: 200,
+            height: 60
+        });
+        playBtn.x = 150;
+        playBtn.y = 350;
+        playBtn.on('click', startGame);
+
+        menuContainer.addChild(title);
+        menuContainer.addChild(subtitle);
+        menuContainer.addChild(playBtn.getContainer());
+        game.stage.addChild(menuContainer);
+    }
+
+    // Loading Screen
+    function showLoadingScreen(level) {
+        gameState = 'loading';
+        loadingScreenContainer = factory.createContainer();
+
+        const bg = factory.createGraphics();
+        bg.rect(0, 0, 500, 600);
+        bg.fill({ color: 0x0f172a });
+
+        loadingText = factory.createText(`Loading Level ${level}...`, {
+            fontSize: 32,
+            fill: 0xFFFFFF,
+            fontFamily: 'Lilita One, Arial, sans-serif',
+            align: 'center'
+        });
+        loadingText.anchor.set(0.5);
+        loadingText.x = 250;
+        loadingText.y = 200;
+
+        // Progress bar background
+        const barBg = factory.createGraphics();
+        barBg.roundRect(100, 280, 300, 30, 8);
+        barBg.fill({ color: 0x1a1a3e });
+        barBg.stroke({ color: 0x3a3a5e, width: 2 });
+
+        // Progress bar fill
+        progressBar = factory.createGraphics();
+
+        statusText = factory.createText('Loading gem textures...', {
+            fontSize: 16,
+            fill: 0x8892b0,
+            fontFamily: 'Lilita One, Arial, sans-serif',
+            align: 'center'
+        });
+        statusText.anchor.set(0.5);
+        statusText.x = 250;
+        statusText.y = 340;
+
+        loadingScreenContainer.addChild(bg);
+        loadingScreenContainer.addChild(loadingText);
+        loadingScreenContainer.addChild(barBg);
+        loadingScreenContainer.addChild(progressBar);
+        loadingScreenContainer.addChild(statusText);
+        game.stage.addChild(loadingScreenContainer);
+
+        simulateLoading(level);
+    }
+
+    // Simulate asset loading with progress
+    function simulateLoading(level) {
+        let progress = 0;
+        const duration = level === 1 ? 2000 : 1500;
+        const steps = 20;
+        const stepTime = duration / steps;
+
+        const interval = setInterval(() => {
+            progress += 5;
+
+            // Update progress bar
+            progressBar.clear();
+            const fillWidth = (296 * progress) / 100;
+            progressBar.roundRect(102, 282, fillWidth, 26, 6);
+            progressBar.fill({ color: 0x4CAF50 });
+
+            // Update status text
+            if (progress < 30) {
+                statusText.text = 'Loading gem textures...';
+            } else if (progress < 60) {
+                statusText.text = 'Loading backgrounds...';
+            } else if (progress < 90) {
+                statusText.text = 'Preparing level data...';
+            } else {
+                statusText.text = 'Almost ready...';
+            }
+
+            if (progress >= 100) {
+                clearInterval(interval);
+                setTimeout(() => {
+                    game.stage.removeChild(loadingScreenContainer);
+                    startPlaying();
+                }, 200);
+            }
+        }, stepTime);
+    }
+
+    // Start game
+    function startGame() {
+        game.stage.removeChild(menuContainer);
+        score = 0;
+        currentLevel = 1;
+        gemsCollected = 0;
+        showLoadingScreen(currentLevel);
+    }
+
+    // Start playing after loading
+    function startPlaying() {
+        gameState = 'playing';
+        gameContainer = factory.createContainer();
+
+        // Create basket
+        basket = factory.createContainer();
+        const basketGfx = factory.createGraphics();
+        basketGfx.roundRect(-40, 0, 80, 25, 5);
+        basketGfx.fill({ color: 0x8B4513 });
+        basketGfx.moveTo(-40, 0);
+        basketGfx.lineTo(-35, -15);
+        basketGfx.lineTo(35, -15);
+        basketGfx.lineTo(40, 0);
+        basketGfx.stroke({ color: 0x654321, width: 3 });
+        basketGfx.fill({ color: 0xA0522D });
+        basket.addChild(basketGfx);
+        basket.x = 250;
+        basket.y = 550;
+
+        // Create top bar
+        topBar = new GameTopBar({
+            title: `Level ${currentLevel}`,
+            showLives: false
+        });
+        topBar.setScore(score);
+        topBar.setCustomValue(`Gems: ${GEMS_PER_LEVEL - gemsCollected}`);
+
+        gameContainer.addChild(topBar.getContainer());
+        gameContainer.addChild(basket);
+        game.stage.addChild(gameContainer);
+
+        basketTargetX = 250;
+        gems = [];
+    }
+
+    // Spawn gem
+    function spawnGem() {
+        if (gameState !== 'playing') return;
+
+        const isBomb = Math.random() < 0.15;
+        const gem = factory.createContainer();
+
+        const gfx = factory.createGraphics();
+
+        if (isBomb) {
+            gfx.circle(0, 0, 15);
+            gfx.fill({ color: 0x1a1a1a });
+            gfx.stroke({ color: 0xFF0000, width: 2 });
+
+            const label = factory.createText('\u274C', {
+                fontSize: 18,
+                align: 'center'
+            });
+            label.anchor.set(0.5);
+            gem.addChild(label);
+        } else {
+            let gemColor, value;
+            const rand = Math.random();
+
+            if (rand < 0.7) {
+                gemColor = 0xFF6B6B;
+                value = 10;
+            } else if (rand < 0.9) {
+                gemColor = 0x4ECDC4;
+                value = 25;
+            } else {
+                gemColor = 0xFFD700;
+                value = 50;
+            }
+
+            if (currentLevel === 1) {
+                gfx.circle(0, 0, 15);
+                gfx.fill({ color: gemColor });
+                gfx.stroke({ color: 0xFFFFFF, width: 2, alpha: 0.5 });
+            } else if (currentLevel === 2) {
+                gfx.rect(-12, -12, 24, 24);
+                gfx.fill({ color: gemColor });
+                gfx.stroke({ color: 0xFFFFFF, width: 2, alpha: 0.5 });
+                gem.rotation = Math.PI / 4;
+            } else {
+                for (let i = 0; i < 5; i++) {
+                    const angle = (i * 2 * Math.PI) / 5 - Math.PI / 2;
+                    const outerX = Math.cos(angle) * 15;
+                    const outerY = Math.sin(angle) * 15;
+                    const innerAngle = angle + Math.PI / 5;
+                    const innerX = Math.cos(innerAngle) * 7;
+                    const innerY = Math.sin(innerAngle) * 7;
+
+                    if (i === 0) {
+                        gfx.moveTo(outerX, outerY);
+                    } else {
+                        gfx.lineTo(outerX, outerY);
+                    }
+                    gfx.lineTo(innerX, innerY);
+                }
+                gfx.closePath();
+                gfx.fill({ color: gemColor });
+                gfx.stroke({ color: 0xFFFFFF, width: 2, alpha: 0.5 });
+            }
+
+            gem.userData = { value };
+        }
+
+        gem.addChild(gfx);
+        gem.x = Math.random() * 450 + 25;
+        gem.y = -20;
+        gem.userData = { ...gem.userData, isBomb, speed: 2 + Math.random() * 2 };
+
+        gameContainer.addChild(gem);
+        gems.push(gem);
+    }
+
+    // Input handling
+    const keys = {};
+
+    // Next level
+    function nextLevel() {
+        gameState = 'levelLoading';
+        game.stage.removeChild(gameContainer);
+        currentLevel++;
+        gemsCollected = 0;
+        showLoadingScreen(currentLevel);
+    }
+
+    // End game
+    function endGame(victory) {
+        gameState = 'gameover';
+        game.stage.removeChild(gameContainer);
+
+        const stars = Math.min(currentLevel, 3);
+        const resultScreen = new ResultScreen({
+            title: victory ? 'Victory!' : 'Game Over',
+            score: score,
+            stars: stars,
+            onRestart: () => {
+                game.stage.removeChild(resultScreen.getContainer());
+                createMenu();
+            }
+        });
+        game.stage.addChild(resultScreen.getContainer());
+
+        if (victory) {
+            const celebration = new CelebrationManager(game.stage, 500, 600);
+            celebration.victory();
+        }
+    }
+
+    // Initialize application
+    async function initApp() {
+        await loadFrameworkFont();
+
+        game = await createGame({
+            container: '#game-container',
+            width: WIDTH,
+            height: HEIGHT,
+            mode: '2d',
+            backgroundColor: 0x0f172a
+        });
+
+        // Setup input handlers
+        window.addEventListener('keydown', (e) => { keys[e.key] = true; });
+        window.addEventListener('keyup', (e) => { keys[e.key] = false; });
+
+        game.getCanvas().addEventListener('click', (e) => {
+            if (gameState !== 'playing') return;
+            const rect = game.getCanvas().getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            if (x < 250) {
+                basketTargetX = Math.max(50, basketTargetX - 80);
+            } else {
+                basketTargetX = Math.min(450, basketTargetX + 80);
+            }
+        });
+
+        // Game loop
+        let lastSpawn = 0;
+        game.onUpdate((deltaMS) => {
+            if (gameState !== 'playing') return;
+
+            const delta = deltaMS / 16.67; // Normalize to ~1.0 at 60fps
+
+            // Move basket
+            if (keys['ArrowLeft']) basketTargetX = Math.max(50, basketTargetX - 5);
+            if (keys['ArrowRight']) basketTargetX = Math.min(450, basketTargetX + 5);
+            basket.x += (basketTargetX - basket.x) * 0.2;
+
+            // Spawn gems
+            lastSpawn += delta;
+            if (lastSpawn > 60) {
+                spawnGem();
+                lastSpawn = 0;
+            }
+
+            // Update gems
+            for (let i = gems.length - 1; i >= 0; i--) {
+                const gem = gems[i];
+                gem.y += gem.userData.speed;
+
+                // Collision detection
+                if (gem.y > 520 && gem.y < 560 &&
+                    Math.abs(gem.x - basket.x) < 50) {
+
+                    if (gem.userData.isBomb) {
+                        score = Math.max(0, score - 50);
+                    } else {
+                        score += gem.userData.value;
+                        gemsCollected++;
+                    }
+
+                    topBar.setScore(score);
+                    topBar.setCustomValue(`Gems: ${GEMS_PER_LEVEL - gemsCollected}`);
+
+                    gameContainer.removeChild(gem);
+                    gems.splice(i, 1);
+
+                    // Check level completion
+                    if (gemsCollected >= GEMS_PER_LEVEL) {
+                        if (currentLevel < TOTAL_LEVELS) {
+                            nextLevel();
+                        } else {
+                            endGame(true);
+                        }
+                    }
+                    continue;
+                }
+
+                // Remove off-screen gems
+                if (gem.y > 620) {
+                    gameContainer.removeChild(gem);
+                    gems.splice(i, 1);
+                }
+            }
+
+            // Check game over
+            if (score < 0) {
+                endGame(false);
+            }
+        });
+
+        // Start with splash screen
+        createSplash();
+    }
+
+    // Start application
+    initApp();
+    </script>
+</body>
+</html>

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - Config Playground</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
+        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
+        .playground {
+            display: flex;
+            gap: 16px;
+            max-width: 700px;
+            width: 100%;
+        }
+        .controls {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 16px;
+            width: 240px;
+            flex-shrink: 0;
+            border: 1px solid #334155;
+        }
+        .controls h3 {
+            color: #e2e8f0;
+            font-size: 14px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #334155;
+        }
+        .control-group {
+            margin-bottom: 14px;
+        }
+        .control-group label {
+            color: #94a3b8;
+            font-size: 12px;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .control-group .value {
+            color: #e2e8f0;
+            font-size: 11px;
+            float: right;
+        }
+        input[type="range"] {
+            width: 100%;
+            accent-color: #6366f1;
+        }
+        input[type="color"] {
+            width: 100%;
+            height: 30px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            background: transparent;
+        }
+        .toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .toggle input[type="checkbox"] {
+            width: 36px;
+            height: 20px;
+            accent-color: #6366f1;
+        }
+        .toggle span {
+            color: #e2e8f0;
+            font-size: 12px;
+        }
+        select {
+            width: 100%;
+            background: #0f172a;
+            color: #e2e8f0;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 6px 8px;
+            font-size: 12px;
+        }
+        #game-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            flex: 1;
+            min-width: 300px;
+        }
+        canvas { display: block; width: 100%; height: auto; }
+        .config-output {
+            background: #0f172a;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+            font-family: 'Fira Code', monospace;
+            font-size: 10px;
+            color: #94a3b8;
+            max-height: 120px;
+            overflow-y: auto;
+            border: 1px solid #1e293b;
+        }
+        .config-output .key { color: #22d3ee; }
+        .config-output .val { color: #4ade80; }
+    </style>
+</head>
+<body>
+    <h1>Configuration Playground</h1>
+    <p>Adjust settings and see changes in real-time</p>
+
+    <div class="playground">
+        <div class="controls">
+            <h3>Renderer</h3>
+
+            <div class="control-group">
+                <label>Background Color</label>
+                <input type="color" id="bgColor" value="#1a1a2e">
+            </div>
+
+            <div class="control-group">
+                <label>Resolution <span class="value" id="resVal">1x</span></label>
+                <input type="range" id="resolution" min="0.5" max="3" step="0.5" value="1">
+            </div>
+
+            <div class="control-group toggle">
+                <input type="checkbox" id="antialias" checked>
+                <span>Antialias</span>
+            </div>
+
+            <h3>Debug</h3>
+
+            <div class="control-group toggle">
+                <input type="checkbox" id="showFPS">
+                <span>Show FPS</span>
+            </div>
+
+            <div class="control-group toggle">
+                <input type="checkbox" id="showGrid">
+                <span>Show Grid</span>
+            </div>
+
+            <div class="control-group">
+                <label>Log Level</label>
+                <select id="logLevel">
+                    <option value="none">none</option>
+                    <option value="error">error</option>
+                    <option value="warn" selected>warn</option>
+                    <option value="info">info</option>
+                    <option value="debug">debug</option>
+                </select>
+            </div>
+
+            <h3>Animation</h3>
+
+            <div class="control-group">
+                <label>Speed <span class="value" id="speedVal">1.0x</span></label>
+                <input type="range" id="speed" min="0" max="3" step="0.1" value="1">
+            </div>
+
+            <div class="control-group">
+                <label>Objects <span class="value" id="objVal">5</span></label>
+                <input type="range" id="objects" min="1" max="20" step="1" value="5">
+            </div>
+
+            <div id="configOutput" class="config-output"></div>
+        </div>
+
+        <div id="game-container"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="../gamebyte.umd.js"></script>
+
+    <script>
+        const {
+            createGame,
+            loadFrameworkFont,
+            getFrameworkFontFamily,
+            graphics: getGraphics
+        } = window.GameByteFramework;
+
+        const CONFIG = { width: 420, height: 400 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.getElementById('game-container').appendChild(canvas);
+
+        const game = createGame();
+        let renderer, stage, gfx;
+
+        // State
+        let bgColorHex = 0x1a1a2e;
+        let animSpeed = 1;
+        let objectCount = 5;
+        let showFPS = false;
+        let showGrid = false;
+        let shapes = [];
+        let bgRect, fpsText, gridContainer;
+
+        const shapeColors = [0x6366f1, 0x22d3ee, 0xf472b6, 0xfbbf24, 0x4ade80, 0xf87171, 0xa78bfa, 0x38bdf8, 0xfb923c, 0xe879f9];
+
+        async function init() {
+            await loadFrameworkFont();
+            await game.initialize(canvas, '2d');
+            renderer = game.make('renderer');
+            stage = renderer.getStage();
+            gfx = getGraphics();
+
+            // Background
+            bgRect = gfx.createGraphics();
+            drawBg();
+            stage.addChild(bgRect);
+
+            // Grid overlay
+            gridContainer = gfx.createContainer();
+            gridContainer.visible = false;
+            drawGrid();
+            stage.addChild(gridContainer);
+
+            // Create initial shapes
+            recreateShapes();
+
+            // FPS counter
+            fpsText = gfx.createText('FPS: --', {
+                fontFamily: getFrameworkFontFamily(),
+                fontSize: 14,
+                fill: 0x4ade80
+            });
+            fpsText.x = 10;
+            fpsText.y = 10;
+            fpsText.visible = false;
+            stage.addChild(fpsText);
+
+            // Game loop
+            game.on('update', (dt) => {
+                const time = Date.now() / 1000;
+                shapes.forEach((shape, i) => {
+                    const offset = (i / shapes.length) * Math.PI * 2;
+                    shape.rotation += 0.02 * animSpeed * (dt / 16.67);
+                    shape.y = shape.baseY + Math.sin(time * 2 * animSpeed + offset) * 15;
+                    shape.scale.set(0.8 + Math.sin(time * 3 * animSpeed + offset) * 0.15);
+                });
+
+                if (showFPS) {
+                    fpsText.text = `FPS: ${Math.round(1000 / dt)} | Objects: ${shapes.length}`;
+                }
+            });
+
+            game.start();
+            updateConfigOutput();
+        }
+
+        function drawBg() {
+            bgRect.clear();
+            bgRect.rect(0, 0, CONFIG.width, CONFIG.height);
+            bgRect.fill({ color: bgColorHex });
+        }
+
+        function drawGrid() {
+            // Clear existing
+            while (gridContainer.children && gridContainer.children.length > 0) {
+                gridContainer.removeChildAt(0);
+            }
+            const g = gfx.createGraphics();
+            for (let x = 0; x <= CONFIG.width; x += 40) {
+                g.moveTo(x, 0);
+                g.lineTo(x, CONFIG.height);
+            }
+            for (let y = 0; y <= CONFIG.height; y += 40) {
+                g.moveTo(0, y);
+                g.lineTo(CONFIG.width, y);
+            }
+            g.stroke({ color: 0xffffff, width: 0.5, alpha: 0.15 });
+            gridContainer.addChild(g);
+        }
+
+        function recreateShapes() {
+            // Remove existing
+            shapes.forEach(s => stage.removeChild(s));
+            shapes = [];
+
+            const margin = 60;
+            const areaW = CONFIG.width - margin * 2;
+            const areaH = CONFIG.height - margin * 2;
+            const centerY = CONFIG.height / 2;
+
+            for (let i = 0; i < objectCount; i++) {
+                const shape = gfx.createGraphics();
+                const color = shapeColors[i % shapeColors.length];
+                const size = 20 + Math.random() * 15;
+                const type = i % 3;
+
+                if (type === 0) {
+                    shape.rect(-size, -size, size * 2, size * 2);
+                } else if (type === 1) {
+                    shape.circle(0, 0, size);
+                } else {
+                    const points = [];
+                    for (let j = 0; j < 6; j++) {
+                        const angle = (j * Math.PI / 3) - Math.PI / 2;
+                        points.push(Math.cos(angle) * size, Math.sin(angle) * size);
+                    }
+                    shape.poly(points);
+                }
+                shape.fill({ color, alpha: 0.8 });
+                shape.stroke({ color: 0xffffff, width: 1.5, alpha: 0.3 });
+
+                shape.x = margin + (i / Math.max(objectCount - 1, 1)) * areaW;
+                shape.y = centerY;
+                shape.baseY = centerY;
+                if (objectCount === 1) shape.x = CONFIG.width / 2;
+
+                stage.addChild(shape);
+                shapes.push(shape);
+            }
+
+            // Re-add FPS on top
+            if (fpsText) {
+                stage.removeChild(fpsText);
+                stage.addChild(fpsText);
+            }
+        }
+
+        function hexToNum(hex) {
+            return parseInt(hex.replace('#', ''), 16);
+        }
+
+        function updateConfigOutput() {
+            const bgHex = '#' + bgColorHex.toString(16).padStart(6, '0');
+            const configStr = `{
+  <span class="key">renderer</span>: {
+    <span class="key">backgroundColor</span>: <span class="val">${bgHex}</span>,
+    <span class="key">resolution</span>: <span class="val">${document.getElementById('resolution').value}</span>,
+    <span class="key">antialias</span>: <span class="val">${document.getElementById('antialias').checked}</span>
+  },
+  <span class="key">debug</span>: {
+    <span class="key">showFPS</span>: <span class="val">${showFPS}</span>,
+    <span class="key">logLevel</span>: <span class="val">'${document.getElementById('logLevel').value}'</span>
+  }
+}`;
+            document.getElementById('configOutput').innerHTML = configStr;
+        }
+
+        // Wire up controls
+        document.getElementById('bgColor').addEventListener('input', (e) => {
+            bgColorHex = hexToNum(e.target.value);
+            drawBg();
+            updateConfigOutput();
+        });
+
+        document.getElementById('resolution').addEventListener('input', (e) => {
+            document.getElementById('resVal').textContent = e.target.value + 'x';
+            updateConfigOutput();
+        });
+
+        document.getElementById('antialias').addEventListener('change', () => {
+            updateConfigOutput();
+        });
+
+        document.getElementById('showFPS').addEventListener('change', (e) => {
+            showFPS = e.target.checked;
+            if (fpsText) fpsText.visible = showFPS;
+            updateConfigOutput();
+        });
+
+        document.getElementById('showGrid').addEventListener('change', (e) => {
+            showGrid = e.target.checked;
+            if (gridContainer) gridContainer.visible = showGrid;
+        });
+
+        document.getElementById('speed').addEventListener('input', (e) => {
+            animSpeed = parseFloat(e.target.value);
+            document.getElementById('speedVal').textContent = animSpeed.toFixed(1) + 'x';
+        });
+
+        document.getElementById('objects').addEventListener('input', (e) => {
+            objectCount = parseInt(e.target.value);
+            document.getElementById('objVal').textContent = objectCount;
+            recreateShapes();
+        });
+
+        init().catch(console.error);
+    </script>
+</body>
+</html>

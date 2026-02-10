@@ -7,9 +7,13 @@ keywords: [layout, presets, flexbox, ui-patterns, game-ui]
 llm_summary: "LayoutPresets provides pre-defined flexbox configurations. GameLayoutPresets has game-specific layouts. Helper functions create custom layouts easily."
 ---
 
+import LiveDemo from '@site/src/components/LiveDemo';
+
 # Layout Presets
 
 GameByte provides pre-defined layout configurations for common UI patterns.
+
+<LiveDemo src="/demos/layout-demo.html" height="700" title="Layout Presets Demo" />
 
 ## LayoutPresets
 
@@ -286,8 +290,3 @@ const scaledLayout = scaleLayout(LayoutPresets.card, 1.5);
 container.layout = scaledLayout;
 ```
 
-## Live Demo
-
-import LiveDemo from '@site/src/components/LiveDemo';
-
-<LiveDemo src="/demos/layout-demo.html" height="700" title="Layout Presets Demo" />

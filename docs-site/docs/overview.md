@@ -94,8 +94,20 @@ GameByte is optimized for AI-driven development:
 
 See the [AI Agent Guide](/ai-agent-guide) for integration details.
 
-## Live Demo
+## Live Demos
 
 import LiveDemo from '@site/src/components/LiveDemo';
 
 <LiveDemo src="/demos/game-ui-showcase.html" height="600" title="GameByte UI Showcase" />
+
+### Space Shooter
+
+<LiveDemo src="/demos/space-shooter-demo.html" height="500" title="Space Shooter - 2D Game Demo" />
+
+### 3D Rendering
+
+<LiveDemo src="/demos/3d-basic-shapes.html" height="400" title="3D Basic Shapes Demo" />
+
+### Physics Engine
+
+<LiveDemo src="/demos/physics-2d-demo.html" height="450" title="2D Physics Demo" />

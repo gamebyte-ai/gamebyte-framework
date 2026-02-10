@@ -9,9 +9,19 @@ llm_summary: "Laravel-inspired DI container. game.bind(key, factory) registers s
 
 <!-- llm-context: architecture, service-container, dependency-injection, providers, facades, laravel-style -->
 
+import LiveDemo from '@site/src/components/LiveDemo';
+
 # Architecture
 
 GameByte uses a Laravel-inspired architecture with a service container, service providers, and facades.
+
+<LiveDemo
+  src="/demos/architecture-demo.html"
+  height={540}
+  title="Service Container - Interactive Visualization"
+/>
+
+<LiveDemo src="/demos/cookie-clicker-demo.html" height="600" title="Cookie Clicker - Service Container & Reactive State in Action" />
 
 ## Service Container
 
@@ -237,6 +247,14 @@ interface ServiceMap {
 // Type-safe resolution
 const score = game.make<ServiceMap['score.manager']>('score.manager');
 ```
+
+## Reactive State
+
+<LiveDemo
+  src="/demos/reactive-state-demo.html"
+  height={500}
+  title="Reactive State Management Demo"
+/>
 
 ## Architecture Diagram
 

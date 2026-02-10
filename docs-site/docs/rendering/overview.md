@@ -9,9 +9,25 @@ llm_summary: "Three render modes: '2d' (Pixi.js), '3d' (Three.js), 'hybrid' (bot
 
 <!-- llm-context: rendering, pixi-v8, three-js, 2d, 3d, hybrid-mode, webgl, webgpu -->
 
+import LiveDemo from '@site/src/components/LiveDemo';
+
 # Rendering Overview
 
 GameByte supports three rendering modes to cover any game type.
+
+<LiveDemo src="/demos/neon-pong-demo.html" height="600" title="Neon Pong - Graphics Primitives in Action" />
+
+### 2D Rendering (Pixi.js)
+
+<LiveDemo src="/demos/graphics-shapes.html" height="400" title="2D Graphics - Shapes & Effects" />
+
+### 3D Rendering (Three.js)
+
+<LiveDemo src="/demos/3d-basic-shapes.html" height="400" title="3D Basic Shapes Demo" />
+
+### Hybrid Mode (2D + 3D)
+
+<LiveDemo src="/demos/hybrid-game.html" height="450" title="Hybrid Rendering Demo" />
 
 ## Rendering Modes
 
@@ -196,8 +212,3 @@ renderer.add(mesh);
 - [3D Rendering](/rendering/3d-three) - Deep dive into Three.js
 - [Hybrid Mode](/rendering/hybrid-mode) - Combining 2D and 3D
 
-## Live Demo
-
-import LiveDemo from '@site/src/components/LiveDemo';
-
-<LiveDemo src="/demos/hybrid-game.html" height="450" title="Hybrid Rendering Demo" />

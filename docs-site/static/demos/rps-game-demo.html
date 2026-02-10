@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - Rock Paper Scissors</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
+        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
+        #game-container { border-radius: 12px; overflow: hidden; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4); }
+        canvas { display: block; }
+        .info { color: #8892b0; margin-top: 20px; font-size: 12px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Rock Paper Scissors</h1>
+    <p>GameByte Scene Management - Multi-Scene Transitions</p>
+    <div id="game-container"></div>
+    <div class="info">Best of 5 rounds! Choose your weapon.</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
+    <script>
+        const {
+            createGame, graphics, loadFrameworkFont,
+            GameStyleButton, GameStyleColors, ResultScreen
+        } = GameByteFramework;
+
+        const WIDTH = 500;
+        const HEIGHT = 600;
+        const CHOICES = ['rock', 'paper', 'scissors'];
+        const EMOJIS = { rock: '✊', paper: '✋', scissors: '✌️' };
+
+        // Game state
+        let playerScore = 0;
+        let aiScore = 0;
+        let currentRound = 1;
+        let currentScene = null;
+        let game = null;
+
+        // Initialize game
+        async function init() {
+            await loadFrameworkFont();
+
+            game = await createGame({
+                container: '#game-container',
+                width: WIDTH,
+                height: HEIGHT,
+                mode: '2d',
+                backgroundColor: 0x0a0e27
+            });
+
+            showSplashScene();
+        }
+
+        // Scene transition with fade effect
+        async function transitionTo(newSceneBuilder) {
+            if (currentScene) {
+                // Fade out current scene
+                await fadeOut(currentScene);
+                game.stage.removeChild(currentScene);
+            }
+
+            // Create and fade in new scene
+            currentScene = newSceneBuilder();
+            currentScene.alpha = 0;
+            game.stage.addChild(currentScene);
+            await fadeIn(currentScene);
+        }
+
+        function fadeOut(container) {
+            return new Promise(resolve => {
+                const duration = 300;
+                const startTime = Date.now();
+
+                function animate() {
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    container.alpha = 1 - progress;
+
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        resolve();
+                    }
+                }
+                animate();
+            });
+        }
+
+        function fadeIn(container) {
+            return new Promise(resolve => {
+                const duration = 300;
+                const startTime = Date.now();
+
+                function animate() {
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    container.alpha = progress;
+
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        resolve();
+                    }
+                }
+                animate();
+            });
+        }
+
+        // Splash Scene
+        function showSplashScene() {
+            transitionTo(() => {
+                const factory = graphics();
+                const scene = factory.createContainer();
+
+                // Title
+                const title = factory.createText('ROCK PAPER SCISSORS', {
+                    fontSize: 36,
+                    fontFamily: 'Lilita One, sans-serif',
+                    fill: 0xffffff,
+                    align: 'center'
+                });
+                title.anchor.set(0.5);
+                title.position.set(WIDTH / 2, 180);
+                scene.addChild(title);
+
+                // Emoji icons
+                const emojiText = factory.createText('✊  ✋  ✌️', {
+                    fontSize: 64,
+                    align: 'center'
+                });
+                emojiText.anchor.set(0.5);
+                emojiText.position.set(WIDTH / 2, 300);
+                scene.addChild(emojiText);
+
+                // Auto-advance after 2 seconds
+                setTimeout(() => showMenuScene(), 2000);
+
+                return scene;
+            });
+        }
+
+        // Menu Scene
+        function showMenuScene() {
+            transitionTo(() => {
+                const factory = graphics();
+                const scene = factory.createContainer();
+
+                // Title with emojis
+                const title = factory.createText('✊✋✌️', {
+                    fontSize: 56,
+                    align: 'center'
+                });
+                title.anchor.set(0.5);
+                title.position.set(WIDTH / 2, 150);
+                scene.addChild(title);
+
+                const titleText = factory.createText('ROCK PAPER SCISSORS', {
+                    fontSize: 32,
+                    fontFamily: 'Lilita One, sans-serif',
+                    fill: 0xffffff,
+                    align: 'center'
+                });
+                titleText.anchor.set(0.5);
+                titleText.position.set(WIDTH / 2, 230);
+                scene.addChild(titleText);
+
+                // Subtitle
+                const subtitle = factory.createText('Best of 5 Rounds', {
+                    fontSize: 18,
+                    fill: 0x8892b0,
+                    align: 'center'
+                });
+                subtitle.anchor.set(0.5);
+                subtitle.position.set(WIDTH / 2, 280);
+                scene.addChild(subtitle);
+
+                // Play button
+                const playBtn = new GameStyleButton({ text: 'PLAY', width: 200, height: 60 });
+                playBtn.getContainer().position.set(WIDTH / 2 - 100, 360);
+                playBtn.on('click', () => {
+                    resetGame();
+                    showPickScene();
+                });
+                scene.addChild(playBtn.getContainer());
+
+                return scene;
+            });
+        }
+
+        // Pick Scene (each round)
+        function showPickScene() {
+            transitionTo(() => {
+                const factory = graphics();
+                const scene = factory.createContainer();
+
+                // Round header
+                const roundText = factory.createText(`Round ${currentRound}`, {
+                    fontSize: 28,
+                    fontFamily: 'Lilita One, sans-serif',
+                    fill: GameStyleColors.PRIMARY,
+                    align: 'center'
+                });
+                roundText.anchor.set(0.5);
+                roundText.position.set(WIDTH / 2, 60);
+                scene.addChild(roundText);
+
+                // Score display
+                const scoreText = factory.createText(`Player: ${playerScore}  -  AI: ${aiScore}`, {
+                    fontSize: 20,
+                    fill: 0xffffff,
+                    align: 'center'
+                });
+                scoreText.anchor.set(0.5);
+                scoreText.position.set(WIDTH / 2, 110);
+                scene.addChild(scoreText);
+
+                // Instructions
+                const instruction = factory.createText('Choose your weapon:', {
+                    fontSize: 18,
+                    fill: 0x8892b0,
+                    align: 'center'
+                });
+                instruction.anchor.set(0.5);
+                instruction.position.set(WIDTH / 2, 180);
+                scene.addChild(instruction);
+
+                // Choice buttons
+                const choices = ['rock', 'paper', 'scissors'];
+                const buttonY = 320;
+                const spacing = 140;
+                const startX = (WIDTH - (spacing * 2)) / 2;
+
+                choices.forEach((choice, index) => {
+                    const btn = createChoiceButton(choice);
+                    btn.position.set(startX + (index * spacing), buttonY);
+                    btn.eventMode = 'static';
+                    btn.cursor = 'pointer';
+
+                    btn.on('pointerover', () => {
+                        btn.scale.set(1.1);
+                    });
+                    btn.on('pointerout', () => {
+                        btn.scale.set(1);
+                    });
+                    btn.on('pointerdown', () => {
+                        showBattleScene(choice);
+                    });
+
+                    scene.addChild(btn);
+                });
+
+                return scene;
+            });
+        }
+
+        function createChoiceButton(choice) {
+            const factory = graphics();
+            const container = factory.createContainer();
+
+            // Circle background
+            const circle = factory.createGraphics();
+            circle.circle(0, 0, 50);
+            circle.fill({ color: 0x2a2a4e });
+            circle.stroke({ color: GameStyleColors.PRIMARY, width: 3 });
+            container.addChild(circle);
+
+            // Emoji
+            const emoji = factory.createText(EMOJIS[choice], {
+                fontSize: 48,
+                align: 'center'
+            });
+            emoji.anchor.set(0.5);
+            container.addChild(emoji);
+
+            // Label
+            const label = factory.createText(choice.toUpperCase(), {
+                fontSize: 14,
+                fontFamily: 'Lilita One, sans-serif',
+                fill: 0xffffff,
+                align: 'center'
+            });
+            label.anchor.set(0.5);
+            label.position.set(0, 70);
+            container.addChild(label);
+
+            return container;
+        }
+
+        // Battle Scene (animated reveal)
+        async function showBattleScene(playerChoice) {
+            const aiChoice = CHOICES[Math.floor(Math.random() * CHOICES.length)];
+
+            await transitionTo(() => {
+                const factory = graphics();
+                const scene = factory.createContainer();
+
+                // Round header
+                const roundText = factory.createText(`Round ${currentRound}`, {
+                    fontSize: 24,
+                    fontFamily: 'Lilita One, sans-serif',
+                    fill: GameStyleColors.PRIMARY,
+                    align: 'center'
+                });
+                roundText.anchor.set(0.5);
+                roundText.position.set(WIDTH / 2, 50);
+                scene.addChild(roundText);
+
+                // Player side
+                const playerLabel = factory.createText('YOU', {
+                    fontSize: 18,
+                    fill: 0x8892b0,
+                    align: 'center'
+                });
+                playerLabel.anchor.set(0.5);
+                playerLabel.position.set(120, 150);
+                scene.addChild(playerLabel);
+
+                const playerEmoji = factory.createText('?', {
+                    fontSize: 80,
+                    align: 'center'
+                });
+                playerEmoji.anchor.set(0.5);
+                playerEmoji.position.set(120, 260);
+                scene.addChild(playerEmoji);
+
+                // AI side
+                const aiLabel = factory.createText('AI', {
+                    fontSize: 18,
+                    fill: 0x8892b0,
+                    align: 'center'
+                });
+                aiLabel.anchor.set(0.5);
+                aiLabel.position.set(380, 150);
+                scene.addChild(aiLabel);
+
+                const aiEmoji = factory.createText('?', {
+                    fontSize: 80,
+                    align: 'center'
+                });
+                aiEmoji.anchor.set(0.5);
+                aiEmoji.position.set(380, 260);
+                scene.addChild(aiEmoji);
+
+                // Countdown text
+                const countdownText = factory.createText('3', {
+                    fontSize: 48,
+                    fontFamily: 'Lilita One, sans-serif',
+                    fill: 0xffffff,
+                    align: 'center'
+                });
+                countdownText.anchor.set(0.5);
+                countdownText.position.set(WIDTH / 2, 400);
+                scene.addChild(countdownText);
+
+                // Result text (initially hidden)
+                const resultText = factory.createText('', {
+                    fontSize: 32,
+                    fontFamily: 'Lilita One, sans-serif',
+                    fill: 0xffffff,
+                    align: 'center'
+                });
+                resultText.anchor.set(0.5);
+                resultText.position.set(WIDTH / 2, 480);
+                resultText.alpha = 0;
+                scene.addChild(resultText);
+
+                // Countdown animation
+                let count = 3;
+                const countdownInterval = setInterval(() => {
+                    count--;
+                    if (count > 0) {
+                        countdownText.text = count.toString();
+                    } else {
+                        clearInterval(countdownInterval);
+                        countdownText.text = 'SHOOT!';
+
+                        // Reveal choices with animation
+                        setTimeout(() => {
+                            playerEmoji.text = EMOJIS[playerChoice];
+                            aiEmoji.text = EMOJIS[aiChoice];
+                            playerEmoji.scale.set(0);
+                            aiEmoji.scale.set(0);
+
+                            // Scale up animation
+                            const scaleUp = (target) => {
+                                const duration = 300;
+                                const startTime = Date.now();
+
+                                function animate() {
+                                    const elapsed = Date.now() - startTime;
+                                    const progress = Math.min(elapsed / duration, 1);
+                                    const scale = progress * 1.2;
+                                    target.scale.set(scale);
+
+                                    if (progress < 1) {
+                                        requestAnimationFrame(animate);
+                                    }
+                                }
+                                animate();
+                            };
+
+                            scaleUp(playerEmoji);
+                            scaleUp(aiEmoji);
+
+                            // Show result
+                            setTimeout(() => {
+                                const result = determineWinner(playerChoice, aiChoice);
+                                resultText.text = result.text;
+                                resultText.fill = result.color;
+                                resultText.alpha = 1;
+
+                                if (result.winner === 'player') playerScore++;
+                                else if (result.winner === 'ai') aiScore++;
+
+                                currentRound++;
+
+                                // Check for game over
+                                setTimeout(() => {
+                                    if (playerScore >= 3 || aiScore >= 3) {
+                                        showGameOverScene();
+                                    } else {
+                                        showPickScene();
+                                    }
+                                }, 2000);
+                            }, 500);
+                        }, 200);
+                    }
+                }, 1000);
+
+                return scene;
+            });
+        }
+
+        function determineWinner(player, ai) {
+            if (player === ai) {
+                return { winner: 'draw', text: "IT'S A DRAW!", color: 0x8892b0 };
+            }
+
+            const wins = {
+                rock: 'scissors',
+                paper: 'rock',
+                scissors: 'paper'
+            };
+
+            if (wins[player] === ai) {
+                return { winner: 'player', text: 'YOU WIN!', color: GameStyleColors.SUCCESS };
+            } else {
+                return { winner: 'ai', text: 'YOU LOSE!', color: GameStyleColors.DANGER };
+            }
+        }
+
+        // Game Over Scene
+        function showGameOverScene() {
+            transitionTo(() => {
+                const factory = graphics();
+                const scene = factory.createContainer();
+
+                const playerWon = playerScore > aiScore;
+
+                // Title
+                const title = factory.createText(playerWon ? 'VICTORY!' : 'DEFEAT!', {
+                    fontSize: 48,
+                    fontFamily: 'Lilita One, sans-serif',
+                    fill: playerWon ? GameStyleColors.SUCCESS : GameStyleColors.DANGER,
+                    align: 'center'
+                });
+                title.anchor.set(0.5);
+                title.position.set(WIDTH / 2, 120);
+                scene.addChild(title);
+
+                // Final score
+                const scoreText = factory.createText(`Final Score\n${playerScore} - ${aiScore}`, {
+                    fontSize: 32,
+                    fontFamily: 'Lilita One, sans-serif',
+                    fill: 0xffffff,
+                    align: 'center'
+                });
+                scoreText.anchor.set(0.5);
+                scoreText.position.set(WIDTH / 2, 240);
+                scene.addChild(scoreText);
+
+                // Message
+                const message = factory.createText(
+                    playerWon ? 'You are the champion!' : 'Better luck next time!',
+                    {
+                        fontSize: 18,
+                        fill: 0x8892b0,
+                        align: 'center'
+                    }
+                );
+                message.anchor.set(0.5);
+                message.position.set(WIDTH / 2, 340);
+                scene.addChild(message);
+
+                // Play Again button
+                const playBtn = new GameStyleButton({ text: 'PLAY AGAIN', width: 200, height: 60 });
+                playBtn.getContainer().position.set(WIDTH / 2 - 100, 400);
+                playBtn.on('click', () => {
+                    showMenuScene();
+                });
+                scene.addChild(playBtn.getContainer());
+
+                return scene;
+            });
+        }
+
+        function resetGame() {
+            playerScore = 0;
+            aiScore = 0;
+            currentRound = 1;
+        }
+
+        // Start the game
+        init();
+    </script>
+</body>
+</html>

@@ -360,7 +360,9 @@ private collectCoin(): void {
 }
 ```
 
-## Complete Code
+## Complete Game Demo
+
+<LiveDemo src="/demos/complete-game-demo.html" height="600" title="Complete Game - Full Feature Demo" />
 
 See the [full example on GitHub](https://github.com/gamebyte-ai/gamebyte-framework/tree/main/examples/platformer).
 

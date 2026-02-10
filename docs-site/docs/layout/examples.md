@@ -7,9 +7,13 @@ keywords: [layout, examples, game-ui, patterns, flexbox]
 llm_summary: "Common game UI layout patterns: Game HUD with top/bottom bars, level select grid, settings menu, shop screen, leaderboard. All use flexbox via @pixi/layout."
 ---
 
+import LiveDemo from '@site/src/components/LiveDemo';
+
 # Layout Examples
 
 Common layout patterns for mobile game UI using the GameByte layout system.
+
+<LiveDemo src="/demos/layout-demo.html" height="800" title="Layout Examples Demo" />
 
 ## Game HUD
 
@@ -430,10 +434,3 @@ window.addEventListener('resize', () => {
 });
 ```
 
-## Live Demo
-
-See all these patterns in action:
-
-import LiveDemo from '@site/src/components/LiveDemo';
-
-<LiveDemo src="/demos/layout-demo.html" height="800" title="Layout Examples Demo" />

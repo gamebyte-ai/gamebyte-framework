@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - Architecture Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
+        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
+        #game-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        canvas { display: block; }
+        .info { color: #8892b0; margin-top: 15px; font-size: 12px; text-align: center; max-width: 500px; }
+    </style>
+</head>
+<body>
+    <h1>Service Container Architecture</h1>
+    <p>Click services to resolve them - see singleton vs factory behavior</p>
+    <div id="game-container"></div>
+    <div class="info">
+        Singletons return the same instance (same color). Factories create new instances each time (different colors).
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="../gamebyte.umd.js"></script>
+
+    <script>
+        const {
+            createGame,
+            loadFrameworkFont,
+            getFrameworkFontFamily,
+            graphics
+        } = window.GameByteFramework;
+
+        const CONFIG = { width: 520, height: 480 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.getElementById('game-container').appendChild(canvas);
+
+        const game = createGame();
+        let renderer, stage, factory;
+
+        // Service definitions
+        const services = [
+            { key: 'renderer', label: 'Renderer', type: 'singleton', color: 0x6366f1, icon: '\uD83C\uDFA8' },
+            { key: 'scene.manager', label: 'Scenes', type: 'singleton', color: 0x22d3ee, icon: '\uD83C\uDFAC' },
+            { key: 'audio', label: 'Audio', type: 'singleton', color: 0xf472b6, icon: '\uD83D\uDD0A' },
+            { key: 'input', label: 'Input', type: 'singleton', color: 0xfbbf24, icon: '\uD83D\uDD79\uFE0F' },
+            { key: 'physics', label: 'Physics', type: 'singleton', color: 0x4ade80, icon: '\u2699\uFE0F' },
+            { key: 'player', label: 'Player', type: 'factory', color: 0xf87171, icon: '\uD83C\uDFAE' }
+        ];
+
+        // Track resolved instances for visualization
+        const resolvedLog = [];
+        let logText;
+
+        async function init() {
+            await loadFrameworkFont();
+            await game.initialize(canvas, '2d');
+            renderer = game.make('renderer');
+            stage = renderer.getStage();
+            factory = graphics();
+
+            // Background
+            const bg = factory.createGraphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill({ color: 0x0f172a });
+            stage.addChild(bg);
+
+            // Title
+            const title = factory.createText('Service Container', {
+                fontFamily: getFrameworkFontFamily(),
+                fontSize: 22,
+                fill: 0xFFFFFF
+            });
+            title.x = CONFIG.width / 2;
+            title.y = 12;
+            if (title.anchor) title.anchor.set(0.5, 0);
+            stage.addChild(title);
+
+            // Container box
+            const containerBox = factory.createGraphics();
+            containerBox.roundRect(20, 45, CONFIG.width - 40, 200, 12);
+            containerBox.fill({ color: 0x1e293b });
+            containerBox.stroke({ color: 0x334155, width: 2 });
+            stage.addChild(containerBox);
+
+            const containerLabel = factory.createText('GameByte Service Container', {
+                fontSize: 11,
+                fill: 0x64748b
+            });
+            containerLabel.x = 30;
+            containerLabel.y = 50;
+            stage.addChild(containerLabel);
+
+            // Draw service boxes
+            const cols = 3;
+            const boxW = 140;
+            const boxH = 70;
+            const startX = 35;
+            const startY = 72;
+            const gapX = 10;
+            const gapY = 10;
+
+            services.forEach((svc, i) => {
+                const col = i % cols;
+                const row = Math.floor(i / cols);
+                const x = startX + col * (boxW + gapX);
+                const y = startY + row * (boxH + gapY);
+
+                // Service box
+                const box = factory.createGraphics();
+                box.roundRect(0, 0, boxW, boxH, 8);
+                box.fill({ color: 0x0f172a });
+                box.stroke({ color: svc.color, width: 2 });
+                box.x = x;
+                box.y = y;
+                box.eventMode = 'static';
+                box.cursor = 'pointer';
+                stage.addChild(box);
+
+                // Icon + name
+                const label = factory.createText(`${svc.icon} ${svc.label}`, {
+                    fontFamily: getFrameworkFontFamily(),
+                    fontSize: 14,
+                    fill: 0xFFFFFF
+                });
+                label.x = x + boxW / 2;
+                label.y = y + 18;
+                if (label.anchor) label.anchor.set(0.5, 0);
+                stage.addChild(label);
+
+                // Type badge
+                const badgeColor = svc.type === 'singleton' ? 0x22d3ee : 0xfbbf24;
+                const badge = factory.createGraphics();
+                badge.roundRect(0, 0, 70, 18, 9);
+                badge.fill({ color: badgeColor, alpha: 0.2 });
+                badge.stroke({ color: badgeColor, width: 1 });
+                badge.x = x + boxW / 2 - 35;
+                badge.y = y + 44;
+                stage.addChild(badge);
+
+                const badgeText = factory.createText(svc.type, {
+                    fontSize: 10,
+                    fill: badgeColor
+                });
+                badgeText.x = x + boxW / 2;
+                badgeText.y = y + 46;
+                if (badgeText.anchor) badgeText.anchor.set(0.5, 0);
+                stage.addChild(badgeText);
+
+                // Click handler - resolve service
+                box.on('pointerdown', () => resolveService(svc, x, y, boxW, boxH));
+            });
+
+            // Resolve output area
+            const outputBox = factory.createGraphics();
+            outputBox.roundRect(20, 260, CONFIG.width - 40, 200, 12);
+            outputBox.fill({ color: 0x1e293b });
+            outputBox.stroke({ color: 0x334155, width: 2 });
+            stage.addChild(outputBox);
+
+            const outputLabel = factory.createText('game.make() Output Log', {
+                fontSize: 11,
+                fill: 0x64748b
+            });
+            outputLabel.x = 30;
+            outputLabel.y = 265;
+            stage.addChild(outputLabel);
+
+            logText = factory.createText('Click a service above to resolve it...', {
+                fontSize: 12,
+                fill: 0x94a3b8
+            });
+            logText.x = 30;
+            logText.y = 285;
+            stage.addChild(logText);
+
+            // Legend
+            const legendSingleton = factory.createText('\u25CF Singleton = same instance every time', {
+                fontSize: 11,
+                fill: 0x22d3ee
+            });
+            legendSingleton.x = 30;
+            legendSingleton.y = CONFIG.height - 18;
+            stage.addChild(legendSingleton);
+
+            const legendFactory = factory.createText('\u25CF Factory = new instance every time', {
+                fontSize: 11,
+                fill: 0xfbbf24
+            });
+            legendFactory.x = 300;
+            legendFactory.y = CONFIG.height - 18;
+            stage.addChild(legendFactory);
+
+            game.start();
+        }
+
+        // Track instances for singleton detection
+        const instanceIds = {};
+        let instanceCounter = 0;
+
+        function resolveService(svc, x, y, w, h) {
+            let instanceId;
+            if (svc.type === 'singleton') {
+                if (!instanceIds[svc.key]) {
+                    instanceIds[svc.key] = `#${++instanceCounter}`;
+                }
+                instanceId = instanceIds[svc.key];
+            } else {
+                instanceId = `#${++instanceCounter}`;
+            }
+
+            const isSame = svc.type === 'singleton' && resolvedLog.some(l => l.key === svc.key);
+            const entry = {
+                key: svc.key,
+                instanceId,
+                type: svc.type,
+                isSame,
+                color: svc.color,
+                time: new Date().toLocaleTimeString()
+            };
+            resolvedLog.unshift(entry);
+            if (resolvedLog.length > 8) resolvedLog.pop();
+
+            // Flash animation on the box
+            const flash = factory.createGraphics();
+            flash.roundRect(x, y, w, h, 8);
+            flash.fill({ color: svc.color, alpha: 0.3 });
+            stage.addChild(flash);
+            let alpha = 0.3;
+            const fadeInterval = setInterval(() => {
+                alpha -= 0.03;
+                if (alpha <= 0) {
+                    clearInterval(fadeInterval);
+                    stage.removeChild(flash);
+                } else {
+                    flash.clear();
+                    flash.roundRect(x, y, w, h, 8);
+                    flash.fill({ color: svc.color, alpha });
+                }
+            }, 30);
+
+            // Update log display
+            updateLog();
+        }
+
+        function updateLog() {
+            const lines = resolvedLog.map(entry => {
+                const sameTag = entry.isSame ? ' (same instance!)' : ' (new instance)';
+                return `game.make('${entry.key}') => ${entry.type}${entry.instanceId}${sameTag}`;
+            });
+            logText.text = lines.join('\n') || 'Click a service above to resolve it...';
+        }
+
+        init().catch(console.error);
+    </script>
+</body>
+</html>

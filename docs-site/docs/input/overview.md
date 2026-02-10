@@ -9,9 +9,17 @@ llm_summary: "Unified input: Input.keyboard, Input.touch, Input.gamepad. Event-b
 
 <!-- llm-context: input-system, keyboard, mouse, touch, gamepad, mobile-input -->
 
+import LiveDemo from '@site/src/components/LiveDemo';
+
 # Input Overview
 
 GameByte provides a unified input system for all platforms.
+
+<LiveDemo src="/demos/whack-a-mole-demo.html" height="600" title="Whack-a-Mole - Touch, Click & Keyboard Input" />
+
+<LiveDemo src="/demos/keyboard-demo.html" height="500" title="Keyboard Input Demo" />
+
+<LiveDemo src="/demos/input-touch.html" height="500" title="Touch Input - Tap, Swipe, Pinch & Long Press" />
 
 ## Input Sources
 
@@ -61,8 +69,3 @@ function update(deltaTime: number) {
 }
 ```
 
-## Live Demo
-
-import LiveDemo from '@site/src/components/LiveDemo';
-
-<LiveDemo src="/demos/keyboard-demo.html" height="500" title="Keyboard Input Demo" />

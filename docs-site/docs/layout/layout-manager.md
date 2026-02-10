@@ -7,9 +7,13 @@ keywords: [layout-manager, responsive, breakpoints, scaling, api]
 llm_summary: "LayoutManager handles layout initialization, responsive scaling, and breakpoints. Use getLayoutManager() for singleton access. Provides presets and responsive utilities."
 ---
 
+import LiveDemo from '@site/src/components/LiveDemo';
+
 # LayoutManager API
 
 The `LayoutManager` class provides centralized layout management with responsive scaling support.
+
+<LiveDemo src="/demos/layout-demo.html" height="700" title="Layout Manager Demo" />
 
 ## Basic Usage
 
@@ -346,8 +350,3 @@ async function createGame() {
 }
 ```
 
-## Live Demo
-
-import LiveDemo from '@site/src/components/LiveDemo';
-
-<LiveDemo src="/demos/layout-demo.html" height="700" title="Layout Manager Demo" />

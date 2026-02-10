@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - Cookie Clicker Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
+        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
+        #game-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        canvas { display: block; }
+        .info { color: #8892b0; margin-top: 20px; font-size: 12px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Cookie Clicker</h1>
+    <p>GameByte Core Concepts - Service Container & Reactive State</p>
+    <div id="game-container"></div>
+    <div class="info">Click the cookie! Buy upgrades to earn more.</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
+
+    <script>
+    const {
+        createGame, graphics, loadFrameworkFont,
+        SplashScreen, GameStyleButton, GameStyleColors,
+        GameTopBar, ResultScreen, CelebrationManager,
+        createState
+    } = GameByteFramework;
+
+    const WIDTH = 500;
+    const HEIGHT = 600;
+    const GOAL = 1000;
+
+    let game, gameState, currentScreen;
+    let topBar, cookie, upgradeButtons = [], floatingTexts = [];
+    let tickAccumulator = 0;
+    let startTime = 0;
+
+    // Initialize reactive game state
+    gameState = createState({
+        cookies: 0,
+        clickValue: 1,
+        autoClickers: 0,
+        doubleClickers: 0,
+        goldenCookies: 0,
+        cookiesPerSecond: 0
+    });
+
+    async function init() {
+        await loadFrameworkFont();
+
+        game = await createGame({
+            container: '#game-container',
+            width: WIDTH,
+            height: HEIGHT,
+            mode: '2d',
+            backgroundColor: 0x2d2d44
+        });
+
+        game.bind('upgradeCost', () => {
+            return {
+                calculate: (basePrice, count) => Math.floor(basePrice * Math.pow(1.5, count))
+            };
+        });
+
+        showSplash();
+    }
+
+    function showSplash() {
+        clearScreen();
+        const splash = new SplashScreen({
+            title: 'COOKIE CLICKER',
+            subtitle: 'Click to earn cookies!',
+            logoEmoji: '🍪',
+            duration: 2000,
+            titleColor: 0xFFFFFF,
+            subtitleColor: 0x8892b0,
+            backgroundColor: 0x2d2d44
+        });
+        currentScreen = splash.getContainer();
+        game.stage.addChild(currentScreen);
+
+        setTimeout(() => showMenu(), 2000);
+    }
+
+    function showMenu() {
+        clearScreen();
+        const factory = graphics();
+        const menu = factory.createContainer();
+
+        // Title
+        const title = factory.createText('🍪 COOKIE CLICKER', {
+            fontFamily: 'Lilita One',
+            fontSize: 36,
+            fill: 0xFFFFFF,
+            align: 'center'
+        });
+        title.anchor.set(0.5);
+        title.x = WIDTH / 2;
+        title.y = 150;
+        menu.addChild(title);
+
+        // Instructions
+        const instructions = factory.createText(
+            'Click the cookie to earn!\nBuy upgrades to multiply your earnings.\nReach 1000 cookies to win!',
+            {
+                fontFamily: 'Lilita One',
+                fontSize: 16,
+                fill: 0x8892b0,
+                align: 'center'
+            }
+        );
+        instructions.anchor.set(0.5);
+        instructions.x = WIDTH / 2;
+        instructions.y = 250;
+        menu.addChild(instructions);
+
+        // Play button
+        const playButton = new GameStyleButton({
+            text: 'PLAY',
+            variant: 'primary',
+            width: 200,
+            height: 60,
+            fontSize: 24
+        });
+        const playContainer = playButton.getContainer();
+        playContainer.x = WIDTH / 2 - 100;
+        playContainer.y = 350;
+        menu.addChild(playContainer);
+
+        playButton.on('click', () => {
+            startGame();
+        });
+
+        currentScreen = menu;
+        game.stage.addChild(menu);
+    }
+
+    function startGame() {
+        clearScreen();
+        startTime = Date.now();
+
+        // Reset state
+        gameState.batch(s => {
+            s.cookies = 0;
+            s.clickValue = 1;
+            s.autoClickers = 0;
+            s.doubleClickers = 0;
+            s.goldenCookies = 0;
+            s.cookiesPerSecond = 0;
+        });
+
+        const factory = graphics();
+        const gameScreen = factory.createContainer();
+
+        // Top bar
+        topBar = new GameTopBar({
+            width: WIDTH,
+            title: 'Cookies: 0',
+            showCoins: false,
+            showLives: false
+        });
+        gameScreen.addChild(topBar.getContainer());
+
+        // Cookie circle
+        cookie = factory.createContainer();
+        cookie.x = WIDTH / 2;
+        cookie.y = 250;
+
+        const cookieGraphics = factory.createGraphics();
+        cookieGraphics.circle(0, 0, 80);
+        cookieGraphics.fill({ color: 0xD2691E, alpha: 1 });
+        cookieGraphics.stroke({ color: 0x8B4513, width: 4 });
+        cookie.addChild(cookieGraphics);
+
+        const cookieEmoji = factory.createText('🍪', {
+            fontFamily: 'Lilita One',
+            fontSize: 64,
+            align: 'center'
+        });
+        cookieEmoji.anchor.set(0.5);
+        cookie.addChild(cookieEmoji);
+
+        cookie.eventMode = 'static';
+        cookie.cursor = 'pointer';
+        cookie.on('pointerdown', onCookieClick);
+        gameScreen.addChild(cookie);
+
+        // Upgrade buttons
+        createUpgradeButtons(gameScreen);
+
+        currentScreen = gameScreen;
+        game.stage.addChild(gameScreen);
+
+        // Game loop for auto-clicking
+        game.onUpdate(gameTick);
+
+        // Subscribe to state changes
+        gameState.on('cookies', (newVal) => {
+            topBar.updateTitle(`Cookies: ${Math.floor(newVal)}`);
+            if (newVal >= GOAL) {
+                endGame();
+            }
+        });
+    }
+
+    function createUpgradeButtons(parent) {
+        const factory = graphics();
+        const upgrades = [
+            { name: 'Auto Clicker', basePrice: 10, effect: '+1/sec', key: 'autoClickers' },
+            { name: 'Double Click', basePrice: 50, effect: 'x2 clicks', key: 'doubleClickers' },
+            { name: 'Golden Cookie', basePrice: 200, effect: '+10/sec', key: 'goldenCookies' }
+        ];
+
+        const costCalc = game.make('upgradeCost');
+
+        upgrades.forEach((upgrade, i) => {
+            const btn = factory.createContainer();
+            btn.x = 50;
+            btn.y = 380 + i * 70;
+
+            const bg = factory.createGraphics();
+            bg.roundRect(0, 0, 400, 60, 10);
+            bg.fill({ color: 0x3a4a6b, alpha: 0.8 });
+            bg.stroke({ color: 0x5a6a8b, width: 2 });
+            btn.addChild(bg);
+
+            const nameText = factory.createText(upgrade.name, {
+                fontFamily: 'Lilita One',
+                fontSize: 18,
+                fill: 0xFFFFFF
+            });
+            nameText.x = 10;
+            nameText.y = 10;
+            btn.addChild(nameText);
+
+            const effectText = factory.createText(upgrade.effect, {
+                fontFamily: 'Lilita One',
+                fontSize: 14,
+                fill: 0x8892b0
+            });
+            effectText.x = 10;
+            effectText.y = 35;
+            btn.addChild(effectText);
+
+            const count = gameState[upgrade.key];
+            const cost = costCalc.calculate(upgrade.basePrice, count);
+            const costText = factory.createText(`Cost: ${cost} | Owned: ${count}`, {
+                fontFamily: 'Lilita One',
+                fontSize: 14,
+                fill: 0xFFD700
+            });
+            costText.anchor.set(1, 0);
+            costText.x = 390;
+            costText.y = 10;
+            btn.addChild(costText);
+
+            btn.eventMode = 'static';
+            btn.cursor = 'pointer';
+            btn.on('pointerdown', () => buyUpgrade(upgrade.key, upgrade.basePrice, costText));
+
+            parent.addChild(btn);
+            upgradeButtons.push({ container: btn, costText, key: upgrade.key, basePrice: upgrade.basePrice });
+        });
+    }
+
+    function buyUpgrade(key, basePrice, costText) {
+        const costCalc = game.make('upgradeCost');
+        const currentCount = gameState[key];
+        const cost = costCalc.calculate(basePrice, currentCount);
+
+        if (gameState.cookies >= cost) {
+            gameState.batch(s => {
+                s.cookies -= cost;
+                s[key] += 1;
+
+                // Update click value for double clickers
+                if (key === 'doubleClickers') {
+                    s.clickValue *= 2;
+                }
+
+                // Update cookies per second
+                s.cookiesPerSecond = s.autoClickers + (s.goldenCookies * 10);
+            });
+
+            // Update cost display
+            const newCount = gameState[key];
+            const newCost = costCalc.calculate(basePrice, newCount);
+            costText.text = `Cost: ${newCost} | Owned: ${newCount}`;
+        }
+    }
+
+    function onCookieClick() {
+        // Add cookies based on click value
+        gameState.cookies += gameState.clickValue;
+
+        // Scale animation
+        cookie.scale.set(1.2);
+        setTimeout(() => {
+            cookie.scale.set(1);
+        }, 100);
+
+        // Floating text
+        createFloatingText(`+${gameState.clickValue}`, cookie.x, cookie.y);
+    }
+
+    function createFloatingText(text, x, y) {
+        const factory = graphics();
+        const floatingText = factory.createText(text, {
+            fontFamily: 'Lilita One',
+            fontSize: 24,
+            fill: 0x4ADE80
+        });
+        floatingText.anchor.set(0.5);
+        floatingText.x = x + (Math.random() - 0.5) * 40;
+        floatingText.y = y;
+        floatingText.alpha = 1;
+
+        currentScreen.addChild(floatingText);
+        floatingTexts.push({ text: floatingText, life: 1 });
+    }
+
+    function gameTick(deltaMS) {
+        const delta = deltaMS / 1000; // Convert milliseconds to seconds
+        tickAccumulator += delta;
+
+        // Auto-click every second
+        if (tickAccumulator >= 1) {
+            tickAccumulator -= 1;
+            if (gameState.cookiesPerSecond > 0) {
+                gameState.cookies += gameState.cookiesPerSecond;
+            }
+        }
+
+        // Update floating texts
+        floatingTexts = floatingTexts.filter(ft => {
+            ft.life -= delta * 1.5;
+            ft.text.y -= delta * 60;
+            ft.text.alpha = ft.life;
+
+            if (ft.life <= 0) {
+                currentScreen.removeChild(ft.text);
+                return false;
+            }
+            return true;
+        });
+    }
+
+    function endGame() {
+        game.offUpdate(gameTick);
+        clearScreen();
+
+        const timeElapsed = Math.floor((Date.now() - startTime) / 1000);
+        let stars = 1;
+        if (timeElapsed < 60) stars = 3;
+        else if (timeElapsed < 120) stars = 2;
+
+        const result = new ResultScreen({
+            title: 'YOU WIN!',
+            score: gameState.cookies,
+            stars: stars,
+            message: `Time: ${timeElapsed}s`,
+            buttonText: 'PLAY AGAIN'
+        });
+
+        const resultContainer = result.getContainer();
+        game.stage.addChild(resultContainer);
+        currentScreen = resultContainer;
+
+        result.on('playAgain', () => {
+            startGame();
+        });
+
+        // Celebration
+        const celebration = new CelebrationManager(game.stage, WIDTH, HEIGHT);
+        celebration.victory();
+    }
+
+    function clearScreen() {
+        if (currentScreen) {
+            game.stage.removeChild(currentScreen);
+            currentScreen = null;
+        }
+        upgradeButtons = [];
+        floatingTexts = [];
+        tickAccumulator = 0;
+    }
+
+    init();
+    </script>
+</body>
+</html>

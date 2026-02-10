@@ -9,9 +9,17 @@ llm_summary: "SceneManager: add(), switchTo(), remove(). BaseScene lifecycle: in
 
 <!-- llm-context: scene-management, lifecycle, game-states, scene-switching -->
 
+import LiveDemo from '@site/src/components/LiveDemo';
+
 # Scene Management
 
 Scenes organize your game into distinct states like menus, gameplay, and game over screens.
+
+<LiveDemo src="/demos/rps-game-demo.html" height="600" title="Rock Paper Scissors - Multi-Scene Transitions" />
+
+<LiveDemo src="/demos/screen-manager-demo.html" height="600" title="Scene Management Demo" />
+
+<LiveDemo src="/demos/memory-game-demo.html" height="600" title="Memory Game - Scene State Example" />
 
 ## Basic Usage
 
@@ -232,14 +240,3 @@ await sceneManager.switchTo('game'); // Instant switch
 await sceneManager.preloadAll(['game', 'settings', 'shop']);
 ```
 
-## Live Demo
-
-import LiveDemo from '@site/src/components/LiveDemo';
-
-<LiveDemo src="/demos/screen-manager-demo.html" height="600" title="Scene Management Demo" />
-
-### Memory Game Example
-
-This memory card game demonstrates scene state management with card matching logic, timer, and score tracking:
-
-<LiveDemo src="/demos/memory-game-demo.html" height="600" title="Memory Game - Scene State Example" />

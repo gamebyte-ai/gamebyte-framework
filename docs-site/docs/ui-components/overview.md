@@ -237,6 +237,24 @@ const button = new UIButton({
 });
 ```
 
+## More Component Demos
+
+### Game Buttons
+
+<LiveDemo src="/demos/game-button-demo.html" height="500" title="Game Style Buttons Demo" />
+
+### Top Bar (HUD)
+
+<LiveDemo src="/demos/game-topbar-demo.html" height="300" title="Game Top Bar / Resource Bar Demo" />
+
+### Hexagon Level Selector
+
+<LiveDemo src="/demos/hexagon-level-demo.html" height="500" title="Hexagon Level Selector Demo" />
+
+### Bottom Navigation
+
+<LiveDemo src="/demos/bottom-nav-demo.html" height="300" title="Game Bottom Navigation Demo" />
+
 ## Performance Tips
 
 1. **Reuse components** instead of creating/destroying

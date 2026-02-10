@@ -15,6 +15,16 @@ import LiveDemo from '@site/src/components/LiveDemo';
 
 Build your first GameByte game in 5 minutes.
 
+<LiveDemo
+  src="/demos/quick-start.html"
+  height={480}
+  title="Quick Start - Star Collection Demo"
+/>
+
+:::tip Theme Support
+This demo automatically adapts to your selected theme. Try toggling the theme using the 🌙/☀️ button in the navigation bar!
+:::
+
 ## Step 1: Setup HTML
 
 ```html
@@ -102,18 +112,6 @@ Open the HTML file in a browser or use a local server:
 ```bash
 npx http-server -p 8080
 ```
-
-## Live Demo
-
-<LiveDemo
-  src="/demos/platformer-demo.html"
-  height={480}
-  title="Platformer Game Demo"
-/>
-
-:::tip Theme Support
-This demo automatically adapts to your selected theme. Try toggling the theme using the 🌙/☀️ button in the navigation bar!
-:::
 
 ## What's Happening?
 

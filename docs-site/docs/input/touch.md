@@ -15,6 +15,12 @@ import LiveDemo from '@site/src/components/LiveDemo';
 
 Mobile-optimized touch handling with gesture support.
 
+<LiveDemo
+  src="/demos/input-touch.html"
+  height={500}
+  title="Touch Input - Tap, Swipe, Pinch & Long Press"
+/>
+
 ## Basic Touch
 
 ```typescript

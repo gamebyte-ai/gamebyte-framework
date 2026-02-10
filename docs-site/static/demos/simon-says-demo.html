@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - Simon Says Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
+        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
+        #game-container { border-radius: 12px; overflow: hidden; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4); }
+        canvas { display: block; }
+        .info { color: #8892b0; margin-top: 20px; font-size: 12px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Simon Says</h1>
+    <p>GameByte Audio System - Tones, Sequences & Sound Feedback</p>
+    <div id="game-container"></div>
+    <div class="info">Watch the pattern, repeat the sequence! Each button plays a unique tone.</div>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
+    <script>
+    const {
+        createGame, graphics, loadFrameworkFont,
+        SplashScreen, GameStyleButton, GameStyleColors,
+        GameTopBar, ResultScreen, CelebrationManager
+    } = GameByteFramework;
+
+    const WIDTH = 500;
+    const HEIGHT = 600;
+
+    // Audio System
+    let audioCtx;
+
+    function initAudio() {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    function playTone(frequency, duration = 300) {
+        if (!audioCtx) return;
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+
+        gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration / 1000);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + duration / 1000);
+    }
+
+    function playErrorTone() {
+        if (!audioCtx) return;
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.type = 'sawtooth';
+        oscillator.frequency.setValueAtTime(100, audioCtx.currentTime);
+
+        gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.5);
+    }
+
+    const TONES = {
+        0: 261.63,   // C4 - Red
+        1: 329.63,   // E4 - Blue
+        2: 392.00,   // G4 - Green
+        3: 523.25    // C5 - Yellow
+    };
+
+    const COLORS = {
+        normal: [0xE74C3C, 0x3498DB, 0x2ECC71, 0xF1C40F],
+        bright: [0xFF6B6B, 0x5DADE2, 0x58D68D, 0xF7DC6F]
+    };
+
+    // Game State
+    let game;
+    let gameContainer;
+    let topBar;
+    let buttons = [];
+    let statusText;
+    let sequence = [];
+    let playerIndex = 0;
+    let round = 1;
+    let bestRound = 0;
+    let isShowingSequence = false;
+    let celebration;
+
+    loadFrameworkFont();
+
+    async function init() {
+        game = await createGame({
+            container: '#game-container',
+            width: WIDTH,
+            height: HEIGHT,
+            mode: '2d',
+            backgroundColor: 0x1a1a2e
+        });
+
+        celebration = new CelebrationManager(game.stage, WIDTH, HEIGHT);
+
+        showSplash();
+    }
+
+    function showSplash() {
+        const splash = new SplashScreen({
+            title: '🎵 SIMON SAYS',
+            autoAdvance: true,
+            autoAdvanceDelay: 2000,
+            backgroundColor: 0x1a1a2e
+        });
+
+        splash.on('complete', showMenu);
+        game.stage.addChild(splash.getContainer());
+    }
+
+    function showMenu() {
+        game.stage.removeChildren();
+
+        const factory = graphics();
+        const menuContainer = factory.createContainer();
+
+        // Title
+        const title = factory.createText('🎵 SIMON SAYS 🎵', {
+            fontFamily: 'Lilita One, Arial',
+            fontSize: 48,
+            fill: 0xFFFFFF,
+            align: 'center'
+        });
+        title.anchor = { x: 0.5, y: 0.5 };
+        title.position = { x: 250, y: 150 };
+        menuContainer.addChild(title);
+
+        // Subtitle
+        const subtitle = factory.createText('Watch and repeat the pattern!', {
+            fontFamily: 'Lilita One, Arial',
+            fontSize: 20,
+            fill: 0x8892b0,
+            align: 'center'
+        });
+        subtitle.anchor = { x: 0.5, y: 0.5 };
+        subtitle.position = { x: 250, y: 220 };
+        menuContainer.addChild(subtitle);
+
+        // Play button
+        const playButton = new GameStyleButton({
+            text: 'PLAY',
+            width: 200,
+            height: 60,
+            fontSize: 28
+        });
+        playButton.getContainer().position = { x: 150, y: 350 };
+        playButton.on('click', () => {
+            initAudio(); // Initialize audio on user gesture
+            startGame();
+        });
+        menuContainer.addChild(playButton.getContainer());
+
+        game.stage.addChild(menuContainer);
+    }
+
+    function startGame() {
+        game.stage.removeChildren();
+
+        const factory = graphics();
+        gameContainer = factory.createContainer();
+
+        // Top bar
+        topBar = new GameTopBar({
+            level: 1,
+            coins: bestRound,
+            levelLabel: 'ROUND',
+            coinsLabel: 'BEST'
+        });
+        gameContainer.addChild(topBar.getContainer());
+
+        // Status text
+        statusText = factory.createText('Watch...', {
+            fontFamily: 'Lilita One, Arial',
+            fontSize: 32,
+            fill: 0xFFFFFF,
+            align: 'center'
+        });
+        statusText.anchor = { x: 0.5, y: 0.5 };
+        statusText.position = { x: 250, y: 120 };
+        gameContainer.addChild(statusText);
+
+        // Create 4 buttons in 2x2 grid
+        const buttonSize = 130;
+        const gap = 20;
+        const startX = (WIDTH - (buttonSize * 2 + gap)) / 2;
+        const startY = 200;
+
+        buttons = [];
+        for (let i = 0; i < 4; i++) {
+            const row = Math.floor(i / 2);
+            const col = i % 2;
+            const x = startX + col * (buttonSize + gap);
+            const y = startY + row * (buttonSize + gap);
+
+            const button = createColorButton(i, buttonSize);
+            button.position = { x, y };
+            gameContainer.addChild(button);
+            buttons.push(button);
+        }
+
+        game.stage.addChild(gameContainer);
+
+        // Reset game state
+        sequence = [];
+        playerIndex = 0;
+        round = 1;
+
+        // Start first round
+        nextRound();
+    }
+
+    function createColorButton(colorIndex, size) {
+        const factory = graphics();
+        const container = factory.createContainer();
+        container.interactive = true;
+        container.cursor = 'pointer';
+
+        const gfx = factory.createGraphics();
+        gfx.roundRect(0, 0, size, size, 20);
+        gfx.fill({ color: COLORS.normal[colorIndex] });
+        container.addChild(gfx);
+
+        container.userData = { colorIndex, gfx, size, isLit: false };
+
+        container.on('pointerdown', () => {
+            if (isShowingSequence) return;
+            onButtonClick(colorIndex);
+        });
+
+        return container;
+    }
+
+    function lightUpButton(colorIndex, duration = 300) {
+        const button = buttons[colorIndex];
+        const { gfx, size, colorIndex: idx } = button.userData;
+
+        if (button.userData.isLit) return;
+        button.userData.isLit = true;
+
+        // Play tone
+        playTone(TONES[idx], duration);
+
+        // Light up visual
+        gfx.clear();
+        gfx.roundRect(0, 0, size, size, 20);
+        gfx.fill({ color: COLORS.bright[idx] });
+        gfx.stroke({ color: 0xFFFFFF, width: 3, alpha: 0.5 });
+
+        button.scale = { x: 1.1, y: 1.1 };
+
+        setTimeout(() => {
+            gfx.clear();
+            gfx.roundRect(0, 0, size, size, 20);
+            gfx.fill({ color: COLORS.normal[idx] });
+            button.scale = { x: 1, y: 1 };
+            button.userData.isLit = false;
+        }, duration);
+    }
+
+    async function nextRound() {
+        playerIndex = 0;
+
+        // Add new color to sequence
+        const newColor = Math.floor(Math.random() * 4);
+        sequence.push(newColor);
+
+        // Update top bar
+        topBar.updateLevel(round);
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        await showSequence();
+    }
+
+    async function showSequence() {
+        isShowingSequence = true;
+        statusText.text = 'Watch...';
+
+        const delay = round > 5 ? 400 : 500;
+        const pause = round > 5 ? 250 : 300;
+
+        for (let i = 0; i < sequence.length; i++) {
+            lightUpButton(sequence[i], delay);
+            await new Promise(resolve => setTimeout(resolve, delay + pause));
+        }
+
+        isShowingSequence = false;
+        statusText.text = 'Your turn!';
+    }
+
+    function onButtonClick(colorIndex) {
+        lightUpButton(colorIndex);
+
+        if (colorIndex === sequence[playerIndex]) {
+            playerIndex++;
+
+            if (playerIndex === sequence.length) {
+                // Completed sequence
+                round++;
+                if (round > bestRound) {
+                    bestRound = round;
+                }
+                setTimeout(() => nextRound(), 1000);
+            }
+        } else {
+            // Wrong button
+            playErrorTone();
+            gameOver();
+        }
+    }
+
+    function gameOver() {
+        setTimeout(() => {
+            game.stage.removeChildren();
+
+            const stars = round >= 15 ? 3 : round >= 10 ? 2 : round >= 5 ? 1 : 0;
+
+            const resultScreen = new ResultScreen({
+                score: round - 1,
+                stars: stars,
+                scoreLabel: 'ROUND REACHED',
+                showStars: true
+            });
+
+            resultScreen.on('playAgain', () => {
+                celebration.clear();
+                startGame();
+            });
+
+            resultScreen.on('menu', () => {
+                celebration.clear();
+                showMenu();
+            });
+
+            game.stage.addChild(resultScreen.getContainer());
+
+            if (stars === 3) {
+                celebration.victory({ confetti: true, sound: false });
+            }
+        }, 800);
+    }
+
+    init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - Whack-a-Mole Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
+        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
+        #game-container { border-radius: 12px; overflow: hidden; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4); }
+        canvas { display: block; }
+        .info { color: #8892b0; margin-top: 20px; font-size: 12px; text-align: center; max-width: 500px; }
+    </style>
+</head>
+<body>
+    <h1>Whack-a-Mole</h1>
+    <p>GameByte Input System - Touch, Click & Keyboard</p>
+    <div id="game-container"></div>
+    <div class="info">Click/tap moles or use keys 1-9! Golden mole = 50pts, Red mole = 25pts, Brown mole = 10pts.</div>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="/gamebyte.umd.js"></script>
+    <script>
+    const {
+        createGame, graphics, loadFrameworkFont,
+        SplashScreen, GameStyleButton, GameStyleColors,
+        GameTopBar, ResultScreen, CelebrationManager
+    } = GameByteFramework;
+
+    const WIDTH = 500;
+    const HEIGHT = 600;
+    const GAME_TIME = 30;
+    const GRID_SIZE = 3;
+    const HOLE_SPACING = 140;
+    const GRID_START_X = 110;
+    const GRID_START_Y = 180;
+
+    let game, mainScene, gameState;
+    let topBar, timerBar, moles = [], activeMoles = [];
+    let score = 0, timeLeft = GAME_TIME, gameActive = false;
+    let spawnTimer = 0, difficultyMultiplier = 1;
+    let keyboardListener;
+
+    // Mole type definitions
+    const MoleType = {
+        NORMAL: { color: 0x8B4513, points: 10, duration: 1200 },
+        GOLDEN: { color: 0xFFD700, points: 50, duration: 1500 },
+        ANGRY: { color: 0xDC143C, points: 25, duration: 800 }
+    };
+
+    loadFrameworkFont();
+
+    async function init() {
+        game = await createGame({
+            container: '#game-container',
+            width: WIDTH,
+            height: HEIGHT,
+            mode: '2d',
+            backgroundColor: 0x2C5F2D
+        });
+
+        showSplash();
+    }
+
+    function showSplash() {
+        const splash = new SplashScreen({
+            title: '🔨 WHACK-A-MOLE',
+            titleColor: 0xFFD700,
+            backgroundColor: 0x1a1a2e,
+            autoClose: true,
+            duration: 2000
+        });
+
+        splash.on('complete', () => {
+            game.stage.removeChild(splash.getContainer());
+            showMenu();
+        });
+
+        game.stage.addChild(splash.getContainer());
+    }
+
+    function showMenu() {
+        const factory = graphics();
+        const menuContainer = factory.createContainer();
+
+        // Title
+        const title = factory.createText('WHACK-A-MOLE', {
+            fontFamily: 'Lilita One, Arial, sans-serif',
+            fontSize: 48,
+            fill: 0xFFD700,
+            align: 'center'
+        });
+        title.position.set(WIDTH / 2 - title.width / 2, 80);
+        menuContainer.addChild(title);
+
+        // Subtitle
+        const subtitle = factory.createText('Multiple Input Showcase', {
+            fontFamily: 'Lilita One, Arial, sans-serif',
+            fontSize: 20,
+            fill: 0xFFFFFF,
+            align: 'center'
+        });
+        subtitle.position.set(WIDTH / 2 - subtitle.width / 2, 140);
+        menuContainer.addChild(subtitle);
+
+        // Instructions
+        const instructions = [
+            '🖱️ Click/Tap moles',
+            '⌨️ Use keys 1-9',
+            '⏱️ 30 seconds to score!'
+        ];
+
+        instructions.forEach((text, i) => {
+            const instr = factory.createText(text, {
+                fontFamily: 'Lilita One, Arial, sans-serif',
+                fontSize: 18,
+                fill: 0x8892b0,
+                align: 'center'
+            });
+            instr.position.set(WIDTH / 2 - instr.width / 2, 200 + i * 35);
+            menuContainer.addChild(instr);
+        });
+
+        // Play button
+        const playBtn = new GameStyleButton({ text: 'PLAY', width: 200, height: 60 });
+        playBtn.getContainer().position.set(WIDTH / 2 - 100, 380);
+        playBtn.on('click', () => {
+            game.stage.removeChild(menuContainer);
+            startGame();
+        });
+        menuContainer.addChild(playBtn.getContainer());
+
+        game.stage.addChild(menuContainer);
+    }
+
+    function startGame() {
+        const factory = graphics();
+        mainScene = factory.createContainer();
+        game.stage.addChild(mainScene);
+
+        // Top bar
+        topBar = new GameTopBar({
+            width: WIDTH,
+            showCoins: false,
+            showLives: false
+        });
+        topBar.updateScore(0);
+        mainScene.addChild(topBar.getContainer());
+
+        // Timer bar
+        timerBar = factory.createGraphics();
+        updateTimerBar();
+        mainScene.addChild(timerBar);
+
+        // Create grid
+        createGrid();
+
+        // Game state
+        score = 0;
+        timeLeft = GAME_TIME;
+        gameActive = true;
+        spawnTimer = 0;
+        difficultyMultiplier = 1;
+
+        // Setup keyboard input
+        setupKeyboard();
+
+        // Start game loop
+        game.onUpdate(gameLoop);
+    }
+
+    function createGrid() {
+        const factory = graphics();
+
+        for (let row = 0; row < GRID_SIZE; row++) {
+            for (let col = 0; col < GRID_SIZE; col++) {
+                const index = row * GRID_SIZE + col;
+                const x = GRID_START_X + col * HOLE_SPACING;
+                const y = GRID_START_Y + row * HOLE_SPACING;
+
+                // Hole
+                const hole = factory.createGraphics();
+                hole.ellipse(0, 0, 45, 25);
+                hole.fill({ color: 0x3d2817 });
+                hole.position.set(x, y);
+                mainScene.addChild(hole);
+
+                // Key label
+                const keyLabel = factory.createText((index + 1).toString(), {
+                    fontFamily: 'Lilita One, Arial, sans-serif',
+                    fontSize: 16,
+                    fill: 0xFFFFFF,
+                    alpha: 0.6
+                });
+                keyLabel.position.set(x - keyLabel.width / 2, y + 35);
+                mainScene.addChild(keyLabel);
+
+                // Store position
+                moles[index] = { x, y, container: null, type: null, timer: 0 };
+            }
+        }
+    }
+
+    function setupKeyboard() {
+        keyboardListener = (event) => {
+            if (!gameActive) return;
+
+            let holeIndex = -1;
+
+            // Map keyboard keys to holes
+            if (event.code.startsWith('Digit')) {
+                holeIndex = parseInt(event.code.replace('Digit', '')) - 1;
+            } else if (event.code.startsWith('Numpad')) {
+                holeIndex = parseInt(event.code.replace('Numpad', '')) - 1;
+            }
+
+            if (holeIndex >= 0 && holeIndex < 9 && moles[holeIndex].container) {
+                whackMole(holeIndex);
+            }
+        };
+
+        window.addEventListener('keydown', keyboardListener);
+    }
+
+    function spawnMole() {
+        // Find empty holes
+        const emptyHoles = moles
+            .map((m, i) => ({ index: i, isEmpty: !m.container }))
+            .filter(h => h.isEmpty);
+
+        if (emptyHoles.length === 0) return;
+
+        const randomHole = emptyHoles[Math.floor(Math.random() * emptyHoles.length)];
+        const holeIndex = randomHole.index;
+        const hole = moles[holeIndex];
+
+        // Determine mole type
+        const rand = Math.random();
+        let moleType;
+        if (rand < 0.15) {
+            moleType = MoleType.GOLDEN;
+        } else if (rand < 0.35) {
+            moleType = MoleType.ANGRY;
+        } else {
+            moleType = MoleType.NORMAL;
+        }
+
+        const factory = graphics();
+        const moleContainer = factory.createContainer();
+        moleContainer.position.set(hole.x, hole.y);
+
+        // Mole body
+        const body = factory.createGraphics();
+        body.circle(0, -20, 30);
+        body.fill({ color: moleType.color });
+        moleContainer.addChild(body);
+
+        // Eyes
+        const leftEye = factory.createGraphics();
+        leftEye.circle(-10, -25, 5);
+        leftEye.fill({ color: 0xFFFFFF });
+        leftEye.circle(-10, -25, 2.5);
+        leftEye.fill({ color: 0x000000 });
+        moleContainer.addChild(leftEye);
+
+        const rightEye = factory.createGraphics();
+        rightEye.circle(10, -25, 5);
+        rightEye.fill({ color: 0xFFFFFF });
+        rightEye.circle(10, -25, 2.5);
+        rightEye.fill({ color: 0x000000 });
+        moleContainer.addChild(rightEye);
+
+        // Nose
+        const nose = factory.createGraphics();
+        nose.circle(0, -18, 3);
+        nose.fill({ color: 0x000000 });
+        moleContainer.addChild(nose);
+
+        // Animation: pop up
+        moleContainer.scale.set(0);
+        mainScene.addChild(moleContainer);
+
+        // Make interactive
+        moleContainer.eventMode = 'static';
+        moleContainer.cursor = 'pointer';
+        moleContainer.on('pointerdown', () => whackMole(holeIndex));
+
+        hole.container = moleContainer;
+        hole.type = moleType;
+        hole.timer = moleType.duration / difficultyMultiplier;
+
+        // Pop-up animation
+        animatePopUp(moleContainer);
+    }
+
+    function animatePopUp(moleContainer) {
+        const startTime = Date.now();
+        const duration = 150;
+
+        const animate = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            moleContainer.scale.set(progress);
+
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            }
+        };
+        animate();
+    }
+
+    function whackMole(holeIndex) {
+        const hole = moles[holeIndex];
+        if (!hole.container) return;
+
+        const moleType = hole.type;
+        const points = moleType.points;
+        score += points;
+        topBar.updateScore(score);
+
+        // Show floating score
+        showFloatingScore(hole.x, hole.y - 60, '+' + points);
+
+        // Whack animation
+        const moleContainer = hole.container;
+        const startTime = Date.now();
+        const duration = 200;
+
+        const animate = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            moleContainer.scale.set(1 - progress);
+
+            if (progress >= 1) {
+                mainScene.removeChild(moleContainer);
+                hole.container = null;
+                hole.type = null;
+            } else {
+                requestAnimationFrame(animate);
+            }
+        };
+        animate();
+
+        // Hole flash
+        flashHole(hole.x, hole.y, 0x4CAF50);
+    }
+
+    function showFloatingScore(x, y, text) {
+        const factory = graphics();
+        const scoreText = factory.createText(text, {
+            fontFamily: 'Lilita One, Arial, sans-serif',
+            fontSize: 24,
+            fill: 0xFFD700,
+            fontWeight: 'bold'
+        });
+        scoreText.position.set(x - scoreText.width / 2, y);
+        mainScene.addChild(scoreText);
+
+        const startTime = Date.now();
+        const duration = 800;
+        const startY = y;
+
+        const animate = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            scoreText.position.y = startY - progress * 50;
+            scoreText.alpha = 1 - progress;
+
+            if (progress >= 1) {
+                mainScene.removeChild(scoreText);
+            } else {
+                requestAnimationFrame(animate);
+            }
+        };
+        animate();
+    }
+
+    function flashHole(x, y, color) {
+        const factory = graphics();
+        const flash = factory.createGraphics();
+        flash.ellipse(0, 0, 50, 30);
+        flash.fill({ color, alpha: 0.5 });
+        flash.position.set(x, y);
+        mainScene.addChild(flash);
+
+        const startTime = Date.now();
+        const duration = 200;
+
+        const animate = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            flash.alpha = 0.5 * (1 - progress);
+
+            if (progress >= 1) {
+                mainScene.removeChild(flash);
+            } else {
+                requestAnimationFrame(animate);
+            }
+        };
+        animate();
+    }
+
+    function updateTimerBar() {
+        timerBar.clear();
+        const barWidth = (timeLeft / GAME_TIME) * WIDTH;
+        timerBar.rect(0, 50, barWidth, 8);
+        timerBar.fill({ color: timeLeft < 10 ? 0xFF4444 : 0x4CAF50 });
+    }
+
+    function gameLoop(deltaMS) {
+        if (!gameActive) return;
+
+        const deltaTime = deltaMS / 1000; // Convert milliseconds to seconds
+
+        // Update timer
+        timeLeft -= deltaTime;
+        updateTimerBar();
+
+        if (timeLeft <= 0) {
+            endGame();
+            return;
+        }
+
+        // Increase difficulty over time
+        difficultyMultiplier = 1 + (GAME_TIME - timeLeft) / GAME_TIME;
+
+        // Spawn moles
+        spawnTimer += deltaTime;
+        const spawnInterval = Math.max(0.6, 1.0 - difficultyMultiplier * 0.3);
+
+        if (spawnTimer >= spawnInterval) {
+            spawnTimer = 0;
+            const activeMoleCount = moles.filter(m => m.container).length;
+            const maxMoles = Math.min(3, Math.floor(1 + difficultyMultiplier));
+
+            if (activeMoleCount < maxMoles) {
+                spawnMole();
+            }
+        }
+
+        // Update active moles
+        moles.forEach((hole, index) => {
+            if (hole.container) {
+                hole.timer -= deltaTime;
+
+                if (hole.timer <= 0) {
+                    // Mole disappears
+                    mainScene.removeChild(hole.container);
+                    hole.container = null;
+                    hole.type = null;
+                }
+            }
+        });
+    }
+
+    function endGame() {
+        gameActive = false;
+        window.removeEventListener('keydown', keyboardListener);
+        game.offUpdate(gameLoop);
+
+        // Calculate stars
+        let stars = 1;
+        if (score >= 300) stars = 3;
+        else if (score >= 200) stars = 2;
+
+        // Show result screen
+        const resultScreen = new ResultScreen({
+            score: score,
+            bestScore: Math.max(score, parseInt(localStorage.getItem('whackMoleBest') || '0')),
+            showStars: true,
+            stars: stars
+        });
+
+        localStorage.setItem('whackMoleBest', Math.max(score, parseInt(localStorage.getItem('whackMoleBest') || '0')));
+
+        resultScreen.on('restart', () => {
+            game.stage.removeChild(mainScene);
+            game.stage.removeChild(resultScreen.getContainer());
+            startGame();
+        });
+
+        resultScreen.on('menu', () => {
+            game.stage.removeChild(mainScene);
+            game.stage.removeChild(resultScreen.getContainer());
+            showMenu();
+        });
+
+        game.stage.addChild(resultScreen.getContainer());
+
+        if (stars >= 2) {
+            const celebration = new CelebrationManager(game.stage, WIDTH, HEIGHT);
+            celebration.victory({ confetti: true, sound: false });
+        }
+    }
+
+    init();
+    </script>
+</body>
+</html>
