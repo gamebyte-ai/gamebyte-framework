@@ -1,10 +1,11 @@
 import { EventEmitter } from 'eventemitter3';
-import { 
+import {
   PerformanceDebugOverlay as IPerformanceDebugOverlay,
   PerformanceMetrics,
   PerformanceProfiler as IPerformanceProfiler,
   ProfilingResult
 } from '../contracts/Performance';
+import { Logger } from '../utils/Logger.js';
 
 /**
  * Graph configuration for overlay
@@ -64,7 +65,7 @@ class PerformanceProfiler extends EventEmitter implements IPerformanceProfiler {
     const session = this.sessions.get(name);
     
     if (!session) {
-      console.warn(`No profiling session found for: ${name}`);
+      Logger.warn('Performance', `No profiling session found for: ${name}`);
       return 0;
     }
     
@@ -118,7 +119,7 @@ class PerformanceProfiler extends EventEmitter implements IPerformanceProfiler {
     const endTime = this.marks.get(endMark);
     
     if (startTime === undefined || endTime === undefined) {
-      console.warn(`Marks not found: ${startMark}, ${endMark}`);
+      Logger.warn('Performance', `Marks not found: ${startMark}, ${endMark}`);
       return 0;
     }
     

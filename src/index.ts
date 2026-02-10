@@ -559,6 +559,10 @@ export type { SafeAreaLayoutConfig, SafeAreaBounds } from './utils/SafeAreaLayou
 export { DesignScaler } from './utils/DesignScaler';
 export type { DesignScalerConfig, Point as DesignPoint } from './utils/DesignScaler';
 
+// Logger (Tagged Logging System)
+export { Logger } from './utils/Logger';
+export type { LogLevel, LoggerConfig } from './utils/Logger';
+
 // Graphics Abstraction Layer
 export type {
   IDisplayObject,
@@ -785,6 +789,7 @@ import { Prefabs as PrefabsFacadeExport } from './facades/Prefabs';
 // Import QuickGameConfig for the createGame function
 import type { QuickGameConfig } from './core/GameByte';
 import { Gradients } from './graphics/GradientFactory';
+import { Logger } from './utils/Logger';
 
 /**
  * Create and configure a GameByte instance.
@@ -884,6 +889,7 @@ const GameByteFramework = {
   ServiceContainer,
   Assets,
   Gradients,
+  Logger,
 
   // Facades for static access
   Renderer: null as any, // Will be set after app initialization

@@ -27,6 +27,7 @@ import {
   getScreenInfo,
 } from '../utils/DeviceDetectionUtils';
 import { getInputConfigForTier } from '../config/DeviceConfigurations';
+import { Logger } from '../utils/Logger.js';
 
 /**
  * Main input manager for the GameByte Framework
@@ -775,13 +776,13 @@ export class GameByteInputManager extends EventEmitter implements InputManager {
             try {
               callback(processedEvent);
             } catch (error) {
-              console.error('Error in input action callback:', error);
+              Logger.error('Input', 'Error in input action callback:', error);
             }
           }
         }
       }
     }
-    
+
     this.processingInputs = false;
   }
 
@@ -997,7 +998,7 @@ export class GameByteInputManager extends EventEmitter implements InputManager {
         try {
           callback(event);
         } catch (error) {
-          console.error('Error in input action callback:', error);
+          Logger.error('Input', 'Error in input action callback:', error);
         }
       }
     }

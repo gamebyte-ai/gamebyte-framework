@@ -10,6 +10,7 @@
  * - Scheduling 50ms ahead to avoid clicks/pops
  */
 import type { GameSoundType, GameSoundConfig } from '../../contracts/Audio.js';
+import { Logger } from '../../utils/Logger.js';
 
 type PresetGenerator = (ctx: AudioContext, dest: AudioNode, config: Required<GameSoundConfig>) => void;
 
@@ -37,7 +38,7 @@ export class GameSoundPresets {
 
     const generator = this.presets.get(type);
     if (!generator) {
-      console.warn(`GameSoundPresets: unknown preset '${type}'`);
+      Logger.warn('Audio', `GameSoundPresets: unknown preset '${type}'`);
       return;
     }
 

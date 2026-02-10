@@ -27,6 +27,7 @@ import * as PIXI from 'pixi.js';
 import { LayoutConfig, LayoutSystemConfig, ResponsiveLayoutConfig, ResponsiveBreakpoint } from './types.js';
 import { LayoutPresets, GameLayoutPresets, scaleLayout } from './LayoutStyles.js';
 import { graphics } from '../graphics/GraphicsEngine.js';
+import { Logger } from '../utils/Logger.js';
 
 /**
  * Layout Manager Events
@@ -77,7 +78,7 @@ export class LayoutManager extends EventEmitter<LayoutManagerEvents> {
    */
   async initialize(app: PIXI.Application): Promise<void> {
     if (this.isInitialized) {
-      console.warn('LayoutManager already initialized');
+      Logger.warn('Layout', 'LayoutManager already initialized');
       return;
     }
 
@@ -98,7 +99,7 @@ export class LayoutManager extends EventEmitter<LayoutManagerEvents> {
     }
 
     this.isInitialized = true;
-    console.log('✅ LayoutManager initialized');
+    Logger.info('Layout', 'LayoutManager initialized');
     this.emit('initialized');
   }
 
@@ -124,7 +125,7 @@ export class LayoutManager extends EventEmitter<LayoutManagerEvents> {
    */
   setStageLayout(layout: LayoutConfig): void {
     if (!this.app) {
-      console.warn('LayoutManager not initialized');
+      Logger.warn('Layout', 'LayoutManager not initialized');
       return;
     }
 

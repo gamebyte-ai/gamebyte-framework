@@ -4,6 +4,7 @@ import { PixiCompatibility, RenderingCompatibility } from '../utils/PixiCompatib
 import type { PixiRendererOptions } from '../utils/PixiCompatibility';
 import { PixiVersionDetector } from '../utils/PixiVersionDetection';
 import { ResponsiveScaleCalculator, ResponsiveConfig, ResponsiveSize } from '../utils/ResponsiveHelper';
+import { Logger } from '../utils/Logger.js';
 import * as PIXI from 'pixi.js';
 
 export interface PixiRendererConfig extends RendererOptions {
@@ -52,7 +53,7 @@ export class PixiRenderer extends EventEmitter implements Renderer {
    */
   async initialize(canvas: HTMLCanvasElement, options: PixiRendererConfig = {}): Promise<void> {
     // Log compatibility info
-    console.log('🎮 Initializing PixiRenderer with Pixi.js', PixiVersionDetector.getVersion().raw);
+    Logger.info('Renderer', 'Initializing PixiRenderer with Pixi.js', PixiVersionDetector.getVersion().raw);
 
     // Store canvas reference
     this.canvas = canvas;
@@ -74,7 +75,7 @@ export class PixiRenderer extends EventEmitter implements Renderer {
         this.handleResponsiveResize(size);
       });
 
-      console.log('📱 Responsive mode enabled with base size:', responsiveConfig.baseWidth, 'x', responsiveConfig.baseHeight);
+      Logger.info('Renderer', 'Responsive mode enabled with base size:', responsiveConfig.baseWidth, 'x', responsiveConfig.baseHeight);
     }
 
     // Get optimal settings for device
@@ -99,9 +100,9 @@ export class PixiRenderer extends EventEmitter implements Renderer {
     // Create renderer using compatibility layer (supports v7 and v8)
     try {
       this.app = await PixiCompatibility.createRenderer(pixiOptions);
-      console.log('✅ PixiRenderer initialized successfully');
+      Logger.info('Renderer', 'PixiRenderer initialized successfully');
     } catch (error) {
-      console.error('❌ Failed to initialize PixiRenderer:', error);
+      Logger.error('Renderer', 'Failed to initialize PixiRenderer:', error);
       throw error;
     }
 
@@ -139,7 +140,7 @@ export class PixiRenderer extends EventEmitter implements Renderer {
       }
     } else {
       // On-demand rendering - just mark as ready
-      console.log('📊 PixiRenderer started in on-demand mode');
+      Logger.info('Renderer', 'PixiRenderer started in on-demand mode');
     }
 
     this.emit('started');

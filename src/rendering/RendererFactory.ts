@@ -1,4 +1,5 @@
 import { Renderer, RenderingMode } from '../contracts/Renderer';
+import { Logger } from '../utils/Logger.js';
 import { PixiRenderer } from './PixiRenderer';
 // ThreeRenderer NOT imported statically to avoid bundling in UMD
 // import { ThreeRenderer } from './ThreeRenderer';
@@ -33,7 +34,7 @@ export class RendererFactory {
 
       default:
         // Fallback to 2D renderer if mode is not recognized
-        console.warn(`Unsupported rendering mode: ${mode}. Falling back to 2D renderer.`);
+        Logger.warn('Renderer', `Unsupported rendering mode: ${mode}. Falling back to 2D renderer.`);
         return new PixiRenderer();
     }
   }
@@ -67,16 +68,16 @@ export class RendererFactory {
         const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
         
         if (!gl && preferredMode === RenderingMode.RENDERER_3D) {
-          console.warn('WebGL not supported, falling back to 2D renderer');
+          Logger.warn('Renderer', 'WebGL not supported, falling back to 2D renderer');
           return this.create(fallbackMode || RenderingMode.RENDERER_2D);
         }
       }
       
       return this.create(preferredMode);
     } catch (error) {
-      console.warn(`Failed to create ${preferredMode} renderer:`, error);
+      Logger.warn('Renderer', `Failed to create ${preferredMode} renderer:`, error);
       if (fallbackMode && fallbackMode !== preferredMode) {
-        console.info(`Falling back to ${fallbackMode} renderer`);
+        Logger.info('Renderer', `Falling back to ${fallbackMode} renderer`);
         return this.create(fallbackMode);
       }
       // Final fallback to 2D
@@ -96,7 +97,7 @@ export class RendererFactory {
     
     if (!gl) {
       // Fallback to 2D if WebGL is not supported
-      console.info('WebGL not supported, defaulting to 2D renderer');
+      Logger.info('Renderer', 'WebGL not supported, defaulting to 2D renderer');
       return RenderingMode.RENDERER_2D;
     }
 

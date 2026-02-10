@@ -1,6 +1,7 @@
 import { GameByte } from '../core/GameByte';
 import { AbstractServiceProvider } from '../contracts/ServiceProvider';
 import { PhysicsManager } from '../physics/PhysicsManager';
+import { Logger } from '../utils/Logger.js';
 
 /**
  * Physics service provider for the GameByte framework
@@ -47,7 +48,7 @@ export class PhysicsServiceProvider extends AbstractServiceProvider {
           await physicsManager.initialize(dimension);
         } catch (error) {
           // Physics engine not available - this is fine for games that don't use physics
-          console.warn('⚠️ Physics engine not available. If you need physics, include Matter.js (2D) or Cannon.js (3D).');
+          Logger.warn('Physics', 'Physics engine not available. If you need physics, include Matter.js (2D) or Cannon.js (3D).');
         }
       }
     });

@@ -6,6 +6,7 @@
  */
 
 import * as PIXI from 'pixi.js';
+import { Logger } from './Logger.js';
 
 export interface VersionInfo {
   major: number;
@@ -288,9 +289,8 @@ export class FrameworkCompatibility {
    */
   static logCompatibilityReport(): void {
     const report = this.getCompatibilityReport();
-    console.group('🔍 GameByte Framework - Compatibility Report');
-    console.log('Pixi.js:', report.pixi);
-    console.log('Browser:', report.browser);
-    console.groupEnd();
+    Logger.info('Compatibility', 'GameByte Framework - Compatibility Report');
+    Logger.info('Compatibility', 'Pixi.js:', report.pixi);
+    Logger.info('Compatibility', 'Browser:', report.browser);
   }
 }

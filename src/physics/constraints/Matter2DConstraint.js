@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Matter2DConstraint = void 0;
 const eventemitter3_1 = require("eventemitter3");
 const matter_js_1 = require("matter-js");
+const { Logger } = require("../../utils/Logger");
 /**
  * Matter.js 2D physics constraint implementation
  */
@@ -200,7 +201,7 @@ class Matter2DConstraint extends eventemitter3_1.EventEmitter {
             case 'pulley':
                 // These constraint types are not directly supported by Matter.js
                 // Fall back to distance constraint
-                console.warn(`Constraint type '${config.type}' not fully supported in Matter.js, using distance constraint`);
+                Logger.warn('Physics', `Constraint type '${config.type}' not fully supported in Matter.js, using distance constraint`);
                 constraint = matter_js_1.default.Constraint.create(options);
                 break;
             default:
@@ -212,7 +213,7 @@ class Matter2DConstraint extends eventemitter3_1.EventEmitter {
         if (config.lowerLimit !== undefined || config.upperLimit !== undefined) {
             // Matter.js doesn't have built-in constraint limits
             // This would need custom implementation
-            console.warn('Constraint limits not supported in Matter.js');
+            Logger.warn('Physics', 'Constraint limits not supported in Matter.js');
         }
         // Apply motor settings if specified
         if (config.motorSpeed !== undefined || config.motorForce !== undefined) {

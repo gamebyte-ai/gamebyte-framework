@@ -7,6 +7,7 @@ import {
   AudioEvents,
   AudioFadeType
 } from '../../contracts/Audio';
+import { Logger } from '../../utils/Logger.js';
 
 /**
  * Music track with layered audio support
@@ -147,7 +148,7 @@ export class GameByteMusicSystem extends EventEmitter<AudioEvents> implements Mu
       this.emit('music:initialized', {} as any);
       
     } catch (error) {
-      console.error('Music system initialization failed:', error);
+      Logger.error('Audio', 'Music system initialization failed:', error);
       throw error;
     }
   }
@@ -224,7 +225,7 @@ export class GameByteMusicSystem extends EventEmitter<AudioEvents> implements Mu
   // Track management
   async loadTrack(name: string, url: string, config: MusicConfig = {}): Promise<void> {
     if (this._tracks.has(name)) {
-      console.warn(`Music track '${name}' already loaded`);
+      Logger.warn('Audio', `Music track '${name}' already loaded`);
       return;
     }
     
@@ -285,7 +286,7 @@ export class GameByteMusicSystem extends EventEmitter<AudioEvents> implements Mu
       } as any);
       
     } catch (error) {
-      console.error(`Failed to load music track '${name}':`, error);
+      Logger.error('Audio', `Failed to load music track '${name}':`, error);
       throw error;
     }
   }
@@ -309,7 +310,7 @@ export class GameByteMusicSystem extends EventEmitter<AudioEvents> implements Mu
       } as any);
       
     } catch (error) {
-      console.warn(`Failed to load layer '${layerName}' for track '${track.name}':`, error);
+      Logger.warn('Audio', `Failed to load layer '${layerName}' for track '${track.name}':`, error);
     }
   }
 
@@ -386,7 +387,7 @@ export class GameByteMusicSystem extends EventEmitter<AudioEvents> implements Mu
       });
       
     } catch (error) {
-      console.error(`Failed to play music track '${name}':`, error);
+      Logger.error('Audio', `Failed to play music track '${name}':`, error);
       throw error;
     }
   }
@@ -413,7 +414,7 @@ export class GameByteMusicSystem extends EventEmitter<AudioEvents> implements Mu
   private setupSeamlessLooping(track: MusicTrack): void {
     // This would require more complex implementation with precise timing
     // For now, we'll use the basic looping functionality
-    console.log(`Seamless looping setup for track: ${track.name}`);
+    Logger.info('Audio', `Seamless looping setup for track: ${track.name}`);
   }
 
   async stopTrack(fadeTime = 0): Promise<void> {
@@ -443,7 +444,7 @@ export class GameByteMusicSystem extends EventEmitter<AudioEvents> implements Mu
       }
       
     } catch (error) {
-      console.error('Failed to stop music track:', error);
+      Logger.error('Audio', 'Failed to stop music track:', error);
     }
   }
 
@@ -531,7 +532,7 @@ export class GameByteMusicSystem extends EventEmitter<AudioEvents> implements Mu
     
     const layerSource = track.layers.get(layer);
     if (!layerSource) {
-      console.warn(`Layer '${layer}' not found in track '${this._currentTrack}'`);
+      Logger.warn('Audio', `Layer '${layer}' not found in track '${this._currentTrack}'`);
       return;
     }
     
@@ -557,7 +558,7 @@ export class GameByteMusicSystem extends EventEmitter<AudioEvents> implements Mu
       });
       
     } catch (error) {
-      console.error(`Failed to enable layer '${layer}':`, error);
+      Logger.error('Audio', `Failed to enable layer '${layer}':`, error);
     }
   }
 
@@ -599,7 +600,7 @@ export class GameByteMusicSystem extends EventEmitter<AudioEvents> implements Mu
       });
       
     } catch (error) {
-      console.error(`Failed to disable layer '${layer}':`, error);
+      Logger.error('Audio', `Failed to disable layer '${layer}':`, error);
     }
   }
 

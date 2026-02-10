@@ -6,6 +6,7 @@
  */
 
 import * as THREE from 'three';
+import { Logger } from '../../utils/Logger.js';
 
 export interface VersionInfo {
   major: number;
@@ -273,9 +274,8 @@ export class ThreeFrameworkCompatibility {
    */
   static logCompatibilityReport(): void {
     const report = this.getCompatibilityReport();
-    console.group('🔍 GameByte Three.js Toolkit - Compatibility Report');
-    console.log('Three.js:', report.three);
-    console.log('Browser:', report.browser);
-    console.groupEnd();
+    Logger.info('Compatibility', 'GameByte Three.js Toolkit - Compatibility Report');
+    Logger.info('Compatibility', 'Three.js:', report.three);
+    Logger.info('Compatibility', 'Browser:', report.browser);
   }
 }

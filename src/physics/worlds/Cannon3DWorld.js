@@ -4,6 +4,7 @@ exports.Cannon3DWorld = void 0;
 const eventemitter3_1 = require("eventemitter3");
 const CANNON = require("cannon-es");
 const Cannon3DBody_1 = require("../bodies/Cannon3DBody");
+const { Logger } = require("../../utils/Logger");
 const Cannon3DConstraint_1 = require("../constraints/Cannon3DConstraint");
 /**
  * Cannon.js 3D physics world implementation
@@ -458,12 +459,12 @@ class Cannon3DWorld extends eventemitter3_1.EventEmitter {
         // Configure bounds if specified
         if (this.config.bounds) {
             // Cannon.js doesn't have built-in world bounds, but we could add collision planes
-            console.warn('World bounds not implemented for Cannon3DWorld');
+            Logger.warn('Physics', 'World bounds not implemented for Cannon3DWorld');
         }
         // Enable CCD if requested
         if (this.config.enableCCD) {
             // Cannon.js doesn't have built-in CCD, but we could implement it
-            console.warn('CCD not implemented for Cannon3DWorld');
+            Logger.warn('Physics', 'CCD not implemented for Cannon3DWorld');
         }
         // Optimize for mobile by default
         this.optimizeForMobile();

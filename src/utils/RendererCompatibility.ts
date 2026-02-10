@@ -8,6 +8,7 @@
 import * as PIXI from 'pixi.js';
 import * as THREE from 'three';
 import { PixiVersionDetector, ThreeVersionDetector, BrowserFeatureDetector } from './VersionDetection';
+import { Logger } from './Logger.js';
 
 export interface PixiRendererOptions {
   canvas?: HTMLCanvasElement;
@@ -47,7 +48,7 @@ export class PixiCompatibility {
     const version = PixiVersionDetector.getVersion();
     const features = BrowserFeatureDetector.getBestRenderingContext();
 
-    console.log('🎨 Creating Pixi v8 renderer:', {
+    Logger.info('Compatibility', 'Creating Pixi v8 renderer:', {
       version: version.raw,
       bestContext: features
     });
@@ -71,12 +72,12 @@ export class PixiCompatibility {
     let preference = options.preference || 'webgl';
 
     if (preference === 'webgpu' && !BrowserFeatureDetector.hasWebGPU()) {
-      console.log('⚠️ WebGPU not available, falling back to WebGL2');
+      Logger.warn('Compatibility', 'WebGPU not available, falling back to WebGL2');
       preference = 'webgl2';
     }
 
     if (preference === 'webgl2' && !BrowserFeatureDetector.hasWebGL2()) {
-      console.log('⚠️ WebGL2 not available, falling back to WebGL');
+      Logger.warn('Compatibility', 'WebGL2 not available, falling back to WebGL');
       preference = 'webgl';
     }
 
@@ -95,7 +96,7 @@ export class PixiCompatibility {
       preference
     }
 
-    console.log('✅ Creating Pixi v8 renderer with preference:', preference);
+    Logger.info('Compatibility', 'Creating Pixi v8 renderer with preference:', preference);
     const renderer = await autoDetect(rendererOptions);
 
     return renderer;
@@ -109,7 +110,7 @@ export class PixiCompatibility {
       return (PIXI as any).ParticleContainer;
     }
 
-    console.warn('⚠️ ParticleContainer not available, using regular Container');
+    Logger.warn('Compatibility', 'ParticleContainer not available, using regular Container');
     return (PIXI as any).Container;
   }
 
@@ -180,7 +181,7 @@ export class ThreeCompatibility {
     const hasWebGPU = BrowserFeatureDetector.hasWebGPU();
     const revision = ThreeVersionDetector.getRevision();
 
-    console.log('🎨 Creating Three.js renderer:', {
+    Logger.info('Compatibility', 'Creating Three.js renderer:', {
       revision,
       hasWebGPURenderer,
       hasWebGPU,
@@ -191,15 +192,15 @@ export class ThreeCompatibility {
     if (hasWebGPURenderer && hasWebGPU) {
       try {
         const webgpuRenderer = await this.createWebGPURenderer(options);
-        console.log('✅ Created WebGPU renderer');
+        Logger.info('Compatibility', 'Created WebGPU renderer');
         return webgpuRenderer;
       } catch (error) {
-        console.warn('⚠️ WebGPU renderer failed, falling back to WebGL:', error);
+        Logger.warn('Compatibility', 'WebGPU renderer failed, falling back to WebGL:', error);
       }
     }
 
     // Fall back to WebGL
-    console.log('✅ Creating WebGL renderer');
+    Logger.info('Compatibility', 'Creating WebGL renderer');
     return this.createWebGLRenderer(options);
   }
 
@@ -225,10 +226,10 @@ export class ThreeCompatibility {
       });
 
       await renderer.init();
-      console.log('✅ WebGPURenderer initialized successfully');
+      Logger.info('Compatibility', 'WebGPURenderer initialized successfully');
       return renderer;
     } catch (error) {
-      console.warn('⚠️ Failed to load WebGPURenderer:', error);
+      Logger.warn('Compatibility', 'Failed to load WebGPURenderer:', error);
       throw new Error(`WebGPURenderer not available: ${error}`);
     }
   }
@@ -266,7 +267,7 @@ export class ThreeCompatibility {
     if (this.hasInstancedMesh()) {
       return (THREE as any).InstancedMesh;
     }
-    console.warn('⚠️ InstancedMesh not available in this Three.js version');
+    Logger.warn('Compatibility', 'InstancedMesh not available in this Three.js version');
     return null;
   }
 
@@ -284,7 +285,7 @@ export class ThreeCompatibility {
     if (this.hasLOD()) {
       return THREE.LOD;
     }
-    console.warn('⚠️ LOD not available in this Three.js version');
+    Logger.warn('Compatibility', 'LOD not available in this Three.js version');
     return null;
   }
 
@@ -311,7 +312,7 @@ export class ThreeCompatibility {
       }
     } else if (isWebGPU) {
       // WebGPU has built-in shadow support
-      console.log('✅ WebGPU renderer with native shadow support');
+      Logger.info('Compatibility', 'WebGPU renderer with native shadow support');
     }
   }
 
@@ -393,9 +394,9 @@ export class RenderingCompatibility {
    * Log compatibility report
    */
   static logCompatibilityReport(): void {
-    console.group('🔍 Rendering Compatibility Report');
+    Logger.info('Compatibility', 'Rendering Compatibility Report');
 
-    console.log('Pixi.js:', {
+    Logger.info('Compatibility', 'Pixi.js:', {
       version: PixiVersionDetector.getVersion().raw,
       isV8: PixiVersionDetector.isV8OrHigher(),
       hasWebGPU: PixiVersionDetector.getFeatureSupport().webgpu,
@@ -403,7 +404,7 @@ export class RenderingCompatibility {
       hasParticleContainer: PixiVersionDetector.hasParticleContainer()
     });
 
-    console.log('Three.js:', {
+    Logger.info('Compatibility', 'Three.js:', {
       revision: ThreeVersionDetector.getRevision(),
       isR180Plus: ThreeVersionDetector.isR180OrHigher(),
       hasWebGPU: ThreeVersionDetector.hasWebGPURenderer(),
@@ -411,12 +412,10 @@ export class RenderingCompatibility {
       hasLOD: ThreeVersionDetector.hasLOD()
     });
 
-    console.log('Recommendations:', {
+    Logger.info('Compatibility', 'Recommendations:', {
       pixelRatio: this.getOptimalPixelRatio(),
       antialias: this.getRecommendedAntialias(),
       powerPreference: this.getRecommendedPowerPreference()
     });
-
-    console.groupEnd();
   }
 }

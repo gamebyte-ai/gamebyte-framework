@@ -28,6 +28,7 @@ import { GameByteProceduralAudioGenerator } from '../procedural/GameByteProcedur
 import { GameByteAudioBus } from './GameByteAudioBus';
 import { GameByteAudioSource } from './GameByteAudioSource';
 import { DeviceDetector } from '../../performance/DeviceDetector';
+import { Logger } from '../../utils/Logger.js';
 
 /**
  * Default mobile audio configuration
@@ -384,7 +385,7 @@ export class GameByteAudioManager extends EventEmitter<AudioEvents> implements A
           
           this.emit('audio:unlocked', {} as any);
         } catch (error) {
-          console.warn('Failed to unlock audio context:', error);
+          Logger.warn('Audio', 'Failed to unlock audio context:', error);
         }
       }
     };

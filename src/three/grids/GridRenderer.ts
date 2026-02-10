@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { IGridSystem, GridCoord, HexCoord, gridCoordToKey } from './GridSystem.js';
+import { Logger } from '../../utils/Logger.js';
 
 /**
  * Material type for filled cells
@@ -281,7 +282,7 @@ export class GridRenderer extends THREE.Group {
     // Get grid dimensions from SquareGrid
     const squareGrid = this.grid as any;
     if (!squareGrid.getDimensions || !squareGrid.getCellSize) {
-      console.warn('Grid does not support SquareGrid methods');
+      Logger.warn('Grid', 'Grid does not support SquareGrid methods');
       return;
     }
 

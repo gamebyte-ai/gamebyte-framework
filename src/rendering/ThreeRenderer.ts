@@ -8,6 +8,7 @@ import { EventEmitter } from 'eventemitter3';
 import { Renderer, RenderingMode, RendererOptions, RendererStats } from '../contracts/Renderer';
 import { ThreeCompatibility, ThreeRendererOptions, RenderingCompatibility } from '../utils/RendererCompatibility';
 import { ThreeVersionDetector } from '../utils/VersionDetection';
+import { Logger } from '../utils/Logger.js';
 
 export interface ThreeRendererConfig extends RendererOptions {
   /**
@@ -57,7 +58,7 @@ export class ThreeRenderer extends EventEmitter implements Renderer {
    */
   async initialize(canvas: HTMLCanvasElement, options: ThreeRendererConfig = {}): Promise<void> {
     // Log compatibility info
-    console.log('🎮 Initializing ThreeRenderer with Three.js r' + ThreeVersionDetector.getRevision());
+    Logger.info('Renderer', 'Initializing ThreeRenderer with Three.js r' + ThreeVersionDetector.getRevision());
 
     // Set configuration
     this.renderMode = options.renderMode || 'continuous';
@@ -82,9 +83,9 @@ export class ThreeRenderer extends EventEmitter implements Renderer {
     // Create renderer using compatibility layer (WebGPU or WebGL)
     try {
       this.renderer = await ThreeCompatibility.createRenderer(threeOptions);
-      console.log('✅ ThreeRenderer initialized with', ThreeCompatibility.getRendererType(this.renderer));
+      Logger.info('Renderer', 'ThreeRenderer initialized with', ThreeCompatibility.getRendererType(this.renderer));
     } catch (error) {
-      console.error('❌ Failed to initialize ThreeRenderer:', error);
+      Logger.error('Renderer', 'Failed to initialize ThreeRenderer:', error);
       throw error;
     }
 
@@ -139,7 +140,7 @@ export class ThreeRenderer extends EventEmitter implements Renderer {
     if (this.renderMode === 'continuous') {
       this.renderLoop();
     } else {
-      console.log('📊 ThreeRenderer started in on-demand mode');
+      Logger.info('Renderer', 'ThreeRenderer started in on-demand mode');
     }
 
     this.emit('started');

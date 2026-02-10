@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import EventEmitter from 'eventemitter3';
+import { Logger } from '../../utils/Logger.js';
 import type { IGridSystem, GridCoord, HexCoord } from '../grids/GridSystem.js';
 
 /**
@@ -216,7 +217,7 @@ export class DragController extends EventEmitter {
 
     // Calculate start position
     if (!this.screenToWorld(screenX, screenY, this.startPosition)) {
-      console.warn('DragController: Failed to calculate start position');
+      Logger.warn('DragController', 'Failed to calculate start position');
       return;
     }
 

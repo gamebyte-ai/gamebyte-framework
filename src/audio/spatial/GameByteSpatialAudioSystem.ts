@@ -12,6 +12,7 @@ import {
 } from '../../contracts/Audio';
 import { Vector3 } from '../../contracts/Physics';
 import { GameByteAudioZone } from '../zones/GameByteAudioZone';
+import { Logger } from '../../utils/Logger.js';
 
 /**
  * Default spatial audio configuration
@@ -108,7 +109,7 @@ export class GameByteSpatialAudioSystem extends EventEmitter<AudioEvents> implem
       this.emit('spatial:initialized', {} as any);
       
     } catch (error) {
-      console.warn('Spatial audio initialization failed:', error);
+      Logger.warn('Audio', 'Spatial audio initialization failed:', error);
       // Continue with limited functionality
     }
   }
@@ -121,13 +122,13 @@ export class GameByteSpatialAudioSystem extends EventEmitter<AudioEvents> implem
       // Check if HRTF is supported
       if (this._context.listener && 'positionX' in this._context.listener) {
         this._hrtfEnabled = true;
-        console.log('HRTF spatial audio enabled');
+        Logger.info('Audio', 'HRTF spatial audio enabled');
       } else {
-        console.warn('HRTF not supported, falling back to basic panner');
+        Logger.warn('Audio', 'HRTF not supported, falling back to basic panner');
         this._hrtfEnabled = false;
       }
     } catch (error) {
-      console.warn('HRTF initialization failed:', error);
+      Logger.warn('Audio', 'HRTF initialization failed:', error);
       this._hrtfEnabled = false;
     }
   }
@@ -496,7 +497,7 @@ export class GameByteSpatialAudioSystem extends EventEmitter<AudioEvents> implem
       } as any);
       
     } catch (error) {
-      console.error('Failed to load HRTF data:', error);
+      Logger.error('Audio', 'Failed to load HRTF data:', error);
       throw error;
     }
   }

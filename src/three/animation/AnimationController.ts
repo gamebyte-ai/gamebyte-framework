@@ -25,6 +25,7 @@
 
 import * as THREE from 'three';
 import { EventEmitter } from 'eventemitter3';
+import { Logger } from '../../utils/Logger.js';
 
 export interface AnimationControllerConfig {
   /** Default transition duration in seconds (default: 0.5) */
@@ -138,7 +139,7 @@ export class AnimationController extends EventEmitter<AnimationControllerEvents>
   play(name: string, options: PlayOptions = {}): THREE.AnimationAction | null {
     const action = this.actions.get(name);
     if (!action) {
-      console.warn(`AnimationController: Animation "${name}" not found`);
+      Logger.warn('Animation', `Animation "${name}" not found`);
       return null;
     }
 

@@ -28,6 +28,7 @@ import { PersistentCache } from './cache/PersistentCache';
 // Import bundle support
 import { GameByteAssetBundle } from './bundling/AssetBundle';
 import { DeviceDetector } from '../performance/DeviceDetector';
+import { Logger } from '../utils/Logger.js';
 
 /**
  * Asset manager configuration options.
@@ -308,7 +309,7 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
           }
           
         } catch (error) {
-          console.warn(`Failed to load asset ${assetConfig.id} from bundle ${bundle.id}:`, error);
+          Logger.warn('Assets', `Failed to load asset ${assetConfig.id} from bundle ${bundle.id}:`, error);
         }
       }
       
@@ -378,7 +379,7 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
     
     // Load in background without waiting
     this.loadBatch(preloadConfigs).catch(error => {
-      console.warn('Preload failed:', error);
+      Logger.warn('Assets', 'Preload failed:', error);
     });
   }
   

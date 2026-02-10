@@ -7,6 +7,7 @@ import {
 } from '../../contracts/Audio';
 import { Vector3 } from '../../contracts/Physics';
 import { GameByteAudioSource } from '../core/GameByteAudioSource';
+import { Logger } from '../../utils/Logger.js';
 
 /**
  * Sound effect pool for efficient memory management
@@ -149,7 +150,7 @@ export class GameByteSFXSystem extends EventEmitter<AudioEvents> implements SFXS
       this.emit('sfx:initialized', {} as any);
       
     } catch (error) {
-      console.error('SFX system initialization failed:', error);
+      Logger.error('Audio', 'SFX system initialization failed:', error);
       throw error;
     }
   }
@@ -412,7 +413,7 @@ export class GameByteSFXSystem extends EventEmitter<AudioEvents> implements SFXS
       return source;
       
     } catch (error) {
-      console.error(`Failed to play sound '${name}':`, error);
+      Logger.error('Audio', `Failed to play sound '${name}':`, error);
       throw error;
     }
   }
@@ -440,7 +441,7 @@ export class GameByteSFXSystem extends EventEmitter<AudioEvents> implements SFXS
       try {
         this.play(queuedSound.name, queuedSound.options);
       } catch (error) {
-        console.warn('Failed to play queued sound:', error);
+        Logger.warn('Audio', 'Failed to play queued sound:', error);
       }
     }
   }
@@ -505,7 +506,7 @@ export class GameByteSFXSystem extends EventEmitter<AudioEvents> implements SFXS
           return newSource;
         }
       } catch (error) {
-        console.warn('Failed to create new pooled source:', error);
+        Logger.warn('Audio', 'Failed to create new pooled source:', error);
       }
     }
     
@@ -579,7 +580,7 @@ export class GameByteSFXSystem extends EventEmitter<AudioEvents> implements SFXS
     try {
       source.stop();
     } catch (error) {
-      console.warn('Error stopping sound:', error);
+      Logger.warn('Audio', 'Error stopping sound:', error);
     }
   }
 
@@ -589,7 +590,7 @@ export class GameByteSFXSystem extends EventEmitter<AudioEvents> implements SFXS
       try {
         await this.getOrCreatePool(sound);
       } catch (error) {
-        console.warn(`Failed to preload sound '${sound}':`, error);
+        Logger.warn('Audio', `Failed to preload sound '${sound}':`, error);
       }
     });
     
@@ -629,7 +630,7 @@ export class GameByteSFXSystem extends EventEmitter<AudioEvents> implements SFXS
             pool.sources.push(newSource);
           }
         } catch (error) {
-          console.warn('Failed to warm up pool:', error);
+          Logger.warn('Audio', 'Failed to warm up pool:', error);
           break;
         }
       }

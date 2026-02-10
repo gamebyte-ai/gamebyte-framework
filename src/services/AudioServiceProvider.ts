@@ -9,6 +9,7 @@ import {
   AudioFadeType,
 } from '../contracts/Audio';
 import { getAudioConfigForTier, mapToAudioPerformanceTier } from '../config/DeviceConfigurations';
+import { Logger } from '../utils/Logger.js';
 
 /**
  * Audio Service Provider for GameByte Framework
@@ -100,10 +101,10 @@ export class AudioServiceProvider extends AbstractServiceProvider {
       // Optimize for detected device
       audioManager.optimizeForDevice();
       
-      console.log(`GameByte Audio System initialized (Performance Tier: ${audioManager.performanceTier})`);
+      Logger.info('Audio', `GameByte Audio System initialized (Performance Tier: ${audioManager.performanceTier})`);
       
     } catch (error) {
-      console.error('Failed to initialize GameByte Audio System:', error);
+      Logger.error('Audio', 'Failed to initialize GameByte Audio System:', error);
       throw error;
     }
   }
@@ -221,7 +222,7 @@ export class AudioServiceProvider extends AbstractServiceProvider {
       }
     } catch (error) {
       // Performance integration not available, continue without it
-      console.warn('Audio-Performance integration not available:', error);
+      Logger.warn('Audio', 'Audio-Performance integration not available:', error);
     }
   }
 
@@ -263,7 +264,7 @@ export class AudioServiceProvider extends AbstractServiceProvider {
         }
       }
     } catch (error) {
-      console.warn('Audio-Scene integration not available:', error);
+      Logger.warn('Audio', 'Audio-Scene integration not available:', error);
     }
   }
 
@@ -313,7 +314,7 @@ export class AudioServiceProvider extends AbstractServiceProvider {
         }
         
       } catch (error) {
-        console.warn(`Failed to load audio assets for scene '${sceneName}':`, error);
+        Logger.warn('Audio', `Failed to load audio assets for scene '${sceneName}':`, error);
       }
     }
   }
