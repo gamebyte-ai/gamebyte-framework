@@ -333,17 +333,23 @@
             return parseInt(hex.replace('#', ''), 16);
         }
 
+        function esc(v) {
+            const d = document.createElement('div');
+            d.textContent = String(v);
+            return d.innerHTML;
+        }
+
         function updateConfigOutput() {
             const bgHex = '#' + bgColorHex.toString(16).padStart(6, '0');
             const configStr = `{
   <span class="key">renderer</span>: {
-    <span class="key">backgroundColor</span>: <span class="val">${bgHex}</span>,
-    <span class="key">resolution</span>: <span class="val">${document.getElementById('resolution').value}</span>,
-    <span class="key">antialias</span>: <span class="val">${document.getElementById('antialias').checked}</span>
+    <span class="key">backgroundColor</span>: <span class="val">${esc(bgHex)}</span>,
+    <span class="key">resolution</span>: <span class="val">${esc(document.getElementById('resolution').value)}</span>,
+    <span class="key">antialias</span>: <span class="val">${esc(document.getElementById('antialias').checked)}</span>
   },
   <span class="key">debug</span>: {
-    <span class="key">showFPS</span>: <span class="val">${showFPS}</span>,
-    <span class="key">logLevel</span>: <span class="val">'${document.getElementById('logLevel').value}'</span>
+    <span class="key">showFPS</span>: <span class="val">${esc(showFPS)}</span>,
+    <span class="key">logLevel</span>: <span class="val">'${esc(document.getElementById('logLevel').value)}'</span>
   }
 }`;
             document.getElementById('configOutput').innerHTML = configStr;
