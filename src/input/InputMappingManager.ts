@@ -6,6 +6,7 @@ import {
   GameAction,
   RawInputEvent
 } from '../contracts/Input';
+import { Logger } from '../utils/Logger.js';
 
 /**
  * Input mapping manager for handling input profiles and context switching
@@ -126,7 +127,7 @@ export class GameByteInputMappingManager implements InputMappingManager {
       const serializedProfile = JSON.stringify(profile, this.profileReplacer);
       localStorage.setItem(`gamebyte-input-profile-${profile.id}`, serializedProfile);
     } catch (error) {
-      console.warn('Failed to save input profile to localStorage:', error);
+      Logger.warn('Input', 'Failed to save input profile to localStorage:', error);
     }
   }
 
@@ -148,7 +149,7 @@ export class GameByteInputMappingManager implements InputMappingManager {
           }
         }
       } catch (error) {
-        console.warn('Failed to load input profile from localStorage:', error);
+        Logger.warn('Input', 'Failed to load input profile from localStorage:', error);
       }
     }
     
@@ -164,7 +165,7 @@ export class GameByteInputMappingManager implements InputMappingManager {
     try {
       localStorage.removeItem(`gamebyte-input-profile-${id}`);
     } catch (error) {
-      console.warn('Failed to remove input profile from localStorage:', error);
+      Logger.warn('Input', 'Failed to remove input profile from localStorage:', error);
     }
   }
 

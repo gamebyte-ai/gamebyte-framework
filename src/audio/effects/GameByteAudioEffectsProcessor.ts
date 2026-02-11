@@ -4,6 +4,7 @@ import {
   AudioEvents,
   AudioEffectsConfig
 } from '../../contracts/Audio';
+import { Logger } from '../../utils/Logger.js';
 
 /**
  * Audio effect presets for common game scenarios
@@ -181,7 +182,7 @@ export class GameByteAudioEffectsProcessor extends EventEmitter<AudioEvents> imp
       this.emit('effects:initialized', {} as any);
       
     } catch (error) {
-      console.warn('Some effects features may not be available:', error);
+      Logger.warn('Audio', 'Some effects features may not be available:', error);
       // Continue initialization even if some features fail
     }
   }
@@ -202,7 +203,7 @@ export class GameByteAudioEffectsProcessor extends EventEmitter<AudioEvents> imp
         // await this._context.audioWorklet.addModule(`/worklets/${processor}.js`);
         this._workletProcessorsLoaded.add(processor);
       } catch (error) {
-        console.warn(`Failed to load worklet processor: ${processor}`, error);
+        Logger.warn('Audio', `Failed to load worklet processor: ${processor}`, error);
       }
     }
   }

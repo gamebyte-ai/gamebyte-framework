@@ -1,6 +1,7 @@
 import { EventEmitter } from 'eventemitter3';
 import * as THREE from 'three';
 import { IEnvironmentSystem, EnvironmentConfig } from '../contracts/Environment.js';
+import { Logger } from '../utils/Logger.js';
 
 // ─── Built-in Presets ─────────────────────────
 
@@ -93,7 +94,7 @@ export class EnvironmentSystem extends EventEmitter implements IEnvironmentSyste
   preset(name: string): void {
     const config = this.presets.get(name);
     if (!config) {
-      console.warn(`EnvironmentSystem: unknown preset '${name}'`);
+      Logger.warn('Environment', `Unknown preset '${name}'`);
       return;
     }
     this.applyConfig(config);
@@ -183,7 +184,7 @@ export class EnvironmentSystem extends EventEmitter implements IEnvironmentSyste
   async transitionTo(presetName: string, duration: number): Promise<void> {
     const target = this.presets.get(presetName);
     if (!target) {
-      console.warn(`EnvironmentSystem: unknown preset '${presetName}'`);
+      Logger.warn('Environment', `Unknown preset '${presetName}'`);
       return;
     }
 

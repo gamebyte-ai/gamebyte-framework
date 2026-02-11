@@ -5,6 +5,8 @@
  * Ensures fonts are available before UI components render.
  */
 
+import { Logger } from '../../utils/Logger.js';
+
 // Default framework font configuration
 // Lilita One - Playful, game-style display font
 const FRAMEWORK_FONT = {
@@ -129,7 +131,7 @@ export async function loadFrameworkFont(): Promise<void> {
 
         if (attempts >= maxAttempts) {
           // Timeout - resolve anyway to prevent blocking
-          console.warn('GameByte: Font loading timeout, using fallback');
+          Logger.warn('UI', 'Font loading timeout, using fallback');
           preload.remove();
           fontLoaded = true;
           resolve();

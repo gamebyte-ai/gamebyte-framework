@@ -20,6 +20,7 @@ import {
   getConcurrencyConfigForTier,
   TierCacheConfig,
 } from '../config/DeviceConfigurations';
+import { Logger } from '../utils/Logger.js';
 
 /**
  * Asset service provider configuration.
@@ -247,12 +248,12 @@ export class AssetServiceProvider extends AbstractServiceProvider {
     // Listen for framework events
     app.on('scene:changing', () => {
       // Trigger garbage collection on scene changes
-      assetManager.optimizeMemory().catch(console.warn);
+      assetManager.optimizeMemory().catch((e) => Logger.warn('Assets', 'Memory optimization failed', e));
     });
-    
+
     app.on('visibility:hidden', () => {
       // Aggressive cleanup when app goes to background
-      assetManager.getCache().evict().catch(console.warn);
+      assetManager.getCache().evict().catch((e) => Logger.warn('Assets', 'Cache eviction failed', e));
     });
   }
   
@@ -276,7 +277,7 @@ export class AssetServiceProvider extends AbstractServiceProvider {
       
       await assetManager.preload(assetConfigs);
     } catch (error) {
-      console.warn('Asset preloading failed:', error);
+      Logger.warn('Assets', 'Asset preloading failed:', error);
     }
   }
   
@@ -286,7 +287,7 @@ export class AssetServiceProvider extends AbstractServiceProvider {
   private setupMemoryManagement(app: GameByte, assetManager: AssetManager): void {
     // Monitor memory pressure
     assetManager.on('memory:pressure', (usage, limit) => {
-      console.warn(`Memory pressure detected: ${Math.round(usage / 1024 / 1024)}MB / ${Math.round(limit / 1024 / 1024)}MB`);
+      Logger.warn('Assets', `Memory pressure detected: ${Math.round(usage / 1024 / 1024)}MB / ${Math.round(limit / 1024 / 1024)}MB`);
       
       // Emit framework-level memory warning
       app.emit('performance:memory:warning', { usage, limit });
@@ -301,7 +302,7 @@ export class AssetServiceProvider extends AbstractServiceProvider {
       const memoryLimit = deviceCapabilities.availableMemory * 1024 * 1024 * 0.5; // 50% of device memory
       
       if (memoryUsage.total > memoryLimit * 0.8) {
-        assetManager.optimizeMemory().catch(console.warn);
+        assetManager.optimizeMemory().catch((e) => Logger.warn('Assets', 'Memory optimization failed', e));
       }
     }, 30000); // Check every 30 seconds
   }
@@ -311,12 +312,12 @@ export class AssetServiceProvider extends AbstractServiceProvider {
    */
   private setupCleanupHandler(app: GameByte, assetManager: AssetManager): void {
     app.on('destroyed', () => {
-      assetManager.destroy().catch(console.warn);
+      assetManager.destroy().catch((e) => Logger.warn('Assets', 'Asset manager destroy failed', e));
     });
-    
+
     // Cleanup on page unload
     window.addEventListener('beforeunload', () => {
-      assetManager.destroy().catch(console.warn);
+      assetManager.destroy().catch((e) => Logger.warn('Assets', 'Asset manager destroy failed', e));
     });
   }
 }

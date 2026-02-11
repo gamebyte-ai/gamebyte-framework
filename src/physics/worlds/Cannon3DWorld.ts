@@ -19,6 +19,7 @@ import {
 import { Cannon3DEngine } from '../engines/Cannon3DEngine';
 import { Cannon3DBody } from '../bodies/Cannon3DBody';
 import { Cannon3DConstraint } from '../constraints/Cannon3DConstraint';
+import { Logger } from '../../utils/Logger.js';
 
 /**
  * Cannon.js 3D physics world implementation
@@ -572,13 +573,13 @@ export class Cannon3DWorld extends EventEmitter implements PhysicsWorld {
     // Configure bounds if specified
     if (this.config.bounds) {
       // Cannon.js doesn't have built-in world bounds, but we could add collision planes
-      console.warn('World bounds not implemented for Cannon3DWorld');
+      Logger.warn('Physics', 'World bounds not implemented for Cannon3DWorld');
     }
 
     // Enable CCD if requested
     if (this.config.enableCCD) {
       // Cannon.js doesn't have built-in CCD, but we could implement it
-      console.warn('CCD not implemented for Cannon3DWorld');
+      Logger.warn('Physics', 'CCD not implemented for Cannon3DWorld');
     }
 
     // Optimize for mobile by default

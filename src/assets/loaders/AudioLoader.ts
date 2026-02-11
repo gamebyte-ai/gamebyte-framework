@@ -2,6 +2,7 @@ import { BaseAssetLoader } from './BaseAssetLoader';
 import { AssetConfig, AssetType } from '../../contracts/AssetManager';
 import { detectAudioFormats, AudioFormats } from '../../utils/FormatDetectionUtils';
 import { getAudioDeviceTier } from '../../utils/DeviceDetectionUtils';
+import { Logger } from '../../utils/Logger.js';
 
 // AudioFormats interface is re-exported from FormatDetectionUtils
 export type { AudioFormats } from '../../utils/FormatDetectionUtils';
@@ -107,7 +108,7 @@ export class AudioLoader extends BaseAssetLoader<ProcessedAudio> {
         this.setupIOSAudioUnlock();
       }
     } catch (error) {
-      console.warn('Web Audio API not supported:', error);
+      Logger.warn('Assets', 'Web Audio API not supported:', error);
     }
   }
   

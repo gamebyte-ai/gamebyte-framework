@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Cannon3DBody = void 0;
 const eventemitter3_1 = require("eventemitter3");
 const CANNON = require("cannon-es");
+const { Logger } = require("../../utils/Logger");
 /**
  * Cannon.js 3D physics body implementation
  */
@@ -399,11 +400,11 @@ class Cannon3DBody extends eventemitter3_1.EventEmitter {
                 return new CANNON.Cylinder(config.radius || dimensions.x / 2, config.radius || dimensions.x / 2, config.height || dimensions.y, 8);
             case 'heightfield':
                 // Would need height data
-                console.warn('Heightfield shape not implemented');
+                Logger.warn('Physics', 'Heightfield shape not implemented');
                 return new CANNON.Box(new CANNON.Vec3(1, 1, 1));
             case 'mesh':
                 // Would need mesh data
-                console.warn('Mesh shape not implemented');
+                Logger.warn('Physics', 'Mesh shape not implemented');
                 return new CANNON.Box(new CANNON.Vec3(1, 1, 1));
             default:
                 // Default to box

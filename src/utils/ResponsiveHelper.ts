@@ -5,6 +5,8 @@
  * Uses a mobile-first approach with a base design size and calculates scale factors.
  */
 
+import { Logger } from './Logger.js';
+
 export interface ResponsiveConfig {
   /**
    * Base design width (typically mobile width, e.g., 1080)
@@ -218,7 +220,7 @@ export class ResponsiveContainer {
   applyScale(element: any, properties: string[]): void {
     const baseValues = this.baseValues.get(element);
     if (!baseValues) {
-      console.warn('No base values stored for element. Call storeBaseValues() first.');
+      Logger.warn('Responsive', 'No base values stored for element. Call storeBaseValues() first.');
       return;
     }
 

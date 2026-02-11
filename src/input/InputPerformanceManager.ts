@@ -3,6 +3,7 @@ import {
   InputPerformanceMetrics,
   RawInputEvent
 } from '../contracts/Input';
+import { Logger } from '../utils/Logger.js';
 
 /**
  * Performance monitoring data
@@ -543,7 +544,7 @@ export class GameByteInputPerformanceManager implements InputPerformanceManager 
       });
       
     } catch (error) {
-      console.warn('Battery monitoring not available:', error);
+      Logger.warn('Input', 'Battery monitoring not available:', error);
       this.batteryMonitoringSupported = false;
     }
   }

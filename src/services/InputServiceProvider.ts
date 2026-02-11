@@ -5,6 +5,7 @@ import { GameByteTouchInputHandler } from '../input/TouchInputHandler';
 import { GameByteVirtualControlsManager } from '../input/VirtualControlsManager';
 import { GameByteInputMappingManager } from '../input/InputMappingManager';
 import { GameByteInputPerformanceManager } from '../input/InputPerformanceManager';
+import { Logger } from '../utils/Logger.js';
 
 // Game-specific handlers
 import { GameBytePlatformerInputHandler } from '../input/handlers/PlatformerInputHandler';
@@ -192,7 +193,7 @@ export class InputServiceProvider extends AbstractServiceProvider {
 
     // Monitor performance metrics
     inputManager.on('performance-warning', (metrics: any) => {
-      console.warn('Input performance warning:', metrics);
+      Logger.warn('Input', 'Input performance warning:', metrics);
       
       // Automatically optimize for better performance
       if (metrics.frameRate < 30) {
@@ -362,11 +363,11 @@ export class InputServiceProvider extends AbstractServiceProvider {
   private setupInputDebugging(inputManager: GameByteInputManager): void {
     // Log input events for debugging
     inputManager.on('raw-input', (event: any) => {
-      console.log('Raw Input:', event);
+      Logger.info('Input', 'Raw Input:', event);
     });
 
     inputManager.on('action', (action: string, data: any, source: string) => {
-      console.log(`Action: ${action} from ${source}`, data);
+      Logger.info('Input', `Action: ${action} from ${source}`, data);
     });
 
     // Add debug overlay for input visualization

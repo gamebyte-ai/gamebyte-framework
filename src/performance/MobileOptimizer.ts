@@ -8,6 +8,7 @@ import {
   QualityLevel
 } from '../contracts/Performance';
 import { DeviceDetector } from './DeviceDetector';
+import { Logger } from '../utils/Logger.js';
 
 /**
  * Battery information interface
@@ -286,7 +287,7 @@ export class MobileOptimizer extends EventEmitter implements IMobileOptimizer {
         });
       }
     } catch (error) {
-      console.warn('Battery API not available:', error);
+      Logger.warn('Performance', 'Battery API not available:', error);
     }
   }
 
@@ -386,7 +387,7 @@ export class MobileOptimizer extends EventEmitter implements IMobileOptimizer {
         this.handleThermalStateChange();
       }
     } catch (error) {
-      console.warn('Thermal API error:', error);
+      Logger.warn('Performance', 'Thermal API error:', error);
     }
   }
 

@@ -17,6 +17,7 @@ import { EventEmitter } from 'eventemitter3';
 import { graphics } from '../../graphics/GraphicsEngine';
 import type { IContainer, IGraphics, IText, ISprite } from '../../contracts/Graphics';
 import { loadFrameworkFont, getFrameworkFontFamily } from '../utils/FontLoader';
+import { Logger } from '../../utils/Logger.js';
 
 export interface GameLoadingConfig {
   /** Screen width */
@@ -126,11 +127,11 @@ export class GameLoading extends EventEmitter {
           this.container.addChild(bgSprite as any);
         }
       } catch (e) {
-        console.warn('GameLoading: Failed to create background sprite', e);
+        Logger.warn('UI', 'GameLoading: Failed to create background sprite', e);
       }
     };
     img.onerror = (e) => {
-      console.warn('GameLoading: Failed to load background image', e);
+      Logger.warn('UI', 'GameLoading: Failed to load background image', e);
     };
     img.src = imageUrl;
   }

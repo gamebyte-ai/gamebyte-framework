@@ -9,6 +9,7 @@ import {
   Vector3
 } from '../../contracts/Physics';
 import { Cannon3DBody } from '../bodies/Cannon3DBody';
+import { Logger } from '../../utils/Logger.js';
 
 /**
  * Cannon.js 3D physics constraint implementation
@@ -229,7 +230,7 @@ export class Cannon3DConstraint extends EventEmitter implements PhysicsConstrain
 
       case 'prismatic':
         // Prismatic constraint (linear movement along axis)
-        console.warn('Prismatic constraint not fully supported in Cannon.js, using distance constraint');
+        Logger.warn('Physics', 'Prismatic constraint not fully supported in Cannon.js, using distance constraint');
         constraint = new CANNON.DistanceConstraint(nativeBodyA, nativeBodyB, config.length || 1);
         break;
 
@@ -249,7 +250,7 @@ export class Cannon3DConstraint extends EventEmitter implements PhysicsConstrain
       case 'pulley':
       case 'mouse':
         // These constraint types are not directly supported by Cannon.js
-        console.warn(`Constraint type '${config.type}' not supported in Cannon.js, using distance constraint`);
+        Logger.warn('Physics', `Constraint type '${config.type}' not supported in Cannon.js, using distance constraint`);
         constraint = new CANNON.DistanceConstraint(nativeBodyA, nativeBodyB, config.length || 1);
         break;
 

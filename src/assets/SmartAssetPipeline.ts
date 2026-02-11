@@ -1,5 +1,6 @@
 import { EventEmitter } from 'eventemitter3';
 import { IAssetPipeline, AssetManifest } from '../contracts/AssetPipeline.js';
+import { Logger } from '../utils/Logger.js';
 
 /** Priority weights for load ordering */
 const PRIORITY_WEIGHTS: Record<string, number> = {
@@ -195,7 +196,7 @@ export class SmartAssetPipeline extends EventEmitter implements IAssetPipeline {
 
     const assetDef = this.manifest?.assets[assetId];
     if (!assetDef) {
-      console.warn(`SmartAssetPipeline: asset '${assetId}' not found in manifest`);
+      Logger.warn('Assets', `SmartAssetPipeline: asset '${assetId}' not found in manifest`);
       this.totalLoaded++;
       this.emitProgress(assetId);
       return undefined;
@@ -229,7 +230,7 @@ export class SmartAssetPipeline extends EventEmitter implements IAssetPipeline {
       this.totalLoaded++;
       this.emitProgress(assetId);
       this.emit('asset:failed', assetId, error);
-      console.warn(`SmartAssetPipeline: failed to load '${assetId}':`, error);
+      Logger.warn('Assets', `SmartAssetPipeline: failed to load '${assetId}':`, error);
       return undefined;
     } finally {
       this.loading.delete(assetId);

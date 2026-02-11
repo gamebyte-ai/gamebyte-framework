@@ -8,6 +8,7 @@ import {
   AudioEvents,
   AudioPerformanceTier
 } from '../../contracts/Audio';
+import { Logger } from '../../utils/Logger.js';
 
 /**
  * Device capability information
@@ -180,7 +181,7 @@ export class GameByteMobileAudioManager extends EventEmitter<AudioEvents> implem
       } as any);
       
     } catch (error) {
-      console.error('Mobile audio manager initialization failed:', error);
+      Logger.error('Audio', 'Mobile audio manager initialization failed:', error);
       throw error;
     }
   }
@@ -304,7 +305,7 @@ export class GameByteMobileAudioManager extends EventEmitter<AudioEvents> implem
             platform: 'ios'
           } as any);
         } catch (error) {
-          console.warn('Failed to unlock iOS audio:', error);
+          Logger.warn('Audio', 'Failed to unlock iOS audio:', error);
         }
       }
     };
@@ -319,7 +320,7 @@ export class GameByteMobileAudioManager extends EventEmitter<AudioEvents> implem
   private configureIOSAudioSession(): void {
     // This would require native iOS integration
     // For web context, we can only make suggestions
-    console.log('iOS audio session configuration suggested');
+    Logger.info('Audio', 'iOS audio session configuration suggested');
   }
 
   /**
@@ -452,8 +453,8 @@ export class GameByteMobileAudioManager extends EventEmitter<AudioEvents> implem
         });
         
         this.handleBatteryChange();
-      }).catch(() => {
-        console.warn('Battery API not available');
+      }).catch((e: unknown) => {
+        Logger.warn('Audio', 'Battery API not available', e);
       });
     }
   }

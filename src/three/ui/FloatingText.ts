@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Logger } from '../../utils/Logger.js';
 
 /**
  * Animation type for floating text
@@ -153,7 +154,7 @@ export class FloatingText extends THREE.Group {
     // Get instance from pool
     const instance = this.getInstanceFromPool();
     if (!instance) {
-      console.warn('FloatingText: Pool exhausted, cannot spawn text');
+      Logger.warn('FloatingText', 'Pool exhausted, cannot spawn text');
       return;
     }
 

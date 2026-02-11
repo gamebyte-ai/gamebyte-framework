@@ -8,6 +8,7 @@ import {
   AudioEvents
 } from '../../contracts/Audio';
 import { Vector3 } from '../../contracts/Physics';
+import { Logger } from '../../utils/Logger.js';
 
 /**
  * GameByte Audio Zone - Environmental audio zone with spatial effects
@@ -572,7 +573,7 @@ export class GameByteAudioZone extends EventEmitter<AudioEvents> implements Audi
    */
   private addEffect(name: string, config: AudioEffectsConfig): void {
     // This is a simplified version - in practice, you'd rebuild the entire chain
-    console.log(`Adding effect ${name} to zone ${this._name}`);
+    Logger.info('Audio', `Adding effect ${name} to zone ${this._name}`);
   }
 
   /**

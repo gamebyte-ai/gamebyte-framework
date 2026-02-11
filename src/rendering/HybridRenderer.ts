@@ -2,6 +2,7 @@ import { EventEmitter } from 'eventemitter3';
 import { Renderer, RenderingMode, RendererOptions, RendererStats } from '../contracts/Renderer';
 import { PixiCompatibility, PixiRendererOptions, ThreeCompatibility, ThreeRendererOptions, RenderingCompatibility } from '../utils/RendererCompatibility';
 import { PixiVersionDetector, ThreeVersionDetector } from '../utils/VersionDetection';
+import { Logger } from '../utils/Logger.js';
 import * as PIXI from 'pixi.js';
 import {
   WebGLRenderer,
@@ -123,9 +124,9 @@ export class HybridRenderer extends EventEmitter implements Renderer {
    * @param options - Configuration options
    */
   async initialize(container: HTMLElement, options: HybridRendererConfig = {}): Promise<void> {
-    console.log('🎮 Initializing HybridRenderer (Three.js + Pixi.js)');
-    console.log('   Three.js r' + ThreeVersionDetector.getRevision());
-    console.log('   Pixi.js', PixiVersionDetector.getVersion().raw);
+    Logger.info('Renderer', 'Initializing HybridRenderer (Three.js + Pixi.js)');
+    Logger.info('Renderer', 'Three.js r' + ThreeVersionDetector.getRevision());
+    Logger.info('Renderer', 'Pixi.js', PixiVersionDetector.getVersion().raw);
 
     this.container = container;
 
@@ -175,9 +176,9 @@ export class HybridRenderer extends EventEmitter implements Renderer {
     // Set up synchronized resize handling
     this.setupResizeHandling();
 
-    console.log('✅ HybridRenderer initialized successfully');
-    console.log('   Three.js layer: z-index', this.threeZIndex);
-    console.log('   Pixi.js layer: z-index', this.pixiZIndex);
+    Logger.info('Renderer', 'HybridRenderer initialized successfully');
+    Logger.info('Renderer', 'Three.js layer: z-index', this.threeZIndex);
+    Logger.info('Renderer', 'Pixi.js layer: z-index', this.pixiZIndex);
 
     this.emit('initialized');
   }
@@ -214,9 +215,9 @@ export class HybridRenderer extends EventEmitter implements Renderer {
 
     try {
       this.threeRenderer = await ThreeCompatibility.createRenderer(threeOptions);
-      console.log('✅ Three.js layer initialized with', ThreeCompatibility.getRendererType(this.threeRenderer));
+      Logger.info('Renderer', 'Three.js layer initialized with', ThreeCompatibility.getRendererType(this.threeRenderer));
     } catch (error) {
-      console.error('❌ Failed to initialize Three.js layer:', error);
+      Logger.error('Renderer', 'Failed to initialize Three.js layer:', error);
       throw error;
     }
 
@@ -297,9 +298,9 @@ export class HybridRenderer extends EventEmitter implements Renderer {
 
     try {
       this.pixiApp = await PixiCompatibility.createRenderer(pixiOptions);
-      console.log('✅ Pixi.js layer initialized (transparent overlay)');
+      Logger.info('Renderer', 'Pixi.js layer initialized (transparent overlay)');
     } catch (error) {
-      console.error('❌ Failed to initialize Pixi.js layer:', error);
+      Logger.error('Renderer', 'Failed to initialize Pixi.js layer:', error);
       throw error;
     }
 
@@ -337,16 +338,16 @@ export class HybridRenderer extends EventEmitter implements Renderer {
    */
   start(): void {
     if (this.animationId !== null) {
-      console.warn('HybridRenderer already started');
+      Logger.warn('Renderer', 'HybridRenderer already started');
       return;
     }
 
-    console.log('▶️ Starting HybridRenderer');
+    Logger.info('Renderer', 'Starting HybridRenderer');
 
     if (this.renderMode === 'continuous') {
       this.startContinuousRendering();
     } else {
-      console.log('On-demand mode enabled. Call requestRender() to render.');
+      Logger.info('Renderer', 'On-demand mode enabled. Call requestRender() to render.');
     }
 
     this.emit('start');
@@ -387,7 +388,7 @@ export class HybridRenderer extends EventEmitter implements Renderer {
     if (this.animationId !== null) {
       cancelAnimationFrame(this.animationId);
       this.animationId = null;
-      console.log('⏸️ HybridRenderer stopped');
+      Logger.info('Renderer', 'HybridRenderer stopped');
     }
 
     this.emit('stop');
@@ -615,7 +616,7 @@ export class HybridRenderer extends EventEmitter implements Renderer {
    * Destroy the hybrid renderer and clean up all resources.
    */
   destroy(): void {
-    console.log('Destroying HybridRenderer');
+    Logger.info('Renderer', 'Destroying HybridRenderer');
 
     // Stop rendering
     this.stop();
@@ -669,6 +670,6 @@ export class HybridRenderer extends EventEmitter implements Renderer {
     this.removeAllListeners();
 
     this.emit('destroyed');
-    console.log('✅ HybridRenderer destroyed');
+    Logger.info('Renderer', 'HybridRenderer destroyed');
   }
 }

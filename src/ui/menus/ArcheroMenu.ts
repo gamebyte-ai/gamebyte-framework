@@ -65,6 +65,7 @@ import { EventEmitter } from 'eventemitter3';
 import { graphics } from '../../graphics/GraphicsEngine';
 import { IContainer, IGraphics, IText } from '../../contracts/Graphics';
 import { ResponsiveScaleCalculator, ResponsiveConfig } from '../../utils/ResponsiveHelper';
+import { Logger } from '../../utils/Logger.js';
 
 /**
  * Gradient configuration for button backgrounds
@@ -478,7 +479,7 @@ export class ArcheroMenu extends EventEmitter {
         : options.responsive;
 
       this.responsiveCalculator = new ResponsiveScaleCalculator(responsiveConfig);
-      console.log('📱 ArcheroMenu responsive mode enabled with base size:', responsiveConfig.baseWidth, 'x', responsiveConfig.baseHeight);
+      Logger.info('UI', 'ArcheroMenu responsive mode enabled with base size:', responsiveConfig.baseWidth, 'x', responsiveConfig.baseHeight);
     }
 
     // Create containers

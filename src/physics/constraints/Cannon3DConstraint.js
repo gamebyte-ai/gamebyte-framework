@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Cannon3DConstraint = void 0;
 const eventemitter3_1 = require("eventemitter3");
 const CANNON = require("cannon-es");
+const { Logger } = require("../../utils/Logger");
 /**
  * Cannon.js 3D physics constraint implementation
  */
@@ -185,7 +186,7 @@ class Cannon3DConstraint extends eventemitter3_1.EventEmitter {
                 break;
             case 'prismatic':
                 // Prismatic constraint (linear movement along axis)
-                console.warn('Prismatic constraint not fully supported in Cannon.js, using distance constraint');
+                Logger.warn('Physics', 'Prismatic constraint not fully supported in Cannon.js, using distance constraint');
                 constraint = new CANNON.DistanceConstraint(nativeBodyA, nativeBodyB, config.length || 1);
                 break;
             case 'fixed':
@@ -202,7 +203,7 @@ class Cannon3DConstraint extends eventemitter3_1.EventEmitter {
             case 'pulley':
             case 'mouse':
                 // These constraint types are not directly supported by Cannon.js
-                console.warn(`Constraint type '${config.type}' not supported in Cannon.js, using distance constraint`);
+                Logger.warn('Physics', `Constraint type '${config.type}' not supported in Cannon.js, using distance constraint`);
                 constraint = new CANNON.DistanceConstraint(nativeBodyA, nativeBodyB, config.length || 1);
                 break;
             default:

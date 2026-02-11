@@ -1,4 +1,5 @@
 import { Container, Binding, Factory } from '../contracts/Container';
+import { Logger } from '../utils/Logger.js';
 
 /**
  * Service container implementation for dependency injection.
@@ -13,6 +14,7 @@ export class ServiceContainer implements Container {
    * Register a binding in the container.
    */
   bind<T = any>(key: string, concrete: T | Factory<T>, singleton = false): void {
+    Logger.debug('Core', `Service bound: ${key}`);
     this.bindings.set(key, {
       concrete,
       singleton,
@@ -43,7 +45,7 @@ export class ServiceContainer implements Container {
   make<T = any>(key: string): T {
     // Resolve alias chains
     const resolvedKey = this.resolveAlias(key);
-    
+
     // Check if we have a cached singleton instance
     if (this.instances.has(resolvedKey)) {
       return this.instances.get(resolvedKey);
@@ -55,7 +57,7 @@ export class ServiceContainer implements Container {
     }
 
     let instance: T;
-    
+
     if (typeof binding.concrete === 'function') {
       instance = (binding.concrete as Factory<T>)();
     } else {
@@ -67,6 +69,7 @@ export class ServiceContainer implements Container {
       this.instances.set(resolvedKey, instance);
     }
 
+    Logger.debug('Core', `Service resolved: ${key}`);
     return instance;
   }
 

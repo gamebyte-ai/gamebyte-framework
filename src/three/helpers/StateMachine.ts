@@ -1,4 +1,5 @@
 import EventEmitter from 'eventemitter3';
+import { Logger } from '../../utils/Logger.js';
 
 /**
  * State definition for a finite state machine.
@@ -107,7 +108,7 @@ export class StateMachineInstance<T> extends EventEmitter<StateMachineEvents<T>>
   public trigger(event: string): boolean {
     const state = this.config.states[this.currentState];
     if (!state) {
-      console.warn(`Current state '${this.currentState}' not found`);
+      Logger.warn('StateMachine', `Current state '${this.currentState}' not found`);
       return false;
     }
 
@@ -118,7 +119,7 @@ export class StateMachineInstance<T> extends EventEmitter<StateMachineEvents<T>>
     }
 
     if (!this.config.states[nextState]) {
-      console.error(`Target state '${nextState}' not found in state definitions`);
+      Logger.error('StateMachine', `Target state '${nextState}' not found in state definitions`);
       return false;
     }
 
@@ -164,7 +165,7 @@ export class StateMachineInstance<T> extends EventEmitter<StateMachineEvents<T>>
    */
   public forceState(stateName: string): void {
     if (!this.config.states[stateName]) {
-      console.error(`Cannot force state '${stateName}' - state not found`);
+      Logger.error('StateMachine', `Cannot force state '${stateName}' - state not found`);
       return;
     }
 
@@ -345,7 +346,8 @@ export class StateMachine<T> {
 
       for (const [trigger, targetState] of Object.entries(state.transitions)) {
         if (!this.config.states[targetState]) {
-          console.warn(
+          Logger.warn(
+            'StateMachine',
             `State '${stateName}' has transition '${trigger}' to undefined state '${targetState}'`
           );
         }

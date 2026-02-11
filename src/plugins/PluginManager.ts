@@ -1,6 +1,7 @@
 import { EventEmitter } from 'eventemitter3';
 import { GameByte } from '../core/GameByte';
 import { ServiceProvider } from '../contracts/ServiceProvider';
+import { Logger } from '../utils/Logger.js';
 
 /**
  * Plugin configuration interface.
@@ -63,6 +64,7 @@ export class PluginManager extends EventEmitter {
     };
 
     this.plugins.set(config.name, entry);
+    Logger.debug('Plugins', `Plugin registered: ${config.name}`);
     this.emit('plugin:registered', config.name, entry);
   }
 

@@ -4,6 +4,7 @@ import {
   IPostProcessingPipeline,
   IPostProcessingEffect
 } from '../contracts/PostProcessing.js';
+import { Logger } from '../utils/Logger.js';
 
 /**
  * Deferred effect placeholder — created when pmndrs/postprocessing
@@ -234,7 +235,7 @@ export class PostProcessingPipeline extends EventEmitter implements IPostProcess
       this.pmndrs = await import('postprocessing');
       return this.pmndrs;
     } catch {
-      console.warn('PostProcessingPipeline: pmndrs/postprocessing not installed. Effects will not be applied.');
+      Logger.warn('PostProcessing', 'pmndrs/postprocessing not installed. Effects will not be applied.');
       return null;
     }
   }
@@ -368,7 +369,7 @@ export class PostProcessingPipeline extends EventEmitter implements IPostProcess
         return null;
 
       default:
-        console.warn(`PostProcessingPipeline: unknown built-in effect '${name}'`);
+        Logger.warn('PostProcessing', `Unknown built-in effect '${name}'`);
         return null;
     }
   }

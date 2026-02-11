@@ -13,6 +13,7 @@ import {
   Quaternion
 } from '../../contracts/Physics';
 import { Cannon3DEngine } from '../engines/Cannon3DEngine';
+import { Logger } from '../../utils/Logger.js';
 
 /**
  * Cannon.js 3D physics body implementation
@@ -508,12 +509,12 @@ export class Cannon3DBody extends EventEmitter implements PhysicsBody {
       
       case 'heightfield':
         // Would need height data
-        console.warn('Heightfield shape not implemented');
+        Logger.warn('Physics', 'Heightfield shape not implemented');
         return new CANNON.Box(new CANNON.Vec3(1, 1, 1));
       
       case 'mesh':
         // Would need mesh data
-        console.warn('Mesh shape not implemented');
+        Logger.warn('Physics', 'Mesh shape not implemented');
         return new CANNON.Box(new CANNON.Vec3(1, 1, 1));
       
       default:

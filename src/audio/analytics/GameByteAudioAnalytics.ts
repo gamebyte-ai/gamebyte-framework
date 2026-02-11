@@ -9,6 +9,7 @@ import {
   AudioQuality,
   AudioPerformanceTier
 } from '../../contracts/Audio';
+import { Logger } from '../../utils/Logger.js';
 
 /**
  * Audio session data for analytics
@@ -130,7 +131,7 @@ export class GameByteAudioAnalytics extends EventEmitter<AudioEvents> implements
         this.updateInsights();
       }
     } catch (error) {
-      console.warn('Failed to load audio analytics data:', error);
+      Logger.warn('Audio', 'Failed to load audio analytics data:', error);
     }
   }
 
@@ -151,7 +152,7 @@ export class GameByteAudioAnalytics extends EventEmitter<AudioEvents> implements
       
       localStorage.setItem('gamebyte-audio-analytics', JSON.stringify(data));
     } catch (error) {
-      console.warn('Failed to save audio analytics data:', error);
+      Logger.warn('Audio', 'Failed to save audio analytics data:', error);
     }
   }
 
