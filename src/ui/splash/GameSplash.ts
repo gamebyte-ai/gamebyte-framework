@@ -94,7 +94,14 @@ export class GameSplash {
       // Create splash if not found in HTML
       const css = document.createElement('style');
       css.id = 'gamebyte-splash-styles';
-      css.textContent = GameSplash.getInlineCSS(this.config).replace(/<\/?style[^>]*>/g, '');
+      let cssText = GameSplash.getInlineCSS(this.config);
+      // Strip style tags iteratively to prevent bypass via nesting
+      let prev = '';
+      while (prev !== cssText) {
+        prev = cssText;
+        cssText = cssText.replace(/<\/?style[^>]*>/gi, '');
+      }
+      css.textContent = cssText;
       document.head.appendChild(css);
 
       document.body.insertAdjacentHTML('afterbegin', GameSplash.getInlineHTML(this.config));
@@ -507,7 +514,7 @@ export class GameSplash {
 
     <!-- Logo -->
     <div class="gamebyte-logo">
-      <img src="${cfg.logoUrl}" alt="GameByte" />
+      <img src="${cfg.logoUrl.replace(/["<>]/g, '')}" alt="GameByte" />
     </div>
   </div>
 </div>`;

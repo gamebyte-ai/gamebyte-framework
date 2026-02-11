@@ -24,6 +24,10 @@ export interface FeatureSupport {
  * Parse semantic version string into components
  */
 export function parseVersion(versionString: string): VersionInfo {
+  // Guard against excessively long input to prevent regex backtracking
+  if (!versionString || versionString.length > 128) {
+    return { major: 0, minor: 0, patch: 0, raw: versionString || '' };
+  }
   const match = versionString.match(/(\d+)\.(\d+)\.(\d+)/);
   if (!match) {
     return { major: 0, minor: 0, patch: 0, raw: versionString };
