@@ -95,11 +95,11 @@ export class GameSplash {
       const css = document.createElement('style');
       css.id = 'gamebyte-splash-styles';
       let cssText = GameSplash.getInlineCSS(this.config);
-      // Strip style tags iteratively to prevent bypass via nesting
-      let prev = '';
-      while (prev !== cssText) {
-        prev = cssText;
+      // Strip style tags without regex to avoid polynomial backtracking
+      let lower = cssText.toLowerCase();
+      while (lower.indexOf('<style') !== -1 || lower.indexOf('</style') !== -1) {
         cssText = cssText.replace(/<\/?style[^>]*>/gi, '');
+        lower = cssText.toLowerCase();
       }
       css.textContent = cssText;
       document.head.appendChild(css);

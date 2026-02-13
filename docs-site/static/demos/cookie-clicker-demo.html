@@ -33,7 +33,7 @@
     <div class="info">Click the cookie! Buy upgrades to earn more.</div>
 
     <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
-    <script src="/gamebyte.umd.js"></script>
+    <script src="../gamebyte.umd.js"></script>
 
     <script>
     const {
@@ -172,9 +172,10 @@
         // Top bar
         topBar = new GameTopBar({
             width: WIDTH,
-            title: 'Cookies: 0',
-            showCoins: false,
-            showLives: false
+            resources: [
+                { type: 'coins', value: 0, icon: 'coin', label: 'Cookies' }
+            ],
+            showSettings: false
         });
         gameScreen.addChild(topBar.getContainer());
 
@@ -213,7 +214,7 @@
 
         // Subscribe to state changes
         gameState.on('cookies', (newVal) => {
-            topBar.updateTitle(`Cookies: ${Math.floor(newVal)}`);
+            topBar.updateResource('coins', Math.floor(newVal));
             if (newVal >= GOAL) {
                 endGame();
             }

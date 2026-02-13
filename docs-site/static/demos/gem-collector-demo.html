@@ -28,7 +28,7 @@
     <div id="game-container"></div>
     <div class="info">Arrow keys or tap sides to move. Catch gems, avoid bombs!</div>
     <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
-    <script src="/gamebyte.umd.js"></script>
+    <script src="../gamebyte.umd.js"></script>
     <script>
     const {
         createGame, graphics, loadFrameworkFont,
@@ -62,7 +62,7 @@
 
     // GameByte game instance and factory
     let game;
-    const factory = graphics();
+    let factory;
 
     // Splash Screen
     function createSplash() {
@@ -126,8 +126,7 @@
             width: 200,
             height: 60
         });
-        playBtn.x = 150;
-        playBtn.y = 350;
+        playBtn.getContainer().position.set(150, 350);
         playBtn.on('click', startGame);
 
         menuContainer.addChild(title);
@@ -252,11 +251,13 @@
 
         // Create top bar
         topBar = new GameTopBar({
-            title: `Level ${currentLevel}`,
-            showLives: false
+            width: WIDTH,
+            resources: [
+                { type: 'coins', value: score, icon: 'coin', label: 'Score' },
+                { type: 'gems', value: GEMS_PER_LEVEL - gemsCollected, icon: 'gem', label: 'Gems' }
+            ],
+            showSettings: false
         });
-        topBar.setScore(score);
-        topBar.setCustomValue(`Gems: ${GEMS_PER_LEVEL - gemsCollected}`);
 
         gameContainer.addChild(topBar.getContainer());
         gameContainer.addChild(basket);
@@ -390,6 +391,8 @@
             backgroundColor: 0x0f172a
         });
 
+        factory = graphics();
+
         // Setup input handlers
         window.addEventListener('keydown', (e) => { keys[e.key] = true; });
         window.addEventListener('keyup', (e) => { keys[e.key] = false; });
@@ -440,8 +443,8 @@
                         gemsCollected++;
                     }
 
-                    topBar.setScore(score);
-                    topBar.setCustomValue(`Gems: ${GEMS_PER_LEVEL - gemsCollected}`);
+                    topBar.updateResource('coins', score);
+                    topBar.updateResource('gems', GEMS_PER_LEVEL - gemsCollected);
 
                     gameContainer.removeChild(gem);
                     gems.splice(i, 1);

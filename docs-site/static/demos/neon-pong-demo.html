@@ -28,7 +28,7 @@
     <div id="game-container"></div>
     <div class="info">Move mouse or arrow keys to control paddle. First to 5 wins!</div>
     <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
-    <script src="/gamebyte.umd.js"></script>
+    <script src="../gamebyte.umd.js"></script>
     <script>
     const {
         createGame, graphics, loadFrameworkFont,
@@ -167,8 +167,11 @@
         // Top bar for scores
         topBar = new GameTopBar({
             width: CANVAS_WIDTH,
-            leftText: 'AI: 0',
-            rightText: 'YOU: 0'
+            resources: [
+                { type: 'custom', value: 0, icon: 'custom', label: 'AI' },
+                { type: 'coins', value: 0, icon: 'custom', label: 'YOU' }
+            ],
+            showSettings: false
         });
         gameContainer.addChild(topBar.getContainer());
 
@@ -384,8 +387,8 @@
 
     // Update score
     function updateScore() {
-        topBar.updateLeftText(`AI: ${aiScore}`);
-        topBar.updateRightText(`YOU: ${playerScore}`);
+        topBar.updateResource('custom', aiScore);
+        topBar.updateResource('coins', playerScore);
     }
 
     // End game

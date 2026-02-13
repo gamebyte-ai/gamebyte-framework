@@ -28,7 +28,7 @@
     <div id="game-container"></div>
     <div class="info">Click/tap moles or use keys 1-9! Golden mole = 50pts, Red mole = 25pts, Brown mole = 10pts.</div>
     <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
-    <script src="/gamebyte.umd.js"></script>
+    <script src="../gamebyte.umd.js"></script>
     <script>
     const {
         createGame, graphics, loadFrameworkFont,
@@ -150,10 +150,11 @@
         // Top bar
         topBar = new GameTopBar({
             width: WIDTH,
-            showCoins: false,
-            showLives: false
+            resources: [
+                { type: 'coins', value: 0, icon: 'coin', label: 'Score' }
+            ],
+            showSettings: false
         });
-        topBar.updateScore(0);
         mainScene.addChild(topBar.getContainer());
 
         // Timer bar
@@ -296,7 +297,7 @@
 
         hole.container = moleContainer;
         hole.type = moleType;
-        hole.timer = moleType.duration / difficultyMultiplier;
+        hole.timer = (moleType.duration / 1000) / difficultyMultiplier;
 
         // Pop-up animation
         animatePopUp(moleContainer);
@@ -325,7 +326,7 @@
         const moleType = hole.type;
         const points = moleType.points;
         score += points;
-        topBar.updateScore(score);
+        topBar.updateResource('coins', score);
 
         // Show floating score
         showFloatingScore(hole.x, hole.y - 60, '+' + points);

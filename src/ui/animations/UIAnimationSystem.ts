@@ -476,23 +476,21 @@ export class GameByteUIAnimationSystem extends EventEmitter implements UIAnimati
   /**
    * Set nested property value
    */
-  private static readonly FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
-
   private setNestedProperty(obj: any, path: string, value: any): void {
     const keys = path.split('.');
     let current = obj;
 
     for (let i = 0; i < keys.length - 1; i++) {
       const key = keys[i];
-      if (GameByteUIAnimationSystem.FORBIDDEN_KEYS.has(key)) return;
-      if (!(key in current) || typeof current[key] !== 'object') {
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') return;
+      if (!Object.prototype.hasOwnProperty.call(current, key) || typeof current[key] !== 'object') {
         current[key] = {};
       }
       current = current[key];
     }
 
     const finalKey = keys[keys.length - 1];
-    if (GameByteUIAnimationSystem.FORBIDDEN_KEYS.has(finalKey)) return;
+    if (finalKey === '__proto__' || finalKey === 'constructor' || finalKey === 'prototype') return;
     current[finalKey] = value;
   }
 

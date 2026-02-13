@@ -10,6 +10,8 @@ llm_summary: "GameByte is a comprehensive game framework unifying 2D (Pixi.js) a
 
 <!-- llm-context: game-framework, mobile-first, pixi-v8, three-js, service-container, typescript -->
 
+import LiveDemo from '@site/src/components/LiveDemo';
+
 # GameByte Framework
 
 **Modern Mobile-First Game Development Framework**
@@ -95,8 +97,6 @@ GameByte is optimized for AI-driven development:
 See the [AI Agent Guide](/ai-agent-guide) for integration details.
 
 ## Live Demos
-
-import LiveDemo from '@site/src/components/LiveDemo';
 
 <LiveDemo src="/demos/game-ui-showcase.html" height="600" title="GameByte UI Showcase" />
 

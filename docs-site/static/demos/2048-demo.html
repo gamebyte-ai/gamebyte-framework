@@ -28,7 +28,7 @@
     <div id="game-container"></div>
     <div class="info">Arrow keys or swipe to slide tiles. Merge equal numbers!</div>
     <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
-    <script src="/gamebyte.umd.js"></script>
+    <script src="../gamebyte.umd.js"></script>
     <script>
     const {
         createGame, graphics, loadFrameworkFont,
@@ -156,7 +156,13 @@
         uiContainer = factory.createContainer();
 
         // Top bar
-        topBar = new GameTopBar({ lives: 0, score: 0 });
+        topBar = new GameTopBar({
+            width: 500,
+            resources: [
+                { type: 'coins', value: 0, icon: 'coin', label: 'Score' }
+            ],
+            showSettings: false
+        });
         const topBarContainer = topBar.getContainer();
         topBarContainer.position.set(0, 0);
         uiContainer.addChild(topBarContainer);
@@ -331,7 +337,7 @@
         await new Promise(r => setTimeout(r, 150));
 
         addRandomTile();
-        if (topBar) topBar.updateScore(score);
+        if (topBar) topBar.updateResource('coins', score);
 
         // Check win
         if (!hasWon && grid.flat().includes(2048)) {

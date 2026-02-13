@@ -30,7 +30,7 @@
     <div class="info">Drag to aim, release to launch! Clear all targets.</div>
     <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/matter-js@0.19.0/build/matter.min.js"></script>
-    <script src="/gamebyte.umd.js"></script>
+    <script src="../gamebyte.umd.js"></script>
     <script>
     const {
         createGame, graphics, loadFrameworkFont,
@@ -452,9 +452,13 @@
     function updateTopBar() {
         uiContainer.removeChildren();
         const topBar = new GameTopBar({
-            title: `Level ${currentLevel}/3`,
-            leftText: `Balls: ${ballsLeft}`,
-            rightText: `Score: ${score}`
+            width: 500,
+            resources: [
+                { type: 'custom', value: currentLevel, icon: 'custom', label: 'Level' },
+                { type: 'energy', value: ballsLeft, icon: 'energy', label: 'Balls' },
+                { type: 'coins', value: score, icon: 'coin', label: 'Score' }
+            ],
+            showSettings: false
         });
         uiContainer.addChild(topBar.getContainer());
     }

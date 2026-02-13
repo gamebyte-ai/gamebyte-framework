@@ -17014,20 +17014,23 @@
 	        }
 	        return current;
 	    }
+	    /**
+	     * Set nested property value
+	     */
 	    setNestedProperty(obj, path, value) {
 	        const keys = path.split('.');
 	        let current = obj;
 	        for (let i = 0; i < keys.length - 1; i++) {
 	            const key = keys[i];
-	            if (GameByteUIAnimationSystem.FORBIDDEN_KEYS.has(key))
+	            if (key === '__proto__' || key === 'constructor' || key === 'prototype')
 	                return;
-	            if (!(key in current) || typeof current[key] !== 'object') {
+	            if (!Object.prototype.hasOwnProperty.call(current, key) || typeof current[key] !== 'object') {
 	                current[key] = {};
 	            }
 	            current = current[key];
 	        }
 	        const finalKey = keys[keys.length - 1];
-	        if (GameByteUIAnimationSystem.FORBIDDEN_KEYS.has(finalKey))
+	        if (finalKey === '__proto__' || finalKey === 'constructor' || finalKey === 'prototype')
 	            return;
 	        current[finalKey] = value;
 	    }
@@ -17051,10 +17054,6 @@
 	        this.animationFrameId = requestAnimationFrame(update);
 	    }
 	}
-	/**
-	 * Set nested property value
-	 */
-	GameByteUIAnimationSystem.FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 	/**
 	 * Timeline for sequencing animations
 	 */
@@ -40627,11 +40626,11 @@
 	            const css = document.createElement('style');
 	            css.id = 'gamebyte-splash-styles';
 	            let cssText = GameSplash.getInlineCSS(this.config);
-	            // Strip style tags iteratively to prevent bypass via nesting
-	            let prev = '';
-	            while (prev !== cssText) {
-	                prev = cssText;
+	            // Strip style tags without regex to avoid polynomial backtracking
+	            let lower = cssText.toLowerCase();
+	            while (lower.indexOf('<style') !== -1 || lower.indexOf('</style') !== -1) {
 	                cssText = cssText.replace(/<\/?style[^>]*>/gi, '');
+	                lower = cssText.toLowerCase();
 	            }
 	            css.textContent = cssText;
 	            document.head.appendChild(css);

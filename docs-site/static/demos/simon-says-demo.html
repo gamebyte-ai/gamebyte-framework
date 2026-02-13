@@ -28,7 +28,7 @@
     <div id="game-container"></div>
     <div class="info">Watch the pattern, repeat the sequence! Each button plays a unique tone.</div>
     <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
-    <script src="/gamebyte.umd.js"></script>
+    <script src="../gamebyte.umd.js"></script>
     <script>
     const {
         createGame, graphics, loadFrameworkFont,
@@ -188,10 +188,12 @@
 
         // Top bar
         topBar = new GameTopBar({
-            level: 1,
-            coins: bestRound,
-            levelLabel: 'ROUND',
-            coinsLabel: 'BEST'
+            width: 500,
+            resources: [
+                { type: 'custom', value: 1, icon: 'custom', label: 'Round' },
+                { type: 'coins', value: bestRound, icon: 'coin', label: 'Best' }
+            ],
+            showSettings: false
         });
         gameContainer.addChild(topBar.getContainer());
 
@@ -292,7 +294,7 @@
         sequence.push(newColor);
 
         // Update top bar
-        topBar.updateLevel(round);
+        topBar.updateResource('custom', round);
 
         await new Promise(resolve => setTimeout(resolve, 1000));
         await showSequence();
