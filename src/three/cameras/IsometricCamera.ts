@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { EventEmitter } from 'eventemitter3';
+import { Logger } from '../../utils/Logger.js';
 
 /**
  * Configuration options for IsometricCamera
@@ -162,7 +163,7 @@ export class IsometricCamera extends EventEmitter<IsometricCameraEvents> {
    */
   setZoom(zoom: number): void {
     if (zoom <= 0) {
-      console.warn('IsometricCamera: zoom must be positive, clamping to 0.01');
+      Logger.warn('Camera', 'IsometricCamera: zoom must be positive, clamping to 0.01');
       zoom = 0.01;
     }
 
@@ -183,7 +184,7 @@ export class IsometricCamera extends EventEmitter<IsometricCameraEvents> {
    */
   setViewSize(size: number): void {
     if (size <= 0) {
-      console.warn('IsometricCamera: viewSize must be positive, clamping to 1');
+      Logger.warn('Camera', 'IsometricCamera: viewSize must be positive, clamping to 1');
       size = 1;
     }
 
@@ -205,7 +206,7 @@ export class IsometricCamera extends EventEmitter<IsometricCameraEvents> {
    */
   setAspectRatio(aspectRatio: number): void {
     if (aspectRatio <= 0) {
-      console.warn('IsometricCamera: aspectRatio must be positive, clamping to 1');
+      Logger.warn('Camera', 'IsometricCamera: aspectRatio must be positive, clamping to 1');
       aspectRatio = 1;
     }
 

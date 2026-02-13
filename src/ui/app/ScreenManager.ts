@@ -3,6 +3,7 @@ import { IContainer } from '../../contracts/Graphics.js';
 import { graphics } from '../../graphics/GraphicsEngine.js';
 import { SimpleScreen } from '../screens/SimpleScreen.js';
 import { animate, Easing, lerp } from '../utils/animation.js';
+import { Logger } from '../../utils/Logger.js';
 
 /**
  * Transition type for screen navigation
@@ -87,7 +88,7 @@ export class ScreenManager extends EventEmitter {
     data?: any
   ): Promise<void> {
     if (this.isTransitioning) {
-      console.warn('ScreenManager: Already transitioning, ignoring push');
+      Logger.warn('UI', 'ScreenManager: Already transitioning, ignoring push');
       return;
     }
 
@@ -118,12 +119,12 @@ export class ScreenManager extends EventEmitter {
    */
   public async pop(transition?: TransitionType): Promise<SimpleScreen | null> {
     if (this.isTransitioning) {
-      console.warn('ScreenManager: Already transitioning, ignoring pop');
+      Logger.warn('UI', 'ScreenManager: Already transitioning, ignoring pop');
       return null;
     }
 
     if (this.screenStack.length <= 1) {
-      console.warn('ScreenManager: Cannot pop last screen');
+      Logger.warn('UI', 'ScreenManager: Cannot pop last screen');
       return null;
     }
 
@@ -161,7 +162,7 @@ export class ScreenManager extends EventEmitter {
     data?: any
   ): Promise<SimpleScreen | null> {
     if (this.isTransitioning) {
-      console.warn('ScreenManager: Already transitioning, ignoring replace');
+      Logger.warn('UI', 'ScreenManager: Already transitioning, ignoring replace');
       return null;
     }
 

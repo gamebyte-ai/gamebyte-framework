@@ -3,6 +3,7 @@ import {
   ProceduralAudioGenerator,
   AudioEvents
 } from '../../contracts/Audio';
+import { Logger } from '../../utils/Logger.js';
 
 /**
  * Noise generation types for procedural audio
@@ -73,7 +74,7 @@ export class GameByteProceduralAudioGenerator extends EventEmitter<AudioEvents> 
       this.emit('procedural:initialized', {} as any);
       
     } catch (error) {
-      console.warn('Some procedural audio features may not be available:', error);
+      Logger.warn('Audio', 'Some procedural audio features may not be available:', error);
     }
   }
 
@@ -122,7 +123,7 @@ export class GameByteProceduralAudioGenerator extends EventEmitter<AudioEvents> 
         // await this._context.audioWorklet.addModule(`/worklets/${processor}.js`);
         this._workletProcessors.add(processor);
       } catch (error) {
-        console.warn(`Failed to load worklet processor: ${processor}`, error);
+        Logger.warn('Audio', `Failed to load worklet processor: ${processor}`, error);
       }
     }
   }
@@ -444,7 +445,7 @@ export class GameByteProceduralAudioGenerator extends EventEmitter<AudioEvents> 
       
     } catch (error) {
       // Fallback to non-worklet implementation
-      console.warn('AudioWorklet not supported, using fallback granular synthesis');
+      Logger.warn('Audio', 'AudioWorklet not supported, using fallback granular synthesis');
       return this.createFallbackGranularProcessor(grainSize, overlap);
     }
   }

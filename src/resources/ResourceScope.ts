@@ -1,5 +1,6 @@
 import { IResourceScope } from '../contracts/Resources.js';
 import { DisposableRegistry } from './DisposableRegistry.js';
+import { Logger } from '../utils/Logger.js';
 
 /**
  * A hierarchical resource scope for tracking disposable resources.
@@ -31,7 +32,7 @@ export class ResourceScope implements IResourceScope {
    */
   track<T>(resource: T): T {
     if (this.disposed) {
-      console.warn(`ResourceScope '${this.id}' is disposed, cannot track new resources`);
+      Logger.warn('Resources', `ResourceScope '${this.id}' is disposed, cannot track new resources`);
       return resource;
     }
 

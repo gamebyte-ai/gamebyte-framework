@@ -13,6 +13,7 @@ import {
   Quaternion
 } from '../../contracts/Physics';
 import { Matter2DEngine } from '../engines/Matter2DEngine';
+import { Logger } from '../../utils/Logger.js';
 
 /**
  * Matter.js 2D physics body implementation
@@ -325,7 +326,7 @@ export class Matter2DBody extends EventEmitter implements PhysicsBody {
   addShape(config: PhysicsShapeConfig): void {
     // For Matter.js, we would need to create a compound body
     // This is a simplified implementation
-    console.warn('addShape not fully implemented for Matter2DBody');
+    Logger.warn('Physics', 'addShape not fully implemented for Matter2DBody');
     this.emit('shape-added', config);
   }
 
@@ -334,7 +335,7 @@ export class Matter2DBody extends EventEmitter implements PhysicsBody {
    */
   removeShape(index: number): void {
     // For Matter.js, this would require reconstructing the body
-    console.warn('removeShape not fully implemented for Matter2DBody');
+    Logger.warn('Physics', 'removeShape not fully implemented for Matter2DBody');
     this.emit('shape-removed', index);
   }
 

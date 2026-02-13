@@ -16,6 +16,7 @@ import {
   DeviceCapabilities
 } from '../contracts/Input';
 import { Point, Size } from '../contracts/UI';
+import { Logger } from '../utils/Logger.js';
 
 /**
  * Input facade for convenient static access to input system functionality
@@ -66,7 +67,7 @@ export class Input extends Facade {
     try {
       this.getInputManager().initialize(element);
     } catch (error) {
-      console.error('Failed to initialize input system:', error);
+      Logger.error('Input', 'Failed to initialize input system:', error);
       throw error;
     }
   }
@@ -78,7 +79,7 @@ export class Input extends Facade {
     try {
       this.getInputManager().setContext(context);
     } catch (error) {
-      console.warn('Failed to set input context:', error);
+      Logger.warn('Input', 'Failed to set input context:', error);
     }
   }
 
@@ -89,7 +90,7 @@ export class Input extends Facade {
     try {
       return this.getInputManager().currentContext;
     } catch (error) {
-      console.warn('Failed to get input context:', error);
+      Logger.warn('Input', 'Failed to get input context:', error);
       return 'menu'; // Default fallback
     }
   }
@@ -129,7 +130,7 @@ export class Input extends Facade {
     try {
       return this.getInputManager().getHandler(handlerName);
     } catch (error) {
-      console.warn('Failed to get input handler:', error);
+      Logger.warn('Input', 'Failed to get input handler:', error);
       return null;
     }
   }
@@ -423,7 +424,7 @@ export class Input extends Facade {
         return (handler as any).getMovementVector();
       }
     } catch (error) {
-      console.warn('Failed to get movement vector:', error);
+      Logger.warn('Input', 'Failed to get movement vector:', error);
     }
     return { x: 0, y: 0 };
   }
@@ -438,7 +439,7 @@ export class Input extends Facade {
         return (handler as any).isMoving();
       }
     } catch (error) {
-      console.warn('Failed to check if player is moving:', error);
+      Logger.warn('Input', 'Failed to check if player is moving:', error);
     }
     return false;
   }
@@ -453,7 +454,7 @@ export class Input extends Facade {
         return (handler as any).isJumpPressed();
       }
     } catch (error) {
-      console.warn('Failed to check if jump is pressed:', error);
+      Logger.warn('Input', 'Failed to check if jump is pressed:', error);
     }
     return false;
   }
@@ -468,7 +469,7 @@ export class Input extends Facade {
         return (handler as any).wasJumpJustPressed();
       }
     } catch (error) {
-      console.warn('Failed to check if jump was just pressed:', error);
+      Logger.warn('Input', 'Failed to check if jump was just pressed:', error);
     }
     return false;
   }
@@ -483,7 +484,7 @@ export class Input extends Facade {
         return (handler as any).getPanDelta();
       }
     } catch (error) {
-      console.warn('Failed to get camera pan delta:', error);
+      Logger.warn('Input', 'Failed to get camera pan delta:', error);
     }
     return { x: 0, y: 0 };
   }
@@ -498,7 +499,7 @@ export class Input extends Facade {
         return (handler as any).getZoomDelta();
       }
     } catch (error) {
-      console.warn('Failed to get camera zoom delta:', error);
+      Logger.warn('Input', 'Failed to get camera zoom delta:', error);
     }
     return 0;
   }
@@ -543,11 +544,11 @@ export class Input extends Facade {
    */
   public static enableDebugMode(): void {
     this.onRawInput((event) => {
-      console.log('Input Event:', event);
+      Logger.info('Input', 'Input Event:', event);
     });
 
     this.onAnyAction((action, data, source) => {
-      console.log(`Action: ${action} [${source}]`, data);
+      Logger.info('Input', `Action: ${action} [${source}]`, data);
     });
   }
 

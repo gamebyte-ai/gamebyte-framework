@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Logger } from '../../utils/Logger.js';
 
 /**
  * Configuration options for Billboard
@@ -208,7 +209,7 @@ export class Billboard extends THREE.Group {
         },
         undefined,
         (error) => {
-          console.error(`Failed to load billboard texture: ${texture}`, error);
+          Logger.error('Billboard', `Failed to load billboard texture: ${texture}`, error);
         }
       );
     } else {

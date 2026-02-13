@@ -1,11 +1,12 @@
 import { EventEmitter } from 'eventemitter3';
-import { 
-  MemoryOptimizer as IMemoryOptimizer, 
-  MemoryInfo, 
-  MemoryLeak, 
-  ObjectPool, 
-  ObjectPoolConfig 
+import {
+  MemoryOptimizer as IMemoryOptimizer,
+  MemoryInfo,
+  MemoryLeak,
+  ObjectPool,
+  ObjectPoolConfig
 } from '../contracts/Performance';
+import { Logger } from '../utils/Logger.js';
 
 /**
  * Object pool implementation for memory optimization
@@ -47,7 +48,7 @@ class GameByteObjectPool<T> implements ObjectPool<T> {
    */
   release(obj: T): void {
     if (!this.inUseObjects.has(obj)) {
-      console.warn('Attempting to release object not from this pool');
+      Logger.warn('Performance', 'Attempting to release object not from this pool');
       return;
     }
     

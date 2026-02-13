@@ -1,4 +1,5 @@
 import { AssetBundle, AssetConfig, AssetType, LoadedAsset } from '../../contracts/AssetManager';
+import { Logger } from '../../utils/Logger.js';
 
 /**
  * Bundle manifest for deployment metadata.
@@ -563,7 +564,7 @@ export class AssetBundleBuilder {
         return compressed;
       }
     } catch (error) {
-      console.warn('Compression failed:', error);
+      Logger.warn('Assets', 'Compression failed:', error);
     }
     
     return null;

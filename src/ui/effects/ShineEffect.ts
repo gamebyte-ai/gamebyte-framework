@@ -2,6 +2,7 @@ import { EventEmitter } from 'eventemitter3';
 import { IContainer, IGraphics, IDisplayObject } from '../../contracts/Graphics.js';
 import { GraphicsEngine } from '../../graphics/GraphicsEngine.js';
 import { getGraphicsFactory } from './graphics-utils.js';
+import { Logger } from '../../utils/Logger.js';
 
 /**
  * Shimmer effect configuration
@@ -181,7 +182,7 @@ export class ShineEffect extends EventEmitter {
           mask.fill(0xFFFFFF);
         }
       } catch (e) {
-        console.warn('ShineEffect: mask creation failed', e);
+        Logger.warn('UI', 'ShineEffect: mask creation failed', e);
         mask = factory.createGraphics();
         mask.rect(-targetWidth / 2, -targetHeight / 2, targetWidth, targetHeight);
         mask.fill(0xFFFFFF);

@@ -8,6 +8,7 @@
 import { IGraphicsEngine, IGraphicsFactory, ITexture } from '../contracts/Graphics';
 import { PixiGraphicsFactory } from './PixiGraphicsFactory';
 import { RenderingMode } from '../contracts/Renderer';
+import { Logger } from '../utils/Logger.js';
 
 /**
  * Graphics Engine Singleton
@@ -244,7 +245,7 @@ export async function drawToTexture(
       // If it's a canvas-based graphics, copy it
       ctx.drawImage(displayObj.element, 0, 0);
     } else {
-      console.warn('drawToTexture: Three.js display object does not have a canvas element, returning empty texture');
+      Logger.warn('Graphics', 'drawToTexture: Three.js display object does not have a canvas element, returning empty texture');
     }
 
     return GraphicsEngine.getFactory().createTexture(canvas);

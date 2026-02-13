@@ -6,6 +6,7 @@
 
 import * as PIXI from 'pixi.js';
 import { PixiVersionDetector, BrowserFeatureDetector } from './PixiVersionDetection';
+import { Logger } from './Logger.js';
 
 export interface PixiRendererOptions {
   canvas?: HTMLCanvasElement;
@@ -33,7 +34,7 @@ export class PixiCompatibility {
     const version = PixiVersionDetector.getVersion();
     const features = BrowserFeatureDetector.getBestRenderingContext();
 
-    console.log('🎨 Creating Pixi v8 renderer:', {
+    Logger.info('Compatibility', 'Creating Pixi v8 renderer:', {
       version: version.raw,
       bestContext: features
     });
@@ -57,12 +58,12 @@ export class PixiCompatibility {
     let preference = options.preference || 'webgl';
 
     if (preference === 'webgpu' && !BrowserFeatureDetector.hasWebGPU()) {
-      console.log('⚠️ WebGPU not available, falling back to WebGL2');
+      Logger.warn('Compatibility', 'WebGPU not available, falling back to WebGL2');
       preference = 'webgl2';
     }
 
     if (preference === 'webgl2' && !BrowserFeatureDetector.hasWebGL2()) {
-      console.log('⚠️ WebGL2 not available, falling back to WebGL');
+      Logger.warn('Compatibility', 'WebGL2 not available, falling back to WebGL');
       preference = 'webgl';
     }
 
@@ -81,7 +82,7 @@ export class PixiCompatibility {
       preference
     }
 
-    console.log('✅ Creating Pixi v8 renderer with preference:', preference);
+    Logger.info('Compatibility', 'Creating Pixi v8 renderer with preference:', preference);
     const renderer = await autoDetect(rendererOptions);
 
     return renderer;
@@ -95,7 +96,7 @@ export class PixiCompatibility {
       return (PIXI as any).ParticleContainer;
     }
 
-    console.warn('⚠️ ParticleContainer not available, using regular Container');
+    Logger.warn('Compatibility', 'ParticleContainer not available, using regular Container');
     return (PIXI as any).Container;
   }
 
@@ -214,9 +215,9 @@ export class RenderingCompatibility {
    * Log compatibility report (Pixi only)
    */
   static logCompatibilityReport(): void {
-    console.group('🔍 Rendering Compatibility Report');
+    Logger.info('Compatibility', 'Rendering Compatibility Report');
 
-    console.log('Pixi.js:', {
+    Logger.info('Compatibility', 'Pixi.js:', {
       version: PixiVersionDetector.getVersion().raw,
       isV8: PixiVersionDetector.isV8OrHigher(),
       hasWebGPU: PixiVersionDetector.getFeatureSupport().webgpu,
@@ -224,12 +225,10 @@ export class RenderingCompatibility {
       hasParticleContainer: PixiVersionDetector.hasParticleContainer()
     });
 
-    console.log('Recommendations:', {
+    Logger.info('Compatibility', 'Recommendations:', {
       pixelRatio: this.getOptimalPixelRatio(),
       antialias: this.getRecommendedAntialias(),
       powerPreference: this.getRecommendedPowerPreference()
     });
-
-    console.groupEnd();
   }
 }

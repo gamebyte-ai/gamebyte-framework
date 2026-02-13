@@ -3,6 +3,7 @@ import { GameTopBar, ResourceItemConfig } from '../components/GameTopBar.js';
 import { GameBottomNav, NavItemConfig } from '../components/GameBottomNav.js';
 import { IContainer, IGraphics, ISprite } from '../../contracts/Graphics.js';
 import { graphics } from '../../graphics/GraphicsEngine.js';
+import { Logger } from '../../utils/Logger.js';
 
 /**
  * Hub tab content configuration
@@ -177,11 +178,11 @@ export class HubScreen extends SimpleScreen {
           this.container.addChild(this.backgroundSprite as any);
         }
       } catch (e) {
-        console.warn('HubScreen: Failed to create background sprite', e);
+        Logger.warn('UI', 'HubScreen: Failed to create background sprite', e);
       }
     };
     img.onerror = (e) => {
-      console.warn('HubScreen: Failed to load background image', e);
+      Logger.warn('UI', 'HubScreen: Failed to load background image', e);
     };
     img.src = imageUrl;
   }

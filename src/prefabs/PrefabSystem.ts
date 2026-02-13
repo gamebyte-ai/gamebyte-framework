@@ -6,6 +6,7 @@ import {
   PrefabConfig,
   ComponentLifecycle
 } from '../contracts/Prefab.js';
+import { Logger } from '../utils/Logger.js';
 
 /** Auto-incrementing entity ID counter */
 let entityIdCounter = 0;
@@ -375,7 +376,7 @@ export class PrefabSystem extends EventEmitter implements IPrefabSystem {
         const model = await loader.load(config.visual.url);
         return model.scene.clone();
       } catch {
-        console.warn(`PrefabSystem: failed to load model '${config.visual.url}', using placeholder`);
+        Logger.warn('Prefabs', `Failed to load model '${config.visual.url}', using placeholder`);
         return this.createPrimitive({ shape: 'box', color: 0xff0000, size: 1 });
       }
     }

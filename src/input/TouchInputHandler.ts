@@ -8,6 +8,7 @@ import {
   InputDevice,
   InputHandler
 } from '../contracts/Input';
+import { Logger } from '../utils/Logger.js';
 
 /**
  * Touch data for tracking individual touches
@@ -939,7 +940,7 @@ export class GameByteTouchInputHandler extends EventEmitter implements TouchInpu
     // TouchInputHandler processes events differently from other handlers
     // It works with raw TouchEvent and PointerEvent objects
     // This method is here for interface compatibility
-    console.warn('TouchInputHandler.handleInput() called directly - use processTouchEvent() or processPointerEvent() instead');
+    Logger.warn('Input', 'TouchInputHandler.handleInput() called directly - use processTouchEvent() or processPointerEvent() instead');
   }
 
   /**
@@ -954,7 +955,7 @@ export class GameByteTouchInputHandler extends EventEmitter implements TouchInpu
    */
   public setEnabled(enabled: boolean): void {
     if (enabled && !this.isInitialized) {
-      console.warn('Cannot enable TouchInputHandler - not initialized. Call initialize() first.');
+      Logger.warn('Input', 'Cannot enable TouchInputHandler - not initialized. Call initialize() first.');
     } else if (!enabled && this.isInitialized) {
       this.destroy();
     }

@@ -29,6 +29,7 @@ import {
   IOutlineFilterOptions,
 } from '../contracts/Graphics';
 import { getFrameworkFontFamily } from '../ui/utils/FontLoader';
+import { Logger } from '../utils/Logger.js';
 
 /**
  * Base Three.js Display Object Wrapper
@@ -613,12 +614,12 @@ export class ThreeGraphicsFactory implements IGraphicsFactory {
   }
 
   createLinearGradient(_config: ILinearGradientConfig): IFillGradient {
-    console.warn('ThreeGraphicsFactory: Gradients not supported in 3D renderer, use CSS gradients instead');
+    Logger.warn('Graphics', 'ThreeGraphicsFactory: Gradients not supported in 3D renderer, use CSS gradients instead');
     return { type: 'linear', native: null, destroy: () => {} };
   }
 
   createRadialGradient(_config: IRadialGradientConfig): IFillGradient {
-    console.warn('ThreeGraphicsFactory: Gradients not supported in 3D renderer, use CSS gradients instead');
+    Logger.warn('Graphics', 'ThreeGraphicsFactory: Gradients not supported in 3D renderer, use CSS gradients instead');
     return { type: 'radial', native: null, destroy: () => {} };
   }
 
@@ -637,7 +638,7 @@ export class ThreeGraphicsFactory implements IGraphicsFactory {
   }
 
   createColorMatrixFilter(_options: IColorMatrixFilterOptions = {}): IFilter {
-    console.warn('ThreeGraphicsFactory: ColorMatrix filter not supported in CSS, use grayscale/sepia/etc instead');
+    Logger.warn('Graphics', 'ThreeGraphicsFactory: ColorMatrix filter not supported in CSS, use grayscale/sepia/etc instead');
     return {
       type: 'colorMatrix',
       enabled: true,
@@ -673,7 +674,7 @@ export class ThreeGraphicsFactory implements IGraphicsFactory {
   }
 
   createOutlineFilter(_options: IOutlineFilterOptions = {}): IFilter {
-    console.warn('ThreeGraphicsFactory: Outline filter not supported in CSS');
+    Logger.warn('Graphics', 'ThreeGraphicsFactory: Outline filter not supported in CSS');
     return {
       type: 'outline',
       enabled: true,
@@ -687,7 +688,7 @@ export class ThreeGraphicsFactory implements IGraphicsFactory {
   // ============================================
 
   createMaskFromGraphics(_graphics: IGraphics): IMask {
-    console.warn('ThreeGraphicsFactory: Masks not supported in CSS2D renderer');
+    Logger.warn('Graphics', 'ThreeGraphicsFactory: Masks not supported in CSS2D renderer');
     return {
       type: 'graphics',
       native: null,
@@ -696,7 +697,7 @@ export class ThreeGraphicsFactory implements IGraphicsFactory {
   }
 
   createMaskFromSprite(_sprite: ISprite): IMask {
-    console.warn('ThreeGraphicsFactory: Masks not supported in CSS2D renderer');
+    Logger.warn('Graphics', 'ThreeGraphicsFactory: Masks not supported in CSS2D renderer');
     return {
       type: 'sprite',
       native: null,

@@ -27,6 +27,7 @@
  */
 
 import * as THREE from 'three';
+import { Logger } from '../../utils/Logger.js';
 
 export interface ObjectPool3DConfig<T extends THREE.Object3D> {
   /** Factory function to create new objects */
@@ -137,7 +138,7 @@ export class ObjectPool3D<T extends THREE.Object3D> {
   public release(obj: T): void {
     // Check if object is tracked
     if (!this.active.has(obj)) {
-      console.warn('ObjectPool3D: Attempting to release object not acquired from this pool');
+      Logger.warn('ObjectPool', 'Attempting to release object not acquired from this pool');
       return;
     }
 

@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Matter2DBody = void 0;
 const eventemitter3_1 = require("eventemitter3");
 const matter_js_1 = require("matter-js");
+const { Logger } = require("../../utils/Logger");
 /**
  * Matter.js 2D physics body implementation
  */
@@ -250,7 +251,7 @@ class Matter2DBody extends eventemitter3_1.EventEmitter {
     addShape(config) {
         // For Matter.js, we would need to create a compound body
         // This is a simplified implementation
-        console.warn('addShape not fully implemented for Matter2DBody');
+        Logger.warn('Physics', 'addShape not fully implemented for Matter2DBody');
         this.emit('shape-added', config);
     }
     /**
@@ -258,7 +259,7 @@ class Matter2DBody extends eventemitter3_1.EventEmitter {
      */
     removeShape(index) {
         // For Matter.js, this would require reconstructing the body
-        console.warn('removeShape not fully implemented for Matter2DBody');
+        Logger.warn('Physics', 'removeShape not fully implemented for Matter2DBody');
         this.emit('shape-removed', index);
     }
     /**

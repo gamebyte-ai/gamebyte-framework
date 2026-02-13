@@ -1,4 +1,5 @@
 import { AssetCache, CacheConfig, LoadedAsset, CacheEvictionStrategy } from '../../contracts/AssetManager';
+import { Logger } from '../../utils/Logger.js';
 
 /**
  * Cache entry with LRU tracking.
@@ -425,7 +426,7 @@ export class LRUCache implements AssetCache {
         this.memoryPressureCallback(this.stats.currentSize, this.config.maxSize);
       } catch (error) {
         // Ignore callback errors to prevent cache operations from failing
-        console.warn('Memory pressure callback error:', error);
+        Logger.warn('Assets', 'Memory pressure callback error:', error);
       }
     }
     
@@ -439,7 +440,7 @@ export class LRUCache implements AssetCache {
           this.memoryPressureCallback(memInfo.usedJSHeapSize, memInfo.jsHeapSizeLimit);
         } catch (error) {
           // Ignore callback errors to prevent cache operations from failing
-          console.warn('Memory pressure callback error:', error);
+          Logger.warn('Assets', 'Memory pressure callback error:', error);
         }
       }
     }

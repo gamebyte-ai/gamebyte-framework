@@ -26,6 +26,7 @@ import {
   IOutlineFilterOptions,
 } from '../contracts/Graphics';
 import { getFrameworkFontFamily } from '../ui/utils/FontLoader';
+import { Logger } from '../utils/Logger.js';
 
 /**
  * Pixi.js Container Wrapper
@@ -247,7 +248,7 @@ export class PixiGraphicsFactory implements IGraphicsFactory {
   createDropShadowFilter(options: IDropShadowFilterOptions = {}): IFilter {
     // DropShadowFilter requires 'pixi-filters' package
     // Fallback: BlurFilter only (limited shadow effect)
-    console.warn(
+    Logger.warn('Graphics',
       'DropShadowFilter requires pixi-filters package (npm install pixi-filters). ' +
       'Using BlurFilter as limited fallback.'
     );
@@ -259,7 +260,7 @@ export class PixiGraphicsFactory implements IGraphicsFactory {
   createGlowFilter(options: IGlowFilterOptions = {}): IFilter {
     // GlowFilter requires 'pixi-filters' package
     // Fallback: BlurFilter only (limited glow effect)
-    console.warn(
+    Logger.warn('Graphics',
       'GlowFilter requires pixi-filters package (npm install pixi-filters). ' +
       'Using BlurFilter as limited fallback.'
     );
@@ -271,7 +272,7 @@ export class PixiGraphicsFactory implements IGraphicsFactory {
   createOutlineFilter(options: IOutlineFilterOptions = {}): IFilter {
     // OutlineFilter requires 'pixi-filters' package
     // No good fallback available
-    console.warn(
+    Logger.warn('Graphics',
       'OutlineFilter requires pixi-filters package (npm install pixi-filters). ' +
       'No fallback available - returning no-op filter.'
     );

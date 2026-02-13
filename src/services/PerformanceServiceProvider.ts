@@ -9,6 +9,7 @@ import { RenderingOptimizer } from '../performance/RenderingOptimizer';
 import { MobileOptimizer } from '../performance/MobileOptimizer';
 import { PerformanceDebugOverlay, PerformanceProfiler } from '../performance/PerformanceDebugOverlay';
 import { PerformanceConfig, QualityLevel } from '../contracts/Performance';
+import { Logger } from '../utils/Logger.js';
 
 /**
  * Service provider for performance optimization and monitoring
@@ -252,7 +253,7 @@ export class PerformanceServiceProvider extends AbstractServiceProvider {
         
         if (container.bound('performance.debug')) {
           const debug = app.make('performance.debug');
-          console.log('Performance Report:', debug.getReport());
+          Logger.info('Performance', 'Performance Report:', debug.getReport());
         }
       }
     });
@@ -268,7 +269,7 @@ export class PerformanceServiceProvider extends AbstractServiceProvider {
           app.emit('performance:optimization-recommendations', recommendations);
         }
       } catch (error) {
-        console.warn('Failed to initialize device detection:', error);
+        Logger.warn('Performance', 'Failed to initialize device detection:', error);
       }
     }
     

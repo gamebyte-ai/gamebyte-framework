@@ -1,5 +1,6 @@
 import { EventEmitter } from 'eventemitter3';
 import { Scene, SceneManager, SceneTransition } from '../contracts/Scene';
+import { Logger } from '../utils/Logger.js';
 
 /**
  * Default implementation of the scene manager.
@@ -60,6 +61,7 @@ export class DefaultSceneManager extends EventEmitter implements SceneManager {
       return; // Already on target scene
     }
 
+    Logger.debug('Scenes', `Switching to: ${sceneId}`);
     this.transitionInProgress = true;
     const fromScene = this.currentScene;
 

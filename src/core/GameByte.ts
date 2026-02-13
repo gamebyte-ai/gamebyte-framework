@@ -4,6 +4,8 @@ import { ServiceProvider } from '../contracts/ServiceProvider.js';
 import { Renderer, RenderingMode, RendererOptions } from '../contracts/Renderer.js';
 import { GraphicsEngine } from '../graphics/GraphicsEngine.js';
 import type { ResponsiveConfig } from '../utils/ResponsiveHelper.js';
+import { Logger } from '../utils/Logger.js';
+import type { LogLevel } from '../utils/Logger.js';
 
 /**
  * Quick game configuration options
@@ -42,6 +44,10 @@ export interface QuickGameConfig {
   responsive?: boolean | Omit<ResponsiveConfig, 'container'>;
   /** Additional renderer options */
   rendererOptions?: RendererOptions;
+  /** Enable tagged debug logging (default: false) */
+  debug?: boolean;
+  /** Minimum log level when debug is enabled (default: 'info') */
+  logLevel?: LogLevel;
 }
 
 /**
@@ -150,6 +156,14 @@ export class GameByte extends EventEmitter {
    * });
    */
   static async quick(config: QuickGameConfig): Promise<GameByte> {
+    // Configure logger before any init work so all modules can log
+    Logger.configure({
+      enabled: config.debug ?? false,
+      level: config.logLevel ?? 'info',
+    });
+
+    Logger.debug('Core', `Creating game: mode=${config.mode ?? '2d'}, ${config.width ?? 800}x${config.height ?? 600}`);
+
     // Import service providers dynamically to avoid circular dependencies
     const { RenderingServiceProvider } = await import('../services/RenderingServiceProvider');
     const { SceneServiceProvider } = await import('../services/SceneServiceProvider');
@@ -249,6 +263,7 @@ export class GameByte extends EventEmitter {
       game.start();
     }
 
+    Logger.debug('Core', 'Game ready');
     return game;
   }
 
@@ -337,7 +352,7 @@ export class GameByte extends EventEmitter {
     // Initialize GraphicsEngine with rendering mode
     if (!GraphicsEngine.isInitialized()) {
       GraphicsEngine.initialize(mode);
-      console.log(`✅ GraphicsEngine initialized with ${mode === RenderingMode.RENDERER_2D ? '2D (Pixi.js)' : '3D (Three.js)'} renderer`);
+      Logger.info('Core', `GraphicsEngine initialized with ${mode === RenderingMode.RENDERER_2D ? '2D (Pixi.js)' : '3D (Three.js)'} renderer`);
     }
 
     // Initialize the renderer
