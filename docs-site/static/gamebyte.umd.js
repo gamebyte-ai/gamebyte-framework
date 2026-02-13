@@ -17005,7 +17005,9 @@
 	        const keys = path.split('.');
 	        let current = obj;
 	        for (const key of keys) {
-	            if (current && typeof current === 'object' && key in current) {
+	            if (key === '__proto__' || key === 'constructor' || key === 'prototype')
+	                return undefined;
+	            if (current && typeof current === 'object' && Object.prototype.hasOwnProperty.call(current, key)) {
 	                current = current[key];
 	            }
 	            else {
@@ -40626,11 +40628,19 @@
 	            const css = document.createElement('style');
 	            css.id = 'gamebyte-splash-styles';
 	            let cssText = GameSplash.getInlineCSS(this.config);
-	            // Strip style tags without regex to avoid polynomial backtracking
-	            let lower = cssText.toLowerCase();
-	            while (lower.indexOf('<style') !== -1 || lower.indexOf('</style') !== -1) {
-	                cssText = cssText.replace(/<\/?style[^>]*>/gi, '');
-	                lower = cssText.toLowerCase();
+	            // Strip style tags using string operations to avoid polynomial regex backtracking
+	            let idx;
+	            while ((idx = cssText.toLowerCase().indexOf('<style')) !== -1) {
+	                const end = cssText.indexOf('>', idx);
+	                if (end === -1)
+	                    break;
+	                cssText = cssText.substring(0, idx) + cssText.substring(end + 1);
+	            }
+	            while ((idx = cssText.toLowerCase().indexOf('</style')) !== -1) {
+	                const end = cssText.indexOf('>', idx);
+	                if (end === -1)
+	                    break;
+	                cssText = cssText.substring(0, idx) + cssText.substring(end + 1);
 	            }
 	            css.textContent = cssText;
 	            document.head.appendChild(css);
@@ -41035,7 +41045,7 @@
 
     <!-- Logo -->
     <div class="gamebyte-logo">
-      <img src="${cfg.logoUrl.replace(/["<>]/g, '')}" alt="GameByte" />
+      <img src="${/^(https?:\/\/|\/|\.\.?\/)/.test(cfg.logoUrl) ? cfg.logoUrl.replace(/["<>]/g, '') : '/img/logo-icon.svg'}" alt="GameByte" />
     </div>
   </div>
 </div>`;

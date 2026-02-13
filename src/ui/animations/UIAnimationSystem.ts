@@ -464,7 +464,8 @@ export class GameByteUIAnimationSystem extends EventEmitter implements UIAnimati
     const keys = path.split('.');
     let current = obj;
     for (const key of keys) {
-      if (current && typeof current === 'object' && key in current) {
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') return undefined;
+      if (current && typeof current === 'object' && Object.prototype.hasOwnProperty.call(current, key)) {
         current = current[key];
       } else {
         return undefined;

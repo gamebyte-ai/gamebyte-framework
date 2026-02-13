@@ -95,11 +95,17 @@ export class GameSplash {
       const css = document.createElement('style');
       css.id = 'gamebyte-splash-styles';
       let cssText = GameSplash.getInlineCSS(this.config);
-      // Strip style tags without regex to avoid polynomial backtracking
-      let lower = cssText.toLowerCase();
-      while (lower.indexOf('<style') !== -1 || lower.indexOf('</style') !== -1) {
-        cssText = cssText.replace(/<\/?style[^>]*>/gi, '');
-        lower = cssText.toLowerCase();
+      // Strip style tags using string operations to avoid polynomial regex backtracking
+      let idx: number;
+      while ((idx = cssText.toLowerCase().indexOf('<style')) !== -1) {
+        const end = cssText.indexOf('>', idx);
+        if (end === -1) break;
+        cssText = cssText.substring(0, idx) + cssText.substring(end + 1);
+      }
+      while ((idx = cssText.toLowerCase().indexOf('</style')) !== -1) {
+        const end = cssText.indexOf('>', idx);
+        if (end === -1) break;
+        cssText = cssText.substring(0, idx) + cssText.substring(end + 1);
       }
       css.textContent = cssText;
       document.head.appendChild(css);
@@ -514,7 +520,7 @@ export class GameSplash {
 
     <!-- Logo -->
     <div class="gamebyte-logo">
-      <img src="${cfg.logoUrl.replace(/["<>]/g, '')}" alt="GameByte" />
+      <img src="${/^(https?:\/\/|\/|\.\.?\/)/.test(cfg.logoUrl) ? cfg.logoUrl.replace(/["<>]/g, '') : '/img/logo-icon.svg'}" alt="GameByte" />
     </div>
   </div>
 </div>`;
