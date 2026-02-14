@@ -15,6 +15,12 @@ import LiveDemo from '@site/src/components/LiveDemo';
 
 Hybrid mode combines Three.js (3D world) with Pixi.js (2D UI overlay) for the best of both worlds.
 
+<LiveDemo
+  src="/demos/hybrid-game.html"
+  height={450}
+  title="Hybrid 3D Game with 2D UI"
+/>
+
 ## When to Use Hybrid Mode
 
 - 3D games with complex UI (RPGs, strategy games)
@@ -160,16 +166,6 @@ class GameScene extends BaseScene {
     }
 }
 ```
-
-<LiveDemo
-  src="/demos/hybrid-game.html"
-  height={450}
-  title="Hybrid 3D Game with 2D UI"
-/>
-
-:::tip Theme Support
-This demo automatically adapts to your selected theme. Try toggling the theme using the 🌙/☀️ button in the navigation bar!
-:::
 
 ## Layer Management
 

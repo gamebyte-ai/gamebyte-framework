@@ -9,9 +9,17 @@ llm_summary: "Install via npm: 'npm install @gamebyte/framework'. For browser: u
 
 <!-- llm-context: installation, npm, cdn, umd, esm, cjs, typescript, pixi-peer-dependency -->
 
+import LiveDemo from '@site/src/components/LiveDemo';
+
 # Installation
 
 GameByte Framework can be installed via npm or used directly in the browser via CDN.
+
+<LiveDemo
+  src="/demos/hello-world-demo.html"
+  height={400}
+  title="Hello World - Verify Your Installation"
+/>
 
 ## npm (Recommended)
 

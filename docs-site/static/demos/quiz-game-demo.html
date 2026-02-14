@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - Quiz Game Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
+        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
+        #game-container { border-radius: 12px; overflow: hidden; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4); }
+        canvas { display: block; }
+        .info { color: #8892b0; margin-top: 20px; font-size: 12px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Trivia Quiz</h1>
+    <p>GameByte Screens & Panels - Hub, Modals & Bottom Sheets</p>
+    <div id="game-container"></div>
+    <div class="info">Choose a category, answer questions, see your score!</div>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="../gamebyte.umd.js"></script>
+    <script>
+        const {
+            createGame, graphics, loadFrameworkFont,
+            SplashScreen, GameStyleButton, GameStyleColors,
+            GameTopBar, ResultScreen, CelebrationManager
+        } = GameByteFramework;
+
+        const CONFIG = { width: 500, height: 600 };
+
+        const QUESTIONS = {
+            gaming: [
+                { q: "What year was Pac-Man released?", answers: ["1980", "1985", "1978", "1982"], correct: 0, info: "Pac-Man was released by Namco in 1980." },
+                { q: "What is the best-selling game of all time?", answers: ["Minecraft", "Tetris", "GTA V", "Wii Sports"], correct: 0, info: "Minecraft has sold over 300 million copies." },
+                { q: "Which company created Mario?", answers: ["Nintendo", "Sega", "Atari", "Sony"], correct: 0, info: "Nintendo created Mario in 1981." },
+                { q: "What does FPS stand for?", answers: ["First Person Shooter", "Frames Per Second", "Fast Play System", "Both A and B"], correct: 3, info: "FPS means both First Person Shooter and Frames Per Second!" },
+                { q: "Which game features Master Chief?", answers: ["Halo", "Call of Duty", "Doom", "Gears of War"], correct: 0, info: "Master Chief is the protagonist of Halo." }
+            ],
+            javascript: [
+                { q: "What does 'typeof null' return?", answers: ["'object'", "'null'", "'undefined'", "'boolean'"], correct: 0, info: "This is a known JavaScript quirk from its early days." },
+                { q: "Which is NOT a JS data type?", answers: ["float", "string", "boolean", "symbol"], correct: 0, info: "JavaScript uses 'number' for all numeric types." },
+                { q: "What does === check?", answers: ["Value & type", "Value only", "Type only", "Reference"], correct: 0, info: "=== is strict equality, checking both value and type." },
+                { q: "What is a closure?", answers: ["Function + scope", "A loop type", "Error handler", "CSS feature"], correct: 0, info: "A closure is a function with access to its outer scope." },
+                { q: "Which keyword declares a constant?", answers: ["const", "let", "var", "final"], correct: 0, info: "const creates immutable bindings in JavaScript." }
+            ],
+            general: [
+                { q: "What is the largest planet?", answers: ["Jupiter", "Saturn", "Earth", "Mars"], correct: 0, info: "Jupiter is the largest planet in our solar system." },
+                { q: "How many continents are there?", answers: ["7", "6", "5", "8"], correct: 0, info: "The seven continents are: Africa, Antarctica, Asia, Australia, Europe, North America, and South America." },
+                { q: "What is the speed of light?", answers: ["300,000 km/s", "150,000 km/s", "1,000 km/s", "500,000 km/s"], correct: 0, info: "Light travels at approximately 300,000 km/s in vacuum." },
+                { q: "Which element has symbol 'O'?", answers: ["Oxygen", "Osmium", "Gold", "Oganesson"], correct: 0, info: "Oxygen (O) is essential for life on Earth." },
+                { q: "Who painted the Mona Lisa?", answers: ["Da Vinci", "Picasso", "Van Gogh", "Monet"], correct: 0, info: "Leonardo da Vinci painted the Mona Lisa around 1503." }
+            ]
+        };
+
+        let game, currentCategory, currentQuestionIndex, score, timeLeft, timerInterval;
+        let questionScreen, feedbackPanel, timerBar, questionText, answerButtons;
+
+        async function init() {
+            await loadFrameworkFont();
+
+            game = await createGame({
+                container: '#game-container',
+                width: CONFIG.width,
+                height: CONFIG.height,
+                mode: '2d',
+                backgroundColor: 0x1a1a2e
+            });
+
+            showSplash();
+        }
+
+        function showSplash() {
+            const factory = graphics();
+            const splash = factory.createContainer();
+            game.stage.addChild(splash);
+
+            const title = factory.createText('TRIVIA QUIZ', {
+                fontFamily: 'Lilita One',
+                fontSize: 48,
+                fill: 0xffffff,
+                align: 'center'
+            });
+            title.anchor.set(0.5);
+            title.x = CONFIG.width / 2;
+            title.y = CONFIG.height / 2 - 40;
+            splash.addChild(title);
+
+            const emoji = factory.createText('🧠', {
+                fontSize: 80,
+                align: 'center'
+            });
+            emoji.anchor.set(0.5);
+            emoji.x = CONFIG.width / 2;
+            emoji.y = CONFIG.height / 2 + 50;
+            splash.addChild(emoji);
+
+            setTimeout(() => {
+                game.stage.removeChild(splash);
+                showHub();
+            }, 2000);
+        }
+
+        function showHub() {
+            const factory = graphics();
+            const hub = factory.createContainer();
+            game.stage.addChild(hub);
+
+            const title = factory.createText('Choose Category', {
+                fontFamily: 'Lilita One',
+                fontSize: 36,
+                fill: 0xffffff,
+                align: 'center'
+            });
+            title.anchor.set(0.5);
+            title.x = CONFIG.width / 2;
+            title.y = 80;
+            hub.addChild(title);
+
+            const categories = [
+                { key: 'gaming', label: '🎮 Gaming', color: 0x2ECC71 },
+                { key: 'javascript', label: '💻 JavaScript', color: 0xF39C12 },
+                { key: 'general', label: '🌍 General Knowledge', color: 0x3498DB }
+            ];
+
+            categories.forEach((cat, i) => {
+                const btn = createCategoryButton(cat.label, cat.color);
+                btn.x = CONFIG.width / 2 - 150;
+                btn.y = 180 + i * 100;
+                btn.eventMode = 'static';
+                btn.cursor = 'pointer';
+                btn.on('pointerdown', () => {
+                    game.stage.removeChild(hub);
+                    startQuiz(cat.key);
+                });
+                hub.addChild(btn);
+            });
+        }
+
+        function createCategoryButton(label, color) {
+            const factory = graphics();
+            const container = factory.createContainer();
+            const bg = factory.createGraphics();
+
+            bg.roundRect(0, 0, 300, 70, 15);
+            bg.fill({ color: color, alpha: 0.9 });
+            bg.stroke({ color: 0xffffff, width: 2 });
+            container.addChild(bg);
+
+            const text = factory.createText(label, {
+                fontFamily: 'Lilita One',
+                fontSize: 28,
+                fill: 0xffffff,
+                align: 'center'
+            });
+            text.anchor.set(0.5);
+            text.x = 150;
+            text.y = 35;
+            container.addChild(text);
+
+            container.on('pointerover', () => bg.alpha = 1);
+            container.on('pointerout', () => bg.alpha = 0.9);
+
+            return container;
+        }
+
+        function startQuiz(category) {
+            currentCategory = category;
+            currentQuestionIndex = 0;
+            score = 0;
+            showQuestion();
+        }
+
+        function showQuestion() {
+            const factory = graphics();
+            questionScreen = factory.createContainer();
+            game.stage.addChild(questionScreen);
+
+            const topBar = factory.createContainer();
+            const topBg = factory.createGraphics();
+            topBg.rect(0, 0, CONFIG.width, 60);
+            topBg.fill({ color: 0x2a2a4e });
+            topBar.addChild(topBg);
+
+            const questionNum = factory.createText(`Q ${currentQuestionIndex + 1}/5`, {
+                fontFamily: 'Lilita One',
+                fontSize: 24,
+                fill: 0xffffff
+            });
+            questionNum.x = 20;
+            questionNum.y = 20;
+            topBar.addChild(questionNum);
+
+            const timerText = factory.createText('10s', {
+                fontFamily: 'Lilita One',
+                fontSize: 24,
+                fill: 0xffffff
+            });
+            timerText.anchor.set(1, 0);
+            timerText.x = CONFIG.width - 20;
+            timerText.y = 20;
+            topBar.addChild(timerText);
+
+            questionScreen.addChild(topBar);
+
+            timerBar = factory.createGraphics();
+            questionScreen.addChild(timerBar);
+
+            const question = QUESTIONS[currentCategory][currentQuestionIndex];
+            questionText = factory.createText(question.q, {
+                fontFamily: 'Lilita One',
+                fontSize: 24,
+                fill: 0xffffff,
+                align: 'center',
+                wordWrap: true,
+                wordWrapWidth: 440
+            });
+            questionText.anchor.set(0.5);
+            questionText.x = CONFIG.width / 2;
+            questionText.y = 150;
+            questionScreen.addChild(questionText);
+
+            answerButtons = [];
+            question.answers.forEach((answer, i) => {
+                const btn = createAnswerButton(answer, i);
+                btn.x = 50;
+                btn.y = 250 + i * 70;
+                btn.eventMode = 'static';
+                btn.cursor = 'pointer';
+                btn.on('pointerdown', () => handleAnswer(i));
+                answerButtons.push(btn);
+                questionScreen.addChild(btn);
+            });
+
+            timeLeft = 10;
+            startTimer(timerText);
+        }
+
+        function createAnswerButton(text, index) {
+            const factory = graphics();
+            const container = factory.createContainer();
+            const bg = factory.createGraphics();
+
+            bg.roundRect(0, 0, 400, 55, 10);
+            bg.fill({ color: 0x2a2a4e });
+            bg.stroke({ color: 0x4a4a6e, width: 2 });
+            container.addChild(bg);
+
+            const label = factory.createText(`${String.fromCharCode(65 + index)}. ${text}`, {
+                fontFamily: 'Lilita One',
+                fontSize: 20,
+                fill: 0xffffff
+            });
+            label.x = 20;
+            label.y = 17;
+            container.addChild(label);
+
+            container.on('pointerover', () => {
+                bg.clear();
+                bg.roundRect(0, 0, 400, 55, 10);
+                bg.fill({ color: 0x3a3a5e });
+                bg.stroke({ color: 0x4a4a6e, width: 2 });
+            });
+            container.on('pointerout', () => {
+                bg.clear();
+                bg.roundRect(0, 0, 400, 55, 10);
+                bg.fill({ color: 0x2a2a4e });
+                bg.stroke({ color: 0x4a4a6e, width: 2 });
+            });
+
+            return container;
+        }
+
+        function startTimer(timerText) {
+            timerInterval = setInterval(() => {
+                timeLeft -= 0.1;
+                timerText.text = `${Math.ceil(timeLeft)}s`;
+
+                const timePercent = timeLeft / 10;
+                timerBar.clear();
+                timerBar.rect(0, 60, CONFIG.width * timePercent, 6);
+                timerBar.fill({ color: timePercent > 0.3 ? 0x2ECC71 : 0xE74C3C });
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    handleAnswer(-1);
+                }
+            }, 100);
+        }
+
+        function handleAnswer(selectedIndex) {
+            clearInterval(timerInterval);
+            answerButtons.forEach(btn => btn.eventMode = 'none');
+
+            const question = QUESTIONS[currentCategory][currentQuestionIndex];
+            const isCorrect = selectedIndex === question.correct;
+            if (isCorrect) score++;
+
+            showFeedback(isCorrect, question);
+        }
+
+        function showFeedback(isCorrect, question) {
+            const factory = graphics();
+            feedbackPanel = factory.createContainer();
+
+            const panelHeight = 200;
+            const bg = factory.createGraphics();
+            bg.roundRect(0, 0, CONFIG.width, panelHeight, 20);
+            bg.fill({ color: 0x2a2a4e });
+            bg.stroke({ color: isCorrect ? 0x2ECC71 : 0xE74C3C, width: 4 });
+            feedbackPanel.addChild(bg);
+
+            const resultText = factory.createText(isCorrect ? '✅ Correct!' : '❌ Wrong!', {
+                fontFamily: 'Lilita One',
+                fontSize: 32,
+                fill: isCorrect ? 0x2ECC71 : 0xE74C3C,
+                align: 'center'
+            });
+            resultText.anchor.set(0.5);
+            resultText.x = CONFIG.width / 2;
+            resultText.y = 40;
+            feedbackPanel.addChild(resultText);
+
+            if (!isCorrect) {
+                const correctAnswer = factory.createText(`Correct: ${question.answers[question.correct]}`, {
+                    fontFamily: 'Lilita One',
+                    fontSize: 20,
+                    fill: 0xffffff,
+                    align: 'center'
+                });
+                correctAnswer.anchor.set(0.5);
+                correctAnswer.x = CONFIG.width / 2;
+                correctAnswer.y = 90;
+                feedbackPanel.addChild(correctAnswer);
+            }
+
+            const info = factory.createText(question.info, {
+                fontFamily: 'Lilita One',
+                fontSize: 16,
+                fill: 0x8892b0,
+                align: 'center',
+                wordWrap: true,
+                wordWrapWidth: 440
+            });
+            info.anchor.set(0.5);
+            info.x = CONFIG.width / 2;
+            info.y = isCorrect ? 90 : 130;
+            feedbackPanel.addChild(info);
+
+            feedbackPanel.y = CONFIG.height;
+            game.stage.addChild(feedbackPanel);
+
+            const targetY = CONFIG.height - panelHeight;
+            const startY = CONFIG.height;
+            const duration = 300;
+            let animStartTime = performance.now();
+
+            const animate = () => {
+                const elapsed = performance.now() - animStartTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3);
+                feedbackPanel.y = startY - (startY - targetY) * eased;
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                }
+            };
+            animate();
+
+            setTimeout(() => {
+                game.stage.removeChild(feedbackPanel);
+                game.stage.removeChild(questionScreen);
+
+                currentQuestionIndex++;
+                if (currentQuestionIndex < 5) {
+                    showQuestion();
+                } else {
+                    showResults();
+                }
+            }, 2000);
+        }
+
+        function showResults() {
+            const factory = graphics();
+            const results = factory.createContainer();
+            game.stage.addChild(results);
+
+            const stars = score === 5 ? 3 : score >= 3 ? 2 : score >= 1 ? 1 : 0;
+
+            const title = factory.createText('Quiz Complete!', {
+                fontFamily: 'Lilita One',
+                fontSize: 40,
+                fill: 0xffffff,
+                align: 'center'
+            });
+            title.anchor.set(0.5);
+            title.x = CONFIG.width / 2;
+            title.y = 100;
+            results.addChild(title);
+
+            const scoreText = factory.createText(`Score: ${score}/5`, {
+                fontFamily: 'Lilita One',
+                fontSize: 48,
+                fill: 0xF39C12,
+                align: 'center'
+            });
+            scoreText.anchor.set(0.5);
+            scoreText.x = CONFIG.width / 2;
+            scoreText.y = 200;
+            results.addChild(scoreText);
+
+            const starText = factory.createText('⭐'.repeat(stars), {
+                fontSize: 60,
+                align: 'center'
+            });
+            starText.anchor.set(0.5);
+            starText.x = CONFIG.width / 2;
+            starText.y = 300;
+            results.addChild(starText);
+
+            if (stars === 3) {
+                const perfect = factory.createText('PERFECT!', {
+                    fontFamily: 'Lilita One',
+                    fontSize: 32,
+                    fill: 0x2ECC71,
+                    align: 'center'
+                });
+                perfect.anchor.set(0.5);
+                perfect.x = CONFIG.width / 2;
+                perfect.y = 380;
+                results.addChild(perfect);
+            }
+
+            const playAgain = createCategoryButton('🔄 PLAY AGAIN', 0x3498DB);
+            playAgain.x = CONFIG.width / 2 - 150;
+            playAgain.y = 480;
+            playAgain.eventMode = 'static';
+            playAgain.cursor = 'pointer';
+            playAgain.on('pointerdown', () => {
+                game.stage.removeChild(results);
+                showHub();
+            });
+            results.addChild(playAgain);
+        }
+
+        init();
+    </script>
+</body>
+</html>

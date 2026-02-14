@@ -314,6 +314,15 @@ For browser usage without bundlers, use `dist/gamebyte.umd.js`. It exposes `wind
 - Constants in SCREAMING_SNAKE_CASE
 - Private members prefixed with underscore or using `private` keyword
 
+## Documentation Site - Demo Placement Rule
+
+When adding or editing documentation pages in `docs-site/docs/`:
+- **Primary LiveDemo must appear right after the page title** (before any code blocks or detailed text)
+- `import LiveDemo` goes after frontmatter, before the `# Title`
+- Each page should have at least one relevant demo
+- Demo HTML files live in `docs-site/static/demos/`
+- New demos should follow the existing pattern: Pixi CDN + `../gamebyte.umd.js`, dark theme, self-contained
+
 ## Documentation
 
 - Main README: `README.md`

@@ -94,7 +94,20 @@ export class GameSplash {
       // Create splash if not found in HTML
       const css = document.createElement('style');
       css.id = 'gamebyte-splash-styles';
-      css.textContent = GameSplash.getInlineCSS(this.config).replace(/<\/?style[^>]*>/g, '');
+      let cssText = GameSplash.getInlineCSS(this.config);
+      // Strip style tags using string operations to avoid polynomial regex backtracking
+      let idx: number;
+      while ((idx = cssText.toLowerCase().indexOf('<style')) !== -1) {
+        const end = cssText.indexOf('>', idx);
+        if (end === -1) break;
+        cssText = cssText.substring(0, idx) + cssText.substring(end + 1);
+      }
+      while ((idx = cssText.toLowerCase().indexOf('</style')) !== -1) {
+        const end = cssText.indexOf('>', idx);
+        if (end === -1) break;
+        cssText = cssText.substring(0, idx) + cssText.substring(end + 1);
+      }
+      css.textContent = cssText;
       document.head.appendChild(css);
 
       document.body.insertAdjacentHTML('afterbegin', GameSplash.getInlineHTML(this.config));
@@ -507,7 +520,7 @@ export class GameSplash {
 
     <!-- Logo -->
     <div class="gamebyte-logo">
-      <img src="${cfg.logoUrl}" alt="GameByte" />
+      <img src="${/^(https?:\/\/|\/|\.\.?\/)/.test(cfg.logoUrl) ? cfg.logoUrl.replace(/["<>]/g, '') : '/img/logo-icon.svg'}" alt="GameByte" />
     </div>
   </div>
 </div>`;

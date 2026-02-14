@@ -464,7 +464,8 @@ export class GameByteUIAnimationSystem extends EventEmitter implements UIAnimati
     const keys = path.split('.');
     let current = obj;
     for (const key of keys) {
-      if (current && typeof current === 'object' && key in current) {
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') return undefined;
+      if (current && typeof current === 'object' && Object.prototype.hasOwnProperty.call(current, key)) {
         current = current[key];
       } else {
         return undefined;
@@ -479,16 +480,19 @@ export class GameByteUIAnimationSystem extends EventEmitter implements UIAnimati
   private setNestedProperty(obj: any, path: string, value: any): void {
     const keys = path.split('.');
     let current = obj;
-    
+
     for (let i = 0; i < keys.length - 1; i++) {
       const key = keys[i];
-      if (!(key in current) || typeof current[key] !== 'object') {
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') return;
+      if (!Object.prototype.hasOwnProperty.call(current, key) || typeof current[key] !== 'object') {
         current[key] = {};
       }
       current = current[key];
     }
-    
-    current[keys[keys.length - 1]] = value;
+
+    const finalKey = keys[keys.length - 1];
+    if (finalKey === '__proto__' || finalKey === 'constructor' || finalKey === 'prototype') return;
+    current[finalKey] = value;
   }
 
   /**

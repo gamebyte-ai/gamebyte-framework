@@ -7,9 +7,15 @@ keywords: [layout, flexbox, yoga, responsive, pixi-layout]
 llm_summary: "GameByte uses @pixi/layout (Yoga flexbox engine) for responsive UI layouts. Supports flex direction, justify content, align items, gap, wrap, and percentage sizing."
 ---
 
+import LiveDemo from '@site/src/components/LiveDemo';
+
 # Layout System
 
 GameByte integrates [@pixi/layout](https://layout.pixijs.io/) - a powerful Yoga-based flexbox layout system for PixiJS. This enables CSS-like flexbox layouts for game UI.
+
+<LiveDemo src="/demos/2048-demo.html" height="600" title="2048 - Grid Layout in Action" />
+
+<LiveDemo src="/demos/layout-demo.html" height="800" title="Layout System Demo" />
 
 ## Why Flexbox for Games?
 
@@ -112,14 +118,6 @@ import {
 container.layout = LayoutPresets.center;
 hudContainer.layout = GameLayoutPresets.gameScreen;
 ```
-
-## Live Demo
-
-Interactive examples of all layout features:
-
-import LiveDemo from '@site/src/components/LiveDemo';
-
-<LiveDemo src="/demos/layout-demo.html" height="800" title="Layout System Demo" />
 
 ## Next Steps
 

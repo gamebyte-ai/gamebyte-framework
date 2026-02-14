@@ -332,3 +332,13 @@ mesh.frustumCulled = true;
 // Disable for always-visible objects
 skybox.frustumCulled = false;
 ```
+
+## More 3D Demos
+
+### Camera Controls
+
+<LiveDemo src="/demos/3d-camera-demo.html" height="400" title="3D Camera Controls Demo" />
+
+### Pathfinding in 3D
+
+<LiveDemo src="/demos/three-pathfinder-demo.html" height="400" title="3D Pathfinding Demo" />

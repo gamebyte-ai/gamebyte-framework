@@ -9,9 +9,17 @@ llm_summary: "Configure via createGame({ config }) or game.setConfig(). Key opti
 
 <!-- llm-context: configuration, settings, options, debug-mode, mobile-optimization, renderer-settings -->
 
+import LiveDemo from '@site/src/components/LiveDemo';
+
 # Configuration
 
 GameByte provides sensible defaults with full customization options.
+
+<LiveDemo
+  src="/demos/config-playground-demo.html"
+  height={480}
+  title="Configuration Playground - Live Settings Editor"
+/>
 
 ## Configuration Methods
 

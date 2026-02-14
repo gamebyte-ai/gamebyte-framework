@@ -9,9 +9,15 @@ llm_summary: "Assets.load([{ key, url, type }]). Types: texture, audio, json, mo
 
 <!-- llm-context: asset-management, loading, caching, textures, audio, preload -->
 
+import LiveDemo from '@site/src/components/LiveDemo';
+
 # Asset Loading & Caching
 
 GameByte's asset system handles loading, caching, and memory management.
+
+<LiveDemo src="/demos/gem-collector-demo.html" height="600" title="Gem Collector - Asset Loading & Level Transitions" />
+
+<LiveDemo src="/demos/asset-loading-demo.html" height="500" title="Asset Loading Demo" />
 
 ## Basic Loading
 
@@ -118,8 +124,3 @@ if (Assets.isBundleLoaded('level-2')) {
 }
 ```
 
-## Live Demo
-
-import LiveDemo from '@site/src/components/LiveDemo';
-
-<LiveDemo src="/demos/asset-loading-demo.html" height="500" title="Asset Loading Demo" />

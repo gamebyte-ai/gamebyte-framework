@@ -1,6 +1,10 @@
+import LiveDemo from '@site/src/components/LiveDemo';
+
 # SimpleScreen
 
 A lightweight base class for creating game screens that work directly with the graphics abstraction layer.
+
+<LiveDemo src="/demos/screen-manager-demo.html" height="600" title="Screen Management Demo" />
 
 ## When to Use
 
@@ -160,8 +164,3 @@ class LoadingScreen extends SimpleScreen {
 }
 ```
 
-## Live Demo
-
-import LiveDemo from '@site/src/components/LiveDemo';
-
-<LiveDemo src="/demos/screen-manager-demo.html" height="600" title="Screen Management Demo" />

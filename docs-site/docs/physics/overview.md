@@ -9,9 +9,15 @@ llm_summary: "2D: Matter.js via Physics.create2DWorld(). 3D: Cannon.js via Physi
 
 <!-- llm-context: physics, collision-detection, matter-js, cannon-js, rigid-body -->
 
+import LiveDemo from '@site/src/components/LiveDemo';
+
 # Physics Overview
 
 GameByte integrates industry-standard physics engines for realistic simulations.
+
+<LiveDemo src="/demos/slingshot-game-demo.html" height="600" title="Slingshot Game - Physics Forces & Collisions" />
+
+<LiveDemo src="/demos/physics-2d-demo.html" height="550" title="2D Physics Demo" />
 
 ## Engines
 
@@ -84,8 +90,3 @@ Physics.onCollision('player', 'enemy', (playerBody, enemyBody) => {
 - **FPS/TPS**: 3D (Cannon.js)
 - **Hybrid (3D world, 2D gameplay)**: Either based on gameplay needs
 
-## Live Demo
-
-import LiveDemo from '@site/src/components/LiveDemo';
-
-<LiveDemo src="/demos/physics-2d-demo.html" height="550" title="2D Physics Demo" />

@@ -9,9 +9,15 @@ llm_summary: "Audio system: Music (background loops), SFX (effects), Spatial (3D
 
 <!-- llm-context: audio-system, music, sfx, spatial-audio, mobile-audio -->
 
+import LiveDemo from '@site/src/components/LiveDemo';
+
 # Audio Overview
 
 GameByte's audio system handles music, sound effects, and spatial audio.
+
+<LiveDemo src="/demos/simon-says-demo.html" height="600" title="Simon Says - Audio Tones & Sequences" />
+
+<LiveDemo src="/demos/audio-demo.html" height="550" title="Audio System Demo" />
 
 ## Audio Types
 
@@ -72,8 +78,3 @@ Audio.unmute();
 Audio.toggle();
 ```
 
-## Live Demo
-
-import LiveDemo from '@site/src/components/LiveDemo';
-
-<LiveDemo src="/demos/audio-demo.html" height="550" title="Audio System Demo" />

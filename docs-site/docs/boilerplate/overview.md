@@ -6,6 +6,8 @@ The GameByte Framework provides a complete boilerplate system for building hyper
 
 ## Live Demo
 
+<LiveDemo src="/demos/quiz-game-demo.html" height="600" title="Trivia Quiz - Screens, Panels & Navigation in Action" />
+
 <LiveDemo
   src="/demos/hub-screen-demo.html"
   height={660}

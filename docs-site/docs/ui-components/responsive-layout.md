@@ -9,9 +9,13 @@ llm_summary: "ResponsiveLayoutManager handles screen adaptation. Use UIContainer
 
 <!-- llm-context: responsive-layout, mobile-first, flex-layout, safe-area, breakpoints -->
 
+import LiveDemo from '@site/src/components/LiveDemo';
+
 # Responsive Layout
 
 GameByte's layout system adapts to any screen size.
+
+<LiveDemo src="/demos/layout-demo.html" height="700" title="Responsive Layout Demo" />
 
 ## Screen Adaptation
 
@@ -236,8 +240,3 @@ layout.on('orientationchange', (orientation) => {
 layout.lockOrientation('landscape');
 ```
 
-## Live Demo
-
-import LiveDemo from '@site/src/components/LiveDemo';
-
-<LiveDemo src="/demos/layout-demo.html" height="700" title="Responsive Layout Demo" />

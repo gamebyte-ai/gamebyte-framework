@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - Hello World Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
+        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
+        #game-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        canvas { display: block; }
+        .info { color: #8892b0; margin-top: 15px; font-size: 12px; text-align: center; }
+        .status { color: #4ade80; margin-top: 10px; font-size: 13px; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <h1>Hello World</h1>
+    <p>Verify your GameByte installation is working</p>
+    <div id="game-container"></div>
+    <div class="status" id="status">Initializing...</div>
+    <div class="info">If you see the rotating square and version text, GameByte is correctly installed!</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="../gamebyte.umd.js"></script>
+
+    <script>
+        const {
+            createGame,
+            loadFrameworkFont,
+            getFrameworkFontFamily,
+            graphics
+        } = window.GameByteFramework;
+
+        const CONFIG = { width: 460, height: 340 };
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        document.getElementById('game-container').appendChild(canvas);
+
+        const game = createGame();
+        let renderer, stage, factory;
+
+        async function init() {
+            await loadFrameworkFont();
+            await game.initialize(canvas, '2d');
+            renderer = game.make('renderer');
+            stage = renderer.getStage();
+            factory = graphics();
+
+            // Background
+            const bg = factory.createGraphics();
+            bg.rect(0, 0, CONFIG.width, CONFIG.height);
+            bg.fill({ color: 0x1a1a2e });
+            stage.addChild(bg);
+
+            // Version text
+            const versionText = factory.createText('GameByte v1.3.0 loaded!', {
+                fontFamily: getFrameworkFontFamily(),
+                fontSize: 26,
+                fill: 0x4ade80
+            });
+            versionText.x = CONFIG.width / 2;
+            versionText.y = 30;
+            if (versionText.anchor) versionText.anchor.set(0.5, 0);
+            stage.addChild(versionText);
+
+            // Subtitle
+            const subtitle = factory.createText('Game loop is running', {
+                fontSize: 14,
+                fill: 0x8892b0
+            });
+            subtitle.x = CONFIG.width / 2;
+            subtitle.y = 65;
+            if (subtitle.anchor) subtitle.anchor.set(0.5, 0);
+            stage.addChild(subtitle);
+
+            // Rotating square
+            const square = factory.createGraphics();
+            square.rect(-40, -40, 80, 80);
+            square.fill({ color: 0x6366f1 });
+            square.stroke({ color: 0x818cf8, width: 3 });
+            square.x = CONFIG.width / 2;
+            square.y = 180;
+            stage.addChild(square);
+
+            // Frame counter text
+            let frameCount = 0;
+            const frameText = factory.createText('Frames: 0', {
+                fontSize: 13,
+                fill: 0x64748b
+            });
+            frameText.x = CONFIG.width / 2;
+            frameText.y = 280;
+            if (frameText.anchor) frameText.anchor.set(0.5, 0);
+            stage.addChild(frameText);
+
+            // Checklist items
+            const checks = [
+                { text: 'Canvas created', done: true },
+                { text: 'Pixi.js v8 renderer', done: true },
+                { text: 'Game loop active', done: true },
+                { text: 'Font loaded', done: true }
+            ];
+            checks.forEach((item, i) => {
+                const t = factory.createText(`${item.done ? '\u2705' : '\u274C'} ${item.text}`, {
+                    fontSize: 12,
+                    fill: item.done ? 0x4ade80 : 0xef4444
+                });
+                t.x = 20;
+                t.y = 300 + i * 18;
+                stage.addChild(t);
+            });
+
+            // Game loop - rotate square and count frames
+            game.on('update', (deltaTime) => {
+                square.rotation += 0.03 * (deltaTime / 16.67);
+                frameCount++;
+                frameText.text = `Frames: ${frameCount} | ${Math.round(1000 / deltaTime)} FPS`;
+            });
+
+            game.start();
+
+            document.getElementById('status').textContent = 'GameByte initialized successfully!';
+        }
+
+        init().catch(err => {
+            document.getElementById('status').textContent = 'Error: ' + err.message;
+            document.getElementById('status').style.color = '#ef4444';
+        });
+    </script>
+</body>
+</html>

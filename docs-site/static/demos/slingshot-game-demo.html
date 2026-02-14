@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - Slingshot Game Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; font-family: 'Lilita One', cursive; }
+        p { color: #8892b0; margin-bottom: 20px; font-size: 14px; }
+        #game-container { border-radius: 12px; overflow: hidden; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4); }
+        canvas { display: block; }
+        .info { color: #8892b0; margin-top: 20px; font-size: 12px; text-align: center; }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
+</head>
+<body>
+    <h1>Slingshot</h1>
+    <p>GameByte Physics - Forces, Collisions & Gravity</p>
+    <div id="game-container"></div>
+    <div class="info">Drag to aim, release to launch! Clear all targets.</div>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/matter-js@0.19.0/build/matter.min.js"></script>
+    <script src="../gamebyte.umd.js"></script>
+    <script>
+    const {
+        createGame, graphics, loadFrameworkFont,
+        SplashScreen, GameStyleButton, GameStyleColors,
+        GameTopBar, ResultScreen, CelebrationManager
+    } = GameByteFramework;
+
+    const { Engine, World, Bodies, Body, Events, Composite, Vector } = Matter;
+
+    // Game state
+    let gameState = 'splash';
+    let engine, world;
+    let currentLevel = 1;
+    let ballsLeft = 3;
+    let score = 0;
+    let isDragging = false;
+    let ballBody = null;
+    let dragStartX = 0, dragStartY = 0;
+    let settleFrames = 0;
+    let blocks = [];
+    let enemies = [];
+
+    const SLINGSHOT_X = 80;
+    const SLINGSHOT_Y = 450;
+    const MAX_DRAG = 100;
+
+    // Initialize game
+    let game;
+    let factory;
+    let renderContainer, uiContainer;
+
+    async function initApp() {
+        await loadFrameworkFont();
+
+        game = await createGame({
+            container: '#game-container',
+            width: 500,
+            height: 600,
+            mode: '2d',
+            backgroundColor: 0x87CEEB
+        });
+
+        factory = graphics();
+
+        renderContainer = factory.createContainer();
+        game.stage.addChild(renderContainer);
+
+        uiContainer = factory.createContainer();
+        game.stage.addChild(uiContainer);
+
+        // Setup input handling (needs game.stage)
+        game.stage.eventMode = 'static';
+        game.stage.hitArea = { contains: () => true };
+
+        game.stage.on('pointerdown', (e) => {
+            if (gameState !== 'playing' || !ballBody || !ballBody.isStatic) return;
+            const pos = e.global;
+            const dx = pos.x - ballBody.position.x;
+            const dy = pos.y - ballBody.position.y;
+            if (Math.sqrt(dx * dx + dy * dy) < 30) {
+                isDragging = true;
+                dragStartX = pos.x;
+                dragStartY = pos.y;
+            }
+        });
+
+        game.stage.on('pointermove', (e) => {
+            if (!isDragging || !ballBody) return;
+            const pos = e.global;
+            const dx = pos.x - SLINGSHOT_X;
+            const dy = pos.y - SLINGSHOT_Y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist > MAX_DRAG) {
+                const angle = Math.atan2(dy, dx);
+                Body.setPosition(ballBody, {
+                    x: SLINGSHOT_X + Math.cos(angle) * MAX_DRAG,
+                    y: SLINGSHOT_Y + Math.sin(angle) * MAX_DRAG
+                });
+            } else {
+                Body.setPosition(ballBody, { x: pos.x, y: pos.y });
+            }
+        });
+
+        game.stage.on('pointerup', () => {
+            if (!isDragging || !ballBody) return;
+            isDragging = false;
+            Body.setStatic(ballBody, false);
+            const dx = SLINGSHOT_X - ballBody.position.x;
+            const dy = SLINGSHOT_Y - ballBody.position.y;
+            const force = Math.sqrt(dx * dx + dy * dy) * 0.00008;
+            const angle = Math.atan2(dy, dx);
+            Body.applyForce(ballBody, ballBody.position, {
+                x: Math.cos(angle) * force,
+                y: Math.sin(angle) * force
+            });
+        });
+
+        // Game loop
+        game.onUpdate((deltaMS) => {
+            updateGame(deltaMS);
+            if (gameState === 'playing') {
+                render();
+            }
+        });
+
+        showSplash();
+    }
+
+    // Initialize physics
+    function initPhysics() {
+        engine = Engine.create();
+        world = engine.world;
+        engine.world.gravity.y = 1;
+
+        // Ground
+        const ground = Bodies.rectangle(250, 580, 500, 40, {
+            isStatic: true,
+            render: { fillColor: 0x2d5a27 }
+        });
+        World.add(world, ground);
+    }
+
+    // Create level structures
+    function createLevel(level) {
+        blocks = [];
+        enemies = [];
+
+        if (level === 1) {
+            // Simple tower
+            const b1 = Bodies.rectangle(350, 520, 60, 20, {
+                density: 0.004,
+                restitution: 0.3,
+                render: { fillColor: 0x8B4513 }
+            });
+            const b2 = Bodies.rectangle(350, 500, 60, 20, {
+                density: 0.004,
+                restitution: 0.3,
+                render: { fillColor: 0x8B4513 }
+            });
+            const b3 = Bodies.rectangle(350, 480, 60, 20, {
+                density: 0.004,
+                restitution: 0.3,
+                render: { fillColor: 0x8B4513 }
+            });
+            const enemy = Bodies.circle(350, 455, 15, {
+                density: 0.002,
+                restitution: 0.5,
+                render: { fillColor: 0xFF4444 },
+                isEnemy: true
+            });
+
+            blocks.push(b1, b2, b3);
+            enemies.push(enemy);
+            World.add(world, [b1, b2, b3, enemy]);
+        } else if (level === 2) {
+            // Two towers with bridge
+            const t1 = Bodies.rectangle(300, 530, 20, 60, {
+                density: 0.006,
+                restitution: 0.3,
+                render: { fillColor: 0x696969 }
+            });
+            const t2 = Bodies.rectangle(400, 530, 20, 60, {
+                density: 0.006,
+                restitution: 0.3,
+                render: { fillColor: 0x696969 }
+            });
+            const bridge = Bodies.rectangle(350, 490, 100, 15, {
+                density: 0.004,
+                restitution: 0.3,
+                render: { fillColor: 0x8B4513 }
+            });
+            const e1 = Bodies.circle(320, 465, 15, {
+                density: 0.002,
+                restitution: 0.5,
+                render: { fillColor: 0xFF4444 },
+                isEnemy: true
+            });
+            const e2 = Bodies.circle(380, 465, 15, {
+                density: 0.002,
+                restitution: 0.5,
+                render: { fillColor: 0xFF4444 },
+                isEnemy: true
+            });
+
+            blocks.push(t1, t2, bridge);
+            enemies.push(e1, e2);
+            World.add(world, [t1, t2, bridge, e1, e2]);
+        } else if (level === 3) {
+            // Pyramid
+            const row1 = [
+                Bodies.rectangle(320, 540, 40, 15, { density: 0.005, render: { fillColor: 0x8B4513 }}),
+                Bodies.rectangle(360, 540, 40, 15, { density: 0.005, render: { fillColor: 0x8B4513 }}),
+                Bodies.rectangle(400, 540, 40, 15, { density: 0.005, render: { fillColor: 0x8B4513 }})
+            ];
+            const row2 = [
+                Bodies.rectangle(340, 520, 40, 15, { density: 0.006, render: { fillColor: 0x696969 }}),
+                Bodies.rectangle(380, 520, 40, 15, { density: 0.006, render: { fillColor: 0x696969 }})
+            ];
+            const row3 = Bodies.rectangle(360, 500, 40, 15, { density: 0.004, render: { fillColor: 0x8B4513 }});
+
+            const e1 = Bodies.circle(340, 475, 15, { density: 0.002, render: { fillColor: 0xFF4444 }, isEnemy: true });
+            const e2 = Bodies.circle(360, 475, 15, { density: 0.002, render: { fillColor: 0xFF4444 }, isEnemy: true });
+            const e3 = Bodies.circle(380, 475, 15, { density: 0.002, render: { fillColor: 0xFF4444 }, isEnemy: true });
+
+            blocks.push(...row1, ...row2, row3);
+            enemies.push(e1, e2, e3);
+            World.add(world, [...row1, ...row2, row3, e1, e2, e3]);
+        }
+    }
+
+    // Spawn ball on slingshot
+    function spawnBall() {
+        if (ballBody) {
+            World.remove(world, ballBody);
+        }
+        ballBody = Bodies.circle(SLINGSHOT_X, SLINGSHOT_Y, 12, {
+            density: 0.008,
+            restitution: 0.6,
+            friction: 0.01,
+            render: { fillColor: 0xFFFFFF }
+        });
+        Body.setStatic(ballBody, true);
+        World.add(world, ballBody);
+        settleFrames = 0;
+    }
+
+    // Collision detection
+    function setupCollisions() {
+        Events.on(engine, 'collisionStart', (event) => {
+            event.pairs.forEach(pair => {
+                const { bodyA, bodyB } = pair;
+
+                // Check for enemy hits
+                [bodyA, bodyB].forEach(body => {
+                    if (body.isEnemy && !body.destroyed) {
+                        const velocity = Vector.magnitude(body.velocity);
+                        if (velocity > 3) {
+                            body.destroyed = true;
+                            score += 50;
+                            setTimeout(() => {
+                                if (enemies.includes(body)) {
+                                    enemies = enemies.filter(e => e !== body);
+                                    World.remove(world, body);
+                                }
+                            }, 100);
+                        }
+                    }
+                });
+            });
+        });
+    }
+
+    // Render physics bodies
+    function render() {
+        renderContainer.removeChildren();
+
+        // Sky background
+        const bg = factory.createGraphics();
+        bg.rect(0, 0, 500, 600);
+        bg.fill({ color: 0x87CEEB });
+        renderContainer.addChild(bg);
+
+        // Ground
+        const ground = factory.createGraphics();
+        ground.rect(0, 560, 500, 40);
+        ground.fill({ color: 0x2d5a27 });
+        renderContainer.addChild(ground);
+
+        // Slingshot post
+        const slingshot = factory.createGraphics();
+        slingshot.rect(SLINGSHOT_X - 3, SLINGSHOT_Y, 6, 120);
+        slingshot.fill({ color: 0x4A2511 });
+        renderContainer.addChild(slingshot);
+
+        // Elastic band while dragging
+        if (isDragging && ballBody) {
+            const band = factory.createGraphics();
+            band.moveTo(SLINGSHOT_X, SLINGSHOT_Y);
+            band.lineTo(ballBody.position.x, ballBody.position.y);
+            band.stroke({ color: 0x8B4513, width: 4 });
+            renderContainer.addChild(band);
+
+            // Trajectory dots
+            const dx = SLINGSHOT_X - ballBody.position.x;
+            const dy = SLINGSHOT_Y - ballBody.position.y;
+            const force = Math.sqrt(dx * dx + dy * dy) * 0.08;
+            const angle = Math.atan2(dy, dx);
+
+            for (let i = 1; i <= 8; i++) {
+                const t = i * 0.15;
+                const vx = Math.cos(angle) * force;
+                const vy = Math.sin(angle) * force;
+                const x = SLINGSHOT_X + vx * t * 60;
+                const y = SLINGSHOT_Y + vy * t * 60 + 0.5 * engine.world.gravity.y * t * t * 3600;
+
+                const dot = factory.createGraphics();
+                dot.circle(x, y, 3);
+                dot.fill({ color: 0xFFFFFF, alpha: 0.5 });
+                renderContainer.addChild(dot);
+            }
+        }
+
+        // Render all physics bodies
+        Composite.allBodies(world).forEach(body => {
+            if (body.isStatic) return;
+
+            const g = factory.createGraphics();
+
+            if (body.circleRadius) {
+                g.circle(body.position.x, body.position.y, body.circleRadius);
+                g.fill({ color: body.render?.fillColor || 0xFFFFFF });
+
+                // Enemy face
+                if (body.isEnemy && !body.destroyed) {
+                    const face = factory.createText('👿', { fontSize: 20 });
+                    face.anchor.set(0.5);
+                    face.position.set(body.position.x, body.position.y);
+                    renderContainer.addChild(face);
+                }
+            } else {
+                const vertices = body.vertices;
+                if (vertices.length > 0) {
+                    g.moveTo(vertices[0].x, vertices[0].y);
+                    for (let i = 1; i < vertices.length; i++) {
+                        g.lineTo(vertices[i].x, vertices[i].y);
+                    }
+                    g.closePath();
+                    g.fill({ color: body.render?.fillColor || 0xCCCCCC });
+                }
+            }
+
+            renderContainer.addChild(g);
+        });
+
+        // Remove off-screen blocks
+        blocks = blocks.filter(block => {
+            if (block.position.y > 650 || block.position.x < -50 || block.position.x > 550) {
+                World.remove(world, block);
+                score += 10;
+                return false;
+            }
+            return true;
+        });
+    }
+
+    // Splash screen
+    function showSplash() {
+        const splash = new SplashScreen({
+            title: 'SLINGSHOT',
+            subtitle: 'Physics Demo',
+            duration: 2000,
+            onComplete: () => {
+                uiContainer.removeChildren();
+                showMenu();
+            }
+        });
+        uiContainer.addChild(splash.getContainer());
+    }
+
+    // Menu screen
+    function showMenu() {
+        gameState = 'menu';
+        uiContainer.removeChildren();
+        renderContainer.removeChildren();
+
+        // Menu background
+        const bg = factory.createGraphics();
+        bg.rect(0, 0, 500, 600);
+        bg.fill({ color: 0x0a0a20 });
+        renderContainer.addChild(bg);
+
+        const title = factory.createText('SLINGSHOT', {
+            fontFamily: 'Lilita One',
+            fontSize: 48,
+            fill: 0xFFFFFF,
+            align: 'center'
+        });
+        title.position.set(250, 150);
+        title.anchor.set(0.5);
+        uiContainer.addChild(title);
+
+        const subtitle = factory.createText('Drag to aim, release to launch!', {
+            fontFamily: 'Lilita One',
+            fontSize: 18,
+            fill: 0xCCCCCC,
+            align: 'center'
+        });
+        subtitle.position.set(250, 220);
+        subtitle.anchor.set(0.5);
+        uiContainer.addChild(subtitle);
+
+        const playBtn = new GameStyleButton({
+            text: 'PLAY',
+            width: 200,
+            height: 60,
+            variant: 'primary'
+        });
+        playBtn.getContainer().position.set(150, 300);
+        playBtn.on('click', startGame);
+        uiContainer.addChild(playBtn.getContainer());
+    }
+
+    // Start game
+    function startGame() {
+        gameState = 'playing';
+        currentLevel = 1;
+        ballsLeft = 3;
+        score = 0;
+        uiContainer.removeChildren();
+
+        initPhysics();
+        setupCollisions();
+        createLevel(currentLevel);
+        spawnBall();
+
+        updateTopBar();
+    }
+
+    function updateTopBar() {
+        uiContainer.removeChildren();
+        const topBar = new GameTopBar({
+            width: 500,
+            resources: [
+                { type: 'custom', value: currentLevel, icon: 'custom', label: 'Level' },
+                { type: 'energy', value: ballsLeft, icon: 'energy', label: 'Balls' },
+                { type: 'coins', value: score, icon: 'coin', label: 'Score' }
+            ],
+            showSettings: false
+        });
+        uiContainer.addChild(topBar.getContainer());
+    }
+
+    // Update game logic
+    function updateGame(delta) {
+        if (gameState !== 'playing') return;
+
+        Engine.update(engine, delta);
+
+        // Check if ball has settled after launch
+        if (ballBody && !ballBody.isStatic) {
+            const velocity = Vector.magnitude(ballBody.velocity);
+            const offScreen = ballBody.position.y > 650 || ballBody.position.x > 550 || ballBody.position.x < -50;
+
+            if (velocity < 0.5 || offScreen) {
+                settleFrames++;
+                if (settleFrames > 30 || offScreen) {
+                    ballsLeft--;
+
+                    // Check level completion
+                    if (enemies.length === 0) {
+                        currentLevel++;
+                        if (currentLevel > 3) {
+                            showGameOver(true);
+                            return;
+                        } else {
+                            ballsLeft = 3;
+                            World.clear(world, false);
+                            initPhysics();
+                            setupCollisions();
+                            createLevel(currentLevel);
+                            spawnBall();
+                        }
+                    } else if (ballsLeft > 0) {
+                        spawnBall();
+                    } else {
+                        showGameOver(false);
+                        return;
+                    }
+
+                    updateTopBar();
+                }
+            } else {
+                settleFrames = 0;
+            }
+        }
+    }
+
+    // Game over
+    function showGameOver(won) {
+        gameState = 'gameover';
+        uiContainer.removeChildren();
+        renderContainer.removeChildren();
+
+        // Background
+        const bg = factory.createGraphics();
+        bg.rect(0, 0, 500, 600);
+        bg.fill({ color: 0x0a0a20 });
+        renderContainer.addChild(bg);
+
+        const result = new ResultScreen({
+            title: won ? 'Victory!' : 'Game Over',
+            score: score,
+            stars: won ? 3 : Math.max(1, currentLevel - 1),
+            onRestart: () => {
+                uiContainer.removeChildren();
+                renderContainer.removeChildren();
+                showMenu();
+            }
+        });
+        uiContainer.addChild(result.getContainer());
+
+        if (won) {
+            const celebration = new CelebrationManager(game.stage, 500, 600);
+            celebration.victory();
+        }
+    }
+
+    // Start
+    initApp();
+    </script>
+</body>
+</html>
