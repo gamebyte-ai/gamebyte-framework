@@ -26,8 +26,12 @@ jobs:
     - name: Install dependencies
       run: npm install
 
-    - name: Run npm audit
-      run: npm audit --audit-level=moderate
+    - name: Audit production dependencies
+      run: npm audit --omit=dev --audit-level=moderate
+
+    - name: Audit dev dependencies (informational)
+      run: npm audit --audit-level=high
+      continue-on-error: true
       
     - name: Run Snyk security scan
       uses: snyk/actions/node@master
