@@ -127,28 +127,44 @@ export class UIServiceProvider extends AbstractServiceProvider {
   private setupUpdateLoop(app: GameByte, uiManager: GameByteUIManager, animationSystem: GameByteUIAnimationSystem): void {
     // Hook into the framework's update loop
     let lastTime = Date.now();
-    
+    let animationFrameId: number | null = null;
+
     const updateUI = () => {
-      if (!app.isRunning()) return;
-      
+      if (!app.isRunning()) {
+        animationFrameId = null;
+        return;
+      }
+
       const currentTime = Date.now();
       const deltaTime = currentTime - lastTime;
       lastTime = currentTime;
 
       // Update UI system
       uiManager.update(deltaTime);
-      
+
       // Update animation system
       animationSystem.update(deltaTime);
-      
+
       // Continue loop
-      requestAnimationFrame(updateUI);
+      animationFrameId = requestAnimationFrame(updateUI);
     };
 
     // Start the UI update loop when the app starts
     app.on('started', () => {
+      // Cancel any existing animation frame to prevent multiple loops
+      if (animationFrameId !== null) {
+        cancelAnimationFrame(animationFrameId);
+      }
       lastTime = Date.now();
       updateUI();
+    });
+
+    // Clean up when app stops
+    app.on('stopped', () => {
+      if (animationFrameId !== null) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
     });
 
     // Hook into renderer for UI rendering

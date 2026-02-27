@@ -143,3 +143,9 @@ benchmark-results/
 
 # Git worktrees
 .worktrees/
+
+# Exported standalone game projects
+exported-game/
+
+# Generated images (Imagen, DALL-E, etc.)
+imagen/
