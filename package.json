@@ -154,7 +154,7 @@
     "test:coverage": "jest --coverage",
     "test:integration": "jest --testPathPattern=integration",
     "test:unit": "jest --testPathPattern=__tests__ --testPathIgnorePatterns=integration",
-    "lint": "eslint src/**/*.ts",
+    "lint": "eslint src/",
     "format": "prettier --write src/**/*.ts",
     "clean": "rimraf dist",
     "prepublishOnly": "npm run clean && npm run build",
