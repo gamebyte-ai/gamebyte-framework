@@ -193,16 +193,15 @@
   "devDependencies": {
     "@babel/core": "^7.28.4",
     "@babel/preset-env": "^7.28.3",
+    "@eslint/js": "^9.39.3",
     "@rollup/plugin-commonjs": "^25.0.7",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@rollup/plugin-wasm": "^6.2.2",
     "@types/jest": "^29.5.14",
     "@types/matter-js": "^0.19.0",
     "@types/three": "^0.169.0",
-    "@typescript-eslint/eslint-plugin": "^6.21.0",
-    "@typescript-eslint/parser": "^6.21.0",
     "babel-jest": "^30.2.0",
-    "eslint": "^8.56.0",
+    "eslint": "^9.39.3",
     "http-server": "^14.1.1",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
@@ -211,7 +210,8 @@
     "rollup": "^4.9.6",
     "rollup-plugin-typescript2": "^0.36.0",
     "ts-jest": "^29.4.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "typescript-eslint": "^8.56.1"
   },
   "peerDependencies": {
     "@pixi/layout": "^3.0.0",
