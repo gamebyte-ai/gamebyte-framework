@@ -1,8 +1,9 @@
 import { EventEmitter } from 'eventemitter3';
 import { IContainer, IGraphics, IText } from '../../contracts/Graphics';
 import { graphics } from '../../graphics/GraphicsEngine';
+import { Gradients } from '../../graphics/GradientFactory';
 import { getFrameworkFontFamily } from '../utils/FontLoader';
-import { lightenColor, darkenColor, numberToHex } from '../themes/GameStyleUITheme';
+import { lightenColor, darkenColor } from '../themes/GameStyleUITheme';
 
 /**
  * UIButton configuration
@@ -260,21 +261,10 @@ export class UIButton extends EventEmitter {
     const colorTop = gradient.colorTop !== undefined ? gradient.colorTop : lightenColor(baseColor, 0.2);
     const colorBottom = gradient.colorBottom !== undefined ? gradient.colorBottom : darkenColor(baseColor, 0.2);
 
-    // Create gradient texture using framework abstraction
-    const texture = graphics().createCanvasTexture(width, height, (ctx: CanvasRenderingContext2D) => {
-      const gradientFill = ctx.createLinearGradient(0, 0, 0, height);
-      gradientFill.addColorStop(0, numberToHex(colorTop));
-      gradientFill.addColorStop(1, numberToHex(colorBottom));
-
-      ctx.fillStyle = gradientFill;
-      this.roundRect(ctx, 0, 0, width, height, borderRadius);
-      ctx.fill();
-    });
-
-    // Apply to sprite
-    this.background.texture(texture);
+    // Use native Pixi.js v8 FillGradient
+    const fillGradient = Gradients.linear.vertical(colorTop, colorBottom);
     this.background.roundRect(0, 0, width, height, borderRadius);
-    this.background.fill();
+    this.background.fill(fillGradient as any);
   }
 
   /**
@@ -469,17 +459,4 @@ export class UIButton extends EventEmitter {
     this.removeAllListeners();
   }
 
-  private roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number): void {
-    ctx.beginPath();
-    ctx.moveTo(x + radius, y);
-    ctx.lineTo(x + width - radius, y);
-    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-    ctx.lineTo(x + width, y + height - radius);
-    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-    ctx.lineTo(x + radius, y + height);
-    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-    ctx.lineTo(x, y + radius);
-    ctx.quadraticCurveTo(x, y, x + radius, y);
-    ctx.closePath();
-  }
 }
