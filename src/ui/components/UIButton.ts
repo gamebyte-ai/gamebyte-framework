@@ -257,14 +257,12 @@ export class UIButton extends EventEmitter {
   private renderGradientBackground(baseColor: number): void {
     const { width, height, borderRadius, gradient } = this.config;
 
-    // Determine gradient colors
-    const colorTop = gradient.colorTop !== undefined ? gradient.colorTop : lightenColor(baseColor, 0.2);
-    const colorBottom = gradient.colorBottom !== undefined ? gradient.colorBottom : darkenColor(baseColor, 0.2);
+    const colorTop = gradient.colorTop ?? lightenColor(baseColor, 0.2);
+    const colorBottom = gradient.colorBottom ?? darkenColor(baseColor, 0.2);
 
-    // Use native Pixi.js v8 FillGradient
     const fillGradient = Gradients.linear.vertical(colorTop, colorBottom);
     this.background.roundRect(0, 0, width, height, borderRadius);
-    this.background.fill(fillGradient as any);
+    this.background.fill(fillGradient);
   }
 
   /**
