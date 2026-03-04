@@ -439,42 +439,6 @@ export const GameStyleColors = {
 };
 
 /**
- * Create a canvas gradient for game buttons
- */
-export function createGameButtonGradient(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  colorTop: number,
-  colorBottom: number
-): CanvasGradient {
-  const gradient = ctx.createLinearGradient(x, y, x, y + height);
-  gradient.addColorStop(0, numberToHex(colorTop));
-  gradient.addColorStop(0.5, numberToHex(colorTop));
-  gradient.addColorStop(0.5, numberToHex(colorBottom));
-  gradient.addColorStop(1, numberToHex(colorBottom));
-  return gradient;
-}
-
-/**
- * Create a vertical gradient for backgrounds
- */
-export function createSkyGradient(
-  ctx: CanvasRenderingContext2D,
-  width: number,
-  height: number
-): CanvasGradient {
-  const gradient = ctx.createLinearGradient(0, 0, 0, height);
-  gradient.addColorStop(0, '#0066CC');
-  gradient.addColorStop(0.3, '#0088EE');
-  gradient.addColorStop(0.6, '#00AAFF');
-  gradient.addColorStop(1, '#66CCFF');
-  return gradient;
-}
-
-/**
  * Convert hex number to CSS color string
  */
 export function numberToHex(num: number): string {
