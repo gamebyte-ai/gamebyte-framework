@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameByte - Game Cards Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 {
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        p {
+            color: #8892b0;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        #game-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        canvas { display: block; }
+        .controls {
+            margin-top: 16px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            padding: 8px 16px;
+            background: #3949AB;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        button:hover { background: #5C6BC0; }
+        button.active { background: #7C4DFF; }
+        .info {
+            color: #8892b0;
+            margin-top: 16px;
+            font-size: 12px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Game Card Components</h1>
+    <p>CharacterCard, RewardCard, ItemCard &mdash; Game &amp; Flat styles, all rarities</p>
+    <div id="game-container"></div>
+    <div class="controls">
+        <button id="btn-game" class="active">Game Style</button>
+        <button id="btn-flat">Flat Style</button>
+        <button id="btn-reveal">Reveal Rewards</button>
+        <button id="btn-reset">Reset Rewards</button>
+    </div>
+    <div class="info">
+        Features: Rarity glow, star rating, stat bars, flip animation, shine effect, equipped indicator, dual theme
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="../gamebyte.umd.js"></script>
+
+    <script>
+        const {
+            createGame,
+            CharacterCard,
+            RewardCard,
+            ItemCard,
+            GameCardColors,
+            FlatCardColors,
+            StatColors,
+            loadFrameworkFont,
+            graphics
+        } = GameByteFramework;
+
+        let currentStyle = 'game';
+        let rewardCards = [];
+        let allCards = [];
+        let app;
+
+        async function init() {
+            const game = createGame({
+                width: 800,
+                height: 700,
+                backgroundColor: 0x1a1a2e,
+                containerId: 'game-container',
+                renderer: '2d'
+            });
+
+            await game.initialize();
+            loadFrameworkFont();
+
+            const renderer = game.make('renderer');
+            app = renderer.getApp();
+
+            buildScene(currentStyle);
+        }
+
+        function clearScene() {
+            allCards.forEach(c => c.destroy());
+            allCards = [];
+            rewardCards = [];
+        }
+
+        function buildScene(style) {
+            clearScene();
+            const colorScheme = style === 'game' ? GameCardColors.BLUE : FlatCardColors.LIGHT;
+            const flatDark = FlatCardColors.DARK;
+
+            // === Row 1: Character Cards (4 rarities) ===
+            const rarities = ['common', 'rare', 'epic', 'legendary'];
+            const names = ['Scout', 'Mage', 'Shadow', 'Dragon Lord'];
+            const avatarColors = [0x78909C, 0x5C6BC0, 0x9C27B0, 0xFFB300];
+            const starCounts = [1, 2, 4, 5];
+
+            const sectionLabel1 = graphics().createText('Character Cards', {
+                fontFamily: '-apple-system, sans-serif',
+                fontSize: 14,
+                fontWeight: '600',
+                fill: 0x8892b0
+            });
+            sectionLabel1.x = 16;
+            sectionLabel1.y = 8;
+            app.stage.addChild(sectionLabel1);
+
+            rarities.forEach((rarity, i) => {
+                const card = new CharacterCard({
+                    name: names[i],
+                    stars: starCounts[i],
+                    maxStars: 5,
+                    rarity: rarity,
+                    avatarColor: avatarColors[i],
+                    avatarSize: 70,
+                    width: 170,
+                    height: 260,
+                    style: style,
+                    colorScheme: style === 'game' ? GameCardColors.BLUE : (i % 2 === 0 ? FlatCardColors.LIGHT : FlatCardColors.BLUE),
+                    stats: [
+                        { label: 'HP', value: 40 + i * 20, maxValue: 100, colors: StatColors.HP },
+                        { label: 'ATK', value: 30 + i * 25, maxValue: 150, colors: StatColors.ATK },
+                        { label: 'DEF', value: 20 + i * 15, maxValue: 80, colors: StatColors.DEF }
+                    ]
+                });
+                card.setPosition(16 + i * 194, 30);
+                app.stage.addChild(card.getContainer());
+                allCards.push(card);
+            });
+
+            // === Row 2: Reward Cards ===
+            const sectionLabel2 = graphics().createText('Reward Cards (click Reveal)', {
+                fontFamily: '-apple-system, sans-serif',
+                fontSize: 14,
+                fontWeight: '600',
+                fill: 0x8892b0
+            });
+            sectionLabel2.x = 16;
+            sectionLabel2.y = 302;
+            app.stage.addChild(sectionLabel2);
+
+            const rewardData = [
+                { icon: '\u2b50', qty: 100, name: 'Stars', rarity: 'common' },
+                { icon: '\ud83d\udc8e', qty: 50, name: 'Gems', rarity: 'rare' },
+                { icon: '\ud83d\udd2e', qty: 10, name: 'Orbs', rarity: 'epic' },
+                { icon: '\ud83d\udc51', qty: 1, name: 'Crown', rarity: 'legendary' }
+            ];
+
+            rewardData.forEach((data, i) => {
+                const card = new RewardCard({
+                    iconText: data.icon,
+                    quantity: data.qty,
+                    name: data.name,
+                    rarity: data.rarity,
+                    width: 150,
+                    height: 200,
+                    style: style,
+                    colorScheme: style === 'game' ? GameCardColors.PURPLE : FlatCardColors.LIGHT,
+                    flipOnReveal: true,
+                    shineEffect: true
+                });
+                card.setPosition(16 + i * 194, 322);
+                app.stage.addChild(card.getContainer());
+                allCards.push(card);
+                rewardCards.push(card);
+            });
+
+            // === Row 3: Item Cards ===
+            const sectionLabel3 = graphics().createText('Item Cards (inventory grid)', {
+                fontFamily: '-apple-system, sans-serif',
+                fontSize: 14,
+                fontWeight: '600',
+                fill: 0x8892b0
+            });
+            sectionLabel3.x = 16;
+            sectionLabel3.y = 535;
+            app.stage.addChild(sectionLabel3);
+
+            const items = [
+                { icon: '\u2694\ufe0f', lvl: 5, qty: 1, rarity: 'common', equipped: true },
+                { icon: '\ud83d\udee1\ufe0f', lvl: 3, qty: 1, rarity: 'rare', equipped: false },
+                { icon: '\ud83c\udfa9', lvl: 8, qty: 1, rarity: 'epic', equipped: false },
+                { icon: '\ud83d\udd25', lvl: 10, qty: 2, rarity: 'legendary', equipped: false },
+                { icon: '\ud83c\udf53', lvl: 0, qty: 15, rarity: 'common', equipped: false },
+                { icon: '\ud83e\uddea', lvl: 0, qty: 5, rarity: 'rare', equipped: false },
+                { icon: '\ud83d\udcdc', lvl: 0, qty: 3, rarity: 'epic', equipped: false },
+                { icon: '\ud83d\udc8d', lvl: 12, qty: 1, rarity: 'legendary', equipped: true }
+            ];
+
+            items.forEach((data, i) => {
+                const card = new ItemCard({
+                    iconText: data.icon,
+                    level: data.lvl,
+                    quantity: data.qty,
+                    rarity: data.rarity,
+                    equipped: data.equipped,
+                    size: 'large',
+                    style: style,
+                    colorScheme: style === 'game' ? GameCardColors.DARK : FlatCardColors.LIGHT
+                });
+                card.setPosition(16 + i * 97, 555);
+                app.stage.addChild(card.getContainer());
+                allCards.push(card);
+
+                // Click to toggle selection
+                card.on('click', () => {
+                    card.setSelected(!card._selected);
+                    card._selected = !card._selected;
+                });
+                card._selected = false;
+            });
+        }
+
+        // Controls
+        document.getElementById('btn-game').addEventListener('click', function() {
+            currentStyle = 'game';
+            this.classList.add('active');
+            document.getElementById('btn-flat').classList.remove('active');
+            buildScene('game');
+        });
+
+        document.getElementById('btn-flat').addEventListener('click', function() {
+            currentStyle = 'flat';
+            this.classList.add('active');
+            document.getElementById('btn-game').classList.remove('active');
+            buildScene('flat');
+        });
+
+        document.getElementById('btn-reveal').addEventListener('click', async () => {
+            for (const card of rewardCards) {
+                await card.reveal();
+                await new Promise(r => setTimeout(r, 200));
+            }
+        });
+
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            rewardCards.forEach(card => card.reset());
+        });
+
+        init().catch(console.error);
+    </script>
+</body>
+</html>

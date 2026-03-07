@@ -45,6 +45,10 @@
       "import": "./dist/ui/themes/index.js",
       "types": "./dist/ui/themes/index.d.ts"
     },
+    "./ui/components/cards": {
+      "import": "./dist/ui/components/cards/index.js",
+      "types": "./dist/ui/components/cards/index.d.ts"
+    },
     "./audio": {
       "import": "./dist/audio/index.js",
       "types": "./dist/audio/index.d.ts"
