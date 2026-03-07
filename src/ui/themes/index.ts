@@ -25,3 +25,6 @@ export {
   lightenColor,
   darkenColor
 } from './GameStyleUITheme.js';
+
+// Flat Modern Theme
+export { FlatModernUITheme } from './FlatModernUITheme.js';

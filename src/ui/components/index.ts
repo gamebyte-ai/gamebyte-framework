@@ -75,6 +75,32 @@ export type {
   ActivationZone
 } from './VirtualJoystick.js';
 
+// Card Components
+export {
+  GameCard,
+  CharacterCard,
+  RewardCard,
+  ItemCard,
+  CardRarityColors,
+  GameCardColors,
+  FlatCardColors,
+  StatColors,
+  getDefaultCardColors
+} from './cards/index.js';
+export type {
+  GameCardConfig,
+  CharacterCardConfig,
+  CharacterStat,
+  RewardCardConfig,
+  ItemCardConfig,
+  ItemCardSize,
+  CardRarity,
+  CardStyle,
+  RarityColorSet,
+  CardColorScheme,
+  StatBarColors
+} from './cards/index.js';
+
 // Merge Components
 export { MergeGrid, MergeCell, MergeItem } from './merge/index.js';
 export type {
