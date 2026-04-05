@@ -379,6 +379,9 @@ export {
   darkenColor
 } from './ui/themes/GameStyleUITheme';
 
+// Flat Modern UI Theme
+export { FlatModernUITheme } from './ui/themes/FlatModernUITheme';
+
 // Game Style UI Components
 export { GameStyleButton, GameButtons } from './ui/components/GameStyleButton';
 export type { GameStyleButtonConfig, GameButtonColorScheme } from './ui/components/GameStyleButton';
@@ -424,6 +427,32 @@ export type { GameRadioGroupConfig, GameRadioColorScheme, GameRadioOption } from
 
 export { GameSelect, GameSelectColors } from './ui/components/GameSelect';
 export type { GameSelectConfig, GameSelectColorScheme, GameSelectOption } from './ui/components/GameSelect';
+
+// Card Components
+export {
+  GameCard,
+  CharacterCard,
+  RewardCard,
+  ItemCard,
+  CardRarityColors,
+  GameCardColors,
+  FlatCardColors,
+  StatColors,
+  getDefaultCardColors
+} from './ui/components/cards/index';
+export type {
+  GameCardConfig,
+  CharacterCardConfig,
+  CharacterStat,
+  RewardCardConfig,
+  ItemCardConfig,
+  ItemCardSize,
+  CardRarity,
+  CardStyle,
+  RarityColorSet,
+  CardColorScheme,
+  StatBarColors
+} from './ui/components/cards/index';
 
 // Raw @pixi/ui re-export for advanced users
 export * as PixiUI from '@pixi/ui';
