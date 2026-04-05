@@ -19,8 +19,6 @@ export {
 export {
   GameStyleUITheme,
   GameStyleColors,
-  createGameButtonGradient,
-  createSkyGradient,
   numberToHex,
   lightenColor,
   darkenColor
