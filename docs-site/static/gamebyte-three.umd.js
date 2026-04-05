@@ -1,8 +1,8 @@
 (function (global, factory) {
-	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('three')) :
-	typeof define === 'function' && define.amd ? define(['exports', 'three'], factory) :
-	(global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.GameByteThree = {}, global.THREE));
-})(this, (function (exports, THREE) { 'use strict';
+	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('three'), require('three/examples/jsm/loaders/GLTFLoader.js'), require('three/examples/jsm/loaders/DRACOLoader.js')) :
+	typeof define === 'function' && define.amd ? define(['exports', 'three', 'three/examples/jsm/loaders/GLTFLoader.js', 'three/examples/jsm/loaders/DRACOLoader.js'], factory) :
+	(global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.GameByteThree = {}, global.THREE, global.GLTFLoader_js, global.DRACOLoader_js));
+})(this, (function (exports, THREE, GLTFLoader_js, DRACOLoader_js) { 'use strict';
 
 	function _interopNamespaceDefault(e) {
 		var n = Object.create(null);
@@ -371,6 +371,100 @@
 	var EventEmitter = /*@__PURE__*/getDefaultExportFromCjs(eventemitter3Exports);
 
 	/**
+	 * Centralized tagged logging system for GameByte Framework.
+	 *
+	 * Provides leveled, tag-filtered logging controllable via `createGame({ debug: true })`.
+	 * All output is suppressed by default (enabled: false) so production builds stay silent.
+	 *
+	 * @module utils/Logger
+	 * @example
+	 * ```typescript
+	 * import { Logger } from 'gamebyte-framework';
+	 *
+	 * // Enable via createGame config
+	 * const game = await createGame({ debug: true, logLevel: 'debug' });
+	 *
+	 * // Direct usage
+	 * Logger.info('Renderer', 'Pixi.js v8 initialized');
+	 *
+	 * // Module-scoped logger (avoids repeating the tag)
+	 * const log = Logger.tag('Physics');
+	 * log.info('Matter.js world created');
+	 * log.warn('Body outside bounds');
+	 * ```
+	 */
+	const LOG_LEVELS = {
+	    debug: 0,
+	    info: 1,
+	    warn: 2,
+	    error: 3,
+	    none: 4,
+	};
+	let config = { enabled: false, level: 'info' };
+	function shouldLog(level, tag) {
+	    if (!config.enabled)
+	        return false;
+	    if (LOG_LEVELS[level] < LOG_LEVELS[config.level])
+	        return false;
+	    if (tag && config.tags && config.tags[tag] === false)
+	        return false;
+	    return true;
+	}
+	const Logger = {
+	    /**
+	     * Update logger configuration. Merges with existing config.
+	     */
+	    configure(options) {
+	        Object.assign(config, options);
+	    },
+	    /**
+	     * Check whether a message at the given level/tag would be logged.
+	     */
+	    isEnabled(level, tag) {
+	        return shouldLog(level, tag);
+	    },
+	    /**
+	     * Reset to default (disabled) state. Useful for tests.
+	     */
+	    reset() {
+	        config = { enabled: false, level: 'info' };
+	    },
+	    debug(tag, ...args) {
+	        if (shouldLog('debug', tag))
+	            console.debug(`[${tag}]`, ...args);
+	    },
+	    info(tag, ...args) {
+	        if (shouldLog('info', tag))
+	            console.log(`[${tag}]`, ...args);
+	    },
+	    warn(tag, ...args) {
+	        if (shouldLog('warn', tag))
+	            console.warn(`[${tag}]`, ...args);
+	    },
+	    error(tag, ...args) {
+	        if (shouldLog('error', tag))
+	            console.error(`[${tag}]`, ...args);
+	    },
+	    /**
+	     * Create a module-scoped logger that auto-prefixes the tag.
+	     *
+	     * @example
+	     * ```typescript
+	     * const log = Logger.tag('Audio');
+	     * log.info('Music started');  // → [Audio] Music started
+	     * ```
+	     */
+	    tag(tagName) {
+	        return {
+	            debug: (...args) => Logger.debug(tagName, ...args),
+	            info: (...args) => Logger.info(tagName, ...args),
+	            warn: (...args) => Logger.warn(tagName, ...args),
+	            error: (...args) => Logger.error(tagName, ...args),
+	        };
+	    },
+	};
+
+	/**
 	 * IsometricCamera component for true isometric projection
 	 *
 	 * Provides a camera with proper isometric angles:
@@ -439,7 +533,7 @@
 	     */
 	    setZoom(zoom) {
 	        if (zoom <= 0) {
-	            console.warn('IsometricCamera: zoom must be positive, clamping to 0.01');
+	            Logger.warn('Camera', 'IsometricCamera: zoom must be positive, clamping to 0.01');
 	            zoom = 0.01;
 	        }
 	        this.camera.zoom = zoom;
@@ -457,7 +551,7 @@
 	     */
 	    setViewSize(size) {
 	        if (size <= 0) {
-	            console.warn('IsometricCamera: viewSize must be positive, clamping to 1');
+	            Logger.warn('Camera', 'IsometricCamera: viewSize must be positive, clamping to 1');
 	            size = 1;
 	        }
 	        this._viewSize = size;
@@ -476,7 +570,7 @@
 	     */
 	    setAspectRatio(aspectRatio) {
 	        if (aspectRatio <= 0) {
-	            console.warn('IsometricCamera: aspectRatio must be positive, clamping to 1');
+	            Logger.warn('Camera', 'IsometricCamera: aspectRatio must be positive, clamping to 1');
 	            aspectRatio = 1;
 	        }
 	        this._aspectRatio = aspectRatio;
@@ -1982,7 +2076,7 @@
 	        // Get grid dimensions from SquareGrid
 	        const squareGrid = this.grid;
 	        if (!squareGrid.getDimensions || !squareGrid.getCellSize) {
-	            console.warn('Grid does not support SquareGrid methods');
+	            Logger.warn('Grid', 'Grid does not support SquareGrid methods');
 	            return;
 	        }
 	        const { width, height } = squareGrid.getDimensions();
@@ -2544,7 +2638,7 @@
 	        }
 	        // Calculate start position
 	        if (!this.screenToWorld(screenX, screenY, this.startPosition)) {
-	            console.warn('DragController: Failed to calculate start position');
+	            Logger.warn('DragController', 'Failed to calculate start position');
 	            return;
 	        }
 	        this.draggedObject = object;
@@ -3396,7 +3490,7 @@
 	                this.material.map = loadedTexture;
 	                this.material.needsUpdate = true;
 	            }, undefined, (error) => {
-	                console.error(`Failed to load billboard texture: ${texture}`, error);
+	                Logger.error('Billboard', `Failed to load billboard texture: ${texture}`, error);
 	            });
 	        }
 	        else {
@@ -4091,7 +4185,7 @@
 	        // Get instance from pool
 	        const instance = this.getInstanceFromPool();
 	        if (!instance) {
-	            console.warn('FloatingText: Pool exhausted, cannot spawn text');
+	            Logger.warn('FloatingText', 'Pool exhausted, cannot spawn text');
 	            return;
 	        }
 	        // Apply configuration
@@ -4386,7 +4480,7 @@
 	    release(obj) {
 	        // Check if object is tracked
 	        if (!this.active.has(obj)) {
-	            console.warn('ObjectPool3D: Attempting to release object not acquired from this pool');
+	            Logger.warn('ObjectPool', 'Attempting to release object not acquired from this pool');
 	            return;
 	        }
 	        // Remove from active set
@@ -4806,7 +4900,7 @@
 	    trigger(event) {
 	        const state = this.config.states[this.currentState];
 	        if (!state) {
-	            console.warn(`Current state '${this.currentState}' not found`);
+	            Logger.warn('StateMachine', `Current state '${this.currentState}' not found`);
 	            return false;
 	        }
 	        const nextState = state.transitions[event];
@@ -4815,7 +4909,7 @@
 	            return false;
 	        }
 	        if (!this.config.states[nextState]) {
-	            console.error(`Target state '${nextState}' not found in state definitions`);
+	            Logger.error('StateMachine', `Target state '${nextState}' not found in state definitions`);
 	            return false;
 	        }
 	        this.transitionTo(nextState, event);
@@ -4855,7 +4949,7 @@
 	     */
 	    forceState(stateName) {
 	        if (!this.config.states[stateName]) {
-	            console.error(`Cannot force state '${stateName}' - state not found`);
+	            Logger.error('StateMachine', `Cannot force state '${stateName}' - state not found`);
 	            return;
 	        }
 	        this.transitionTo(stateName, '__forced__');
@@ -5015,7 +5109,7 @@
 	            }
 	            for (const [trigger, targetState] of Object.entries(state.transitions)) {
 	                if (!this.config.states[targetState]) {
-	                    console.warn(`State '${stateName}' has transition '${trigger}' to undefined state '${targetState}'`);
+	                    Logger.warn('StateMachine', `State '${stateName}' has transition '${trigger}' to undefined state '${targetState}'`);
 	                }
 	            }
 	        }
@@ -5260,10 +5354,9 @@
 	     */
 	    static logCompatibilityReport() {
 	        const report = this.getCompatibilityReport();
-	        console.group('🔍 GameByte Three.js Toolkit - Compatibility Report');
-	        console.log('Three.js:', report.three);
-	        console.log('Browser:', report.browser);
-	        console.groupEnd();
+	        Logger.info('Compatibility', 'GameByte Three.js Toolkit - Compatibility Report');
+	        Logger.info('Compatibility', 'Three.js:', report.three);
+	        Logger.info('Compatibility', 'Browser:', report.browser);
 	    }
 	}
 
@@ -5435,24 +5528,1751 @@
 	    }
 	}
 
+	/**
+	 * DirectionalLight - Wrapper for Three.js DirectionalLight
+	 *
+	 * Simulates distant light source like the sun. Light rays are parallel.
+	 *
+	 * @example
+	 * ```typescript
+	 * const sunLight = new DirectionalLight({
+	 *   color: 0xffffff,
+	 *   intensity: 1,
+	 *   position: { x: 10, y: 20, z: 10 },
+	 *   castShadow: true,
+	 *   shadowMapSize: 2048
+	 * });
+	 * scene.add(sunLight.native);
+	 * ```
+	 */
+	class DirectionalLight {
+	    constructor(config = {}) {
+	        this.config = {
+	            color: config.color ?? 0xffffff,
+	            intensity: config.intensity ?? 1,
+	            position: config.position ?? { x: 10, y: 20, z: 10 },
+	            target: config.target ?? { x: 0, y: 0, z: 0 },
+	            castShadow: config.castShadow ?? false,
+	            shadowMapSize: config.shadowMapSize ?? 1024,
+	            shadowCameraSize: config.shadowCameraSize ?? 50,
+	            shadowCameraNear: config.shadowCameraNear ?? 0.5,
+	            shadowCameraFar: config.shadowCameraFar ?? 500,
+	            shadowBias: config.shadowBias ?? -1e-4,
+	        };
+	        this.light = new THREE__namespace.DirectionalLight(this.config.color, this.config.intensity);
+	        this.applyConfig();
+	    }
+	    applyConfig() {
+	        const { position, target, castShadow, shadowMapSize, shadowCameraSize, shadowCameraNear, shadowCameraFar, shadowBias } = this.config;
+	        this.light.position.set(position.x, position.y, position.z);
+	        this.light.target.position.set(target.x, target.y, target.z);
+	        if (castShadow) {
+	            this.light.castShadow = true;
+	            this.light.shadow.mapSize.width = shadowMapSize;
+	            this.light.shadow.mapSize.height = shadowMapSize;
+	            this.light.shadow.camera.left = -shadowCameraSize;
+	            this.light.shadow.camera.right = shadowCameraSize;
+	            this.light.shadow.camera.top = shadowCameraSize;
+	            this.light.shadow.camera.bottom = -shadowCameraSize;
+	            this.light.shadow.camera.near = shadowCameraNear;
+	            this.light.shadow.camera.far = shadowCameraFar;
+	            this.light.shadow.bias = shadowBias;
+	        }
+	    }
+	    /** Get the native Three.js light */
+	    get native() {
+	        return this.light;
+	    }
+	    /** Get/set light color */
+	    get color() {
+	        return this.light.color.getHex();
+	    }
+	    set color(value) {
+	        this.light.color.setHex(value);
+	    }
+	    /** Get/set light intensity */
+	    get intensity() {
+	        return this.light.intensity;
+	    }
+	    set intensity(value) {
+	        this.light.intensity = value;
+	    }
+	    /** Get/set position */
+	    get position() {
+	        return this.light.position;
+	    }
+	    setPosition(x, y, z) {
+	        this.light.position.set(x, y, z);
+	        return this;
+	    }
+	    /** Set target position */
+	    setTarget(x, y, z) {
+	        this.light.target.position.set(x, y, z);
+	        return this;
+	    }
+	    /** Enable/disable shadow casting */
+	    setShadowEnabled(enabled) {
+	        this.light.castShadow = enabled;
+	        return this;
+	    }
+	    /**
+	     * Update shadow map size. Disposes the current shadow map so Three.js
+	     * recreates it at the new resolution on the next render frame.
+	     * Safe to call even if the light is about to be removed from the scene.
+	     */
+	    setShadowMapSize(size) {
+	        this.light.shadow.mapSize.width = size;
+	        this.light.shadow.mapSize.height = size;
+	        if (this.light.shadow.map) {
+	            this.light.shadow.map.dispose();
+	            this.light.shadow.map = null;
+	        }
+	        this.light.shadow.needsUpdate = true;
+	        return this;
+	    }
+	    /** Dispose of resources */
+	    dispose() {
+	        this.light.shadow.map?.dispose();
+	    }
+	}
+
+	/**
+	 * PointLight - Wrapper for Three.js PointLight
+	 *
+	 * Emits light in all directions from a single point (like a light bulb).
+	 *
+	 * @example
+	 * ```typescript
+	 * const bulb = new PointLight({
+	 *   color: 0xffaa00,
+	 *   intensity: 2,
+	 *   distance: 50,
+	 *   decay: 2,
+	 *   position: { x: 0, y: 5, z: 0 },
+	 *   castShadow: true
+	 * });
+	 * scene.add(bulb.native);
+	 * ```
+	 */
+	class PointLight {
+	    constructor(config = {}) {
+	        this.config = {
+	            color: config.color ?? 0xffffff,
+	            intensity: config.intensity ?? 1,
+	            distance: config.distance ?? 0,
+	            decay: config.decay ?? 2,
+	            position: config.position ?? { x: 0, y: 5, z: 0 },
+	            castShadow: config.castShadow ?? false,
+	            shadowMapSize: config.shadowMapSize ?? 512,
+	            shadowCameraNear: config.shadowCameraNear ?? 0.5,
+	            shadowCameraFar: config.shadowCameraFar ?? 500,
+	            shadowBias: config.shadowBias ?? -1e-4,
+	        };
+	        this.light = new THREE__namespace.PointLight(this.config.color, this.config.intensity, this.config.distance, this.config.decay);
+	        this.applyConfig();
+	    }
+	    applyConfig() {
+	        const { position, castShadow, shadowMapSize, shadowCameraNear, shadowCameraFar, shadowBias } = this.config;
+	        this.light.position.set(position.x, position.y, position.z);
+	        if (castShadow) {
+	            this.light.castShadow = true;
+	            this.light.shadow.mapSize.width = shadowMapSize;
+	            this.light.shadow.mapSize.height = shadowMapSize;
+	            this.light.shadow.camera.near = shadowCameraNear;
+	            this.light.shadow.camera.far = shadowCameraFar;
+	            this.light.shadow.bias = shadowBias;
+	        }
+	    }
+	    /** Get the native Three.js light */
+	    get native() {
+	        return this.light;
+	    }
+	    /** Get/set light color */
+	    get color() {
+	        return this.light.color.getHex();
+	    }
+	    set color(value) {
+	        this.light.color.setHex(value);
+	    }
+	    /** Get/set light intensity */
+	    get intensity() {
+	        return this.light.intensity;
+	    }
+	    set intensity(value) {
+	        this.light.intensity = value;
+	    }
+	    /** Get/set distance */
+	    get distance() {
+	        return this.light.distance;
+	    }
+	    set distance(value) {
+	        this.light.distance = value;
+	    }
+	    /** Get/set decay */
+	    get decay() {
+	        return this.light.decay;
+	    }
+	    set decay(value) {
+	        this.light.decay = value;
+	    }
+	    /** Get/set position */
+	    get position() {
+	        return this.light.position;
+	    }
+	    setPosition(x, y, z) {
+	        this.light.position.set(x, y, z);
+	        return this;
+	    }
+	    /** Enable/disable shadow casting */
+	    setShadowEnabled(enabled) {
+	        this.light.castShadow = enabled;
+	        return this;
+	    }
+	    /** Dispose of resources */
+	    dispose() {
+	        this.light.shadow.map?.dispose();
+	    }
+	}
+
+	/**
+	 * SpotLight - Wrapper for Three.js SpotLight
+	 *
+	 * Emits light in a cone from a single point toward a target.
+	 *
+	 * @example
+	 * ```typescript
+	 * const spotlight = new SpotLight({
+	 *   color: 0xffffff,
+	 *   intensity: 2,
+	 *   distance: 100,
+	 *   angle: Math.PI / 6,
+	 *   penumbra: 0.5,
+	 *   position: { x: 0, y: 10, z: 0 },
+	 *   target: { x: 0, y: 0, z: 0 },
+	 *   castShadow: true
+	 * });
+	 * scene.add(spotlight.native);
+	 * ```
+	 */
+	class SpotLight {
+	    constructor(config = {}) {
+	        const angle = config.angle ?? Math.PI / 3;
+	        this.config = {
+	            color: config.color ?? 0xffffff,
+	            intensity: config.intensity ?? 1,
+	            distance: config.distance ?? 0,
+	            angle,
+	            penumbra: config.penumbra ?? 0,
+	            decay: config.decay ?? 2,
+	            position: config.position ?? { x: 0, y: 10, z: 0 },
+	            target: config.target ?? { x: 0, y: 0, z: 0 },
+	            castShadow: config.castShadow ?? false,
+	            shadowMapSize: config.shadowMapSize ?? 512,
+	            shadowCameraNear: config.shadowCameraNear ?? 0.5,
+	            shadowCameraFar: config.shadowCameraFar ?? 500,
+	            shadowBias: config.shadowBias ?? -1e-4,
+	            shadowCameraFov: config.shadowCameraFov ?? THREE__namespace.MathUtils.radToDeg(angle) * 2,
+	        };
+	        this.light = new THREE__namespace.SpotLight(this.config.color, this.config.intensity, this.config.distance, this.config.angle, this.config.penumbra, this.config.decay);
+	        this.applyConfig();
+	    }
+	    applyConfig() {
+	        const { position, target, castShadow, shadowMapSize, shadowCameraNear, shadowCameraFar, shadowBias, shadowCameraFov } = this.config;
+	        this.light.position.set(position.x, position.y, position.z);
+	        this.light.target.position.set(target.x, target.y, target.z);
+	        if (castShadow) {
+	            this.light.castShadow = true;
+	            this.light.shadow.mapSize.width = shadowMapSize;
+	            this.light.shadow.mapSize.height = shadowMapSize;
+	            this.light.shadow.camera.near = shadowCameraNear;
+	            this.light.shadow.camera.far = shadowCameraFar;
+	            this.light.shadow.camera.fov = shadowCameraFov;
+	            this.light.shadow.bias = shadowBias;
+	        }
+	    }
+	    /** Get the native Three.js light */
+	    get native() {
+	        return this.light;
+	    }
+	    /** Get/set light color */
+	    get color() {
+	        return this.light.color.getHex();
+	    }
+	    set color(value) {
+	        this.light.color.setHex(value);
+	    }
+	    /** Get/set light intensity */
+	    get intensity() {
+	        return this.light.intensity;
+	    }
+	    set intensity(value) {
+	        this.light.intensity = value;
+	    }
+	    /** Get/set cone angle */
+	    get angle() {
+	        return this.light.angle;
+	    }
+	    set angle(value) {
+	        this.light.angle = value;
+	    }
+	    /** Get/set penumbra */
+	    get penumbra() {
+	        return this.light.penumbra;
+	    }
+	    set penumbra(value) {
+	        this.light.penumbra = value;
+	    }
+	    /** Get/set distance */
+	    get distance() {
+	        return this.light.distance;
+	    }
+	    set distance(value) {
+	        this.light.distance = value;
+	    }
+	    /** Get/set position */
+	    get position() {
+	        return this.light.position;
+	    }
+	    setPosition(x, y, z) {
+	        this.light.position.set(x, y, z);
+	        return this;
+	    }
+	    /** Set target position */
+	    setTarget(x, y, z) {
+	        this.light.target.position.set(x, y, z);
+	        return this;
+	    }
+	    /** Enable/disable shadow casting */
+	    setShadowEnabled(enabled) {
+	        this.light.castShadow = enabled;
+	        return this;
+	    }
+	    /** Dispose of resources */
+	    dispose() {
+	        this.light.shadow.map?.dispose();
+	    }
+	}
+
+	/**
+	 * AmbientLight - Wrapper for Three.js AmbientLight
+	 *
+	 * Global light that illuminates all objects equally regardless of position.
+	 * Does not cast shadows.
+	 *
+	 * @example
+	 * ```typescript
+	 * const ambient = new AmbientLight({
+	 *   color: 0x404040,
+	 *   intensity: 0.5
+	 * });
+	 * scene.add(ambient.native);
+	 * ```
+	 */
+	class AmbientLight {
+	    constructor(config = {}) {
+	        const color = config.color ?? 0xffffff;
+	        const intensity = config.intensity ?? 1;
+	        this.light = new THREE__namespace.AmbientLight(color, intensity);
+	    }
+	    /** Get the native Three.js light */
+	    get native() {
+	        return this.light;
+	    }
+	    /** Get/set light color */
+	    get color() {
+	        return this.light.color.getHex();
+	    }
+	    set color(value) {
+	        this.light.color.setHex(value);
+	    }
+	    /** Get/set light intensity */
+	    get intensity() {
+	        return this.light.intensity;
+	    }
+	    set intensity(value) {
+	        this.light.intensity = value;
+	    }
+	    /** Dispose of resources (no-op for ambient light) */
+	    dispose() {
+	        // No resources to dispose
+	    }
+	}
+
+	/**
+	 * HemisphereLight - Wrapper for Three.js HemisphereLight
+	 *
+	 * Simulates sky/ground lighting with two colors. Sky color comes from above,
+	 * ground color comes from below. Does not cast shadows.
+	 *
+	 * @example
+	 * ```typescript
+	 * const hemi = new HemisphereLight({
+	 *   skyColor: 0x87ceeb,    // Light blue sky
+	 *   groundColor: 0x5a3d2b, // Brown ground
+	 *   intensity: 0.6
+	 * });
+	 * scene.add(hemi.native);
+	 * ```
+	 */
+	class HemisphereLight {
+	    constructor(config = {}) {
+	        const skyColor = config.skyColor ?? 0xffffff;
+	        const groundColor = config.groundColor ?? 0x444444;
+	        const intensity = config.intensity ?? 1;
+	        this.light = new THREE__namespace.HemisphereLight(skyColor, groundColor, intensity);
+	        if (config.position) {
+	            this.light.position.set(config.position.x, config.position.y, config.position.z);
+	        }
+	    }
+	    /** Get the native Three.js light */
+	    get native() {
+	        return this.light;
+	    }
+	    /** Get/set sky color */
+	    get skyColor() {
+	        return this.light.color.getHex();
+	    }
+	    set skyColor(value) {
+	        this.light.color.setHex(value);
+	    }
+	    /** Get/set ground color */
+	    get groundColor() {
+	        return this.light.groundColor.getHex();
+	    }
+	    set groundColor(value) {
+	        this.light.groundColor.setHex(value);
+	    }
+	    /** Get/set light intensity */
+	    get intensity() {
+	        return this.light.intensity;
+	    }
+	    set intensity(value) {
+	        this.light.intensity = value;
+	    }
+	    /** Get/set position */
+	    get position() {
+	        return this.light.position;
+	    }
+	    setPosition(x, y, z) {
+	        this.light.position.set(x, y, z);
+	        return this;
+	    }
+	    /** Dispose of resources (no-op for hemisphere light) */
+	    dispose() {
+	        // No resources to dispose
+	    }
+	}
+
+	/**
+	 * LightHelper - Debug visualization helpers for lights
+	 *
+	 * @example
+	 * ```typescript
+	 * const sunLight = new DirectionalLight({ ... });
+	 * const helper = LightHelper.createDirectionalHelper(sunLight, 5);
+	 * scene.add(helper);
+	 * ```
+	 */
+	class LightHelper {
+	    /**
+	     * Create a helper for DirectionalLight
+	     * Shows an arrow indicating light direction
+	     */
+	    static createDirectionalHelper(light, size = 5, color) {
+	        return new THREE__namespace.DirectionalLightHelper(light.native, size, color);
+	    }
+	    /**
+	     * Create a helper for PointLight
+	     * Shows a wireframe sphere indicating light range
+	     */
+	    static createPointHelper(light, sphereSize = 1, color) {
+	        return new THREE__namespace.PointLightHelper(light.native, sphereSize, color);
+	    }
+	    /**
+	     * Create a helper for SpotLight
+	     * Shows a cone indicating light direction and angle
+	     */
+	    static createSpotHelper(light, color) {
+	        return new THREE__namespace.SpotLightHelper(light.native, color);
+	    }
+	    /**
+	     * Create a helper for HemisphereLight
+	     * Shows sky and ground colors
+	     */
+	    static createHemisphereHelper(light, size = 5, color) {
+	        return new THREE__namespace.HemisphereLightHelper(light.native, size, color);
+	    }
+	    /**
+	     * Create a shadow camera helper for debugging shadows
+	     */
+	    static createShadowCameraHelper(light) {
+	        return new THREE__namespace.CameraHelper(light.native.shadow.camera);
+	    }
+	}
+
+	/**
+	 * ModelLoader - Wrapper for Three.js GLTF/GLB model loading
+	 *
+	 * Provides easy loading of 3D models with animation support.
+	 *
+	 * @example
+	 * ```typescript
+	 * const loader = new ModelLoader();
+	 *
+	 * // Load a model
+	 * const result = await loader.load('/models/character.glb');
+	 * scene.add(result.scene);
+	 *
+	 * // With progress tracking
+	 * const result = await loader.load('/models/character.glb', {
+	 *   onProgress: (progress) => console.log(`Loading: ${progress * 100}%`)
+	 * });
+	 *
+	 * // Access animations
+	 * if (result.animations.length > 0) {
+	 *   const mixer = new THREE.AnimationMixer(result.scene);
+	 *   mixer.clipAction(result.animations[0]).play();
+	 * }
+	 * ```
+	 */
+	class ModelLoader extends EventEmitter {
+	    constructor(config = {}) {
+	        super();
+	        this.dracoLoader = null;
+	        this.cache = new Map();
+	        this.config = {
+	            dracoDecoderPath: config.dracoDecoderPath ?? '/draco/',
+	            enableDraco: config.enableDraco ?? false,
+	            basePath: config.basePath ?? '',
+	        };
+	        this.loader = new GLTFLoader_js.GLTFLoader();
+	        if (this.config.enableDraco) {
+	            this.setupDraco();
+	        }
+	    }
+	    setupDraco() {
+	        this.dracoLoader = new DRACOLoader_js.DRACOLoader();
+	        this.dracoLoader.setDecoderPath(this.config.dracoDecoderPath);
+	        this.loader.setDRACOLoader(this.dracoLoader);
+	    }
+	    /**
+	     * Enable Draco compression support
+	     */
+	    enableDraco(decoderPath) {
+	        if (decoderPath) {
+	            this.config.dracoDecoderPath = decoderPath;
+	        }
+	        this.config.enableDraco = true;
+	        this.setupDraco();
+	        return this;
+	    }
+	    /**
+	     * Load a GLTF/GLB model
+	     */
+	    async load(url, options = {}) {
+	        const fullUrl = (options.basePath ?? this.config.basePath) + url;
+	        // Check cache first
+	        if (this.cache.has(fullUrl)) {
+	            return this.cloneModel(this.cache.get(fullUrl));
+	        }
+	        return new Promise((resolve, reject) => {
+	            this.loader.load(fullUrl, (gltf) => {
+	                const model = {
+	                    scene: gltf.scene,
+	                    animations: gltf.animations,
+	                    scenes: gltf.scenes,
+	                    cameras: gltf.cameras,
+	                    parser: gltf.parser,
+	                    userData: gltf.userData,
+	                };
+	                // Cache the original
+	                this.cache.set(fullUrl, model);
+	                this.emit('load', model, fullUrl);
+	                resolve(this.cloneModel(model));
+	            }, (progress) => {
+	                const percent = progress.total > 0 ? progress.loaded / progress.total : 0;
+	                options.onProgress?.(percent);
+	                this.emit('progress', percent, fullUrl);
+	            }, (error) => {
+	                const err = error instanceof Error ? error : new Error(String(error));
+	                this.emit('error', err, fullUrl);
+	                reject(err);
+	            });
+	        });
+	    }
+	    /**
+	     * Preload multiple models for later use
+	     */
+	    async preload(urls, options = {}) {
+	        return Promise.all(urls.map(url => this.load(url, options)));
+	    }
+	    /**
+	     * Check if a model is cached
+	     */
+	    isCached(url) {
+	        const fullUrl = this.config.basePath + url;
+	        return this.cache.has(fullUrl);
+	    }
+	    /**
+	     * Get a cached model (returns clone if cached, undefined if not)
+	     */
+	    getCached(url) {
+	        const fullUrl = this.config.basePath + url;
+	        const cached = this.cache.get(fullUrl);
+	        return cached ? this.cloneModel(cached) : undefined;
+	    }
+	    /**
+	     * Clear the model cache
+	     */
+	    clearCache() {
+	        this.cache.forEach(model => {
+	            this.disposeModel(model);
+	        });
+	        this.cache.clear();
+	    }
+	    /**
+	     * Clone a model (for reusing cached models)
+	     * @internal Used internally for cache management
+	     */
+	    cloneModel(model) {
+	        const clonedScene = model.scene.clone();
+	        // Deep-clone materials so each instance is independent
+	        clonedScene.traverse((child) => {
+	            if (child instanceof THREE__namespace.Mesh) {
+	                if (Array.isArray(child.material)) {
+	                    child.material = child.material.map(m => m.clone());
+	                }
+	                else if (child.material) {
+	                    child.material = child.material.clone();
+	                }
+	            }
+	        });
+	        return {
+	            scene: clonedScene,
+	            animations: model.animations.map(clip => clip.clone()),
+	            scenes: model.scenes.map(scene => scene.clone()),
+	            cameras: model.cameras.map(camera => camera.clone()),
+	            parser: model.parser,
+	            userData: { ...model.userData },
+	        };
+	    }
+	    /**
+	     * Dispose of a model's GPU resources (geometries, materials, textures)
+	     *
+	     * IMPORTANT: Models returned by load() and getCached() are clones.
+	     * You are responsible for disposing them when no longer needed to prevent memory leaks.
+	     *
+	     * @example
+	     * ```typescript
+	     * const model = await loader.load('/models/character.glb');
+	     * scene.add(model.scene);
+	     *
+	     * // When done with the model
+	     * loader.disposeModel(model);
+	     * scene.remove(model.scene);
+	     * ```
+	     */
+	    disposeModel(model) {
+	        model.scene.traverse((object) => {
+	            if (object instanceof THREE__namespace.Mesh) {
+	                object.geometry?.dispose();
+	                if (Array.isArray(object.material)) {
+	                    object.material.forEach(mat => mat.dispose());
+	                }
+	                else {
+	                    object.material?.dispose();
+	                }
+	            }
+	        });
+	    }
+	    /**
+	     * Dispose of the loader and all cached models
+	     */
+	    dispose() {
+	        this.clearCache();
+	        this.dracoLoader?.dispose();
+	    }
+	}
+
+	/**
+	 * TextureLoader3D - Enhanced texture loading for Three.js
+	 *
+	 * @example
+	 * ```typescript
+	 * const loader = new TextureLoader3D();
+	 *
+	 * // Load a texture
+	 * const texture = await loader.load('/textures/diffuse.jpg');
+	 *
+	 * // Load with options
+	 * const texture = await loader.load('/textures/diffuse.jpg', {
+	 *   wrapS: THREE.RepeatWrapping,
+	 *   wrapT: THREE.RepeatWrapping,
+	 *   repeat: { x: 2, y: 2 }
+	 * });
+	 *
+	 * // Load a cubemap for skybox
+	 * const cubeTexture = await loader.loadCubeMap([
+	 *   'px.jpg', 'nx.jpg',
+	 *   'py.jpg', 'ny.jpg',
+	 *   'pz.jpg', 'nz.jpg'
+	 * ], '/textures/skybox/');
+	 * ```
+	 */
+	class TextureLoader3D extends EventEmitter {
+	    constructor(config = {}) {
+	        super();
+	        this.cache = new Map();
+	        this.config = {
+	            basePath: config.basePath ?? '',
+	            defaults: config.defaults ?? {},
+	        };
+	        this.loader = new THREE__namespace.TextureLoader();
+	        this.cubeLoader = new THREE__namespace.CubeTextureLoader();
+	    }
+	    /**
+	     * Load a texture
+	     */
+	    async load(url, options = {}) {
+	        const fullUrl = this.config.basePath + url;
+	        // Check cache
+	        if (this.cache.has(fullUrl)) {
+	            return this.cache.get(fullUrl).clone();
+	        }
+	        return new Promise((resolve, reject) => {
+	            this.loader.load(fullUrl, (texture) => {
+	                this.applyOptions(texture, { ...this.config.defaults, ...options });
+	                this.cache.set(fullUrl, texture);
+	                this.emit('load', texture, fullUrl);
+	                // Return clone to keep cache pristine (consistent with cache hit behavior)
+	                resolve(texture.clone());
+	            }, (progress) => {
+	                const percent = progress.total > 0 ? progress.loaded / progress.total : 0;
+	                this.emit('progress', percent, fullUrl);
+	            }, (error) => {
+	                const err = error instanceof Error ? error : new Error(String(error));
+	                this.emit('error', err, fullUrl);
+	                reject(err);
+	            });
+	        });
+	    }
+	    /**
+	     * Load a cube texture (for skyboxes/environment maps)
+	     */
+	    async loadCubeMap(urls, basePath) {
+	        const path = basePath ?? this.config.basePath;
+	        this.cubeLoader.setPath(path);
+	        return new Promise((resolve, reject) => {
+	            this.cubeLoader.load(urls, (texture) => {
+	                this.emit('load', texture, path);
+	                resolve(texture);
+	            }, (progress) => {
+	                const percent = progress.total > 0 ? progress.loaded / progress.total : 0;
+	                this.emit('progress', percent, path);
+	            }, (error) => {
+	                const err = error instanceof Error ? error : new Error(String(error));
+	                this.emit('error', err, path);
+	                reject(err);
+	            });
+	        });
+	    }
+	    /**
+	     * Load multiple textures
+	     */
+	    async loadAll(urls, options = {}) {
+	        const results = new Map();
+	        await Promise.all(urls.map(async (url) => {
+	            const texture = await this.load(url, options);
+	            results.set(url, texture);
+	        }));
+	        return results;
+	    }
+	    /**
+	     * Create a data texture from raw data
+	     */
+	    createDataTexture(data, width, height, format = THREE__namespace.RGBAFormat, type = THREE__namespace.UnsignedByteType) {
+	        const texture = new THREE__namespace.DataTexture(data, width, height, format, type);
+	        texture.needsUpdate = true;
+	        return texture;
+	    }
+	    /**
+	     * Create a canvas texture
+	     */
+	    createCanvasTexture(canvas, options = {}) {
+	        const texture = new THREE__namespace.CanvasTexture(canvas);
+	        this.applyOptions(texture, { ...this.config.defaults, ...options });
+	        return texture;
+	    }
+	    applyOptions(texture, options) {
+	        if (options.wrapS !== undefined)
+	            texture.wrapS = options.wrapS;
+	        if (options.wrapT !== undefined)
+	            texture.wrapT = options.wrapT;
+	        if (options.repeat)
+	            texture.repeat.set(options.repeat.x, options.repeat.y);
+	        if (options.offset)
+	            texture.offset.set(options.offset.x, options.offset.y);
+	        if (options.minFilter !== undefined)
+	            texture.minFilter = options.minFilter;
+	        if (options.magFilter !== undefined)
+	            texture.magFilter = options.magFilter;
+	        if (options.generateMipmaps !== undefined)
+	            texture.generateMipmaps = options.generateMipmaps;
+	        if (options.flipY !== undefined)
+	            texture.flipY = options.flipY;
+	        if (options.anisotropy !== undefined)
+	            texture.anisotropy = options.anisotropy;
+	        if (options.colorSpace !== undefined)
+	            texture.colorSpace = options.colorSpace;
+	    }
+	    /**
+	     * Check if a texture is cached
+	     */
+	    isCached(url) {
+	        return this.cache.has(this.config.basePath + url);
+	    }
+	    /**
+	     * Clear the texture cache
+	     */
+	    clearCache() {
+	        this.cache.forEach(texture => texture.dispose());
+	        this.cache.clear();
+	    }
+	    /**
+	     * Dispose of the loader
+	     */
+	    dispose() {
+	        this.clearCache();
+	    }
+	}
+
+	/**
+	 * AnimationController - Wrapper for Three.js AnimationMixer
+	 *
+	 * Provides easy control over 3D model animations with play, pause,
+	 * blend, and transition support.
+	 *
+	 * @example
+	 * ```typescript
+	 * // Create controller for a loaded model
+	 * const controller = new AnimationController(model.scene, model.animations);
+	 *
+	 * // Play an animation by name
+	 * controller.play('walk');
+	 *
+	 * // Crossfade to another animation
+	 * controller.crossFadeTo('run', 0.5);
+	 *
+	 * // Update in game loop
+	 * controller.update(deltaTime);
+	 *
+	 * // Clean up
+	 * controller.dispose();
+	 * ```
+	 */
+	class AnimationController extends EventEmitter {
+	    constructor(root, animations, config = {}) {
+	        super();
+	        this.actions = new Map();
+	        this.clips = new Map();
+	        this.currentAction = null;
+	        this.config = {
+	            defaultTransitionDuration: config.defaultTransitionDuration ?? 0.5,
+	            timeScale: config.timeScale ?? 1,
+	            clampWhenFinished: config.clampWhenFinished ?? false,
+	        };
+	        this.mixer = new THREE__namespace.AnimationMixer(root);
+	        this.mixer.timeScale = this.config.timeScale;
+	        // Register animations
+	        for (const clip of animations) {
+	            this.clips.set(clip.name, clip);
+	            const action = this.mixer.clipAction(clip);
+	            action.clampWhenFinished = this.config.clampWhenFinished;
+	            this.actions.set(clip.name, action);
+	        }
+	        // Listen for finished events
+	        this.mixer.addEventListener('finished', (e) => {
+	            const clip = e.action.getClip();
+	            this.emit('finished', clip.name);
+	        });
+	        this.mixer.addEventListener('loop', (e) => {
+	            const clip = e.action.getClip();
+	            this.emit('loop', clip.name);
+	        });
+	    }
+	    /**
+	     * Get all animation names
+	     */
+	    getAnimationNames() {
+	        return Array.from(this.clips.keys());
+	    }
+	    /**
+	     * Check if an animation exists
+	     */
+	    hasAnimation(name) {
+	        return this.clips.has(name);
+	    }
+	    /**
+	     * Get animation duration in seconds
+	     */
+	    getDuration(name) {
+	        const clip = this.clips.get(name);
+	        return clip ? clip.duration : 0;
+	    }
+	    /**
+	     * Play an animation by name
+	     */
+	    play(name, options = {}) {
+	        const action = this.actions.get(name);
+	        if (!action) {
+	            Logger.warn('Animation', `Animation "${name}" not found`);
+	            return null;
+	        }
+	        // Apply options
+	        if (options.loop !== undefined) {
+	            action.loop = options.loop;
+	        }
+	        if (options.repetitions !== undefined) {
+	            action.repetitions = options.repetitions;
+	        }
+	        if (options.clampWhenFinished !== undefined) {
+	            action.clampWhenFinished = options.clampWhenFinished;
+	        }
+	        if (options.timeScale !== undefined) {
+	            action.timeScale = options.timeScale;
+	        }
+	        if (options.weight !== undefined) {
+	            action.setEffectiveWeight(options.weight);
+	        }
+	        // Handle crossfade
+	        if (options.crossFade && this.currentAction && this.currentAction !== action) {
+	            const duration = options.crossFadeDuration ?? this.config.defaultTransitionDuration;
+	            this.currentAction.crossFadeTo(action, duration, true);
+	        }
+	        // Reset and play
+	        if (options.startAt !== undefined) {
+	            action.time = options.startAt;
+	        }
+	        else {
+	            action.reset();
+	        }
+	        action.play();
+	        this.currentAction = action;
+	        this.emit('play', name);
+	        return action;
+	    }
+	    /**
+	     * Pause the currently playing animation
+	     */
+	    pause(name) {
+	        if (name) {
+	            const action = this.actions.get(name);
+	            if (action) {
+	                action.paused = true;
+	                this.emit('pause', name);
+	            }
+	        }
+	        else if (this.currentAction) {
+	            this.currentAction.paused = true;
+	            this.emit('pause', this.currentAction.getClip().name);
+	        }
+	    }
+	    /**
+	     * Resume a paused animation
+	     */
+	    resume(name) {
+	        if (name) {
+	            const action = this.actions.get(name);
+	            if (action) {
+	                action.paused = false;
+	            }
+	        }
+	        else if (this.currentAction) {
+	            this.currentAction.paused = false;
+	        }
+	    }
+	    /**
+	     * Stop an animation (resets to start)
+	     */
+	    stop(name) {
+	        if (name) {
+	            const action = this.actions.get(name);
+	            if (action) {
+	                action.stop();
+	            }
+	        }
+	        else if (this.currentAction) {
+	            this.currentAction.stop();
+	            this.currentAction = null;
+	        }
+	    }
+	    /**
+	     * Stop all animations
+	     */
+	    stopAll() {
+	        this.mixer.stopAllAction();
+	        this.currentAction = null;
+	    }
+	    /**
+	     * Crossfade to another animation
+	     */
+	    crossFadeTo(name, duration, options = {}) {
+	        return this.play(name, {
+	            ...options,
+	            crossFade: true,
+	            crossFadeDuration: duration ?? this.config.defaultTransitionDuration,
+	        });
+	    }
+	    /**
+	     * Set the weight of an animation (for blending)
+	     */
+	    setWeight(name, weight) {
+	        const action = this.actions.get(name);
+	        if (action) {
+	            action.setEffectiveWeight(weight);
+	        }
+	    }
+	    /**
+	     * Set the time scale of an animation
+	     */
+	    setTimeScale(name, scale) {
+	        const action = this.actions.get(name);
+	        if (action) {
+	            action.timeScale = scale;
+	        }
+	    }
+	    /**
+	     * Set global time scale for all animations
+	     */
+	    setGlobalTimeScale(scale) {
+	        this.mixer.timeScale = scale;
+	    }
+	    /**
+	     * Get current animation time
+	     */
+	    getTime(name) {
+	        if (name) {
+	            const action = this.actions.get(name);
+	            return action ? action.time : 0;
+	        }
+	        return this.currentAction ? this.currentAction.time : 0;
+	    }
+	    /**
+	     * Set animation time
+	     */
+	    setTime(time, name) {
+	        if (name) {
+	            const action = this.actions.get(name);
+	            if (action) {
+	                action.time = time;
+	            }
+	        }
+	        else if (this.currentAction) {
+	            this.currentAction.time = time;
+	        }
+	    }
+	    /**
+	     * Check if animation is playing
+	     */
+	    isPlaying(name) {
+	        if (name) {
+	            const action = this.actions.get(name);
+	            return action ? action.isRunning() : false;
+	        }
+	        return this.currentAction ? this.currentAction.isRunning() : false;
+	    }
+	    /**
+	     * Get the currently playing animation name
+	     */
+	    getCurrentAnimation() {
+	        return this.currentAction ? this.currentAction.getClip().name : null;
+	    }
+	    /**
+	     * Update the animation mixer (call in game loop)
+	     */
+	    update(deltaTime) {
+	        this.mixer.update(deltaTime);
+	    }
+	    /**
+	     * Dispose of the animation controller
+	     */
+	    dispose() {
+	        this.mixer.stopAllAction();
+	        this.actions.clear();
+	        this.clips.clear();
+	        this.mixer.uncacheRoot(this.mixer.getRoot());
+	    }
+	}
+
+	/** Interactive layer index for THREE.Layers filtering */
+	const INTERACTIVE_LAYER = 1;
+	/** Throttle interval for pointermove on mobile (ms) */
+	const MOBILE_THROTTLE_MS = 50; // 20Hz
+	/** Throttle interval for pointermove on desktop (ms) */
+	const DESKTOP_THROTTLE_MS = 16; // ~60Hz
+	/**
+	 * DOM-like 3D pointer event system with raycasting.
+	 *
+	 * Features:
+	 * - Click, hover, drag events on THREE.Object3D
+	 * - Bubble propagation through parent chain
+	 * - stopPropagation() support
+	 * - Layer-based filtering (only interactive objects are tested)
+	 * - firstHitOnly optimization for click events
+	 * - Pointer move throttling (20Hz mobile, 60Hz desktop)
+	 * - Reused event object pool (zero GC in hot path)
+	 * - Touch-to-pointer translation
+	 */
+	class RaycastEventSystem extends EventEmitter {
+	    constructor() {
+	        super();
+	        this.scene = null;
+	        this.camera = null;
+	        this.domElement = null;
+	        this.raycaster = new THREE__namespace.Raycaster();
+	        this.pointer = new THREE__namespace.Vector2();
+	        this.objectHandlers = new Map();
+	        this.enabledObjects = new Set();
+	        // Hover tracking
+	        this.hoveredObjects = new Set();
+	        this.lastPointerPosition = { x: 0, y: 0 };
+	        // Throttling
+	        this.lastMoveTime = 0;
+	        // Bound handlers for cleanup
+	        this.boundPointerDown = null;
+	        this.boundPointerUp = null;
+	        this.boundPointerMove = null;
+	        this.boundClick = null;
+	        this.boundDblClick = null;
+	        this.boundContextMenu = null;
+	        // Reused objects for zero-allocation hot path
+	        this.reusedPoint = new THREE__namespace.Vector3();
+	        this.reusedNormal = new THREE__namespace.Vector3();
+	        this.reusedUV = new THREE__namespace.Vector2();
+	        // Set raycaster to only test interactive layer
+	        this.raycaster.layers.set(INTERACTIVE_LAYER);
+	        // Detect mobile for throttling
+	        const isMobile = typeof navigator !== 'undefined' && /Mobi|Android/i.test(navigator.userAgent);
+	        this.moveThrottleMs = isMobile ? MOBILE_THROTTLE_MS : DESKTOP_THROTTLE_MS;
+	    }
+	    /**
+	     * Set the scene, camera, and DOM element for raycasting.
+	     */
+	    setScene(scene, camera, domElement) {
+	        // Remove old listeners
+	        this.removeListeners();
+	        this.scene = scene;
+	        this.camera = camera;
+	        this.domElement = domElement;
+	        // Attach DOM listeners
+	        this.attachListeners();
+	    }
+	    /**
+	     * Enable raycasting on an object (make it interactive).
+	     * Sets the object to the interactive layer.
+	     */
+	    enable(object) {
+	        object.layers.enable(INTERACTIVE_LAYER);
+	        this.enabledObjects.add(object);
+	        // Ensure handlers map exists
+	        if (!this.objectHandlers.has(object)) {
+	            this.objectHandlers.set(object, { handlers: new Map() });
+	        }
+	    }
+	    /**
+	     * Disable raycasting on an object.
+	     */
+	    disable(object) {
+	        object.layers.disable(INTERACTIVE_LAYER);
+	        this.enabledObjects.delete(object);
+	        this.hoveredObjects.delete(object);
+	    }
+	    on(objectOrEvent, typeOrFn, handlerOrContext) {
+	        // Distinguish between EventEmitter.on and our custom .on
+	        if (typeof objectOrEvent === 'string') {
+	            return super.on(objectOrEvent, typeOrFn, handlerOrContext);
+	        }
+	        const object = objectOrEvent;
+	        const type = typeOrFn;
+	        const handler = handlerOrContext;
+	        // Auto-enable if not already
+	        if (!this.enabledObjects.has(object)) {
+	            this.enable(object);
+	        }
+	        const entry = this.objectHandlers.get(object);
+	        if (!entry.handlers.has(type)) {
+	            entry.handlers.set(type, new Set());
+	        }
+	        entry.handlers.get(type).add(handler);
+	    }
+	    off(objectOrEvent, typeOrFn, handlerOrContext) {
+	        if (typeof objectOrEvent === 'string') {
+	            return super.off(objectOrEvent, typeOrFn, handlerOrContext);
+	        }
+	        const object = objectOrEvent;
+	        const type = typeOrFn;
+	        const handler = handlerOrContext;
+	        const entry = this.objectHandlers.get(object);
+	        if (entry) {
+	            const handlers = entry.handlers.get(type);
+	            if (handlers) {
+	                handlers.delete(handler);
+	            }
+	        }
+	    }
+	    /**
+	     * Manual update for hover tracking (call from tick loop if needed).
+	     */
+	    update() {
+	        // Hover update is handled in pointermove handler
+	    }
+	    /**
+	     * Destroy the system and remove all listeners.
+	     * Fires pointerleave/pointerout for any currently hovered objects so
+	     * external code can clean up hover state (e.g., reset scale/material).
+	     */
+	    destroy() {
+	        // Fire leave events for hovered objects before teardown
+	        if (this.hoveredObjects.size > 0 && this.domElement) {
+	            const syntheticEvent = new PointerEvent('pointerleave');
+	            for (const obj of this.hoveredObjects) {
+	                this.fireLeaveEvent('pointerleave', obj, syntheticEvent);
+	                this.fireLeaveEvent('pointerout', obj, syntheticEvent);
+	            }
+	        }
+	        this.removeListeners();
+	        this.objectHandlers.clear();
+	        this.enabledObjects.clear();
+	        this.hoveredObjects.clear();
+	        this.scene = null;
+	        this.camera = null;
+	        this.domElement = null;
+	        this.removeAllListeners();
+	    }
+	    // ─── Private Methods ───────────────────────────
+	    attachListeners() {
+	        if (!this.domElement)
+	            return;
+	        this.boundPointerDown = (e) => this.handleHitEvent('pointerdown', e);
+	        this.boundPointerUp = (e) => this.handleHitEvent('pointerup', e);
+	        this.boundPointerMove = (e) => this.handlePointerMove(e);
+	        this.boundClick = (e) => this.handleHitEvent('click', e);
+	        this.boundDblClick = (e) => this.handleHitEvent('dblclick', e);
+	        this.boundContextMenu = (e) => this.handleHitEvent('contextmenu', e);
+	        this.domElement.addEventListener('pointerdown', this.boundPointerDown);
+	        this.domElement.addEventListener('pointerup', this.boundPointerUp);
+	        this.domElement.addEventListener('pointermove', this.boundPointerMove);
+	        this.domElement.addEventListener('click', this.boundClick);
+	        this.domElement.addEventListener('dblclick', this.boundDblClick);
+	        this.domElement.addEventListener('contextmenu', this.boundContextMenu);
+	    }
+	    removeListeners() {
+	        if (!this.domElement)
+	            return;
+	        if (this.boundPointerDown)
+	            this.domElement.removeEventListener('pointerdown', this.boundPointerDown);
+	        if (this.boundPointerUp)
+	            this.domElement.removeEventListener('pointerup', this.boundPointerUp);
+	        if (this.boundPointerMove)
+	            this.domElement.removeEventListener('pointermove', this.boundPointerMove);
+	        if (this.boundClick)
+	            this.domElement.removeEventListener('click', this.boundClick);
+	        if (this.boundDblClick)
+	            this.domElement.removeEventListener('dblclick', this.boundDblClick);
+	        if (this.boundContextMenu)
+	            this.domElement.removeEventListener('contextmenu', this.boundContextMenu);
+	        this.boundPointerDown = null;
+	        this.boundPointerUp = null;
+	        this.boundPointerMove = null;
+	        this.boundClick = null;
+	        this.boundDblClick = null;
+	        this.boundContextMenu = null;
+	    }
+	    updatePointer(event) {
+	        if (!this.domElement)
+	            return;
+	        const rect = this.domElement.getBoundingClientRect();
+	        this.pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+	        this.pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+	    }
+	    raycast() {
+	        if (!this.scene || !this.camera)
+	            return [];
+	        this.raycaster.setFromCamera(this.pointer, this.camera);
+	        return this.raycaster.intersectObjects([...this.enabledObjects], true);
+	    }
+	    /**
+	     * Handle a click/pointer event by raycasting and firing on the first hit.
+	     * Used for both PointerEvent and MouseEvent types (click, dblclick, etc.).
+	     */
+	    handleHitEvent(type, event) {
+	        this.updatePointer(event);
+	        // Use firstHitOnly for non-move events (not in @types/three but exists at runtime)
+	        this.raycaster.firstHitOnly = true;
+	        const intersections = this.raycast();
+	        this.raycaster.firstHitOnly = false;
+	        if (intersections.length > 0) {
+	            const hit = intersections[0];
+	            const target = this.findInteractiveParent(hit.object);
+	            if (target) {
+	                this.fireEvent(type, target, hit, event);
+	            }
+	        }
+	    }
+	    handlePointerMove(event) {
+	        // Throttle move events
+	        const now = performance.now();
+	        if (now - this.lastMoveTime < this.moveThrottleMs)
+	            return;
+	        this.lastMoveTime = now;
+	        this.updatePointer(event);
+	        const intersections = this.raycast();
+	        const currentHovered = new Set();
+	        if (intersections.length > 0) {
+	            const hit = intersections[0];
+	            const target = this.findInteractiveParent(hit.object);
+	            if (target) {
+	                currentHovered.add(target);
+	                // Fire pointermove
+	                this.fireEvent('pointermove', target, hit, event);
+	                // Enter/over for newly hovered
+	                if (!this.hoveredObjects.has(target)) {
+	                    this.fireEvent('pointerenter', target, hit, event);
+	                    this.fireEvent('pointerover', target, hit, event);
+	                }
+	            }
+	        }
+	        // Leave/out for no longer hovered
+	        for (const obj of this.hoveredObjects) {
+	            if (!currentHovered.has(obj)) {
+	                this.fireLeaveEvent('pointerleave', obj, event);
+	                this.fireLeaveEvent('pointerout', obj, event);
+	            }
+	        }
+	        this.hoveredObjects = currentHovered;
+	        this.lastPointerPosition.x = event.clientX;
+	        this.lastPointerPosition.y = event.clientY;
+	    }
+	    /**
+	     * Find the nearest parent that is registered as interactive.
+	     */
+	    findInteractiveParent(object) {
+	        let current = object;
+	        while (current) {
+	            if (this.enabledObjects.has(current))
+	                return current;
+	            current = current.parent;
+	        }
+	        return null;
+	    }
+	    /**
+	     * Fire an event on a target and bubble up the parent chain.
+	     */
+	    fireEvent(type, target, hit, nativeEvent) {
+	        let propagationStopped = false;
+	        // Copy intersection data to reused objects
+	        this.reusedPoint.copy(hit.point);
+	        if (hit.face?.normal) {
+	            this.reusedNormal.copy(hit.face.normal);
+	        }
+	        const eventData = {
+	            type,
+	            target,
+	            currentTarget: target,
+	            point: { x: this.reusedPoint.x, y: this.reusedPoint.y, z: this.reusedPoint.z },
+	            distance: hit.distance,
+	            normal: hit.face?.normal
+	                ? { x: this.reusedNormal.x, y: this.reusedNormal.y, z: this.reusedNormal.z }
+	                : null,
+	            uv: hit.uv ? { x: hit.uv.x, y: hit.uv.y } : null,
+	            nativeEvent,
+	            stopPropagation: () => { propagationStopped = true; },
+	            delta: {
+	                x: nativeEvent.movementX ?? 0,
+	                y: nativeEvent.movementY ?? 0
+	            },
+	            pointerId: nativeEvent.pointerId ?? 0
+	        };
+	        // Fire on target, then bubble to parents
+	        let current = target;
+	        while (current && !propagationStopped) {
+	            const entry = this.objectHandlers.get(current);
+	            if (entry) {
+	                const handlers = entry.handlers.get(type);
+	                if (handlers) {
+	                    eventData.currentTarget = current;
+	                    for (const handler of handlers) {
+	                        handler(eventData);
+	                        if (propagationStopped)
+	                            break;
+	                    }
+	                }
+	            }
+	            current = current.parent;
+	        }
+	    }
+	    /**
+	     * Fire a leave/out event (no intersection data).
+	     */
+	    fireLeaveEvent(type, target, nativeEvent) {
+	        const eventData = {
+	            type,
+	            target,
+	            currentTarget: target,
+	            point: { x: 0, y: 0, z: 0 },
+	            distance: 0,
+	            normal: null,
+	            uv: null,
+	            nativeEvent,
+	            stopPropagation: () => { },
+	            delta: { x: 0, y: 0 },
+	            pointerId: nativeEvent.pointerId ?? 0
+	        };
+	        const entry = this.objectHandlers.get(target);
+	        if (entry) {
+	            const handlers = entry.handlers.get(type);
+	            if (handlers) {
+	                for (const handler of handlers) {
+	                    handler(eventData);
+	                }
+	            }
+	        }
+	    }
+	}
+
+	/** Reused transform objects for zero-allocation hot path */
+	const _matrix = new THREE__namespace.Matrix4();
+	const _position = new THREE__namespace.Vector3();
+	const _quaternion = new THREE__namespace.Quaternion();
+	new THREE__namespace.Euler();
+	const _scale = new THREE__namespace.Vector3(1, 1, 1);
+	const _color = new THREE__namespace.Color();
+	/** Initial capacity for InstancedMesh (grows 2x when full) */
+	const INITIAL_CAPACITY = 16;
+	/**
+	 * Automatic GPU instancing manager.
+	 *
+	 * Below threshold: regular THREE.Mesh clones (current behavior).
+	 * At/above threshold: creates THREE.InstancedMesh (GPU instancing).
+	 *
+	 * Features:
+	 * - Automatic threshold-based instancing switch
+	 * - Pre-allocated capacity with 2x growth factor
+	 * - Swap-last O(1) removal
+	 * - Reused Matrix4/Vector3 (zero-allocation transform updates)
+	 * - Material sharing (one material per unique key)
+	 * - Batch matrix updates (dirty flag, single needsUpdate per frame)
+	 */
+	class InstanceManager extends EventEmitter {
+	    constructor(scene) {
+	        super();
+	        this.groups = new Map();
+	        this.threshold = 3;
+	        this.scene = scene;
+	    }
+	    /**
+	     * Set the instance count threshold for switching to GPU instancing.
+	     */
+	    setThreshold(threshold) {
+	        this.threshold = Math.max(2, threshold);
+	    }
+	    /**
+	     * Create a new instance of a source object.
+	     * Automatically switches to GPU instancing when threshold is reached.
+	     */
+	    createInstance(key, source) {
+	        let group = this.groups.get(key);
+	        if (!group) {
+	            // First instance of this key - extract geometry and material
+	            const mesh = this.findFirstMesh(source);
+	            if (!mesh) {
+	                throw new Error(`InstanceManager: no mesh found in source for key '${key}'`);
+	            }
+	            group = {
+	                sourceGeometry: mesh.geometry,
+	                sourceMaterial: mesh.material,
+	                clones: [],
+	                instancedMesh: null,
+	                count: 0,
+	                capacity: 0,
+	                transforms: [],
+	                dirty: false
+	            };
+	            this.groups.set(key, group);
+	        }
+	        const index = group.count;
+	        group.transforms.push({
+	            position: new THREE__namespace.Vector3(),
+	            rotation: new THREE__namespace.Euler(),
+	            scale: new THREE__namespace.Vector3(1, 1, 1),
+	            color: 0xffffff,
+	            visible: true
+	        });
+	        group.count++;
+	        // Check if we need to switch to instancing
+	        if (group.count >= this.threshold && !group.instancedMesh) {
+	            this.convertToInstanced(key, group);
+	        }
+	        else if (group.instancedMesh) {
+	            // Already instanced - grow if needed
+	            this.ensureCapacity(group);
+	            this.updateInstanceMatrix(group, index);
+	        }
+	        else {
+	            // Below threshold - create a clone
+	            const clone = new THREE__namespace.Mesh(group.sourceGeometry, group.sourceMaterial);
+	            group.clones.push(clone);
+	            this.scene.add(clone);
+	        }
+	        return this.createHandle(key, index, group);
+	    }
+	    /**
+	     * Get count of instances for a key.
+	     */
+	    getInstanceCount(key) {
+	        return this.groups.get(key)?.count ?? 0;
+	    }
+	    /**
+	     * Check if a key is currently using GPU instancing.
+	     */
+	    isInstanced(key) {
+	        return this.groups.get(key)?.instancedMesh != null;
+	    }
+	    /**
+	     * Remove all instances for a key.
+	     */
+	    removeAll(key) {
+	        const group = this.groups.get(key);
+	        if (!group)
+	            return;
+	        // Remove clones from scene
+	        for (const clone of group.clones) {
+	            this.scene.remove(clone);
+	        }
+	        group.clones.length = 0;
+	        // Remove instanced mesh from scene
+	        if (group.instancedMesh) {
+	            this.scene.remove(group.instancedMesh);
+	            group.instancedMesh.dispose();
+	            group.instancedMesh = null;
+	        }
+	        group.transforms.length = 0;
+	        group.count = 0;
+	        group.capacity = 0;
+	        this.groups.delete(key);
+	    }
+	    /**
+	     * Flush all dirty instanced mesh matrix updates.
+	     * Call once per frame (e.g., from TickSystem) for batch updating.
+	     */
+	    flushUpdates() {
+	        for (const group of this.groups.values()) {
+	            if (group.dirty && group.instancedMesh) {
+	                group.instancedMesh.instanceMatrix.needsUpdate = true;
+	                if (group.instancedMesh.instanceColor) {
+	                    group.instancedMesh.instanceColor.needsUpdate = true;
+	                }
+	                group.dirty = false;
+	            }
+	        }
+	    }
+	    /**
+	     * Dispose all instances and clean up.
+	     */
+	    dispose() {
+	        for (const key of this.groups.keys()) {
+	            this.removeAll(key);
+	        }
+	        this.groups.clear();
+	        this.removeAllListeners();
+	    }
+	    // ─── Private Methods ───────────────────────────
+	    findFirstMesh(object) {
+	        if (object.isMesh)
+	            return object;
+	        for (const child of object.children) {
+	            const mesh = this.findFirstMesh(child);
+	            if (mesh)
+	                return mesh;
+	        }
+	        return null;
+	    }
+	    convertToInstanced(key, group) {
+	        // Remove all clones from scene
+	        for (const clone of group.clones) {
+	            this.scene.remove(clone);
+	        }
+	        group.clones.length = 0;
+	        // Create instanced mesh with capacity
+	        group.capacity = Math.max(INITIAL_CAPACITY, group.count * 2);
+	        const material = Array.isArray(group.sourceMaterial)
+	            ? group.sourceMaterial[0]
+	            : group.sourceMaterial;
+	        group.instancedMesh = new THREE__namespace.InstancedMesh(group.sourceGeometry, material, group.capacity);
+	        group.instancedMesh.count = group.count;
+	        group.instancedMesh.instanceMatrix.setUsage(THREE__namespace.DynamicDrawUsage);
+	        // Apply all existing transforms
+	        for (let i = 0; i < group.count; i++) {
+	            this.updateInstanceMatrix(group, i);
+	        }
+	        group.instancedMesh.instanceMatrix.needsUpdate = true;
+	        this.scene.add(group.instancedMesh);
+	        this.emit('instanced', key, group.count);
+	    }
+	    ensureCapacity(group) {
+	        if (!group.instancedMesh || group.count <= group.capacity)
+	            return;
+	        // Double capacity
+	        const oldMesh = group.instancedMesh;
+	        const newCapacity = group.capacity * 2;
+	        const material = Array.isArray(group.sourceMaterial)
+	            ? group.sourceMaterial[0]
+	            : group.sourceMaterial;
+	        const newMesh = new THREE__namespace.InstancedMesh(group.sourceGeometry, material, newCapacity);
+	        newMesh.instanceMatrix.setUsage(THREE__namespace.DynamicDrawUsage);
+	        // Copy existing matrices
+	        const oldArray = oldMesh.instanceMatrix.array;
+	        const newArray = newMesh.instanceMatrix.array;
+	        for (let i = 0; i < oldArray.length; i++) {
+	            newArray[i] = oldArray[i];
+	        }
+	        newMesh.count = group.count;
+	        newMesh.instanceMatrix.needsUpdate = true;
+	        // Swap in scene
+	        this.scene.remove(oldMesh);
+	        oldMesh.dispose();
+	        this.scene.add(newMesh);
+	        group.instancedMesh = newMesh;
+	        group.capacity = newCapacity;
+	    }
+	    updateInstanceMatrix(group, index) {
+	        if (!group.instancedMesh)
+	            return;
+	        const t = group.transforms[index];
+	        _position.copy(t.position);
+	        _quaternion.setFromEuler(t.rotation);
+	        _scale.copy(t.scale);
+	        if (!t.visible) {
+	            _scale.set(0, 0, 0); // Hide by scaling to zero
+	        }
+	        _matrix.compose(_position, _quaternion, _scale);
+	        group.instancedMesh.setMatrixAt(index, _matrix);
+	        group.dirty = true;
+	    }
+	    createHandle(key, index, group) {
+	        const self = this;
+	        return {
+	            key,
+	            index,
+	            get isInstanced() { return group.instancedMesh != null; },
+	            setPosition(x, y, z) {
+	                const t = group.transforms[index];
+	                if (!t)
+	                    return;
+	                t.position.set(x, y, z);
+	                if (group.instancedMesh) {
+	                    self.updateInstanceMatrix(group, index);
+	                }
+	                else if (group.clones[index]) {
+	                    group.clones[index].position.set(x, y, z);
+	                }
+	            },
+	            setRotation(x, y, z) {
+	                const t = group.transforms[index];
+	                if (!t)
+	                    return;
+	                t.rotation.set(x, y, z);
+	                if (group.instancedMesh) {
+	                    self.updateInstanceMatrix(group, index);
+	                }
+	                else if (group.clones[index]) {
+	                    group.clones[index].rotation.set(x, y, z);
+	                }
+	            },
+	            setScale(x, y, z) {
+	                const t = group.transforms[index];
+	                if (!t)
+	                    return;
+	                t.scale.set(x, y, z);
+	                if (group.instancedMesh) {
+	                    self.updateInstanceMatrix(group, index);
+	                }
+	                else if (group.clones[index]) {
+	                    group.clones[index].scale.set(x, y, z);
+	                }
+	            },
+	            setColor(color) {
+	                const t = group.transforms[index];
+	                if (!t)
+	                    return;
+	                t.color = color;
+	                if (group.instancedMesh) {
+	                    _color.setHex(color);
+	                    group.instancedMesh.setColorAt(index, _color);
+	                    group.dirty = true;
+	                }
+	            },
+	            setVisible(visible) {
+	                const t = group.transforms[index];
+	                if (!t)
+	                    return;
+	                t.visible = visible;
+	                if (group.instancedMesh) {
+	                    self.updateInstanceMatrix(group, index);
+	                }
+	                else if (group.clones[index]) {
+	                    group.clones[index].visible = visible;
+	                }
+	            },
+	            getObject() {
+	                return group.instancedMesh ?? group.clones[index] ?? null;
+	            },
+	            dispose() {
+	                // Mark as invisible (swap-last would break other handles' indices)
+	                const t = group.transforms[index];
+	                if (t) {
+	                    t.visible = false;
+	                    if (group.instancedMesh) {
+	                        self.updateInstanceMatrix(group, index);
+	                    }
+	                    else if (group.clones[index]) {
+	                        self.scene.remove(group.clones[index]);
+	                    }
+	                }
+	            }
+	        };
+	    }
+	}
+
+	exports.AmbientLight = AmbientLight;
+	exports.AnimationController = AnimationController;
 	exports.BaseScene3D = BaseScene3D;
 	exports.Billboard = Billboard;
 	exports.CameraController = CameraController;
+	exports.DirectionalLight = DirectionalLight;
 	exports.DragController = DragController;
 	exports.FloatingText = FloatingText;
 	exports.GestureHandler3D = GestureHandler3D;
 	exports.GridRenderer = GridRenderer;
 	exports.HealthBar3D = HealthBar3D;
+	exports.HemisphereLight = HemisphereLight;
 	exports.HexGrid = HexGrid;
+	exports.InstanceManager = InstanceManager;
 	exports.IsometricCamera = IsometricCamera;
+	exports.LightHelper = LightHelper;
+	exports.ModelLoader = ModelLoader;
 	exports.Object3DPicker = Object3DPicker;
 	exports.ObjectPool3D = ObjectPool3D;
 	exports.Pathfinder = Pathfinder;
+	exports.PointLight = PointLight;
+	exports.RaycastEventSystem = RaycastEventSystem;
 	exports.SelectionIndicator = SelectionIndicator;
+	exports.SpotLight = SpotLight;
 	exports.SquareGrid = SquareGrid;
 	exports.StateMachine = StateMachine;
 	exports.StateMachineInstance = StateMachineInstance;
 	exports.StrategyCamera = StrategyCamera;
+	exports.TextureLoader3D = TextureLoader3D;
 	exports.ThreeFrameworkCompatibility = ThreeFrameworkCompatibility;
 	exports.ThreeVersionDetector = ThreeVersionDetector;
 

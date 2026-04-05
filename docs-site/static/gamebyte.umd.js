@@ -373,6 +373,100 @@
 	var EventEmitter = /*@__PURE__*/getDefaultExportFromCjs(eventemitter3Exports);
 
 	/**
+	 * Centralized tagged logging system for GameByte Framework.
+	 *
+	 * Provides leveled, tag-filtered logging controllable via `createGame({ debug: true })`.
+	 * All output is suppressed by default (enabled: false) so production builds stay silent.
+	 *
+	 * @module utils/Logger
+	 * @example
+	 * ```typescript
+	 * import { Logger } from 'gamebyte-framework';
+	 *
+	 * // Enable via createGame config
+	 * const game = await createGame({ debug: true, logLevel: 'debug' });
+	 *
+	 * // Direct usage
+	 * Logger.info('Renderer', 'Pixi.js v8 initialized');
+	 *
+	 * // Module-scoped logger (avoids repeating the tag)
+	 * const log = Logger.tag('Physics');
+	 * log.info('Matter.js world created');
+	 * log.warn('Body outside bounds');
+	 * ```
+	 */
+	const LOG_LEVELS = {
+	    debug: 0,
+	    info: 1,
+	    warn: 2,
+	    error: 3,
+	    none: 4,
+	};
+	let config = { enabled: false, level: 'info' };
+	function shouldLog(level, tag) {
+	    if (!config.enabled)
+	        return false;
+	    if (LOG_LEVELS[level] < LOG_LEVELS[config.level])
+	        return false;
+	    if (tag && config.tags && config.tags[tag] === false)
+	        return false;
+	    return true;
+	}
+	const Logger = {
+	    /**
+	     * Update logger configuration. Merges with existing config.
+	     */
+	    configure(options) {
+	        Object.assign(config, options);
+	    },
+	    /**
+	     * Check whether a message at the given level/tag would be logged.
+	     */
+	    isEnabled(level, tag) {
+	        return shouldLog(level, tag);
+	    },
+	    /**
+	     * Reset to default (disabled) state. Useful for tests.
+	     */
+	    reset() {
+	        config = { enabled: false, level: 'info' };
+	    },
+	    debug(tag, ...args) {
+	        if (shouldLog('debug', tag))
+	            console.debug(`[${tag}]`, ...args);
+	    },
+	    info(tag, ...args) {
+	        if (shouldLog('info', tag))
+	            console.log(`[${tag}]`, ...args);
+	    },
+	    warn(tag, ...args) {
+	        if (shouldLog('warn', tag))
+	            console.warn(`[${tag}]`, ...args);
+	    },
+	    error(tag, ...args) {
+	        if (shouldLog('error', tag))
+	            console.error(`[${tag}]`, ...args);
+	    },
+	    /**
+	     * Create a module-scoped logger that auto-prefixes the tag.
+	     *
+	     * @example
+	     * ```typescript
+	     * const log = Logger.tag('Audio');
+	     * log.info('Music started');  // → [Audio] Music started
+	     * ```
+	     */
+	    tag(tagName) {
+	        return {
+	            debug: (...args) => Logger.debug(tagName, ...args),
+	            info: (...args) => Logger.info(tagName, ...args),
+	            warn: (...args) => Logger.warn(tagName, ...args),
+	            error: (...args) => Logger.error(tagName, ...args),
+	        };
+	    },
+	};
+
+	/**
 	 * Service container implementation for dependency injection.
 	 * Provides Laravel-style service binding and resolution.
 	 */
@@ -386,6 +480,7 @@
 	     * Register a binding in the container.
 	     */
 	    bind(key, concrete, singleton = false) {
+	        Logger.debug('Core', `Service bound: ${key}`);
 	        this.bindings.set(key, {
 	            concrete,
 	            singleton,
@@ -431,6 +526,7 @@
 	        if (binding.singleton) {
 	            this.instances.set(resolvedKey, instance);
 	        }
+	        Logger.debug('Core', `Service resolved: ${key}`);
 	        return instance;
 	    }
 	    /**
@@ -616,7 +712,7 @@
 	                }
 	                if (attempts >= maxAttempts) {
 	                    // Timeout - resolve anyway to prevent blocking
-	                    console.warn('GameByte: Font loading timeout, using fallback');
+	                    Logger.warn('UI', 'Font loading timeout, using fallback');
 	                    preload.remove();
 	                    fontLoaded = true;
 	                    resolve();
@@ -824,7 +920,7 @@
 	    createDropShadowFilter(options = {}) {
 	        // DropShadowFilter requires 'pixi-filters' package
 	        // Fallback: BlurFilter only (limited shadow effect)
-	        console.warn('DropShadowFilter requires pixi-filters package (npm install pixi-filters). ' +
+	        Logger.warn('Graphics', 'DropShadowFilter requires pixi-filters package (npm install pixi-filters). ' +
 	            'Using BlurFilter as limited fallback.');
 	        const blur = options.blur ?? 4;
 	        const filter = new PIXI__namespace.BlurFilter({ strength: blur });
@@ -833,7 +929,7 @@
 	    createGlowFilter(options = {}) {
 	        // GlowFilter requires 'pixi-filters' package
 	        // Fallback: BlurFilter only (limited glow effect)
-	        console.warn('GlowFilter requires pixi-filters package (npm install pixi-filters). ' +
+	        Logger.warn('Graphics', 'GlowFilter requires pixi-filters package (npm install pixi-filters). ' +
 	            'Using BlurFilter as limited fallback.');
 	        const distance = options.distance ?? 10;
 	        const filter = new PIXI__namespace.BlurFilter({ strength: distance * 0.5 });
@@ -842,7 +938,7 @@
 	    createOutlineFilter(options = {}) {
 	        // OutlineFilter requires 'pixi-filters' package
 	        // No good fallback available
-	        console.warn('OutlineFilter requires pixi-filters package (npm install pixi-filters). ' +
+	        Logger.warn('Graphics', 'OutlineFilter requires pixi-filters package (npm install pixi-filters). ' +
 	            'No fallback available - returning no-op filter.');
 	        // Return a no-op filter
 	        const filter = new PIXI__namespace.AlphaFilter({ alpha: 1 });
@@ -1084,7 +1180,7 @@
 	            ctx.drawImage(displayObj.element, 0, 0);
 	        }
 	        else {
-	            console.warn('drawToTexture: Three.js display object does not have a canvas element, returning empty texture');
+	            Logger.warn('Graphics', 'drawToTexture: Three.js display object does not have a canvas element, returning empty texture');
 	        }
 	        return GraphicsEngine.getFactory().createTexture(canvas);
 	    }
@@ -1171,6 +1267,12 @@
 	     * });
 	     */
 	    static async quick(config) {
+	        // Configure logger before any init work so all modules can log
+	        Logger.configure({
+	            enabled: config.debug ?? false,
+	            level: config.logLevel ?? 'info',
+	        });
+	        Logger.debug('Core', `Creating game: mode=${config.mode ?? '2d'}, ${config.width ?? 800}x${config.height ?? 600}`);
 	        // Import service providers dynamically to avoid circular dependencies
 	        const { RenderingServiceProvider } = await Promise.resolve().then(function () { return RenderingServiceProvider$1; });
 	        const { SceneServiceProvider } = await Promise.resolve().then(function () { return SceneServiceProvider$1; });
@@ -1262,6 +1364,7 @@
 	        if (config.autoStart !== false) {
 	            game.start();
 	        }
+	        Logger.debug('Core', 'Game ready');
 	        return game;
 	    }
 	    /**
@@ -1337,7 +1440,7 @@
 	        // Initialize GraphicsEngine with rendering mode
 	        if (!GraphicsEngine.isInitialized()) {
 	            GraphicsEngine.initialize(mode);
-	            console.log(`✅ GraphicsEngine initialized with ${mode === exports.RenderingMode.RENDERER_2D ? '2D (Pixi.js)' : '3D (Three.js)'} renderer`);
+	            Logger.info('Core', `GraphicsEngine initialized with ${mode === exports.RenderingMode.RENDERER_2D ? '2D (Pixi.js)' : '3D (Three.js)'} renderer`);
 	        }
 	        // Initialize the renderer
 	        const renderer = this.make('renderer');
@@ -1594,6 +1697,7 @@
 	        if (this.currentScene?.id === sceneId) {
 	            return; // Already on target scene
 	        }
+	        Logger.debug('Scenes', `Switching to: ${sceneId}`);
 	        this.transitionInProgress = true;
 	        const fromScene = this.currentScene;
 	        try {
@@ -3254,7 +3358,7 @@
 	            }
 	        }
 	        catch (error) {
-	            console.warn('Web Audio API not supported:', error);
+	            Logger.warn('Assets', 'Web Audio API not supported:', error);
 	        }
 	    }
 	    /**
@@ -4088,7 +4192,7 @@
 	            }
 	            catch (error) {
 	                // Ignore callback errors to prevent cache operations from failing
-	                console.warn('Memory pressure callback error:', error);
+	                Logger.warn('Assets', 'Memory pressure callback error:', error);
 	            }
 	        }
 	        // Advanced memory pressure detection if available
@@ -4101,7 +4205,7 @@
 	                }
 	                catch (error) {
 	                    // Ignore callback errors to prevent cache operations from failing
-	                    console.warn('Memory pressure callback error:', error);
+	                    Logger.warn('Assets', 'Memory pressure callback error:', error);
 	                }
 	            }
 	        }
@@ -5190,7 +5294,7 @@
 	                    }
 	                }
 	                catch (error) {
-	                    console.warn(`Failed to load asset ${assetConfig.id} from bundle ${bundle.id}:`, error);
+	                    Logger.warn('Assets', `Failed to load asset ${assetConfig.id} from bundle ${bundle.id}:`, error);
 	                }
 	            }
 	            this.emit('bundle:completed', bundle.id, results);
@@ -5252,7 +5356,7 @@
 	        }));
 	        // Load in background without waiting
 	        this.loadBatch(preloadConfigs).catch(error => {
-	            console.warn('Preload failed:', error);
+	            Logger.warn('Assets', 'Preload failed:', error);
 	        });
 	    }
 	    /**
@@ -6070,11 +6174,11 @@
 	        // Listen for framework events
 	        app.on('scene:changing', () => {
 	            // Trigger garbage collection on scene changes
-	            assetManager.optimizeMemory().catch(console.warn);
+	            assetManager.optimizeMemory().catch((e) => Logger.warn('Assets', 'Memory optimization failed', e));
 	        });
 	        app.on('visibility:hidden', () => {
 	            // Aggressive cleanup when app goes to background
-	            assetManager.getCache().evict().catch(console.warn);
+	            assetManager.getCache().evict().catch((e) => Logger.warn('Assets', 'Cache eviction failed', e));
 	        });
 	    }
 	    /**
@@ -6097,7 +6201,7 @@
 	            await assetManager.preload(assetConfigs);
 	        }
 	        catch (error) {
-	            console.warn('Asset preloading failed:', error);
+	            Logger.warn('Assets', 'Asset preloading failed:', error);
 	        }
 	    }
 	    /**
@@ -6106,7 +6210,7 @@
 	    setupMemoryManagement(app, assetManager) {
 	        // Monitor memory pressure
 	        assetManager.on('memory:pressure', (usage, limit) => {
-	            console.warn(`Memory pressure detected: ${Math.round(usage / 1024 / 1024)}MB / ${Math.round(limit / 1024 / 1024)}MB`);
+	            Logger.warn('Assets', `Memory pressure detected: ${Math.round(usage / 1024 / 1024)}MB / ${Math.round(limit / 1024 / 1024)}MB`);
 	            // Emit framework-level memory warning
 	            app.emit('performance:memory:warning', { usage, limit });
 	        });
@@ -6117,7 +6221,7 @@
 	            // Calculate memory limit based on device
 	            const memoryLimit = deviceCapabilities.availableMemory * 1024 * 1024 * 0.5; // 50% of device memory
 	            if (memoryUsage.total > memoryLimit * 0.8) {
-	                assetManager.optimizeMemory().catch(console.warn);
+	                assetManager.optimizeMemory().catch((e) => Logger.warn('Assets', 'Memory optimization failed', e));
 	            }
 	        }, 30000); // Check every 30 seconds
 	    }
@@ -6126,11 +6230,11 @@
 	     */
 	    setupCleanupHandler(app, assetManager) {
 	        app.on('destroyed', () => {
-	            assetManager.destroy().catch(console.warn);
+	            assetManager.destroy().catch((e) => Logger.warn('Assets', 'Asset manager destroy failed', e));
 	        });
 	        // Cleanup on page unload
 	        window.addEventListener('beforeunload', () => {
-	            assetManager.destroy().catch(console.warn);
+	            assetManager.destroy().catch((e) => Logger.warn('Assets', 'Asset manager destroy failed', e));
 	        });
 	    }
 	}
@@ -6871,10 +6975,9 @@
 	     */
 	    static logCompatibilityReport() {
 	        const report = this.getCompatibilityReport();
-	        console.group('🔍 GameByte Framework - Compatibility Report');
-	        console.log('Pixi.js:', report.pixi);
-	        console.log('Browser:', report.browser);
-	        console.groupEnd();
+	        Logger.info('Compatibility', 'GameByte Framework - Compatibility Report');
+	        Logger.info('Compatibility', 'Pixi.js:', report.pixi);
+	        Logger.info('Compatibility', 'Browser:', report.browser);
 	    }
 	}
 
@@ -6894,7 +6997,7 @@
 	    static async createRenderer(options) {
 	        const version = PixiVersionDetector.getVersion();
 	        const features = BrowserFeatureDetector.getBestRenderingContext();
-	        console.log('🎨 Creating Pixi v8 renderer:', {
+	        Logger.info('Compatibility', 'Creating Pixi v8 renderer:', {
 	            version: version.raw,
 	            bestContext: features
 	        });
@@ -6913,11 +7016,11 @@
 	        // Default to WebGL (stable) instead of WebGPU (experimental)
 	        let preference = options.preference || 'webgl';
 	        if (preference === 'webgpu' && !BrowserFeatureDetector.hasWebGPU()) {
-	            console.log('⚠️ WebGPU not available, falling back to WebGL2');
+	            Logger.warn('Compatibility', 'WebGPU not available, falling back to WebGL2');
 	            preference = 'webgl2';
 	        }
 	        if (preference === 'webgl2' && !BrowserFeatureDetector.hasWebGL2()) {
-	            console.log('⚠️ WebGL2 not available, falling back to WebGL');
+	            Logger.warn('Compatibility', 'WebGL2 not available, falling back to WebGL');
 	            preference = 'webgl';
 	        }
 	        // Create renderer with v8 API
@@ -6934,7 +7037,7 @@
 	            powerPreference: options.powerPreference,
 	            preference
 	        };
-	        console.log('✅ Creating Pixi v8 renderer with preference:', preference);
+	        Logger.info('Compatibility', 'Creating Pixi v8 renderer with preference:', preference);
 	        const renderer = await autoDetect(rendererOptions);
 	        return renderer;
 	    }
@@ -6945,7 +7048,7 @@
 	        if (PixiVersionDetector.hasParticleContainer()) {
 	            return PIXI__namespace.ParticleContainer;
 	        }
-	        console.warn('⚠️ ParticleContainer not available, using regular Container');
+	        Logger.warn('Compatibility', 'ParticleContainer not available, using regular Container');
 	        return PIXI__namespace.Container;
 	    }
 	    /**
@@ -7048,20 +7151,19 @@
 	     * Log compatibility report (Pixi only)
 	     */
 	    static logCompatibilityReport() {
-	        console.group('🔍 Rendering Compatibility Report');
-	        console.log('Pixi.js:', {
+	        Logger.info('Compatibility', 'Rendering Compatibility Report');
+	        Logger.info('Compatibility', 'Pixi.js:', {
 	            version: PixiVersionDetector.getVersion().raw,
 	            isV8: PixiVersionDetector.isV8OrHigher(),
 	            hasWebGPU: PixiVersionDetector.getFeatureSupport().webgpu,
 	            hasAutoDetect: PixiVersionDetector.hasAutoDetectRenderer(),
 	            hasParticleContainer: PixiVersionDetector.hasParticleContainer()
 	        });
-	        console.log('Recommendations:', {
+	        Logger.info('Compatibility', 'Recommendations:', {
 	            pixelRatio: this.getOptimalPixelRatio(),
 	            antialias: this.getRecommendedAntialias(),
 	            powerPreference: this.getRecommendedPowerPreference()
 	        });
-	        console.groupEnd();
 	    }
 	}
 
@@ -7221,7 +7323,7 @@
 	    applyScale(element, properties) {
 	        const baseValues = this.baseValues.get(element);
 	        if (!baseValues) {
-	            console.warn('No base values stored for element. Call storeBaseValues() first.');
+	            Logger.warn('Responsive', 'No base values stored for element. Call storeBaseValues() first.');
 	            return;
 	        }
 	        const scale = this.calculator.getScale();
@@ -7342,7 +7444,7 @@
 	     */
 	    async initialize(canvas, options = {}) {
 	        // Log compatibility info
-	        console.log('🎮 Initializing PixiRenderer with Pixi.js', PixiVersionDetector.getVersion().raw);
+	        Logger.info('Renderer', 'Initializing PixiRenderer with Pixi.js', PixiVersionDetector.getVersion().raw);
 	        // Store canvas reference
 	        this.canvas = canvas;
 	        // Set configuration
@@ -7358,7 +7460,7 @@
 	            this.responsiveCalculator.onResize((size) => {
 	                this.handleResponsiveResize(size);
 	            });
-	            console.log('📱 Responsive mode enabled with base size:', responsiveConfig.baseWidth, 'x', responsiveConfig.baseHeight);
+	            Logger.info('Renderer', 'Responsive mode enabled with base size:', responsiveConfig.baseWidth, 'x', responsiveConfig.baseHeight);
 	        }
 	        // Get optimal settings for device
 	        const optimalPixelRatio = RenderingCompatibility.getOptimalPixelRatio();
@@ -7380,10 +7482,10 @@
 	        // Create renderer using compatibility layer (supports v7 and v8)
 	        try {
 	            this.app = await PixiCompatibility.createRenderer(pixiOptions);
-	            console.log('✅ PixiRenderer initialized successfully');
+	            Logger.info('Renderer', 'PixiRenderer initialized successfully');
 	        }
 	        catch (error) {
-	            console.error('❌ Failed to initialize PixiRenderer:', error);
+	            Logger.error('Renderer', 'Failed to initialize PixiRenderer:', error);
 	            throw error;
 	        }
 	        // Get stage (v7 has it, v8 needs to create it)
@@ -7417,7 +7519,7 @@
 	        }
 	        else {
 	            // On-demand rendering - just mark as ready
-	            console.log('📊 PixiRenderer started in on-demand mode');
+	            Logger.info('Renderer', 'PixiRenderer started in on-demand mode');
 	        }
 	        this.emit('started');
 	    }
@@ -7696,7 +7798,7 @@
 	                return new PixiRenderer();
 	            default:
 	                // Fallback to 2D renderer if mode is not recognized
-	                console.warn(`Unsupported rendering mode: ${mode}. Falling back to 2D renderer.`);
+	                Logger.warn('Renderer', `Unsupported rendering mode: ${mode}. Falling back to 2D renderer.`);
 	                return new PixiRenderer();
 	        }
 	    }
@@ -7726,16 +7828,16 @@
 	                const canvas = document.createElement('canvas');
 	                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
 	                if (!gl && preferredMode === exports.RenderingMode.RENDERER_3D) {
-	                    console.warn('WebGL not supported, falling back to 2D renderer');
+	                    Logger.warn('Renderer', 'WebGL not supported, falling back to 2D renderer');
 	                    return this.create(fallbackMode || exports.RenderingMode.RENDERER_2D);
 	                }
 	            }
 	            return this.create(preferredMode);
 	        }
 	        catch (error) {
-	            console.warn(`Failed to create ${preferredMode} renderer:`, error);
+	            Logger.warn('Renderer', `Failed to create ${preferredMode} renderer:`, error);
 	            if (fallbackMode && fallbackMode !== preferredMode) {
-	                console.info(`Falling back to ${fallbackMode} renderer`);
+	                Logger.info('Renderer', `Falling back to ${fallbackMode} renderer`);
 	                return this.create(fallbackMode);
 	            }
 	            // Final fallback to 2D
@@ -7753,7 +7855,7 @@
 	        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
 	        if (!gl) {
 	            // Fallback to 2D if WebGL is not supported
-	            console.info('WebGL not supported, defaulting to 2D renderer');
+	            Logger.info('Renderer', 'WebGL not supported, defaulting to 2D renderer');
 	            return exports.RenderingMode.RENDERER_2D;
 	        }
 	        // Default to 2D renderer - developers should explicitly choose 3D when needed
@@ -7841,7 +7943,7 @@
 	            this.emit('music:initialized', {});
 	        }
 	        catch (error) {
-	            console.error('Music system initialization failed:', error);
+	            Logger.error('Audio', 'Music system initialization failed:', error);
 	            throw error;
 	        }
 	    }
@@ -7907,7 +8009,7 @@
 	    // Track management
 	    async loadTrack(name, url, config = {}) {
 	        if (this._tracks.has(name)) {
-	            console.warn(`Music track '${name}' already loaded`);
+	            Logger.warn('Audio', `Music track '${name}' already loaded`);
 	            return;
 	        }
 	        try {
@@ -7958,7 +8060,7 @@
 	            });
 	        }
 	        catch (error) {
-	            console.error(`Failed to load music track '${name}':`, error);
+	            Logger.error('Audio', `Failed to load music track '${name}':`, error);
 	            throw error;
 	        }
 	    }
@@ -7975,7 +8077,7 @@
 	            });
 	        }
 	        catch (error) {
-	            console.warn(`Failed to load layer '${layerName}' for track '${track.name}':`, error);
+	            Logger.warn('Audio', `Failed to load layer '${layerName}' for track '${track.name}':`, error);
 	        }
 	    }
 	    /**
@@ -8039,7 +8141,7 @@
 	            });
 	        }
 	        catch (error) {
-	            console.error(`Failed to play music track '${name}':`, error);
+	            Logger.error('Audio', `Failed to play music track '${name}':`, error);
 	            throw error;
 	        }
 	    }
@@ -8063,7 +8165,7 @@
 	    setupSeamlessLooping(track) {
 	        // This would require more complex implementation with precise timing
 	        // For now, we'll use the basic looping functionality
-	        console.log(`Seamless looping setup for track: ${track.name}`);
+	        Logger.info('Audio', `Seamless looping setup for track: ${track.name}`);
 	    }
 	    async stopTrack(fadeTime = 0) {
 	        if (!this._currentTrack) {
@@ -8087,7 +8189,7 @@
 	            }
 	        }
 	        catch (error) {
-	            console.error('Failed to stop music track:', error);
+	            Logger.error('Audio', 'Failed to stop music track:', error);
 	        }
 	    }
 	    /**
@@ -8157,7 +8259,7 @@
 	        }
 	        const layerSource = track.layers.get(layer);
 	        if (!layerSource) {
-	            console.warn(`Layer '${layer}' not found in track '${this._currentTrack}'`);
+	            Logger.warn('Audio', `Layer '${layer}' not found in track '${this._currentTrack}'`);
 	            return;
 	        }
 	        if (this._activeLayers.has(layer)) {
@@ -8178,7 +8280,7 @@
 	            });
 	        }
 	        catch (error) {
-	            console.error(`Failed to enable layer '${layer}':`, error);
+	            Logger.error('Audio', `Failed to enable layer '${layer}':`, error);
 	        }
 	    }
 	    disableLayer(layer, fadeTime = 0) {
@@ -8215,7 +8317,7 @@
 	            });
 	        }
 	        catch (error) {
-	            console.error(`Failed to disable layer '${layer}':`, error);
+	            Logger.error('Audio', `Failed to disable layer '${layer}':`, error);
 	        }
 	    }
 	    setLayerVolume(layer, volume, fadeTime = 0) {
@@ -9071,7 +9173,7 @@
 	            this.emit('sfx:initialized', {});
 	        }
 	        catch (error) {
-	            console.error('SFX system initialization failed:', error);
+	            Logger.error('Audio', 'SFX system initialization failed:', error);
 	            throw error;
 	        }
 	    }
@@ -9286,7 +9388,7 @@
 	            return source;
 	        }
 	        catch (error) {
-	            console.error(`Failed to play sound '${name}':`, error);
+	            Logger.error('Audio', `Failed to play sound '${name}':`, error);
 	            throw error;
 	        }
 	    }
@@ -9312,7 +9414,7 @@
 	                this.play(queuedSound.name, queuedSound.options);
 	            }
 	            catch (error) {
-	                console.warn('Failed to play queued sound:', error);
+	                Logger.warn('Audio', 'Failed to play queued sound:', error);
 	            }
 	        }
 	    }
@@ -9370,7 +9472,7 @@
 	                }
 	            }
 	            catch (error) {
-	                console.warn('Failed to create new pooled source:', error);
+	                Logger.warn('Audio', 'Failed to create new pooled source:', error);
 	            }
 	        }
 	        // Pool is full, use round-robin selection
@@ -9429,7 +9531,7 @@
 	            source.stop();
 	        }
 	        catch (error) {
-	            console.warn('Error stopping sound:', error);
+	            Logger.warn('Audio', 'Error stopping sound:', error);
 	        }
 	    }
 	    // Pool management
@@ -9439,7 +9541,7 @@
 	                await this.getOrCreatePool(sound);
 	            }
 	            catch (error) {
-	                console.warn(`Failed to preload sound '${sound}':`, error);
+	                Logger.warn('Audio', `Failed to preload sound '${sound}':`, error);
 	            }
 	        });
 	        await Promise.all(loadPromises);
@@ -9475,7 +9577,7 @@
 	                    }
 	                }
 	                catch (error) {
-	                    console.warn('Failed to warm up pool:', error);
+	                    Logger.warn('Audio', 'Failed to warm up pool:', error);
 	                    break;
 	                }
 	            }
@@ -10067,7 +10169,7 @@
 	     */
 	    addEffect(name, config) {
 	        // This is a simplified version - in practice, you'd rebuild the entire chain
-	        console.log(`Adding effect ${name} to zone ${this._name}`);
+	        Logger.info('Audio', `Adding effect ${name} to zone ${this._name}`);
 	    }
 	    /**
 	     * Remove individual effect from the zone
@@ -10181,7 +10283,7 @@
 	            this.emit('spatial:initialized', {});
 	        }
 	        catch (error) {
-	            console.warn('Spatial audio initialization failed:', error);
+	            Logger.warn('Audio', 'Spatial audio initialization failed:', error);
 	            // Continue with limited functionality
 	        }
 	    }
@@ -10193,15 +10295,15 @@
 	            // Check if HRTF is supported
 	            if (this._context.listener && 'positionX' in this._context.listener) {
 	                this._hrtfEnabled = true;
-	                console.log('HRTF spatial audio enabled');
+	                Logger.info('Audio', 'HRTF spatial audio enabled');
 	            }
 	            else {
-	                console.warn('HRTF not supported, falling back to basic panner');
+	                Logger.warn('Audio', 'HRTF not supported, falling back to basic panner');
 	                this._hrtfEnabled = false;
 	            }
 	        }
 	        catch (error) {
-	            console.warn('HRTF initialization failed:', error);
+	            Logger.warn('Audio', 'HRTF initialization failed:', error);
 	            this._hrtfEnabled = false;
 	        }
 	    }
@@ -10511,7 +10613,7 @@
 	            });
 	        }
 	        catch (error) {
-	            console.error('Failed to load HRTF data:', error);
+	            Logger.error('Audio', 'Failed to load HRTF data:', error);
 	            throw error;
 	        }
 	    }
@@ -10794,7 +10896,7 @@
 	            });
 	        }
 	        catch (error) {
-	            console.error('Mobile audio manager initialization failed:', error);
+	            Logger.error('Audio', 'Mobile audio manager initialization failed:', error);
 	            throw error;
 	        }
 	    }
@@ -10906,7 +11008,7 @@
 	                    });
 	                }
 	                catch (error) {
-	                    console.warn('Failed to unlock iOS audio:', error);
+	                    Logger.warn('Audio', 'Failed to unlock iOS audio:', error);
 	                }
 	            }
 	        };
@@ -10919,7 +11021,7 @@
 	    configureIOSAudioSession() {
 	        // This would require native iOS integration
 	        // For web context, we can only make suggestions
-	        console.log('iOS audio session configuration suggested');
+	        Logger.info('Audio', 'iOS audio session configuration suggested');
 	    }
 	    /**
 	     * Setup Android-specific optimizations
@@ -11034,8 +11136,8 @@
 	                    this.handleBatteryChange();
 	                });
 	                this.handleBatteryChange();
-	            }).catch(() => {
-	                console.warn('Battery API not available');
+	            }).catch((e) => {
+	                Logger.warn('Audio', 'Battery API not available', e);
 	            });
 	        }
 	    }
@@ -11692,7 +11794,7 @@
 	            }
 	        }
 	        catch (error) {
-	            console.warn('Failed to load audio analytics data:', error);
+	            Logger.warn('Audio', 'Failed to load audio analytics data:', error);
 	        }
 	    }
 	    /**
@@ -11712,7 +11814,7 @@
 	            localStorage.setItem('gamebyte-audio-analytics', JSON.stringify(data));
 	        }
 	        catch (error) {
-	            console.warn('Failed to save audio analytics data:', error);
+	            Logger.warn('Audio', 'Failed to save audio analytics data:', error);
 	        }
 	    }
 	    /**
@@ -12262,7 +12364,7 @@
 	            this.emit('effects:initialized', {});
 	        }
 	        catch (error) {
-	            console.warn('Some effects features may not be available:', error);
+	            Logger.warn('Audio', 'Some effects features may not be available:', error);
 	            // Continue initialization even if some features fail
 	        }
 	    }
@@ -12282,7 +12384,7 @@
 	                this._workletProcessorsLoaded.add(processor);
 	            }
 	            catch (error) {
-	                console.warn(`Failed to load worklet processor: ${processor}`, error);
+	                Logger.warn('Audio', `Failed to load worklet processor: ${processor}`, error);
 	            }
 	        }
 	    }
@@ -12864,7 +12966,7 @@
 	            this.emit('procedural:initialized', {});
 	        }
 	        catch (error) {
-	            console.warn('Some procedural audio features may not be available:', error);
+	            Logger.warn('Audio', 'Some procedural audio features may not be available:', error);
 	        }
 	    }
 	    /**
@@ -12905,7 +13007,7 @@
 	                this._workletProcessors.add(processor);
 	            }
 	            catch (error) {
-	                console.warn(`Failed to load worklet processor: ${processor}`, error);
+	                Logger.warn('Audio', `Failed to load worklet processor: ${processor}`, error);
 	            }
 	        }
 	    }
@@ -13163,7 +13265,7 @@
 	        }
 	        catch (error) {
 	            // Fallback to non-worklet implementation
-	            console.warn('AudioWorklet not supported, using fallback granular synthesis');
+	            Logger.warn('Audio', 'AudioWorklet not supported, using fallback granular synthesis');
 	            return this.createFallbackGranularProcessor(grainSize, overlap);
 	        }
 	    }
@@ -14105,7 +14207,7 @@
 	                    this.emit('audio:unlocked', {});
 	                }
 	                catch (error) {
-	                    console.warn('Failed to unlock audio context:', error);
+	                    Logger.warn('Audio', 'Failed to unlock audio context:', error);
 	                }
 	            }
 	        };
@@ -14455,10 +14557,10 @@
 	            this.setupSceneIntegration(app, audioManager);
 	            // Optimize for detected device
 	            audioManager.optimizeForDevice();
-	            console.log(`GameByte Audio System initialized (Performance Tier: ${audioManager.performanceTier})`);
+	            Logger.info('Audio', `GameByte Audio System initialized (Performance Tier: ${audioManager.performanceTier})`);
 	        }
 	        catch (error) {
-	            console.error('Failed to initialize GameByte Audio System:', error);
+	            Logger.error('Audio', 'Failed to initialize GameByte Audio System:', error);
 	            throw error;
 	        }
 	    }
@@ -14565,7 +14667,7 @@
 	        }
 	        catch (error) {
 	            // Performance integration not available, continue without it
-	            console.warn('Audio-Performance integration not available:', error);
+	            Logger.warn('Audio', 'Audio-Performance integration not available:', error);
 	        }
 	    }
 	    /**
@@ -14603,7 +14705,7 @@
 	            }
 	        }
 	        catch (error) {
-	            console.warn('Audio-Scene integration not available:', error);
+	            Logger.warn('Audio', 'Audio-Scene integration not available:', error);
 	        }
 	    }
 	    /**
@@ -14648,7 +14750,7 @@
 	                }
 	            }
 	            catch (error) {
-	                console.warn(`Failed to load audio assets for scene '${sceneName}':`, error);
+	                Logger.warn('Audio', `Failed to load audio assets for scene '${sceneName}':`, error);
 	            }
 	        }
 	    }
@@ -15311,6 +15413,7 @@
 	            enabled: config.enabled !== false
 	        };
 	        this.plugins.set(config.name, entry);
+	        Logger.debug('Plugins', `Plugin registered: ${config.name}`);
 	        this.emit('plugin:registered', config.name, entry);
 	    }
 	    /**
@@ -18928,9 +19031,12 @@
 	    setupUpdateLoop(app, uiManager, animationSystem) {
 	        // Hook into the framework's update loop
 	        let lastTime = Date.now();
+	        let animationFrameId = null;
 	        const updateUI = () => {
-	            if (!app.isRunning())
+	            if (!app.isRunning()) {
+	                animationFrameId = null;
 	                return;
+	            }
 	            const currentTime = Date.now();
 	            const deltaTime = currentTime - lastTime;
 	            lastTime = currentTime;
@@ -18939,12 +19045,23 @@
 	            // Update animation system
 	            animationSystem.update(deltaTime);
 	            // Continue loop
-	            requestAnimationFrame(updateUI);
+	            animationFrameId = requestAnimationFrame(updateUI);
 	        };
 	        // Start the UI update loop when the app starts
 	        app.on('started', () => {
+	            // Cancel any existing animation frame to prevent multiple loops
+	            if (animationFrameId !== null) {
+	                cancelAnimationFrame(animationFrameId);
+	            }
 	            lastTime = Date.now();
 	            updateUI();
+	        });
+	        // Clean up when app stops
+	        app.on('stopped', () => {
+	            if (animationFrameId !== null) {
+	                cancelAnimationFrame(animationFrameId);
+	                animationFrameId = null;
+	            }
 	        });
 	        // Hook into renderer for UI rendering
 	        app.on('initialized', () => {
@@ -19765,7 +19882,7 @@
 	        // TouchInputHandler processes events differently from other handlers
 	        // It works with raw TouchEvent and PointerEvent objects
 	        // This method is here for interface compatibility
-	        console.warn('TouchInputHandler.handleInput() called directly - use processTouchEvent() or processPointerEvent() instead');
+	        Logger.warn('Input', 'TouchInputHandler.handleInput() called directly - use processTouchEvent() or processPointerEvent() instead');
 	    }
 	    /**
 	     * Check if handler is enabled (InputHandler interface)
@@ -19778,7 +19895,7 @@
 	     */
 	    setEnabled(enabled) {
 	        if (enabled && !this.isInitialized) {
-	            console.warn('Cannot enable TouchInputHandler - not initialized. Call initialize() first.');
+	            Logger.warn('Input', 'Cannot enable TouchInputHandler - not initialized. Call initialize() first.');
 	        }
 	        else if (!enabled && this.isInitialized) {
 	            this.destroy();
@@ -20640,7 +20757,7 @@
 	            localStorage.setItem(`gamebyte-input-profile-${profile.id}`, serializedProfile);
 	        }
 	        catch (error) {
-	            console.warn('Failed to save input profile to localStorage:', error);
+	            Logger.warn('Input', 'Failed to save input profile to localStorage:', error);
 	        }
 	    }
 	    /**
@@ -20661,7 +20778,7 @@
 	                }
 	            }
 	            catch (error) {
-	                console.warn('Failed to load input profile from localStorage:', error);
+	                Logger.warn('Input', 'Failed to load input profile from localStorage:', error);
 	            }
 	        }
 	        return profile ? { ...profile } : null;
@@ -20675,7 +20792,7 @@
 	            localStorage.removeItem(`gamebyte-input-profile-${id}`);
 	        }
 	        catch (error) {
-	            console.warn('Failed to remove input profile from localStorage:', error);
+	            Logger.warn('Input', 'Failed to remove input profile from localStorage:', error);
 	        }
 	    }
 	    /**
@@ -21472,7 +21589,7 @@
 	            });
 	        }
 	        catch (error) {
-	            console.warn('Battery monitoring not available:', error);
+	            Logger.warn('Input', 'Battery monitoring not available:', error);
 	            this.batteryMonitoringSupported = false;
 	        }
 	    }
@@ -22222,7 +22339,7 @@
 	                            callback(processedEvent);
 	                        }
 	                        catch (error) {
-	                            console.error('Error in input action callback:', error);
+	                            Logger.error('Input', 'Error in input action callback:', error);
 	                        }
 	                    }
 	                }
@@ -22417,7 +22534,7 @@
 	                    callback(event);
 	                }
 	                catch (error) {
-	                    console.error('Error in input action callback:', error);
+	                    Logger.error('Input', 'Error in input action callback:', error);
 	                }
 	            }
 	        }
@@ -24765,7 +24882,7 @@
 	        });
 	        // Monitor performance metrics
 	        inputManager.on('performance-warning', (metrics) => {
-	            console.warn('Input performance warning:', metrics);
+	            Logger.warn('Input', 'Input performance warning:', metrics);
 	            // Automatically optimize for better performance
 	            if (metrics.frameRate < 30) {
 	                performanceManager.optimizeForPerformance();
@@ -24912,10 +25029,10 @@
 	    setupInputDebugging(inputManager) {
 	        // Log input events for debugging
 	        inputManager.on('raw-input', (event) => {
-	            console.log('Raw Input:', event);
+	            Logger.info('Input', 'Raw Input:', event);
 	        });
 	        inputManager.on('action', (action, data, source) => {
-	            console.log(`Action: ${action} from ${source}`, data);
+	            Logger.info('Input', `Action: ${action} from ${source}`, data);
 	        });
 	        // Add debug overlay for input visualization
 	        const debugOverlay = document.createElement('div');
@@ -25248,7 +25365,7 @@
 	    addShape(config) {
 	        // For Matter.js, we would need to create a compound body
 	        // This is a simplified implementation
-	        console.warn('addShape not fully implemented for Matter2DBody');
+	        Logger.warn('Physics', 'addShape not fully implemented for Matter2DBody');
 	        this.emit('shape-added', config);
 	    }
 	    /**
@@ -25256,7 +25373,7 @@
 	     */
 	    removeShape(index) {
 	        // For Matter.js, this would require reconstructing the body
-	        console.warn('removeShape not fully implemented for Matter2DBody');
+	        Logger.warn('Physics', 'removeShape not fully implemented for Matter2DBody');
 	        this.emit('shape-removed', index);
 	    }
 	    /**
@@ -25576,7 +25693,7 @@
 	            case 'pulley':
 	                // These constraint types are not directly supported by Matter.js
 	                // Fall back to distance constraint
-	                console.warn(`Constraint type '${config.type}' not fully supported in Matter.js, using distance constraint`);
+	                Logger.warn('Physics', `Constraint type '${config.type}' not fully supported in Matter.js, using distance constraint`);
 	                constraint = Matter.Constraint.create(options);
 	                break;
 	            default:
@@ -25588,7 +25705,7 @@
 	        if (config.lowerLimit !== undefined || config.upperLimit !== undefined) {
 	            // Matter.js doesn't have built-in constraint limits
 	            // This would need custom implementation
-	            console.warn('Constraint limits not supported in Matter.js');
+	            Logger.warn('Physics', 'Constraint limits not supported in Matter.js');
 	        }
 	        // Apply motor settings if specified
 	        if (config.motorSpeed !== undefined || config.motorForce !== undefined) {
@@ -26841,11 +26958,11 @@
 	                return new CANNON__namespace.Cylinder(config.radius || dimensions.x / 2, config.radius || dimensions.x / 2, config.height || dimensions.y, 8);
 	            case 'heightfield':
 	                // Would need height data
-	                console.warn('Heightfield shape not implemented');
+	                Logger.warn('Physics', 'Heightfield shape not implemented');
 	                return new CANNON__namespace.Box(new CANNON__namespace.Vec3(1, 1, 1));
 	            case 'mesh':
 	                // Would need mesh data
-	                console.warn('Mesh shape not implemented');
+	                Logger.warn('Physics', 'Mesh shape not implemented');
 	                return new CANNON__namespace.Box(new CANNON__namespace.Vec3(1, 1, 1));
 	            default:
 	                // Default to box
@@ -27126,7 +27243,7 @@
 	                break;
 	            case 'prismatic':
 	                // Prismatic constraint (linear movement along axis)
-	                console.warn('Prismatic constraint not fully supported in Cannon.js, using distance constraint');
+	                Logger.warn('Physics', 'Prismatic constraint not fully supported in Cannon.js, using distance constraint');
 	                constraint = new CANNON__namespace.DistanceConstraint(nativeBodyA, nativeBodyB, config.length || 1);
 	                break;
 	            case 'fixed':
@@ -27143,7 +27260,7 @@
 	            case 'pulley':
 	            case 'mouse':
 	                // These constraint types are not directly supported by Cannon.js
-	                console.warn(`Constraint type '${config.type}' not supported in Cannon.js, using distance constraint`);
+	                Logger.warn('Physics', `Constraint type '${config.type}' not supported in Cannon.js, using distance constraint`);
 	                constraint = new CANNON__namespace.DistanceConstraint(nativeBodyA, nativeBodyB, config.length || 1);
 	                break;
 	            default:
@@ -27659,12 +27776,12 @@
 	        // Configure bounds if specified
 	        if (this.config.bounds) {
 	            // Cannon.js doesn't have built-in world bounds, but we could add collision planes
-	            console.warn('World bounds not implemented for Cannon3DWorld');
+	            Logger.warn('Physics', 'World bounds not implemented for Cannon3DWorld');
 	        }
 	        // Enable CCD if requested
 	        if (this.config.enableCCD) {
 	            // Cannon.js doesn't have built-in CCD, but we could implement it
-	            console.warn('CCD not implemented for Cannon3DWorld');
+	            Logger.warn('Physics', 'CCD not implemented for Cannon3DWorld');
 	        }
 	        // Optimize for mobile by default
 	        this.optimizeForMobile();
@@ -30135,7 +30252,7 @@
 	                }
 	                catch (error) {
 	                    // Physics engine not available - this is fine for games that don't use physics
-	                    console.warn('⚠️ Physics engine not available. If you need physics, include Matter.js (2D) or Cannon.js (3D).');
+	                    Logger.warn('Physics', 'Physics engine not available. If you need physics, include Matter.js (2D) or Cannon.js (3D).');
 	                }
 	            }
 	        });
@@ -31108,7 +31225,7 @@
 	     */
 	    release(obj) {
 	        if (!this.inUseObjects.has(obj)) {
-	            console.warn('Attempting to release object not from this pool');
+	            Logger.warn('Performance', 'Attempting to release object not from this pool');
 	            return;
 	        }
 	        this.inUseObjects.delete(obj);
@@ -32404,7 +32521,7 @@
 	            }
 	        }
 	        catch (error) {
-	            console.warn('Battery API not available:', error);
+	            Logger.warn('Performance', 'Battery API not available:', error);
 	        }
 	    }
 	    /**
@@ -32495,7 +32612,7 @@
 	            }
 	        }
 	        catch (error) {
-	            console.warn('Thermal API error:', error);
+	            Logger.warn('Performance', 'Thermal API error:', error);
 	        }
 	    }
 	    /**
@@ -33493,7 +33610,7 @@
 	        const endTime = performance.now();
 	        const session = this.sessions.get(name);
 	        if (!session) {
-	            console.warn(`No profiling session found for: ${name}`);
+	            Logger.warn('Performance', `No profiling session found for: ${name}`);
 	            return 0;
 	        }
 	        const duration = endTime - session.startTime;
@@ -33538,7 +33655,7 @@
 	        const startTime = this.marks.get(startMark);
 	        const endTime = this.marks.get(endMark);
 	        if (startTime === undefined || endTime === undefined) {
-	            console.warn(`Marks not found: ${startMark}, ${endMark}`);
+	            Logger.warn('Performance', `Marks not found: ${startMark}, ${endMark}`);
 	            return 0;
 	        }
 	        const duration = endTime - startTime;
@@ -34474,7 +34591,7 @@
 	                event.preventDefault();
 	                if (container.bound('performance.debug')) {
 	                    const debug = app.make('performance.debug');
-	                    console.log('Performance Report:', debug.getReport());
+	                    Logger.info('Performance', 'Performance Report:', debug.getReport());
 	                }
 	            }
 	        });
@@ -34489,7 +34606,7 @@
 	                }
 	            }
 	            catch (error) {
-	                console.warn('Failed to initialize device detection:', error);
+	                Logger.warn('Performance', 'Failed to initialize device detection:', error);
 	            }
 	        }
 	        // Emit bootstrap completion
@@ -35203,7 +35320,7 @@
 	            this.getInputManager().initialize(element);
 	        }
 	        catch (error) {
-	            console.error('Failed to initialize input system:', error);
+	            Logger.error('Input', 'Failed to initialize input system:', error);
 	            throw error;
 	        }
 	    }
@@ -35215,7 +35332,7 @@
 	            this.getInputManager().setContext(context);
 	        }
 	        catch (error) {
-	            console.warn('Failed to set input context:', error);
+	            Logger.warn('Input', 'Failed to set input context:', error);
 	        }
 	    }
 	    /**
@@ -35226,7 +35343,7 @@
 	            return this.getInputManager().currentContext;
 	        }
 	        catch (error) {
-	            console.warn('Failed to get input context:', error);
+	            Logger.warn('Input', 'Failed to get input context:', error);
 	            return 'menu'; // Default fallback
 	        }
 	    }
@@ -35262,7 +35379,7 @@
 	            return this.getInputManager().getHandler(handlerName);
 	        }
 	        catch (error) {
-	            console.warn('Failed to get input handler:', error);
+	            Logger.warn('Input', 'Failed to get input handler:', error);
 	            return null;
 	        }
 	    }
@@ -35516,7 +35633,7 @@
 	            }
 	        }
 	        catch (error) {
-	            console.warn('Failed to get movement vector:', error);
+	            Logger.warn('Input', 'Failed to get movement vector:', error);
 	        }
 	        return { x: 0, y: 0 };
 	    }
@@ -35531,7 +35648,7 @@
 	            }
 	        }
 	        catch (error) {
-	            console.warn('Failed to check if player is moving:', error);
+	            Logger.warn('Input', 'Failed to check if player is moving:', error);
 	        }
 	        return false;
 	    }
@@ -35546,7 +35663,7 @@
 	            }
 	        }
 	        catch (error) {
-	            console.warn('Failed to check if jump is pressed:', error);
+	            Logger.warn('Input', 'Failed to check if jump is pressed:', error);
 	        }
 	        return false;
 	    }
@@ -35561,7 +35678,7 @@
 	            }
 	        }
 	        catch (error) {
-	            console.warn('Failed to check if jump was just pressed:', error);
+	            Logger.warn('Input', 'Failed to check if jump was just pressed:', error);
 	        }
 	        return false;
 	    }
@@ -35576,7 +35693,7 @@
 	            }
 	        }
 	        catch (error) {
-	            console.warn('Failed to get camera pan delta:', error);
+	            Logger.warn('Input', 'Failed to get camera pan delta:', error);
 	        }
 	        return { x: 0, y: 0 };
 	    }
@@ -35591,7 +35708,7 @@
 	            }
 	        }
 	        catch (error) {
-	            console.warn('Failed to get camera zoom delta:', error);
+	            Logger.warn('Input', 'Failed to get camera zoom delta:', error);
 	        }
 	        return 0;
 	    }
@@ -35629,10 +35746,10 @@
 	     */
 	    static enableDebugMode() {
 	        this.onRawInput((event) => {
-	            console.log('Input Event:', event);
+	            Logger.info('Input', 'Input Event:', event);
 	        });
 	        this.onAnyAction((action, data, source) => {
-	            console.log(`Action: ${action} [${source}]`, data);
+	            Logger.info('Input', `Action: ${action} [${source}]`, data);
 	        });
 	    }
 	    /**
@@ -36435,6 +36552,295 @@
 	}
 
 	/**
+	 * Gradient Factory
+	 *
+	 * Provides native Pixi.js v8 FillGradient helpers for creating
+	 * linear and radial gradients with ease.
+	 *
+	 * Uses native PIXI.FillGradient API which works correctly with ALL shapes
+	 * including polygons, hexagons, circles, and rectangles.
+	 *
+	 * @example
+	 * ```typescript
+	 * import { Gradients } from 'gamebyte-framework';
+	 *
+	 * // Simple vertical gradient
+	 * const gradient = Gradients.linear.vertical(0x4DA6FF, 0x2E7BC9);
+	 * graphics.roundRect(0, 0, 100, 50, 10).fill(gradient);
+	 *
+	 * // Hexagon with gradient
+	 * graphics.poly(hexagonVertices).fill(Gradients.linear.vertical(0x4DA6FF, 0x2E7BC9));
+	 *
+	 * // Button depth effect
+	 * const buttonGrad = Gradients.presets.buttonDepth(0x2DE45A, 0x28A165);
+	 * graphics.roundRect(0, 0, 200, 60, 12).fill(buttonGrad);
+	 * ```
+	 */
+	/**
+	 * Create a linear gradient
+	 */
+	function createLinearGradient(options) {
+	    return new PIXI__namespace.FillGradient({
+	        type: 'linear',
+	        start: options.start ?? { x: 0, y: 0 },
+	        end: options.end ?? { x: 0, y: 1 },
+	        colorStops: options.colorStops,
+	        textureSpace: options.textureSpace ?? 'local'
+	    });
+	}
+	/**
+	 * Create a radial gradient
+	 */
+	function createRadialGradient(options) {
+	    return new PIXI__namespace.FillGradient({
+	        type: 'radial',
+	        center: options.center ?? { x: 0.5, y: 0.5 },
+	        innerRadius: options.innerRadius ?? 0,
+	        outerCenter: options.outerCenter ?? { x: 0.5, y: 0.5 },
+	        outerRadius: options.outerRadius ?? 0.5,
+	        colorStops: options.colorStops,
+	        textureSpace: options.textureSpace ?? 'local'
+	    });
+	}
+	/**
+	 * Gradient Factory with preset helpers
+	 */
+	const Gradients = {
+	    /**
+	     * Linear gradient helpers
+	     */
+	    linear: {
+	        /**
+	         * Vertical gradient (top to bottom)
+	         * Most common for buttons and UI elements
+	         */
+	        vertical(topColor, bottomColor, textureSpace = 'local') {
+	            return createLinearGradient({
+	                start: { x: 0, y: 0 },
+	                end: { x: 0, y: 1 },
+	                colorStops: [
+	                    { offset: 0, color: topColor },
+	                    { offset: 1, color: bottomColor }
+	                ],
+	                textureSpace
+	            });
+	        },
+	        /**
+	         * Vertical gradient with hard stop (3D button effect)
+	         * Creates a split appearance at the specified position
+	         */
+	        verticalHardStop(topColor, bottomColor, stopPosition = 0.5, textureSpace = 'local') {
+	            return createLinearGradient({
+	                start: { x: 0, y: 0 },
+	                end: { x: 0, y: 1 },
+	                colorStops: [
+	                    { offset: 0, color: topColor },
+	                    { offset: stopPosition, color: topColor },
+	                    { offset: stopPosition, color: bottomColor },
+	                    { offset: 1, color: bottomColor }
+	                ],
+	                textureSpace
+	            });
+	        },
+	        /**
+	         * Vertical gradient with soft transition (game button style)
+	         * Keeps top color longer then fades to bottom
+	         */
+	        verticalSoft(topColor, bottomColor, holdPosition = 0.35, textureSpace = 'local') {
+	            return createLinearGradient({
+	                start: { x: 0, y: 0 },
+	                end: { x: 0, y: 1 },
+	                colorStops: [
+	                    { offset: 0, color: topColor },
+	                    { offset: holdPosition, color: topColor },
+	                    { offset: 1, color: bottomColor }
+	                ],
+	                textureSpace
+	            });
+	        },
+	        /**
+	         * Horizontal gradient (left to right)
+	         */
+	        horizontal(leftColor, rightColor, textureSpace = 'local') {
+	            return createLinearGradient({
+	                start: { x: 0, y: 0 },
+	                end: { x: 1, y: 0 },
+	                colorStops: [
+	                    { offset: 0, color: leftColor },
+	                    { offset: 1, color: rightColor }
+	                ],
+	                textureSpace
+	            });
+	        },
+	        /**
+	         * Diagonal gradient (top-left to bottom-right)
+	         */
+	        diagonal(startColor, endColor, textureSpace = 'local') {
+	            return createLinearGradient({
+	                start: { x: 0, y: 0 },
+	                end: { x: 1, y: 1 },
+	                colorStops: [
+	                    { offset: 0, color: startColor },
+	                    { offset: 1, color: endColor }
+	                ],
+	                textureSpace
+	            });
+	        },
+	        /**
+	         * Multi-stop gradient with custom color stops
+	         */
+	        multiStop(colorStops, direction = 'vertical', textureSpace = 'local') {
+	            return createLinearGradient({
+	                start: { x: 0, y: 0 },
+	                end: direction === 'vertical' ? { x: 0, y: 1 } : { x: 1, y: 0 },
+	                colorStops,
+	                textureSpace
+	            });
+	        }
+	    },
+	    /**
+	     * Radial gradient helpers
+	     */
+	    radial: {
+	        /**
+	         * Centered radial gradient (from center outward)
+	         */
+	        centered(innerColor, outerColor, textureSpace = 'local') {
+	            return createRadialGradient({
+	                center: { x: 0.5, y: 0.5 },
+	                innerRadius: 0,
+	                outerCenter: { x: 0.5, y: 0.5 },
+	                outerRadius: 0.5,
+	                colorStops: [
+	                    { offset: 0, color: innerColor },
+	                    { offset: 1, color: outerColor }
+	                ],
+	                textureSpace
+	            });
+	        },
+	        /**
+	         * Spotlight effect (bright center, dark edges)
+	         */
+	        spotlight(color, fadeColor = 0x000000, textureSpace = 'local') {
+	            return createRadialGradient({
+	                center: { x: 0.5, y: 0.5 },
+	                innerRadius: 0,
+	                outerCenter: { x: 0.5, y: 0.5 },
+	                outerRadius: 0.5,
+	                colorStops: [
+	                    { offset: 0, color: color },
+	                    { offset: 0.3, color: color },
+	                    { offset: 1, color: fadeColor }
+	                ],
+	                textureSpace
+	            });
+	        },
+	        /**
+	         * Glow effect (white/light center fading outward)
+	         */
+	        glow(glowColor = 0xFFFFFF, midColor = 0xFFFAE6, edgeColor = 0x000000, textureSpace = 'local') {
+	            return createRadialGradient({
+	                center: { x: 0.5, y: 0.5 },
+	                innerRadius: 0,
+	                outerCenter: { x: 0.5, y: 0.5 },
+	                outerRadius: 0.5,
+	                colorStops: [
+	                    { offset: 0, color: glowColor },
+	                    { offset: 0.3, color: midColor },
+	                    { offset: 1, color: edgeColor }
+	                ],
+	                textureSpace
+	            });
+	        },
+	        /**
+	         * Multi-stop radial gradient
+	         */
+	        multiStop(colorStops, textureSpace = 'local') {
+	            return createRadialGradient({
+	                center: { x: 0.5, y: 0.5 },
+	                innerRadius: 0,
+	                outerCenter: { x: 0.5, y: 0.5 },
+	                outerRadius: 0.5,
+	                colorStops,
+	                textureSpace
+	            });
+	        }
+	    },
+	    /**
+	     * Preset gradients for common mobile game UI patterns
+	     */
+	    presets: {
+	        /**
+	         * Button depth effect gradient
+	         * Creates 3D appearance with lighter top and darker bottom
+	         */
+	        buttonDepth(topColor, bottomColor) {
+	            return Gradients.linear.vertical(topColor, bottomColor);
+	        },
+	        /**
+	         * Button with soft hold (like HexagonLevelButton style)
+	         * Holds the top color for a bit before transitioning
+	         */
+	        buttonSoft(topColor, bottomColor) {
+	            return Gradients.linear.verticalSoft(topColor, bottomColor, 0.35);
+	        },
+	        /**
+	         * Sky background gradient (blue tones)
+	         */
+	        sky() {
+	            return Gradients.linear.multiStop([
+	                { offset: 0, color: 0x0066CC },
+	                { offset: 0.3, color: 0x0088EE },
+	                { offset: 0.6, color: 0x00AAFF },
+	                { offset: 1, color: 0x66CCFF }
+	            ]);
+	        },
+	        /**
+	         * Sunset background gradient
+	         */
+	        sunset() {
+	            return Gradients.linear.multiStop([
+	                { offset: 0, color: 0x1a0533 },
+	                { offset: 0.3, color: 0x7b2d5b },
+	                { offset: 0.5, color: 0xf0724a },
+	                { offset: 0.7, color: 0xffc35e },
+	                { offset: 1, color: 0xfff8dc }
+	            ]);
+	        },
+	        /**
+	         * Night sky gradient
+	         */
+	        nightSky() {
+	            return Gradients.linear.multiStop([
+	                { offset: 0, color: 0x0f0c29 },
+	                { offset: 0.5, color: 0x302b63 },
+	                { offset: 1, color: 0x24243e }
+	            ]);
+	        },
+	        /**
+	         * Highlight shine effect (semi-transparent white)
+	         * Use alpha in fill options for transparency
+	         */
+	        highlight() {
+	            return Gradients.linear.vertical(0xFFFFFF, 0xFFFFFF);
+	        },
+	        /**
+	         * Track/slider gradient (dark inset look)
+	         */
+	        track(topColor, bottomColor) {
+	            return Gradients.linear.vertical(topColor, bottomColor);
+	        }
+	    },
+	    /**
+	     * Create a custom gradient with full control
+	     */
+	    custom: {
+	        linear: createLinearGradient,
+	        radial: createRadialGradient
+	    }
+	};
+
+	/**
 	 * Game-style UI theme inspired by mobile games like Brawl Stars, Candy Crush, etc.
 	 * Features vibrant colors, multi-layer effects, and bold visual design.
 	 */
@@ -36827,28 +37233,6 @@
 	    }
 	};
 	/**
-	 * Create a canvas gradient for game buttons
-	 */
-	function createGameButtonGradient(ctx, x, y, width, height, colorTop, colorBottom) {
-	    const gradient = ctx.createLinearGradient(x, y, x, y + height);
-	    gradient.addColorStop(0, numberToHex(colorTop));
-	    gradient.addColorStop(0.5, numberToHex(colorTop));
-	    gradient.addColorStop(0.5, numberToHex(colorBottom));
-	    gradient.addColorStop(1, numberToHex(colorBottom));
-	    return gradient;
-	}
-	/**
-	 * Create a vertical gradient for backgrounds
-	 */
-	function createSkyGradient(ctx, width, height) {
-	    const gradient = ctx.createLinearGradient(0, 0, 0, height);
-	    gradient.addColorStop(0, '#0066CC');
-	    gradient.addColorStop(0.3, '#0088EE');
-	    gradient.addColorStop(0.6, '#00AAFF');
-	    gradient.addColorStop(1, '#66CCFF');
-	    return gradient;
-	}
-	/**
 	 * Convert hex number to CSS color string
 	 */
 	function numberToHex(num) {
@@ -37046,22 +37430,11 @@
 	     */
 	    renderGradientBackground(baseColor) {
 	        const { width, height, borderRadius, gradient } = this.config;
-	        // Determine gradient colors
-	        const colorTop = gradient.colorTop !== undefined ? gradient.colorTop : lightenColor(baseColor, 0.2);
-	        const colorBottom = gradient.colorBottom !== undefined ? gradient.colorBottom : darkenColor(baseColor, 0.2);
-	        // Create gradient texture using framework abstraction
-	        const texture = graphics().createCanvasTexture(width, height, (ctx) => {
-	            const gradientFill = ctx.createLinearGradient(0, 0, 0, height);
-	            gradientFill.addColorStop(0, numberToHex(colorTop));
-	            gradientFill.addColorStop(1, numberToHex(colorBottom));
-	            ctx.fillStyle = gradientFill;
-	            this.roundRect(ctx, 0, 0, width, height, borderRadius);
-	            ctx.fill();
-	        });
-	        // Apply to sprite
-	        this.background.texture(texture);
+	        const colorTop = gradient.colorTop ?? lightenColor(baseColor, 0.2);
+	        const colorBottom = gradient.colorBottom ?? darkenColor(baseColor, 0.2);
+	        const fillGradient = Gradients.linear.vertical(colorTop, colorBottom);
 	        this.background.roundRect(0, 0, width, height, borderRadius);
-	        this.background.fill();
+	        this.background.fill(fillGradient);
 	    }
 	    /**
 	     * Render solid background
@@ -37224,19 +37597,6 @@
 	        this.activeRipples = [];
 	        this.container.destroy({ children: true });
 	        this.removeAllListeners();
-	    }
-	    roundRect(ctx, x, y, width, height, radius) {
-	        ctx.beginPath();
-	        ctx.moveTo(x + radius, y);
-	        ctx.lineTo(x + width - radius, y);
-	        ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-	        ctx.lineTo(x + width, y + height - radius);
-	        ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-	        ctx.lineTo(x + radius, y + height);
-	        ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-	        ctx.lineTo(x, y + radius);
-	        ctx.quadraticCurveTo(x, y, x + radius, y);
-	        ctx.closePath();
 	    }
 	}
 
@@ -39655,7 +40015,7 @@
 	                ? { baseWidth: this.config.canvasWidth, baseHeight: this.config.canvasHeight }
 	                : options.responsive;
 	            this.responsiveCalculator = new ResponsiveScaleCalculator(responsiveConfig);
-	            console.log('📱 ArcheroMenu responsive mode enabled with base size:', responsiveConfig.baseWidth, 'x', responsiveConfig.baseHeight);
+	            Logger.info('UI', 'ArcheroMenu responsive mode enabled with base size:', responsiveConfig.baseWidth, 'x', responsiveConfig.baseHeight);
 	        }
 	        // Create containers
 	        this.rootContainer = graphics().createContainer();
@@ -41146,11 +41506,11 @@
 	                }
 	            }
 	            catch (e) {
-	                console.warn('GameLoading: Failed to create background sprite', e);
+	                Logger.warn('UI', 'GameLoading: Failed to create background sprite', e);
 	            }
 	        };
 	        img.onerror = (e) => {
-	            console.warn('GameLoading: Failed to load background image', e);
+	            Logger.warn('UI', 'GameLoading: Failed to load background image', e);
 	        };
 	        img.src = imageUrl;
 	    }
@@ -42491,11 +42851,11 @@
 	                }
 	            }
 	            catch (e) {
-	                console.warn('HubScreen: Failed to create background sprite', e);
+	                Logger.warn('UI', 'HubScreen: Failed to create background sprite', e);
 	            }
 	        };
 	        img.onerror = (e) => {
-	            console.warn('HubScreen: Failed to load background image', e);
+	            Logger.warn('UI', 'HubScreen: Failed to load background image', e);
 	        };
 	        img.src = imageUrl;
 	    }
@@ -43872,293 +44232,66 @@
 	}
 
 	/**
-	 * Gradient Factory
+	 * Flat Modern UI Theme
 	 *
-	 * Provides native Pixi.js v8 FillGradient helpers for creating
-	 * linear and radial gradients with ease.
+	 * Clean, minimal design with subtle shadows and no heavy gradients.
+	 * Ideal for casual/hyper-casual games and modern app-style interfaces.
 	 *
-	 * Uses native PIXI.FillGradient API which works correctly with ALL shapes
-	 * including polygons, hexagons, circles, and rectangles.
-	 *
-	 * @example
-	 * ```typescript
-	 * import { Gradients } from 'gamebyte-framework';
-	 *
-	 * // Simple vertical gradient
-	 * const gradient = Gradients.linear.vertical(0x4DA6FF, 0x2E7BC9);
-	 * graphics.roundRect(0, 0, 100, 50, 10).fill(gradient);
-	 *
-	 * // Hexagon with gradient
-	 * graphics.poly(hexagonVertices).fill(Gradients.linear.vertical(0x4DA6FF, 0x2E7BC9));
-	 *
-	 * // Button depth effect
-	 * const buttonGrad = Gradients.presets.buttonDepth(0x2DE45A, 0x28A165);
-	 * graphics.roundRect(0, 0, 200, 60, 12).fill(buttonGrad);
-	 * ```
+	 * Inspired by modern mobile app design (Material You, iOS 17+).
 	 */
-	/**
-	 * Create a linear gradient
-	 */
-	function createLinearGradient(options) {
-	    return new PIXI__namespace.FillGradient({
-	        type: 'linear',
-	        start: options.start ?? { x: 0, y: 0 },
-	        end: options.end ?? { x: 0, y: 1 },
-	        colorStops: options.colorStops,
-	        textureSpace: options.textureSpace ?? 'local'
-	    });
-	}
-	/**
-	 * Create a radial gradient
-	 */
-	function createRadialGradient(options) {
-	    return new PIXI__namespace.FillGradient({
-	        type: 'radial',
-	        center: options.center ?? { x: 0.5, y: 0.5 },
-	        innerRadius: options.innerRadius ?? 0,
-	        outerCenter: options.outerCenter ?? { x: 0.5, y: 0.5 },
-	        outerRadius: options.outerRadius ?? 0.5,
-	        colorStops: options.colorStops,
-	        textureSpace: options.textureSpace ?? 'local'
-	    });
-	}
-	/**
-	 * Gradient Factory with preset helpers
-	 */
-	const Gradients = {
-	    /**
-	     * Linear gradient helpers
-	     */
-	    linear: {
-	        /**
-	         * Vertical gradient (top to bottom)
-	         * Most common for buttons and UI elements
-	         */
-	        vertical(topColor, bottomColor, textureSpace = 'local') {
-	            return createLinearGradient({
-	                start: { x: 0, y: 0 },
-	                end: { x: 0, y: 1 },
-	                colorStops: [
-	                    { offset: 0, color: topColor },
-	                    { offset: 1, color: bottomColor }
-	                ],
-	                textureSpace
-	            });
-	        },
-	        /**
-	         * Vertical gradient with hard stop (3D button effect)
-	         * Creates a split appearance at the specified position
-	         */
-	        verticalHardStop(topColor, bottomColor, stopPosition = 0.5, textureSpace = 'local') {
-	            return createLinearGradient({
-	                start: { x: 0, y: 0 },
-	                end: { x: 0, y: 1 },
-	                colorStops: [
-	                    { offset: 0, color: topColor },
-	                    { offset: stopPosition, color: topColor },
-	                    { offset: stopPosition, color: bottomColor },
-	                    { offset: 1, color: bottomColor }
-	                ],
-	                textureSpace
-	            });
-	        },
-	        /**
-	         * Vertical gradient with soft transition (game button style)
-	         * Keeps top color longer then fades to bottom
-	         */
-	        verticalSoft(topColor, bottomColor, holdPosition = 0.35, textureSpace = 'local') {
-	            return createLinearGradient({
-	                start: { x: 0, y: 0 },
-	                end: { x: 0, y: 1 },
-	                colorStops: [
-	                    { offset: 0, color: topColor },
-	                    { offset: holdPosition, color: topColor },
-	                    { offset: 1, color: bottomColor }
-	                ],
-	                textureSpace
-	            });
-	        },
-	        /**
-	         * Horizontal gradient (left to right)
-	         */
-	        horizontal(leftColor, rightColor, textureSpace = 'local') {
-	            return createLinearGradient({
-	                start: { x: 0, y: 0 },
-	                end: { x: 1, y: 0 },
-	                colorStops: [
-	                    { offset: 0, color: leftColor },
-	                    { offset: 1, color: rightColor }
-	                ],
-	                textureSpace
-	            });
-	        },
-	        /**
-	         * Diagonal gradient (top-left to bottom-right)
-	         */
-	        diagonal(startColor, endColor, textureSpace = 'local') {
-	            return createLinearGradient({
-	                start: { x: 0, y: 0 },
-	                end: { x: 1, y: 1 },
-	                colorStops: [
-	                    { offset: 0, color: startColor },
-	                    { offset: 1, color: endColor }
-	                ],
-	                textureSpace
-	            });
-	        },
-	        /**
-	         * Multi-stop gradient with custom color stops
-	         */
-	        multiStop(colorStops, direction = 'vertical', textureSpace = 'local') {
-	            return createLinearGradient({
-	                start: { x: 0, y: 0 },
-	                end: direction === 'vertical' ? { x: 0, y: 1 } : { x: 1, y: 0 },
-	                colorStops,
-	                textureSpace
-	            });
-	        }
-	    },
-	    /**
-	     * Radial gradient helpers
-	     */
-	    radial: {
-	        /**
-	         * Centered radial gradient (from center outward)
-	         */
-	        centered(innerColor, outerColor, textureSpace = 'local') {
-	            return createRadialGradient({
-	                center: { x: 0.5, y: 0.5 },
-	                innerRadius: 0,
-	                outerCenter: { x: 0.5, y: 0.5 },
-	                outerRadius: 0.5,
-	                colorStops: [
-	                    { offset: 0, color: innerColor },
-	                    { offset: 1, color: outerColor }
-	                ],
-	                textureSpace
-	            });
-	        },
-	        /**
-	         * Spotlight effect (bright center, dark edges)
-	         */
-	        spotlight(color, fadeColor = 0x000000, textureSpace = 'local') {
-	            return createRadialGradient({
-	                center: { x: 0.5, y: 0.5 },
-	                innerRadius: 0,
-	                outerCenter: { x: 0.5, y: 0.5 },
-	                outerRadius: 0.5,
-	                colorStops: [
-	                    { offset: 0, color: color },
-	                    { offset: 0.3, color: color },
-	                    { offset: 1, color: fadeColor }
-	                ],
-	                textureSpace
-	            });
-	        },
-	        /**
-	         * Glow effect (white/light center fading outward)
-	         */
-	        glow(glowColor = 0xFFFFFF, midColor = 0xFFFAE6, edgeColor = 0x000000, textureSpace = 'local') {
-	            return createRadialGradient({
-	                center: { x: 0.5, y: 0.5 },
-	                innerRadius: 0,
-	                outerCenter: { x: 0.5, y: 0.5 },
-	                outerRadius: 0.5,
-	                colorStops: [
-	                    { offset: 0, color: glowColor },
-	                    { offset: 0.3, color: midColor },
-	                    { offset: 1, color: edgeColor }
-	                ],
-	                textureSpace
-	            });
-	        },
-	        /**
-	         * Multi-stop radial gradient
-	         */
-	        multiStop(colorStops, textureSpace = 'local') {
-	            return createRadialGradient({
-	                center: { x: 0.5, y: 0.5 },
-	                innerRadius: 0,
-	                outerCenter: { x: 0.5, y: 0.5 },
-	                outerRadius: 0.5,
-	                colorStops,
-	                textureSpace
-	            });
-	        }
-	    },
-	    /**
-	     * Preset gradients for common mobile game UI patterns
-	     */
-	    presets: {
-	        /**
-	         * Button depth effect gradient
-	         * Creates 3D appearance with lighter top and darker bottom
-	         */
-	        buttonDepth(topColor, bottomColor) {
-	            return Gradients.linear.vertical(topColor, bottomColor);
-	        },
-	        /**
-	         * Button with soft hold (like HexagonLevelButton style)
-	         * Holds the top color for a bit before transitioning
-	         */
-	        buttonSoft(topColor, bottomColor) {
-	            return Gradients.linear.verticalSoft(topColor, bottomColor, 0.35);
-	        },
-	        /**
-	         * Sky background gradient (blue tones)
-	         */
-	        sky() {
-	            return Gradients.linear.multiStop([
-	                { offset: 0, color: 0x0066CC },
-	                { offset: 0.3, color: 0x0088EE },
-	                { offset: 0.6, color: 0x00AAFF },
-	                { offset: 1, color: 0x66CCFF }
-	            ]);
-	        },
-	        /**
-	         * Sunset background gradient
-	         */
-	        sunset() {
-	            return Gradients.linear.multiStop([
-	                { offset: 0, color: 0x1a0533 },
-	                { offset: 0.3, color: 0x7b2d5b },
-	                { offset: 0.5, color: 0xf0724a },
-	                { offset: 0.7, color: 0xffc35e },
-	                { offset: 1, color: 0xfff8dc }
-	            ]);
-	        },
-	        /**
-	         * Night sky gradient
-	         */
-	        nightSky() {
-	            return Gradients.linear.multiStop([
-	                { offset: 0, color: 0x0f0c29 },
-	                { offset: 0.5, color: 0x302b63 },
-	                { offset: 1, color: 0x24243e }
-	            ]);
-	        },
-	        /**
-	         * Highlight shine effect (semi-transparent white)
-	         * Use alpha in fill options for transparency
-	         */
-	        highlight() {
-	            return Gradients.linear.vertical(0xFFFFFF, 0xFFFFFF);
-	        },
-	        /**
-	         * Track/slider gradient (dark inset look)
-	         */
-	        track(topColor, bottomColor) {
-	            return Gradients.linear.vertical(topColor, bottomColor);
-	        }
-	    },
-	    /**
-	     * Create a custom gradient with full control
-	     */
-	    custom: {
-	        linear: createLinearGradient,
-	        radial: createRadialGradient
+	class FlatModernUITheme {
+	    constructor() {
+	        this.name = 'flat-modern';
+	        this.colors = {
+	            primary: { r: 59, g: 130, b: 246, a: 1 }, // Blue-500
+	            secondary: { r: 99, g: 102, b: 241, a: 1 }, // Indigo-500
+	            background: { r: 245, g: 245, b: 245, a: 1 }, // Gray-100
+	            surface: { r: 255, g: 255, b: 255, a: 1 }, // White
+	            text: { r: 33, g: 33, b: 33, a: 1 }, // Gray-900
+	            textSecondary: { r: 117, g: 117, b: 117, a: 1 }, // Gray-600
+	            success: { r: 34, g: 197, b: 94, a: 1 }, // Green-500
+	            warning: { r: 245, g: 158, b: 11, a: 1 }, // Amber-500
+	            error: { r: 239, g: 68, b: 68, a: 1 }, // Red-500
+	            overlay: { r: 0, g: 0, b: 0, a: 0.4 }
+	        };
+	        this.typography = {
+	            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+	            sizes: {
+	                small: 13,
+	                medium: 15,
+	                large: 20,
+	                xlarge: 28
+	            },
+	            weights: {
+	                normal: 400,
+	                bold: 600
+	            }
+	        };
+	        this.spacing = {
+	            xs: 4,
+	            sm: 8,
+	            md: 16,
+	            lg: 24,
+	            xl: 32
+	        };
+	        this.radius = {
+	            sm: 6,
+	            md: 12,
+	            lg: 16,
+	            full: 9999
+	        };
+	        this.shadows = {
+	            sm: '0 1px 3px rgba(0, 0, 0, 0.08)',
+	            md: '0 2px 8px rgba(0, 0, 0, 0.1)',
+	            lg: '0 4px 16px rgba(0, 0, 0, 0.12)'
+	        };
+	        this.animations = {
+	            fast: 150,
+	            normal: 250,
+	            slow: 400
+	        };
 	    }
-	};
+	}
 
 	/**
 	 * HexagonLevelButton - Game-style hexagonal level selector
@@ -53716,6 +53849,1057 @@
 	};
 
 	/**
+	 * Card Color Schemes and Rarity System
+	 *
+	 * Defines color palettes for game card components in both
+	 * "game" (vibrant, multi-layer) and "flat" (clean, minimal) styles.
+	 *
+	 * @module ui/components/cards
+	 */
+	/**
+	 * Rarity colors — auto-applied based on card rarity
+	 */
+	const CardRarityColors = {
+	    common: {
+	        border: 0x9E9E9E,
+	        glow: 0x9E9E9E,
+	        glowAlpha: 0,
+	        background: 0x424242,
+	        backgroundBottom: 0x333333,
+	        accent: 0xBDBDBD,
+	        text: 0xFFFFFF,
+	        textStroke: 0x424242,
+	        badge: 0x757575
+	    },
+	    rare: {
+	        border: 0x4DA6FF,
+	        glow: 0x4DA6FF,
+	        glowAlpha: 0.3,
+	        background: 0x1A3A5C,
+	        backgroundBottom: 0x0D2440,
+	        accent: 0x7DBFFF,
+	        text: 0xFFFFFF,
+	        textStroke: 0x1A3A5C,
+	        badge: 0x2E7BC9
+	    },
+	    epic: {
+	        border: 0xB388FF,
+	        glow: 0xB388FF,
+	        glowAlpha: 0.4,
+	        background: 0x4A2878,
+	        backgroundBottom: 0x351A5C,
+	        accent: 0xD4BBFF,
+	        text: 0xFFFFFF,
+	        textStroke: 0x4A2878,
+	        badge: 0x7C4DFF
+	    },
+	    legendary: {
+	        border: 0xFFD700,
+	        glow: 0xFFD700,
+	        glowAlpha: 0.5,
+	        background: 0x5C4200,
+	        backgroundBottom: 0x3D2C00,
+	        accent: 0xFFE44D,
+	        text: 0xFFFFFF,
+	        textStroke: 0x5C4200,
+	        badge: 0xFFA000
+	    }
+	};
+	/**
+	 * Game-style card color schemes (vibrant, multi-layer — matches GameStyleButton pattern)
+	 */
+	const GameCardColors = {
+	    BLUE: {
+	        background: 0x1A3A5C,
+	        backgroundBottom: 0x0D2440,
+	        border: 0x000000,
+	        borderWidth: 3,
+	        headerBg: 0x2889F0,
+	        headerText: 0xFFFFFF,
+	        headerTextStroke: 0x1A3A5C,
+	        bodyText: 0xFFFFFF,
+	        shadow: 0x0A1A2E,
+	        highlight: 0xFFFFFF
+	    },
+	    PURPLE: {
+	        background: 0x4A2878,
+	        backgroundBottom: 0x351A5C,
+	        border: 0x000000,
+	        borderWidth: 3,
+	        headerBg: 0x7C4DFF,
+	        headerText: 0xFFFFFF,
+	        headerTextStroke: 0x4A2878,
+	        bodyText: 0xFFFFFF,
+	        shadow: 0x2A1048,
+	        highlight: 0xFFFFFF
+	    },
+	    GREEN: {
+	        background: 0x1A5C2E,
+	        backgroundBottom: 0x0D401A,
+	        border: 0x000000,
+	        borderWidth: 3,
+	        headerBg: 0x4CAF50,
+	        headerText: 0xFFFFFF,
+	        headerTextStroke: 0x1A5C2E,
+	        bodyText: 0xFFFFFF,
+	        shadow: 0x0A2E14,
+	        highlight: 0xFFFFFF
+	    },
+	    DARK: {
+	        background: 0x2C3E50,
+	        backgroundBottom: 0x1A252F,
+	        border: 0x000000,
+	        borderWidth: 3,
+	        headerBg: 0x3D5A80,
+	        headerText: 0xFFFFFF,
+	        headerTextStroke: 0x1A252F,
+	        bodyText: 0xE0E0E0,
+	        shadow: 0x0D1218,
+	        highlight: 0xFFFFFF
+	    }
+	};
+	/**
+	 * Flat-style card color schemes (clean, minimal — matches MinimalUITheme pattern)
+	 */
+	const FlatCardColors = {
+	    LIGHT: {
+	        background: 0xFFFFFF,
+	        backgroundBottom: 0xFFFFFF,
+	        border: 0xE0E0E0,
+	        borderWidth: 1,
+	        headerBg: 0xF5F5F5,
+	        headerText: 0x333333,
+	        headerTextStroke: 0x000000,
+	        bodyText: 0x666666,
+	        shadow: 0xCCCCCC,
+	        highlight: 0xFFFFFF
+	    },
+	    DARK: {
+	        background: 0x2A2A3E,
+	        backgroundBottom: 0x2A2A3E,
+	        border: 0x3A3A4E,
+	        borderWidth: 1,
+	        headerBg: 0x333348,
+	        headerText: 0xFFFFFF,
+	        headerTextStroke: 0x000000,
+	        bodyText: 0xCCCCCC,
+	        shadow: 0x1A1A2E,
+	        highlight: 0x3A3A4E
+	    },
+	    BLUE: {
+	        background: 0xF0F7FF,
+	        backgroundBottom: 0xF0F7FF,
+	        border: 0xBBDEFB,
+	        borderWidth: 1,
+	        headerBg: 0xE3F2FD,
+	        headerText: 0x1565C0,
+	        headerTextStroke: 0x000000,
+	        bodyText: 0x424242,
+	        shadow: 0xBBDEFB,
+	        highlight: 0xFFFFFF
+	    }
+	};
+	/**
+	 * Get the default card color scheme for a given style
+	 */
+	function getDefaultCardColors(style) {
+	    return style === 'game' ? GameCardColors.BLUE : FlatCardColors.LIGHT;
+	}
+	/**
+	 * Pre-defined stat bar colors
+	 */
+	const StatColors = {
+	    HP: { fill: 0x4CAF50, background: 0x1B5E20, text: 0xFFFFFF },
+	    ATK: { fill: 0xF44336, background: 0xB71C1C, text: 0xFFFFFF },
+	    DEF: { fill: 0x2196F3, background: 0x0D47A1, text: 0xFFFFFF },
+	    SPD: { fill: 0xFFEB3B, background: 0xF57F17, text: 0x333333 },
+	    MANA: { fill: 0x9C27B0, background: 0x4A148C, text: 0xFFFFFF }
+	};
+
+	/**
+	 * GameCard — Generic card container component
+	 *
+	 * A versatile card with optional header/footer areas, dual-style support
+	 * (game vibrant vs flat modern), and rarity-based border/glow effects.
+	 *
+	 * @example
+	 * ```typescript
+	 * const card = new GameCard({
+	 *   width: 200,
+	 *   height: 280,
+	 *   style: 'game',
+	 *   rarity: 'epic',
+	 *   headerText: 'Rewards'
+	 * });
+	 * stage.addChild(card.getContainer());
+	 *
+	 * // Add custom content to the body area
+	 * card.getBody().addChild(myContent);
+	 * ```
+	 */
+	class GameCard extends EventEmitter {
+	    constructor(config = {}) {
+	        super();
+	        loadFrameworkFont();
+	        this.config = {
+	            width: config.width ?? 200,
+	            height: config.height ?? 280,
+	            style: config.style ?? 'game',
+	            rarity: config.rarity ?? 'common',
+	            headerText: config.headerText ?? '',
+	            showHeader: config.showHeader ?? !!config.headerText,
+	            showFooter: config.showFooter ?? false,
+	            colorScheme: config.colorScheme ?? getDefaultCardColors(config.style ?? 'game'),
+	            borderRadius: config.borderRadius ?? (config.style === 'flat' ? 12 : 16)
+	        };
+	        this.colors = this.config.colorScheme;
+	        const factory = graphics();
+	        this.container = factory.createContainer();
+	        this.glowGraphics = factory.createGraphics();
+	        this.backgroundGraphics = factory.createGraphics();
+	        this.borderGraphics = factory.createGraphics();
+	        this.headerGraphics = factory.createGraphics();
+	        this.bodyContainer = factory.createContainer();
+	        this.footerContainer = factory.createContainer();
+	        this.container.addChild(this.glowGraphics);
+	        this.container.addChild(this.backgroundGraphics);
+	        this.container.addChild(this.borderGraphics);
+	        this.container.addChild(this.headerGraphics);
+	        this.container.addChild(this.bodyContainer);
+	        this.container.addChild(this.footerContainer);
+	        if (this.config.showHeader && this.config.headerText) {
+	            this.createHeaderText();
+	        }
+	        this.render();
+	    }
+	    getHeaderHeight() {
+	        return this.config.showHeader ? 44 : 0;
+	    }
+	    getFooterHeight() {
+	        return this.config.showFooter ? 48 : 0;
+	    }
+	    createHeaderText() {
+	        const { style } = this.config;
+	        const isGame = style === 'game';
+	        this.headerText = graphics().createText(this.config.headerText, {
+	            fontFamily: isGame ? getFrameworkFontFamily() : '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+	            fontSize: isGame ? 20 : 16,
+	            fontWeight: isGame ? '700' : '600',
+	            fill: this.colors.headerText,
+	            ...(isGame ? {
+	                stroke: { color: this.colors.headerTextStroke, width: 2 },
+	                dropShadow: { alpha: 0.3, angle: Math.PI / 2, blur: 1, color: 0x000000, distance: 1 }
+	            } : {})
+	        });
+	        if (this.headerText.anchor)
+	            this.headerText.anchor.set(0.5, 0.5);
+	        this.headerText.x = this.config.width / 2;
+	        this.headerText.y = this.getHeaderHeight() / 2;
+	        this.container.addChild(this.headerText);
+	    }
+	    render() {
+	        const { width, height, borderRadius, style, rarity } = this.config;
+	        const rarityColors = CardRarityColors[rarity];
+	        this.glowGraphics.clear();
+	        this.backgroundGraphics.clear();
+	        this.borderGraphics.clear();
+	        this.headerGraphics.clear();
+	        // Glow effect for rare+ cards
+	        if (rarityColors.glowAlpha > 0) {
+	            const glowSize = style === 'game' ? 6 : 3;
+	            this.glowGraphics.roundRect(-glowSize, -glowSize, width + glowSize * 2, height + glowSize * 2, borderRadius + glowSize);
+	            this.glowGraphics.fill({ color: rarityColors.glow, alpha: rarityColors.glowAlpha });
+	        }
+	        // Background
+	        if (style === 'game') {
+	            const bgGradient = Gradients.linear.vertical(this.colors.background, this.colors.backgroundBottom);
+	            this.backgroundGraphics.roundRect(0, 0, width, height, borderRadius);
+	            this.backgroundGraphics.fill(bgGradient);
+	        }
+	        else {
+	            this.backgroundGraphics.roundRect(0, 0, width, height, borderRadius);
+	            this.backgroundGraphics.fill({ color: this.colors.background });
+	        }
+	        // Border — use rarity color for rare+ cards
+	        const borderColor = rarity !== 'common' ? rarityColors.border : this.colors.border;
+	        this.borderGraphics.roundRect(0, 0, width, height, borderRadius);
+	        this.borderGraphics.stroke({ color: borderColor, width: this.colors.borderWidth });
+	        // Header area
+	        if (this.config.showHeader) {
+	            const hh = this.getHeaderHeight();
+	            if (style === 'game') {
+	                this.headerGraphics.roundRect(this.colors.borderWidth, this.colors.borderWidth, width - this.colors.borderWidth * 2, hh, borderRadius - 1);
+	                this.headerGraphics.fill({ color: this.colors.headerBg, alpha: 0.6 });
+	            }
+	            else {
+	                this.headerGraphics.rect(this.colors.borderWidth, this.colors.borderWidth, width - this.colors.borderWidth * 2, hh);
+	                this.headerGraphics.fill({ color: this.colors.headerBg });
+	            }
+	        }
+	        // Position body container
+	        const bodyY = this.getHeaderHeight();
+	        this.bodyContainer.y = bodyY;
+	        // Position footer container
+	        this.footerContainer.y = height - this.getFooterHeight();
+	    }
+	    /** Get the body container to add custom content */
+	    getBody() {
+	        return this.bodyContainer;
+	    }
+	    /** Get the footer container to add custom content */
+	    getFooter() {
+	        return this.footerContainer;
+	    }
+	    getContainer() {
+	        return this.container;
+	    }
+	    setPosition(x, y) {
+	        this.container.x = x;
+	        this.container.y = y;
+	        return this;
+	    }
+	    getWidth() {
+	        return this.config.width;
+	    }
+	    getHeight() {
+	        return this.config.height;
+	    }
+	    setRarity(rarity) {
+	        this.config.rarity = rarity;
+	        this.render();
+	        return this;
+	    }
+	    destroy() {
+	        this.container.destroy({ children: true });
+	        this.removeAllListeners();
+	    }
+	}
+
+	/**
+	 * CharacterCard — RPG/gacha character display card
+	 *
+	 * Shows a character with star rating, avatar area, name, and stat bars.
+	 * Supports both vibrant game style and clean flat style.
+	 *
+	 * @example
+	 * ```typescript
+	 * const hero = new CharacterCard({
+	 *   name: 'Dark Knight',
+	 *   stars: 4,
+	 *   maxStars: 5,
+	 *   rarity: 'epic',
+	 *   stats: [
+	 *     { label: 'HP', value: 85, maxValue: 100, colors: StatColors.HP },
+	 *     { label: 'ATK', value: 120, maxValue: 150, colors: StatColors.ATK }
+	 *   ]
+	 * });
+	 * stage.addChild(hero.getContainer());
+	 * ```
+	 */
+	class CharacterCard extends EventEmitter {
+	    constructor(config = {}) {
+	        super();
+	        loadFrameworkFont();
+	        this.config = {
+	            name: config.name ?? 'Hero',
+	            stars: config.stars ?? 3,
+	            maxStars: config.maxStars ?? 5,
+	            stats: config.stats ?? [
+	                { label: 'HP', value: 75, maxValue: 100, colors: StatColors.HP },
+	                { label: 'ATK', value: 60, maxValue: 100, colors: StatColors.ATK }
+	            ],
+	            rarity: config.rarity ?? 'common',
+	            avatarSize: config.avatarSize ?? 80,
+	            avatarColor: config.avatarColor ?? 0x5C6BC0,
+	            width: config.width ?? 180,
+	            height: config.height ?? 280,
+	            style: config.style ?? 'game',
+	            colorScheme: config.colorScheme ?? getDefaultCardColors(config.style ?? 'game')
+	        };
+	        this.colors = this.config.colorScheme;
+	        const factory = graphics();
+	        this.container = factory.createContainer();
+	        this.glowGraphics = factory.createGraphics();
+	        this.backgroundGraphics = factory.createGraphics();
+	        this.borderGraphics = factory.createGraphics();
+	        this.avatarGraphics = factory.createGraphics();
+	        this.starsContainer = factory.createContainer();
+	        this.statsContainer = factory.createContainer();
+	        this.container.addChild(this.glowGraphics);
+	        this.container.addChild(this.backgroundGraphics);
+	        this.container.addChild(this.borderGraphics);
+	        this.container.addChild(this.starsContainer);
+	        this.container.addChild(this.avatarGraphics);
+	        this.container.addChild(this.statsContainer);
+	        this.render();
+	    }
+	    render() {
+	        const { width, height, style, rarity, name, stars, maxStars, avatarSize, avatarColor, stats } = this.config;
+	        const rarityColors = CardRarityColors[rarity];
+	        const isGame = style === 'game';
+	        const borderRadius = isGame ? 16 : 12;
+	        const padding = isGame ? 12 : 14;
+	        // Clear
+	        this.glowGraphics.clear();
+	        this.backgroundGraphics.clear();
+	        this.borderGraphics.clear();
+	        this.avatarGraphics.clear();
+	        // Remove old children from dynamic containers
+	        this.starsContainer.removeChildren();
+	        this.statsContainer.removeChildren();
+	        // Glow
+	        if (rarityColors.glowAlpha > 0) {
+	            const gs = isGame ? 6 : 3;
+	            this.glowGraphics.roundRect(-gs, -gs, width + gs * 2, height + gs * 2, borderRadius + gs);
+	            this.glowGraphics.fill({ color: rarityColors.glow, alpha: rarityColors.glowAlpha });
+	        }
+	        // Background
+	        if (isGame) {
+	            const bgGrad = Gradients.linear.vertical(this.colors.background, this.colors.backgroundBottom);
+	            this.backgroundGraphics.roundRect(0, 0, width, height, borderRadius);
+	            this.backgroundGraphics.fill(bgGrad);
+	        }
+	        else {
+	            this.backgroundGraphics.roundRect(0, 0, width, height, borderRadius);
+	            this.backgroundGraphics.fill({ color: this.colors.background });
+	        }
+	        // Border
+	        const borderColor = rarity !== 'common' ? rarityColors.border : this.colors.border;
+	        this.borderGraphics.roundRect(0, 0, width, height, borderRadius);
+	        this.borderGraphics.stroke({ color: borderColor, width: this.colors.borderWidth });
+	        // Stars row
+	        let cursorY = padding;
+	        const starSize = isGame ? 16 : 14;
+	        const starGap = 4;
+	        const totalStarWidth = maxStars * starSize + (maxStars - 1) * starGap;
+	        const starStartX = (width - totalStarWidth) / 2;
+	        for (let i = 0; i < maxStars; i++) {
+	            const star = graphics().createText(i < stars ? '\u2605' : '\u2606', {
+	                fontFamily: isGame ? getFrameworkFontFamily() : 'Arial',
+	                fontSize: starSize,
+	                fill: i < stars ? 0xFFD700 : 0x666666
+	            });
+	            star.x = starStartX + i * (starSize + starGap);
+	            star.y = 0;
+	            this.starsContainer.addChild(star);
+	        }
+	        this.starsContainer.x = 0;
+	        this.starsContainer.y = cursorY;
+	        cursorY += starSize + padding;
+	        // Avatar placeholder
+	        const avatarX = (width - avatarSize) / 2;
+	        if (isGame) {
+	            const avGrad = Gradients.linear.vertical(avatarColor, (avatarColor & 0xFEFEFE) >> 1 // darken
+	            );
+	            this.avatarGraphics.roundRect(avatarX, cursorY, avatarSize, avatarSize, 12);
+	            this.avatarGraphics.fill(avGrad);
+	            this.avatarGraphics.roundRect(avatarX, cursorY, avatarSize, avatarSize, 12);
+	            this.avatarGraphics.stroke({ color: 0x000000, width: 2 });
+	        }
+	        else {
+	            this.avatarGraphics.roundRect(avatarX, cursorY, avatarSize, avatarSize, 10);
+	            this.avatarGraphics.fill({ color: avatarColor, alpha: 0.15 });
+	            this.avatarGraphics.roundRect(avatarX, cursorY, avatarSize, avatarSize, 10);
+	            this.avatarGraphics.stroke({ color: avatarColor, width: 1 });
+	        }
+	        cursorY += avatarSize + padding;
+	        // Name
+	        if (this.nameText) {
+	            this.container.removeChild(this.nameText);
+	        }
+	        this.nameText = graphics().createText(name, {
+	            fontFamily: isGame ? getFrameworkFontFamily() : '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+	            fontSize: isGame ? 18 : 15,
+	            fontWeight: isGame ? '700' : '600',
+	            fill: this.colors.bodyText,
+	            ...(isGame ? {
+	                stroke: { color: this.colors.headerTextStroke, width: 2 },
+	                dropShadow: { alpha: 0.3, angle: Math.PI / 2, blur: 1, color: 0x000000, distance: 1 }
+	            } : {})
+	        });
+	        if (this.nameText.anchor)
+	            this.nameText.anchor.set(0.5, 0);
+	        this.nameText.x = width / 2;
+	        this.nameText.y = cursorY;
+	        this.container.addChild(this.nameText);
+	        cursorY += (isGame ? 24 : 22) + 8;
+	        // Stats bars
+	        const barWidth = width - padding * 2;
+	        const barHeight = isGame ? 14 : 10;
+	        const barGap = isGame ? 10 : 8;
+	        stats.forEach((stat, idx) => {
+	            const statY = idx * (barHeight + barGap);
+	            const colors = stat.colors ?? StatColors.HP;
+	            const fillRatio = Math.min(1, stat.value / stat.maxValue);
+	            // Bar background
+	            const barBg = graphics().createGraphics();
+	            barBg.roundRect(0, 0, barWidth, barHeight, barHeight / 2);
+	            barBg.fill({ color: colors.background, alpha: isGame ? 1 : 0.3 });
+	            // Bar fill
+	            const fillWidth = Math.max(barHeight, barWidth * fillRatio); // min width = height for round ends
+	            barBg.roundRect(0, 0, fillWidth, barHeight, barHeight / 2);
+	            barBg.fill({ color: colors.fill });
+	            // Label
+	            const label = graphics().createText(`${stat.label} ${stat.value}`, {
+	                fontFamily: isGame ? getFrameworkFontFamily() : 'Arial',
+	                fontSize: isGame ? 10 : 9,
+	                fontWeight: '600',
+	                fill: colors.text
+	            });
+	            if (label.anchor)
+	                label.anchor.set(0, 0.5);
+	            label.x = 6;
+	            label.y = barHeight / 2;
+	            const statContainer = graphics().createContainer();
+	            statContainer.addChild(barBg);
+	            statContainer.addChild(label);
+	            statContainer.x = padding;
+	            statContainer.y = statY;
+	            this.statsContainer.addChild(statContainer);
+	        });
+	        this.statsContainer.y = cursorY;
+	    }
+	    getContainer() {
+	        return this.container;
+	    }
+	    setPosition(x, y) {
+	        this.container.x = x;
+	        this.container.y = y;
+	        return this;
+	    }
+	    setStars(stars) {
+	        this.config.stars = Math.max(0, Math.min(stars, this.config.maxStars));
+	        this.render();
+	        return this;
+	    }
+	    setRarity(rarity) {
+	        this.config.rarity = rarity;
+	        this.render();
+	        return this;
+	    }
+	    updateStats(stats) {
+	        this.config.stats = stats;
+	        this.render();
+	        return this;
+	    }
+	    getWidth() {
+	        return this.config.width;
+	    }
+	    getHeight() {
+	        return this.config.height;
+	    }
+	    destroy() {
+	        this.container.destroy({ children: true });
+	        this.removeAllListeners();
+	    }
+	}
+
+	/**
+	 * RewardCard — Loot/chest reward reveal card
+	 *
+	 * Displays a reward item with icon, quantity, and name.
+	 * Features a flip animation (Y-axis) for reveal and a diagonal
+	 * shine sweep effect for epic/legendary items.
+	 *
+	 * @example
+	 * ```typescript
+	 * const reward = new RewardCard({
+	 *   iconText: '\ud83d\udc8e',
+	 *   quantity: 500,
+	 *   name: 'Diamonds',
+	 *   rarity: 'legendary',
+	 *   flipOnReveal: true
+	 * });
+	 * stage.addChild(reward.getContainer());
+	 *
+	 * // Trigger the reveal animation
+	 * await reward.reveal();
+	 * ```
+	 */
+	class RewardCard extends EventEmitter {
+	    constructor(config = {}) {
+	        super();
+	        this.isRevealed = false;
+	        this.isAnimating = false;
+	        loadFrameworkFont();
+	        this.config = {
+	            iconText: config.iconText ?? '\u2b50',
+	            quantity: config.quantity ?? 1,
+	            name: config.name ?? 'Reward',
+	            rarity: config.rarity ?? 'common',
+	            width: config.width ?? 160,
+	            height: config.height ?? 220,
+	            style: config.style ?? 'game',
+	            colorScheme: config.colorScheme ?? getDefaultCardColors(config.style ?? 'game'),
+	            flipOnReveal: config.flipOnReveal ?? true,
+	            shineEffect: config.shineEffect ?? true
+	        };
+	        this.colors = this.config.colorScheme;
+	        const factory = graphics();
+	        this.container = factory.createContainer();
+	        this.frontContainer = factory.createContainer();
+	        this.backContainer = factory.createContainer();
+	        this.shineGraphics = factory.createGraphics();
+	        this.container.addChild(this.backContainer);
+	        this.container.addChild(this.frontContainer);
+	        this.container.addChild(this.shineGraphics);
+	        this.renderBack();
+	        this.renderFront();
+	        // Start showing back (unrevealed)
+	        if (this.config.flipOnReveal) {
+	            this.frontContainer.visible = false;
+	            this.backContainer.visible = true;
+	        }
+	        else {
+	            this.frontContainer.visible = true;
+	            this.backContainer.visible = false;
+	            this.isRevealed = true;
+	        }
+	    }
+	    renderBack() {
+	        const { width, height, style } = this.config;
+	        const isGame = style === 'game';
+	        const borderRadius = isGame ? 16 : 12;
+	        const bg = graphics().createGraphics();
+	        if (isGame) {
+	            const bgGrad = Gradients.linear.vertical(0x3949AB, 0x1A237E);
+	            bg.roundRect(0, 0, width, height, borderRadius);
+	            bg.fill(bgGrad);
+	            bg.roundRect(0, 0, width, height, borderRadius);
+	            bg.stroke({ color: 0x000000, width: 3 });
+	            // Question mark
+	            const inner = graphics().createGraphics();
+	            const inset = 16;
+	            inner.roundRect(inset, inset, width - inset * 2, height - inset * 2, borderRadius - 4);
+	            inner.stroke({ color: 0x5C6BC0, width: 2 });
+	            this.backContainer.addChild(bg);
+	            this.backContainer.addChild(inner);
+	        }
+	        else {
+	            bg.roundRect(0, 0, width, height, borderRadius);
+	            bg.fill({ color: 0xE0E0E0 });
+	            bg.roundRect(0, 0, width, height, borderRadius);
+	            bg.stroke({ color: 0xBDBDBD, width: 1 });
+	            this.backContainer.addChild(bg);
+	        }
+	        const questionMark = graphics().createText('?', {
+	            fontFamily: isGame ? getFrameworkFontFamily() : 'Arial',
+	            fontSize: isGame ? 64 : 48,
+	            fontWeight: '700',
+	            fill: isGame ? 0x7986CB : 0x9E9E9E
+	        });
+	        if (questionMark.anchor)
+	            questionMark.anchor.set(0.5, 0.5);
+	        questionMark.x = width / 2;
+	        questionMark.y = height / 2;
+	        this.backContainer.addChild(questionMark);
+	    }
+	    renderFront() {
+	        const { width, height, style, rarity, iconText, quantity, name } = this.config;
+	        const rarityColors = CardRarityColors[rarity];
+	        const isGame = style === 'game';
+	        const borderRadius = isGame ? 16 : 12;
+	        // Glow for rare+
+	        if (rarityColors.glowAlpha > 0) {
+	            const glow = graphics().createGraphics();
+	            const gs = isGame ? 6 : 3;
+	            glow.roundRect(-gs, -gs, width + gs * 2, height + gs * 2, borderRadius + gs);
+	            glow.fill({ color: rarityColors.glow, alpha: rarityColors.glowAlpha });
+	            this.frontContainer.addChild(glow);
+	        }
+	        // Background
+	        const bg = graphics().createGraphics();
+	        if (isGame) {
+	            const bgGrad = Gradients.linear.vertical(this.colors.background, this.colors.backgroundBottom);
+	            bg.roundRect(0, 0, width, height, borderRadius);
+	            bg.fill(bgGrad);
+	        }
+	        else {
+	            bg.roundRect(0, 0, width, height, borderRadius);
+	            bg.fill({ color: this.colors.background });
+	        }
+	        this.frontContainer.addChild(bg);
+	        // Border
+	        const border = graphics().createGraphics();
+	        const borderColor = rarity !== 'common' ? rarityColors.border : this.colors.border;
+	        border.roundRect(0, 0, width, height, borderRadius);
+	        border.stroke({ color: borderColor, width: this.colors.borderWidth });
+	        this.frontContainer.addChild(border);
+	        // Icon (large, centered)
+	        const iconY = height * 0.28;
+	        const icon = graphics().createText(iconText, {
+	            fontFamily: 'Arial',
+	            fontSize: isGame ? 56 : 44
+	        });
+	        if (icon.anchor)
+	            icon.anchor.set(0.5, 0.5);
+	        icon.x = width / 2;
+	        icon.y = iconY;
+	        this.frontContainer.addChild(icon);
+	        // Quantity badge
+	        if (quantity > 1) {
+	            const qtyText = graphics().createText(`x ${quantity}`, {
+	                fontFamily: isGame ? getFrameworkFontFamily() : '-apple-system, BlinkMacSystemFont, sans-serif',
+	                fontSize: isGame ? 24 : 18,
+	                fontWeight: '700',
+	                fill: this.colors.bodyText,
+	                ...(isGame ? {
+	                    stroke: { color: this.colors.headerTextStroke, width: 2 }
+	                } : {})
+	            });
+	            if (qtyText.anchor)
+	                qtyText.anchor.set(0.5, 0.5);
+	            qtyText.x = width / 2;
+	            qtyText.y = height * 0.55;
+	            this.frontContainer.addChild(qtyText);
+	        }
+	        // Name
+	        const nameText = graphics().createText(name, {
+	            fontFamily: isGame ? getFrameworkFontFamily() : '-apple-system, BlinkMacSystemFont, sans-serif',
+	            fontSize: isGame ? 16 : 13,
+	            fontWeight: '600',
+	            fill: isGame ? rarityColors.accent : this.colors.bodyText
+	        });
+	        if (nameText.anchor)
+	            nameText.anchor.set(0.5, 0.5);
+	        nameText.x = width / 2;
+	        nameText.y = height * 0.75;
+	        this.frontContainer.addChild(nameText);
+	        // Rarity label
+	        const rarityLabel = graphics().createText(rarity.toUpperCase(), {
+	            fontFamily: isGame ? getFrameworkFontFamily() : 'Arial',
+	            fontSize: isGame ? 11 : 10,
+	            fontWeight: '700',
+	            fill: rarityColors.accent
+	        });
+	        if (rarityLabel.anchor)
+	            rarityLabel.anchor.set(0.5, 0.5);
+	        rarityLabel.x = width / 2;
+	        rarityLabel.y = height * 0.88;
+	        this.frontContainer.addChild(rarityLabel);
+	    }
+	    /**
+	     * Reveal the card with flip animation.
+	     * Uses scaleX tween to simulate Y-axis rotation.
+	     */
+	    async reveal() {
+	        if (this.isRevealed || this.isAnimating)
+	            return;
+	        this.isAnimating = true;
+	        const duration = 400; // ms
+	        const halfDuration = duration / 2;
+	        // Phase 1: Scale X from 1 → 0 (hide back)
+	        await this.tweenScaleX(this.container, 1, 0, halfDuration);
+	        this.backContainer.visible = false;
+	        this.frontContainer.visible = true;
+	        // Phase 2: Scale X from 0 → 1 (show front)
+	        await this.tweenScaleX(this.container, 0, 1, halfDuration);
+	        this.isRevealed = true;
+	        this.isAnimating = false;
+	        // Shine effect for epic/legendary
+	        if (this.config.shineEffect && (this.config.rarity === 'epic' || this.config.rarity === 'legendary')) {
+	            this.playShineEffect();
+	        }
+	        this.emit('revealed');
+	    }
+	    tweenScaleX(target, from, to, durationMs) {
+	        return new Promise((resolve) => {
+	            const startTime = Date.now();
+	            const tick = () => {
+	                const elapsed = Date.now() - startTime;
+	                const progress = Math.min(1, elapsed / durationMs);
+	                // Ease in-out
+	                const eased = progress < 0.5
+	                    ? 2 * progress * progress
+	                    : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+	                target.scale.x = from + (to - from) * eased;
+	                // Keep pivot centered for visual flip
+	                target.x = this.config.width * (1 - target.scale.x) / 2;
+	                if (progress < 1) {
+	                    requestAnimationFrame(tick);
+	                }
+	                else {
+	                    target.scale.x = to;
+	                    target.x = this.config.width * (1 - to) / 2;
+	                    resolve();
+	                }
+	            };
+	            tick();
+	        });
+	    }
+	    playShineEffect() {
+	        const { width, height, rarity } = this.config;
+	        const rarityColors = CardRarityColors[rarity];
+	        // Diagonal shine sweep
+	        this.shineGraphics.clear();
+	        let shineX = -40;
+	        const animate = () => {
+	            this.shineGraphics.clear();
+	            if (shineX > width + 40) {
+	                this.shineGraphics.clear();
+	                return;
+	            }
+	            // Clip to card bounds using mask-like approach: just draw a narrow diagonal stripe
+	            const stripeWidth = 30;
+	            this.shineGraphics.moveTo(shineX, 0);
+	            this.shineGraphics.lineTo(shineX + stripeWidth, 0);
+	            this.shineGraphics.lineTo(shineX + stripeWidth - height * 0.3, height);
+	            this.shineGraphics.lineTo(shineX - height * 0.3, height);
+	            this.shineGraphics.closePath();
+	            this.shineGraphics.fill({ color: rarityColors.accent, alpha: 0.25 });
+	            shineX += 4;
+	            requestAnimationFrame(animate);
+	        };
+	        animate();
+	    }
+	    /** Reset card to unrevealed state */
+	    reset() {
+	        this.isRevealed = false;
+	        this.isAnimating = false;
+	        this.shineGraphics.clear();
+	        this.container.scale.x = 1;
+	        this.container.x = 0;
+	        if (this.config.flipOnReveal) {
+	            this.frontContainer.visible = false;
+	            this.backContainer.visible = true;
+	        }
+	        return this;
+	    }
+	    getContainer() {
+	        return this.container;
+	    }
+	    setPosition(x, y) {
+	        this.container.x = x;
+	        this.container.y = y;
+	        return this;
+	    }
+	    getWidth() {
+	        return this.config.width;
+	    }
+	    getHeight() {
+	        return this.config.height;
+	    }
+	    isCardRevealed() {
+	        return this.isRevealed;
+	    }
+	    destroy() {
+	        this.container.destroy({ children: true });
+	        this.removeAllListeners();
+	    }
+	}
+
+	/**
+	 * ItemCard — Compact inventory grid cell
+	 *
+	 * A small, square card for displaying items in inventory grids,
+	 * shop displays, or collection screens. Features level badge,
+	 * quantity indicator, and equipped state.
+	 *
+	 * @example
+	 * ```typescript
+	 * const item = new ItemCard({
+	 *   iconText: '\u2694\ufe0f',
+	 *   level: 5,
+	 *   quantity: 3,
+	 *   rarity: 'rare',
+	 *   equipped: true,
+	 *   size: 'medium'
+	 * });
+	 * stage.addChild(item.getContainer());
+	 * ```
+	 */
+	const ITEM_SIZES = {
+	    small: 64,
+	    medium: 80,
+	    large: 96
+	};
+	class ItemCard extends EventEmitter {
+	    constructor(config = {}) {
+	        super();
+	        loadFrameworkFont();
+	        this.config = {
+	            iconText: config.iconText ?? '\u2b50',
+	            level: config.level ?? 0,
+	            quantity: config.quantity ?? 1,
+	            equipped: config.equipped ?? false,
+	            rarity: config.rarity ?? 'common',
+	            style: config.style ?? 'game',
+	            size: config.size ?? 'medium',
+	            colorScheme: config.colorScheme ?? getDefaultCardColors(config.style ?? 'game'),
+	            selected: config.selected ?? false
+	        };
+	        this.colors = this.config.colorScheme;
+	        this.cardSize = ITEM_SIZES[this.config.size];
+	        const factory = graphics();
+	        this.container = factory.createContainer();
+	        this.glowGraphics = factory.createGraphics();
+	        this.backgroundGraphics = factory.createGraphics();
+	        this.borderGraphics = factory.createGraphics();
+	        this.equippedGraphics = factory.createGraphics();
+	        this.selectedGraphics = factory.createGraphics();
+	        this.container.addChild(this.glowGraphics);
+	        this.container.addChild(this.backgroundGraphics);
+	        this.container.addChild(this.borderGraphics);
+	        this.container.addChild(this.equippedGraphics);
+	        this.container.addChild(this.selectedGraphics);
+	        this.render();
+	        this.setupInteractivity();
+	    }
+	    setupInteractivity() {
+	        this.container.eventMode = 'static';
+	        this.container.cursor = 'pointer';
+	        this.container.on('pointerdown', () => this.emit('press'));
+	        this.container.on('pointerup', () => this.emit('click'));
+	    }
+	    render() {
+	        const { style, rarity, iconText, level, quantity, equipped, selected } = this.config;
+	        const size = this.cardSize;
+	        const rarityColors = CardRarityColors[rarity];
+	        const isGame = style === 'game';
+	        const borderRadius = isGame ? 10 : 8;
+	        // Clear
+	        this.glowGraphics.clear();
+	        this.backgroundGraphics.clear();
+	        this.borderGraphics.clear();
+	        this.equippedGraphics.clear();
+	        this.selectedGraphics.clear();
+	        // Remove dynamic text children (keep graphics layers)
+	        const graphicsLayers = new Set([
+	            this.glowGraphics, this.backgroundGraphics, this.borderGraphics,
+	            this.equippedGraphics, this.selectedGraphics
+	        ]);
+	        const children = this.container.children;
+	        for (let i = children.length - 1; i >= 0; i--) {
+	            if (!graphicsLayers.has(children[i])) {
+	                this.container.removeChild(children[i]);
+	            }
+	        }
+	        // Glow
+	        if (rarityColors.glowAlpha > 0) {
+	            const gs = isGame ? 4 : 2;
+	            this.glowGraphics.roundRect(-gs, -gs, size + gs * 2, size + gs * 2, borderRadius + gs);
+	            this.glowGraphics.fill({ color: rarityColors.glow, alpha: rarityColors.glowAlpha });
+	        }
+	        // Background
+	        if (isGame) {
+	            const bgGrad = Gradients.linear.vertical(this.colors.background, this.colors.backgroundBottom);
+	            this.backgroundGraphics.roundRect(0, 0, size, size, borderRadius);
+	            this.backgroundGraphics.fill(bgGrad);
+	        }
+	        else {
+	            this.backgroundGraphics.roundRect(0, 0, size, size, borderRadius);
+	            this.backgroundGraphics.fill({ color: this.colors.background });
+	        }
+	        // Border
+	        const borderColor = rarity !== 'common' ? rarityColors.border : this.colors.border;
+	        this.borderGraphics.roundRect(0, 0, size, size, borderRadius);
+	        this.borderGraphics.stroke({ color: borderColor, width: this.colors.borderWidth });
+	        // Selected highlight
+	        if (selected) {
+	            this.selectedGraphics.roundRect(0, 0, size, size, borderRadius);
+	            this.selectedGraphics.stroke({ color: 0xFFFFFF, width: 2 });
+	        }
+	        // Equipped indicator (corner triangle)
+	        if (equipped) {
+	            const eqSize = size * 0.25;
+	            this.equippedGraphics.moveTo(0, 0);
+	            this.equippedGraphics.lineTo(eqSize, 0);
+	            this.equippedGraphics.lineTo(0, eqSize);
+	            this.equippedGraphics.closePath();
+	            this.equippedGraphics.fill({ color: 0x4CAF50 });
+	            const eqText = graphics().createText('E', {
+	                fontFamily: isGame ? getFrameworkFontFamily() : 'Arial',
+	                fontSize: Math.max(8, eqSize * 0.5),
+	                fontWeight: '700',
+	                fill: 0xFFFFFF
+	            });
+	            eqText.x = 2;
+	            eqText.y = 1;
+	            this.container.addChild(eqText);
+	        }
+	        // Icon (centered)
+	        const iconFontSize = isGame ? size * 0.4 : size * 0.35;
+	        const icon = graphics().createText(iconText, {
+	            fontFamily: 'Arial',
+	            fontSize: iconFontSize
+	        });
+	        if (icon.anchor)
+	            icon.anchor.set(0.5, 0.5);
+	        icon.x = size / 2;
+	        icon.y = size * 0.42;
+	        this.container.addChild(icon);
+	        // Level badge (top-right)
+	        if (level > 0) {
+	            const badgeW = isGame ? 24 : 20;
+	            const badgeH = isGame ? 16 : 14;
+	            const badgeBg = graphics().createGraphics();
+	            badgeBg.roundRect(size - badgeW - 3, 3, badgeW, badgeH, 4);
+	            badgeBg.fill({ color: rarityColors.badge });
+	            this.container.addChild(badgeBg);
+	            const lvlText = graphics().createText(`Lv${level}`, {
+	                fontFamily: isGame ? getFrameworkFontFamily() : 'Arial',
+	                fontSize: isGame ? 9 : 8,
+	                fontWeight: '700',
+	                fill: 0xFFFFFF
+	            });
+	            if (lvlText.anchor)
+	                lvlText.anchor.set(0.5, 0.5);
+	            lvlText.x = size - badgeW / 2 - 3;
+	            lvlText.y = 3 + badgeH / 2;
+	            this.container.addChild(lvlText);
+	        }
+	        // Quantity badge (bottom-right)
+	        if (quantity > 1) {
+	            const qtyStr = `x${quantity}`;
+	            const qtyText = graphics().createText(qtyStr, {
+	                fontFamily: isGame ? getFrameworkFontFamily() : 'Arial',
+	                fontSize: isGame ? 11 : 10,
+	                fontWeight: '700',
+	                fill: this.colors.bodyText,
+	                ...(isGame ? {
+	                    stroke: { color: 0x000000, width: 1 }
+	                } : {})
+	            });
+	            if (qtyText.anchor)
+	                qtyText.anchor.set(1, 1);
+	            qtyText.x = size - 5;
+	            qtyText.y = size - 4;
+	            this.container.addChild(qtyText);
+	        }
+	    }
+	    setSelected(selected) {
+	        this.config.selected = selected;
+	        this.render();
+	        return this;
+	    }
+	    setEquipped(equipped) {
+	        this.config.equipped = equipped;
+	        this.render();
+	        return this;
+	    }
+	    setRarity(rarity) {
+	        this.config.rarity = rarity;
+	        this.render();
+	        return this;
+	    }
+	    getContainer() {
+	        return this.container;
+	    }
+	    setPosition(x, y) {
+	        this.container.x = x;
+	        this.container.y = y;
+	        return this;
+	    }
+	    getSize() {
+	        return this.cardSize;
+	    }
+	    destroy() {
+	        this.container.destroy({ children: true });
+	        this.removeAllListeners();
+	    }
+	}
+
+	/**
 	 * ScreenManager - Stack-based screen navigation with animated transitions
 	 *
 	 * Features:
@@ -53764,7 +54948,7 @@
 	     */
 	    async push(screen, transition, data) {
 	        if (this.isTransitioning) {
-	            console.warn('ScreenManager: Already transitioning, ignoring push');
+	            Logger.warn('UI', 'ScreenManager: Already transitioning, ignoring push');
 	            return;
 	        }
 	        this.isTransitioning = true;
@@ -53790,11 +54974,11 @@
 	     */
 	    async pop(transition) {
 	        if (this.isTransitioning) {
-	            console.warn('ScreenManager: Already transitioning, ignoring pop');
+	            Logger.warn('UI', 'ScreenManager: Already transitioning, ignoring pop');
 	            return null;
 	        }
 	        if (this.screenStack.length <= 1) {
-	            console.warn('ScreenManager: Cannot pop last screen');
+	            Logger.warn('UI', 'ScreenManager: Cannot pop last screen');
 	            return null;
 	        }
 	        this.isTransitioning = true;
@@ -53822,7 +55006,7 @@
 	     */
 	    async replace(screen, transition, data) {
 	        if (this.isTransitioning) {
-	            console.warn('ScreenManager: Already transitioning, ignoring replace');
+	            Logger.warn('UI', 'ScreenManager: Already transitioning, ignoring replace');
 	            return null;
 	        }
 	        if (this.screenStack.length === 0) {
@@ -55183,7 +56367,7 @@
 	                }
 	            }
 	            catch (e) {
-	                console.warn('ShineEffect: mask creation failed', e);
+	                Logger.warn('UI', 'ShineEffect: mask creation failed', e);
 	                mask = factory.createGraphics();
 	                mask.rect(-targetWidth / 2, -targetHeight / 2, targetWidth, targetHeight);
 	                mask.fill(0xFFFFFF);
@@ -59070,7 +60254,7 @@
 	     */
 	    async initialize(app) {
 	        if (this.isInitialized) {
-	            console.warn('LayoutManager already initialized');
+	            Logger.warn('Layout', 'LayoutManager already initialized');
 	            return;
 	        }
 	        this.app = app;
@@ -59087,7 +60271,7 @@
 	            }
 	        }
 	        this.isInitialized = true;
-	        console.log('✅ LayoutManager initialized');
+	        Logger.info('Layout', 'LayoutManager initialized');
 	        this.emit('initialized');
 	    }
 	    /**
@@ -59110,7 +60294,7 @@
 	     */
 	    setStageLayout(layout) {
 	        if (!this.app) {
-	            console.warn('LayoutManager not initialized');
+	            Logger.warn('Layout', 'LayoutManager not initialized');
 	            return;
 	        }
 	        const stage = this.app.stage;
@@ -59992,7 +61176,7 @@
 	     */
 	    track(resource) {
 	        if (this.disposed) {
-	            console.warn(`ResourceScope '${this.id}' is disposed, cannot track new resources`);
+	            Logger.warn('Resources', `ResourceScope '${this.id}' is disposed, cannot track new resources`);
 	            return resource;
 	        }
 	        const ref = this.refCounts.get(resource) ?? 0;
@@ -60258,7 +61442,7 @@
 	            return;
 	        const generator = this.presets.get(type);
 	        if (!generator) {
-	            console.warn(`GameSoundPresets: unknown preset '${type}'`);
+	            Logger.warn('Audio', `GameSoundPresets: unknown preset '${type}'`);
 	            return;
 	        }
 	        // Lazy AudioContext init
@@ -61167,7 +62351,7 @@
 	            return this.pmndrs;
 	        }
 	        catch {
-	            console.warn('PostProcessingPipeline: pmndrs/postprocessing not installed. Effects will not be applied.');
+	            Logger.warn('PostProcessing', 'pmndrs/postprocessing not installed. Effects will not be applied.');
 	            return null;
 	        }
 	    }
@@ -61279,7 +62463,7 @@
 	                }
 	                return null;
 	            default:
-	                console.warn(`PostProcessingPipeline: unknown built-in effect '${name}'`);
+	                Logger.warn('PostProcessing', `Unknown built-in effect '${name}'`);
 	                return null;
 	        }
 	    }
@@ -61431,7 +62615,7 @@
 	    preset(name) {
 	        const config = this.presets.get(name);
 	        if (!config) {
-	            console.warn(`EnvironmentSystem: unknown preset '${name}'`);
+	            Logger.warn('Environment', `Unknown preset '${name}'`);
 	            return;
 	        }
 	        this.applyConfig(config);
@@ -61504,7 +62688,7 @@
 	    async transitionTo(presetName, duration) {
 	        const target = this.presets.get(presetName);
 	        if (!target) {
-	            console.warn(`EnvironmentSystem: unknown preset '${presetName}'`);
+	            Logger.warn('Environment', `Unknown preset '${presetName}'`);
 	            return;
 	        }
 	        if (this.transitioning)
@@ -62024,7 +63208,7 @@
 	                return model.scene.clone();
 	            }
 	            catch {
-	                console.warn(`PrefabSystem: failed to load model '${config.visual.url}', using placeholder`);
+	                Logger.warn('Prefabs', `Failed to load model '${config.visual.url}', using placeholder`);
 	                return this.createPrimitive({ shape: 'box', color: 0xff0000, size: 1 });
 	            }
 	        }
@@ -62324,7 +63508,7 @@
 	        }
 	        const assetDef = this.manifest?.assets[assetId];
 	        if (!assetDef) {
-	            console.warn(`SmartAssetPipeline: asset '${assetId}' not found in manifest`);
+	            Logger.warn('Assets', `SmartAssetPipeline: asset '${assetId}' not found in manifest`);
 	            this.totalLoaded++;
 	            this.emitProgress(assetId);
 	            return undefined;
@@ -62353,7 +63537,7 @@
 	            this.totalLoaded++;
 	            this.emitProgress(assetId);
 	            this.emit('asset:failed', assetId, error);
-	            console.warn(`SmartAssetPipeline: failed to load '${assetId}':`, error);
+	            Logger.warn('Assets', `SmartAssetPipeline: failed to load '${assetId}':`, error);
 	            return undefined;
 	        }
 	        finally {
@@ -62539,6 +63723,7 @@
 	    ServiceContainer,
 	    Assets,
 	    Gradients,
+	    Logger,
 	    // Facades for static access
 	    Renderer: null, // Will be set after app initialization
 	    Scenes: null, // Will be set after app initialization
@@ -62789,8 +63974,10 @@
 	exports.Cannon3DConstraint = Cannon3DConstraint;
 	exports.Cannon3DEngine = Cannon3DEngine;
 	exports.Cannon3DWorld = Cannon3DWorld;
+	exports.CardRarityColors = CardRarityColors;
 	exports.CelebrationManager = CelebrationManager;
 	exports.CelebrationPresets = CelebrationPresets;
+	exports.CharacterCard = CharacterCard;
 	exports.ConfettiSystem = ConfettiSystem;
 	exports.DEFAULT_PANEL_THEME = DEFAULT_PANEL_THEME;
 	exports.DarkGamingUITheme = DarkGamingUITheme;
@@ -62804,6 +63991,8 @@
 	exports.EnvironmentSystem = EnvironmentSystem;
 	exports.EventEmitter = EventEmitter;
 	exports.Facade = Facade;
+	exports.FlatCardColors = FlatCardColors;
+	exports.FlatModernUITheme = FlatModernUITheme;
 	exports.FrameRateManagerClass = FrameRateManager;
 	exports.FrameworkCompatibility = FrameworkCompatibility;
 	exports.GameBottomNav = GameBottomNav;
@@ -62835,6 +64024,8 @@
 	exports.GameByteUINavigationHandler = GameByteUINavigationHandler;
 	exports.GameByteUITimeline = GameByteUITimeline;
 	exports.GameByteVirtualControlsManager = GameByteVirtualControlsManager;
+	exports.GameCard = GameCard;
+	exports.GameCardColors = GameCardColors;
 	exports.GameCheckBox = GameCheckBox;
 	exports.GameCheckBoxColors = GameCheckBoxColors;
 	exports.GameHUDScreen = GameHUDScreen;
@@ -62871,8 +64062,10 @@
 	exports.HubScreen = HubScreen;
 	exports.Input = Input$1;
 	exports.InputServiceProvider = InputServiceProvider;
+	exports.ItemCard = ItemCard;
 	exports.LayoutPresets = LayoutPresets;
 	exports.LevelPath = LevelPath;
+	exports.Logger = Logger;
 	exports.Matter2DBody = Matter2DBody;
 	exports.Matter2DConstraint = Matter2DConstraint;
 	exports.Matter2DEngine = Matter2DEngine;
@@ -62929,6 +64122,7 @@
 	exports.ResponsiveLayoutManager = ResponsiveLayoutManager;
 	exports.ResponsiveScaleCalculator = ResponsiveScaleCalculator;
 	exports.ResultScreen = ResultScreen;
+	exports.RewardCard = RewardCard;
 	exports.SFX = SFXSystemFacade;
 	exports.SafeAreaLayout = SafeAreaLayout;
 	exports.SceneServiceProvider = SceneServiceProvider;
@@ -62941,6 +64135,7 @@
 	exports.Spatial = SpatialAudioFacade;
 	exports.SplashScreen = SplashScreen;
 	exports.StarBurstEffect = StarBurstEffect;
+	exports.StatColors = StatColors;
 	exports.SunburstEffect = SunburstEffect;
 	exports.Themes = Themes;
 	exports.Tick = Tick;
@@ -62963,7 +64158,6 @@
 	exports.createFlexColumn = createFlexColumn;
 	exports.createFlexRow = createFlexRow;
 	exports.createGame = createGame;
-	exports.createGameButtonGradient = createGameButtonGradient;
 	exports.createGrid = createGrid;
 	exports.createLinearGradient = createLinearGradient;
 	exports.createMargin = createMargin;
@@ -62975,13 +64169,13 @@
 	exports.createResponsiveLayout = createResponsiveLayout;
 	exports.createSafeAreaLayout = createSafeAreaLayout;
 	exports.createSized = createSized;
-	exports.createSkyGradient = createSkyGradient;
 	exports.createSpacing = createSpacing;
 	exports.createStack = createStack;
 	exports.createState = createState;
 	exports.darkenColor = darkenColor;
 	exports.default = GameByteFramework;
 	exports.drawToTexture = drawToTexture;
+	exports.getDefaultCardColors = getDefaultCardColors;
 	exports.getFrameworkFontFamily = getFrameworkFontFamily;
 	exports.getLayoutManager = getLayoutManager;
 	exports.graphics = graphics;

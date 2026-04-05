@@ -5,6 +5,95 @@ All notable changes to GameByte Framework will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2026-04-05
+
+### Added - Tagged Logging System (`Logger`)
+
+Centralized logger replacing ~150 scattered `console.*` calls across 77 source files. Disabled by default (zero noise in production); opt in via `createGame({ debug, logLevel })`.
+
+```typescript
+import { Logger } from '@gamebyte/framework';
+
+Logger.configure({ enabled: true, level: 'debug' });
+Logger.info('Renderer', 'frame', { fps: 60 });
+Logger.debug('Physics', 'collision', pair);
+
+// Silence a noisy module without disabling the rest
+Logger.configure({ tags: { Physics: false } });
+```
+
+**New exports:** `Logger`, `LogLevel` (`'debug' | 'info' | 'warn' | 'error' | 'none'`), `LoggerConfig`.
+
+Features: master enable/disable, minimum-level filter, per-tag overrides, module-scoped sub-loggers, `reset()` for tests.
+
+### Added - Game Card Components
+
+Four new card components in `@gamebyte/framework/ui/components/cards`, all sharing a common rarity system (`common | rare | epic | legendary`) and dual style support (`game` vibrant vs `flat` minimal).
+
+```typescript
+import {
+  GameCard, CharacterCard, RewardCard, ItemCard,
+  StatColors
+} from '@gamebyte/framework/ui/components/cards';
+
+const hero = new CharacterCard({
+  name: 'Dark Knight',
+  stars: 4,
+  maxStars: 5,
+  rarity: 'epic',
+  stats: [
+    { label: 'HP',  value: 85,  maxValue: 100, colors: StatColors.HP },
+    { label: 'ATK', value: 120, maxValue: 150, colors: StatColors.ATK }
+  ]
+});
+
+const reward = new RewardCard({ iconText: '💎', quantity: 500, name: 'Diamonds', rarity: 'legendary' });
+await reward.reveal(); // flip + shine animation
+
+const slot = new ItemCard({ iconText: '⚔️', level: 5, quantity: 3, rarity: 'rare', equipped: true, size: 'medium' });
+```
+
+- **`GameCard`** — generic container with optional header/footer, `getBody()`/`getFooter()` for custom content, rarity-based glow/border.
+- **`CharacterCard`** — avatar slot, star rating, name, multiple stat bars.
+- **`RewardCard`** — loot reveal card with Y-axis flip animation and diagonal shine sweep for epic/legendary.
+- **`ItemCard`** — compact inventory cell (small/medium/large), level badge, quantity indicator, equipped/selected states.
+- **`CardColors`** module — `CardRarityColors`, `GameCardColors`, `FlatCardColors`, `StatColors`, `getDefaultCardColors()` helper, plus `CardRarity`, `CardStyle`, `RarityColorSet`, `CardColorScheme`, `StatBarColors` types.
+
+### Added - `FlatModernUITheme`
+
+New `UITheme` implementation inspired by Material You and iOS 17+. Clean, minimal, no heavy gradients — targets casual/hyper-casual and modern app-style UIs.
+
+```typescript
+import { FlatModernUITheme } from '@gamebyte/framework/ui/themes';
+```
+
+### Added - Package Exports
+
+- New subpath export `./ui/components/cards` in `package.json` for tree-shakeable card imports.
+
+### Changed
+
+- **Gradient rendering migrated to native Pixi.js v8 `FillGradient`** — `UIButton` and `GameStyleUITheme` no longer generate gradients via manual canvas operations; use GPU-accelerated Pixi v8 gradient API instead.
+- **ESLint 9 flat config** — Replaced ESLint 8 + `@typescript-eslint/*` v6 with ESLint 9 + unified `typescript-eslint` v8. `.eslintrc.cjs` replaced by `eslint.config.mjs`.
+- **CI security audit split** — Two separate steps: strict production audit (blocks on runtime-dep vulnerabilities) and informational dev audit (surfaces dev-dep issues without blocking).
+
+### Fixed
+
+- **Animation frame memory leak** in `UIServiceProvider.update()` — RAF handle wasn't being cancelled on cleanup.
+- **npm audit vulnerabilities** — Resolved transitive issues in `qs`, `rollup`, and `minimatch`.
+- **CodeQL security alerts (#1, #3–#10)** — innerHTML escaping in `config-playground`, pure string ops, URL scheme validation, prototype pollution guards.
+- Assorted PR review fixes across demos and API mismatches.
+
+### Docs
+
+- Live `LiveDemo` blocks added to every documentation page (`docs-site/docs/`).
+- Dedicated changelog section with Imagen 4 visuals.
+- SEO metadata maximized for changelog pages and global site config.
+- Added OG social card PNG, apple-touch-icon; removed old generic `logo.svg` in favor of `logo-icon.svg`.
+- Refreshed `docs-site/static/gamebyte.umd.js` and `gamebyte-three.umd.js` to reflect current `main`.
+
+---
+
 ## [1.3.0] - 2026-02-06
 
 ### Overview
