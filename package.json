@@ -180,6 +180,22 @@
     "./economy": {
       "import": "./dist/economy/index.js",
       "types": "./dist/economy/index.d.ts"
+    },
+    "./tween": {
+      "import": "./dist/tween/index.js",
+      "types": "./dist/tween/index.d.ts"
+    },
+    "./particles": {
+      "import": "./dist/particles/index.js",
+      "types": "./dist/particles/index.d.ts"
+    },
+    "./camera": {
+      "import": "./dist/camera/index.js",
+      "types": "./dist/camera/index.d.ts"
+    },
+    "./juice": {
+      "import": "./dist/juice/index.js",
+      "types": "./dist/juice/index.d.ts"
     }
   },
   "scripts": {

@@ -818,6 +818,27 @@ export type { SaveConfig, SaveSystemEvents } from './save/index';
 export { EconomyManager } from './economy/index';
 export type { CurrencyDef, ShopItemDef, EconomyManagerEvents } from './economy/index';
 
+// ─── v1.5 Core Infrastructure ──────────────────────────────────────────────
+
+// Tween Engine
+export { Tween } from './tween/index';
+export type { TweenConfig } from './tween/index';
+export { TweenManager } from './tween/index';
+export { Ease } from './tween/index';
+export type { EasingFunction as TweenEasingFunction } from './tween/index';
+
+// Particle System
+export { ParticleEmitter } from './particles/index';
+export type { ParticleConfig } from './particles/index';
+
+// Camera System
+export { Camera } from './camera/index';
+export type { CameraConfig, FollowConfig, CameraEvents } from './camera/index';
+
+// Juice/Effects Manager
+export { Juice } from './juice/index';
+export type { JuiceConfig } from './juice/index';
+
 // Re-export for convenience
 import { GameByte } from './core/GameByte';
 import { RenderingServiceProvider } from './services/RenderingServiceProvider';

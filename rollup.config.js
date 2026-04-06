@@ -88,6 +88,11 @@ const esmConfig = {
     'gesture/index': 'src/gesture/index.ts',
     'save/index': 'src/save/index.ts',
     'economy/index': 'src/economy/index.ts',
+    // v1.5 New modules
+    'tween/index': 'src/tween/index.ts',
+    'particles/index': 'src/particles/index.ts',
+    'camera/index': 'src/camera/index.ts',
+    'juice/index': 'src/juice/index.ts',
     // Three.js toolkit (separate for 3D games)
     'three/index': 'src/three/index.ts',
   },
