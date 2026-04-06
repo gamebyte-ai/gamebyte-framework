@@ -58,9 +58,11 @@ export class EconomyManager extends EventEmitter<EconomyManagerEvents> {
     this.shopItems = new Map();
     this.purchaseCounts = new Map();
 
-    for (const def of currencies) {
-      this.currencies.set(def.id, def);
-      this.balances.set(def.id, def.initial);
+    for (const c of currencies) {
+      if (!c.id || !c.name) throw new Error('EconomyManager: currency must have id and name');
+      if (c.initial < 0) c.initial = 0;
+      this.currencies.set(c.id, c);
+      this.balances.set(c.id, c.initial);
     }
   }
 
@@ -80,6 +82,7 @@ export class EconomyManager extends EventEmitter<EconomyManagerEvents> {
    * Emits 'balance-changed'.
    */
   add(currency: string, amount: number): void {
+    if (amount < 0) return; // silently ignore negative adds
     const current = this.getBalance(currency);
     const def = this.currencies.get(currency);
     let newBalance = current + amount;
@@ -99,6 +102,7 @@ export class EconomyManager extends EventEmitter<EconomyManagerEvents> {
    * Returns true on success and emits 'balance-changed'.
    */
   spend(currency: string, amount: number): boolean {
+    if (amount < 0) return false; // can't spend negative
     const current = this.getBalance(currency);
 
     if (current < amount) {
@@ -166,7 +170,11 @@ export class EconomyManager extends EventEmitter<EconomyManagerEvents> {
 
     // Invoke callback if provided
     if (item.onPurchase) {
-      item.onPurchase();
+      try {
+        item.onPurchase();
+      } catch (e) {
+        // Don't let callback crash economy system
+      }
     }
 
     this.emit('purchase', itemId, { currency, amount });

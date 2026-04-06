@@ -118,23 +118,45 @@ export class HexGrid<T> extends Grid<T> {
 
   /**
    * Get all cells at exactly `radius` hex steps from center.
+   * Uses the algebraic ring walk (Red Blob Games) — O(radius) instead of O(rows*cols).
    */
   getRing(centerRow: number, centerCol: number, radius: number): Array<{ row: number; col: number }> {
-    const results: Array<{ row: number; col: number }> = [];
-    if (radius === 0) {
+    if (radius <= 0) {
       if (this.isValidCell(centerRow, centerCol)) {
-        results.push({ row: centerRow, col: centerCol });
+        return [{ row: centerRow, col: centerCol }];
       }
-      return results;
+      return [];
     }
 
-    for (let r = 0; r < this._rows; r++) {
-      for (let c = 0; c < this._cols; c++) {
-        if (this.hexDistance(centerRow, centerCol, r, c) === radius) {
-          results.push({ row: r, col: c });
+    // Cube-coordinate direction vectors for the 6 hex sides
+    const cubeDirections: Array<[number, number, number]> = [
+      [1, -1, 0], [1, 0, -1], [0, 1, -1],
+      [-1, 1, 0], [-1, 0, 1], [0, -1, 1],
+    ];
+
+    const center = this.offsetToCube(centerRow, centerCol);
+
+    // Start at the "south-west" corner of the ring: move radius steps in direction 4
+    let q = center.q + cubeDirections[4][0] * radius;
+    let r = center.r + cubeDirections[4][1] * radius;
+    let s = center.s + cubeDirections[4][2] * radius;
+
+    const results: Array<{ row: number; col: number }> = [];
+
+    // Walk around 6 sides, each side has `radius` steps
+    for (let side = 0; side < 6; side++) {
+      const [dq, dr, ds] = cubeDirections[side];
+      for (let step = 0; step < radius; step++) {
+        const offset = this.cubeToOffset(q, r);
+        if (this.isValidCell(offset.row, offset.col)) {
+          results.push(offset);
         }
+        q += dq;
+        r += dr;
+        s += ds;
       }
     }
+
     return results;
   }
 
@@ -193,5 +215,12 @@ export class HexGrid<T> extends Grid<T> {
     const r = row;
     const s = -q - r;
     return { q, r, s };
+  }
+
+  /** Convert cube coordinates back to odd-r offset row/col. */
+  private cubeToOffset(q: number, r: number): { row: number; col: number } {
+    const row = r;
+    const col = q + (r - (r & 1)) / 2;
+    return { row, col };
   }
 }

@@ -101,6 +101,11 @@ export class GameEntity extends EventEmitter<GameEntityEvents> {
 
     const cfg = { ...GameEntity.DEFAULT_CONFIG, ...config };
 
+    // Clamp health/maxHealth to valid ranges
+    if (cfg.health < 0) cfg.health = 0;
+    if (cfg.maxHealth <= 0) cfg.maxHealth = 100;
+    if (cfg.health > cfg.maxHealth) cfg.health = cfg.maxHealth;
+
     this._container = graphics().createContainer();
     this._container.x = cfg.x;
     this._container.y = cfg.y;
@@ -256,8 +261,9 @@ export class GameEntity extends EventEmitter<GameEntityEvents> {
    * Remove this entity's container from its parent, emit 'destroyed', and clean up listeners.
    */
   destroy(): void {
-    if (this._container.children && (this._container as any).parent) {
-      (this._container as any).parent.removeChild(this._container);
+    const container = this._container as any;
+    if (container.parent && typeof container.parent.removeChild === 'function') {
+      container.parent.removeChild(this._container);
     }
     this._container.destroy();
     this.emit('destroyed');

@@ -24,9 +24,28 @@ describe('EconomyManager', () => {
       const eco = makeEconomy();
       expect(eco.getBalance('crystals')).toBe(0);
     });
+
+    it('should throw on invalid currency def (missing id)', () => {
+      expect(() => new EconomyManager([{ id: '', name: 'Gold', initial: 0 }])).toThrow('EconomyManager: currency must have id and name');
+    });
+
+    it('should throw on invalid currency def (missing name)', () => {
+      expect(() => new EconomyManager([{ id: 'gold', name: '', initial: 0 }])).toThrow('EconomyManager: currency must have id and name');
+    });
+
+    it('should clamp negative initial balance to 0', () => {
+      const eco = new EconomyManager([{ id: 'gold', name: 'Gold', initial: -50 }]);
+      expect(eco.getBalance('gold')).toBe(0);
+    });
   });
 
   describe('add', () => {
+    it('should ignore negative add amounts', () => {
+      const e = new EconomyManager([{ id: 'gold', name: 'Gold', initial: 100 }]);
+      e.add('gold', -50);
+      expect(e.getBalance('gold')).toBe(100); // unchanged
+    });
+
     it('increases balance by the given amount', () => {
       const eco = makeEconomy();
       eco.add('gold', 50);

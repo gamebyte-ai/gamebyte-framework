@@ -200,7 +200,7 @@ export class WaveManager extends EventEmitter<WaveManagerEvents> {
 
     const waveData = this.config.waves[index];
     this.emit('wave-start', index, waveData);
-    this.config.onWaveStart?.(index, waveData);
+    try { this.config.onWaveStart?.(index, waveData); } catch (e) { /* don't let callback crash wave system */ }
   }
 
   private tickWave(dt: number): void {
@@ -213,7 +213,7 @@ export class WaveManager extends EventEmitter<WaveManagerEvents> {
       if (schedule[i].time <= this.waveElapsed) {
         const spawnType = schedule[i].type;
         this.emit('spawn', spawnType, this._currentWaveIndex);
-        this.config.onSpawn(spawnType, this._currentWaveIndex);
+        try { this.config.onSpawn(spawnType, this._currentWaveIndex); } catch (e) { /* don't let callback crash wave system */ }
         this.scheduleIndex = i + 1;
       } else {
         // Schedule is sorted — no need to check further
@@ -230,14 +230,14 @@ export class WaveManager extends EventEmitter<WaveManagerEvents> {
   private endWave(): void {
     const idx = this._currentWaveIndex;
     this.emit('wave-end', idx);
-    this.config.onWaveEnd?.(idx);
+    try { this.config.onWaveEnd?.(idx); } catch (e) { /* don't let callback crash wave system */ }
 
     const isLast = idx >= this.config.waves.length - 1;
 
     if (isLast) {
       this._isActive = false;
       this.emit('all-complete');
-      this.config.onAllWavesComplete?.();
+      try { this.config.onAllWavesComplete?.(); } catch (e) { /* don't let callback crash wave system */ }
       return;
     }
 

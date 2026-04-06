@@ -152,8 +152,15 @@ export class SaveSystem<T extends Record<string, any>> extends EventEmitter<Save
       // Run migration chain: storedVersion → storedVersion+1 → ... → this.version
       for (let v = storedVersion; v < this.version; v++) {
         if (this.migrations[v]) {
-          loadedData = this.migrations[v](loadedData);
-          this.emit('migrated', v, v + 1);
+          try {
+            loadedData = this.migrations[v](loadedData);
+            this.emit('migrated', v, v + 1);
+          } catch (error) {
+            this.emit('error', error instanceof Error ? error : new Error(String(error)));
+            this.data = this.deepClone(this.defaults);
+            this.emit('loaded', this.deepClone(this.data));
+            return this.deepClone(this.data);
+          }
         }
       }
     } else if (storedVersion > this.version) {

@@ -163,7 +163,15 @@ describe('Grid<T>', () => {
     expect(grid.isValidCell(0, 5)).toBe(false);
   });
 
-  // ---- 11. getRow / getCol ----
+  // ---- 11. Constructor validation ----
+  it('should throw on invalid rows/cols', () => {
+    expect(() => new Grid({ rows: 0, cols: 5, cellSize: 10 })).toThrow('Grid: rows and cols must be > 0');
+    expect(() => new Grid({ rows: 5, cols: -1, cellSize: 10 })).toThrow('Grid: rows and cols must be > 0');
+    expect(() => new Grid({ rows: 5, cols: 5, cellSize: 0 })).toThrow('Grid: cellSize must be > 0');
+  });
+
+  // ---- 12. getRow / getCol ----
+
   test('getRow returns correct values', () => {
     const grid = new Grid<number>({ rows: 3, cols: 3, cellSize: 32 });
     grid.setCell(1, 0, 10);

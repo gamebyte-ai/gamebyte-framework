@@ -152,6 +152,38 @@ describe('SaveSystem', () => {
       expect(migratedEvents).toEqual([[1, 2]]);
     });
 
+    it('should fallback to defaults on migration error and emit error event', () => {
+      const sharedStorage = new TestStorage();
+
+      // Write a v1 save
+      const sys1 = new SaveSystem<any>({
+        key: 'err-save',
+        version: 1,
+        defaults: { score: 0 },
+        storage: sharedStorage,
+      });
+      sys1.save({ score: 42 });
+
+      // Open with v2 + a migration that throws
+      const sys2 = new SaveSystem<any>({
+        key: 'err-save',
+        version: 2,
+        defaults: { score: 0, level: 1, name: 'Player' },
+        storage: sharedStorage,
+        migrations: {
+          1: (_old: any) => { throw new Error('migration exploded'); },
+        },
+      });
+
+      const errors: Error[] = [];
+      sys2.on('error', (e) => errors.push(e));
+
+      const data = sys2.load();
+      expect(data).toEqual({ score: 0, level: 1, name: 'Player' });
+      expect(errors).toHaveLength(1);
+      expect(errors[0].message).toBe('migration exploded');
+    });
+
     it('chains migrations sequentially from v1 to v3', () => {
       const sharedStorage = new TestStorage();
 

@@ -79,6 +79,24 @@ describe('GameEntity', () => {
     });
   });
 
+  describe('constructor validation', () => {
+    it('should clamp health to valid range', () => {
+      const e = new GameEntity({ health: -10, maxHealth: 50 });
+      expect(e.health).toBe(0);
+      expect(e.maxHealth).toBe(50);
+    });
+
+    it('should clamp health to maxHealth when health exceeds it', () => {
+      const e = new GameEntity({ health: 200, maxHealth: 100 });
+      expect(e.health).toBe(100);
+    });
+
+    it('should default maxHealth to 100 when <= 0', () => {
+      const e = new GameEntity({ maxHealth: 0 });
+      expect(e.maxHealth).toBe(100);
+    });
+  });
+
   describe('position get/set', () => {
     it('should proxy x and y to the internal container', () => {
       const entity = new GameEntity({ x: 50, y: 75 });

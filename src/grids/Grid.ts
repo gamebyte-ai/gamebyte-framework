@@ -55,6 +55,8 @@ export class Grid<T> extends EventEmitter {
 
   constructor(config: GridConfig<T>) {
     super();
+    if (config.rows <= 0 || config.cols <= 0) throw new Error('Grid: rows and cols must be > 0');
+    if (config.cellSize <= 0) throw new Error('Grid: cellSize must be > 0');
     this._rows = config.rows;
     this._cols = config.cols;
     this._cellSize = config.cellSize;
