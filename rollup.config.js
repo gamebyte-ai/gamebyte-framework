@@ -79,6 +79,15 @@ const esmConfig = {
     'contracts/index': 'src/contracts/index.ts',
     // Merge module
     'merge/index': 'src/merge/index.ts',
+    // v1.4 New modules
+    'entity/index': 'src/entity/index.ts',
+    'pool/index': 'src/pool/index.ts',
+    'config/index': 'src/config/index.ts',
+    'waves/index': 'src/waves/index.ts',
+    'grids/index': 'src/grids/index.ts',
+    'gesture/index': 'src/gesture/index.ts',
+    'save/index': 'src/save/index.ts',
+    'economy/index': 'src/economy/index.ts',
     // Three.js toolkit (separate for 3D games)
     'three/index': 'src/three/index.ts',
   },

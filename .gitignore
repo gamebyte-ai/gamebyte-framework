@@ -149,3 +149,4 @@ exported-game/
 
 # Generated images (Imagen, DALL-E, etc.)
 imagen/
+.gstack/

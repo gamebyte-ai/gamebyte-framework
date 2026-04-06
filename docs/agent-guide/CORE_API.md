@@ -14,6 +14,7 @@
 4. [Common Patterns](#common-patterns)
 5. [Mobile-First Defaults](#mobile-first-defaults)
 6. [Anti-Patterns](#anti-patterns)
+7. [v1.4 Game Primitives](#v14-game-primitives)
 
 ---
 
@@ -627,6 +628,299 @@ class GameScene extends BaseScene {
 
 ---
 
+## v1.4 Game Primitives
+
+New in v1.4: a set of ready-made game building blocks for entities, pooling, configuration, effects, waves, grids, gestures, save data, and economy.
+
+---
+
+### GameEntity
+
+Base class for all game objects with health, collision, velocity, and lifecycle events.
+
+```typescript
+import { GameEntity } from 'gamebyte-framework';
+
+const player = new GameEntity({
+  x: 100, y: 200,
+  health: 100,
+  collisionRadius: 16,
+  tags: ['player']
+});
+player.on('died', () => console.log('Game over'));
+player.update(dt); // call each frame
+scene.addChild(player.getContainer());
+
+// Collision
+if (player.collidesWith(enemy)) enemy.damage(25);
+```
+
+**Subclassing:**
+
+```typescript
+class Enemy extends GameEntity {
+  constructor(x: number, y: number) {
+    super({ x, y, health: 30, collisionRadius: 12, tags: ['enemy'] });
+  }
+  update(dt: number) {
+    this.vx = -50; // move left
+    super.update(dt);
+  }
+}
+```
+
+**Properties:** `x`, `y`, `vx`, `vy`, `speed`, `health`, `maxHealth`, `isAlive`, `active`, `tags`, `collisionRadius`, `collisionRect`
+
+**Methods:** `update(dt)`, `damage(amount)`, `heal(amount)`, `collidesWith(other)`, `distanceTo(other)`, `getContainer()`, `destroy()`
+
+**Events:** `'damaged'`, `'healed'`, `'died'`, `'destroyed'`
+
+---
+
+### ObjectPool\<T\>
+
+Generic object recycling to avoid garbage collection spikes.
+
+```typescript
+import { ObjectPool } from 'gamebyte-framework';
+
+const bulletPool = new ObjectPool({
+  create: () => ({ x: 0, y: 0, active: false }),
+  reset: (b) => { b.x = 0; b.y = 0; b.active = false; },
+  initialSize: 20,
+  maxSize: 100,
+});
+
+const bullet = bulletPool.acquire();
+bullet.x = player.x;
+bulletPool.release(bullet);
+console.log(bulletPool.activeCount, bulletPool.availableCount);
+```
+
+**Constructor options:** `create` (factory fn), `reset` (reset fn), `initialSize`, `maxSize`
+
+**Methods:** `acquire()`, `release(obj)`, `releaseAll()`, `clear()`
+
+**Properties:** `activeCount`, `availableCount`, `totalCreated`
+
+---
+
+### GameConfigStore\<T\>
+
+Typed game configuration with difficulty scaling and change events.
+
+```typescript
+import { createGameConfig } from 'gamebyte-framework';
+
+const config = createGameConfig({
+  playerSpeed: 200, enemySpeed: 80, spawnRate: 2.0, maxEnemies: 30
+});
+
+config.get('playerSpeed'); // 200
+config.set('playerSpeed', 250);
+config.on('changed', (key, newVal, oldVal) => { /* update UI */ });
+
+// Difficulty: each level multiplies default by factor^level
+config.applyDifficulty(3, { enemySpeed: 1.1, spawnRate: 0.95 });
+config.reset(); // back to defaults
+```
+
+**Methods:** `get(key)`, `set(key, value)`, `applyDifficulty(level, factors)`, `reset()`, `getAll()`
+
+**Events:** `'changed'`
+
+---
+
+### screenShake()
+
+Camera/container shake effect for impacts and explosions.
+
+```typescript
+import { screenShake } from 'gamebyte-framework';
+
+// Simple usage
+screenShake(gameContainer, 8, 300);
+
+// Advanced usage
+screenShake({
+  target: gameContainer,
+  intensity: 12,
+  duration: 500,
+  decay: 'exponential',
+  direction: 'horizontal'
+});
+```
+
+**Simple signature:** `screenShake(target, intensity, duration)`
+
+**Advanced options:** `target`, `intensity`, `duration`, `decay` (`'linear'` | `'exponential'`), `direction` (`'both'` | `'horizontal'` | `'vertical'`)
+
+---
+
+### FloatingText2D
+
+Animated damage numbers, score popups, and coin indicators.
+
+```typescript
+import { FloatingText2D } from 'gamebyte-framework';
+
+FloatingText2D.damage(container, enemy.x, enemy.y, 25);
+FloatingText2D.score(container, x, y, 100);
+FloatingText2D.coin(container, x, y, 5);
+
+// Custom spawn
+FloatingText2D.spawn({
+  text: 'CRITICAL!', x: 200, y: 300,
+  parent: container, style: 'damage',
+  duration: 1200, distance: 80
+});
+```
+
+**Static methods:** `damage(parent, x, y, amount)`, `score(parent, x, y, amount)`, `coin(parent, x, y, amount)`, `heal(parent, x, y, amount)`, `spawn(options)`
+
+**Presets:** `'damage'` (red), `'heal'` (green), `'score'` (yellow), `'coin'` (orange)
+
+**Directions:** `'up'`, `'down'`, `'left'`, `'right'`
+
+---
+
+### WaveManager
+
+Wave/spawn system for tower defense, roguelike, and survival games.
+
+```typescript
+import { WaveManager } from 'gamebyte-framework';
+
+const wm = new WaveManager({
+  waves: [
+    { enemies: [{ type: 'zombie', count: 5, spawnInterval: 800 }], intermission: 3000 },
+    { enemies: [{ type: 'zombie', count: 3 }, { type: 'boss', count: 1, delay: 2000 }], isBoss: true }
+  ],
+  onSpawn: (type, waveIdx) => spawnEnemy(type),
+  onWaveStart: (idx) => showBanner(`Wave ${idx + 1}`),
+  onAllWavesComplete: () => showVictory(),
+});
+wm.start();
+// game loop: wm.update(deltaMs);
+```
+
+**Methods:** `start()`, `pause()`, `resume()`, `skipToWave(n)`, `update(dt)`, `destroy()`
+
+**Properties:** `currentWave`, `totalWaves`, `isActive`, `isIntermission`, `intermissionTimeLeft`
+
+---
+
+### Grid\<T\> & HexGrid\<T\>
+
+2D grid and hex grid data structures with pixel conversion.
+
+```typescript
+import { Grid, HexGrid } from 'gamebyte-framework';
+
+const grid = new Grid({ rows: 8, cols: 8, cellSize: 64 });
+grid.setCell(0, 0, 'player');
+grid.getNeighbors(2, 3); // [{row, col, value}, ...]
+const px = grid.cellToPixel(2, 3); // {x, y} center of cell
+const cell = grid.pixelToCell(150, 200); // {row, col} | null
+
+const hex = new HexGrid({ rows: 10, cols: 10, cellSize: 48 });
+hex.hexDistance(0, 0, 3, 2); // hex distance
+hex.getRing(5, 5, 2); // cells at distance 2
+```
+
+**Grid methods:** `setCell(row, col, value)`, `getCell(row, col)`, `getNeighbors(row, col)`, `cellToPixel(row, col)`, `pixelToCell(x, y)`, `forEach(callback)`, `clear()`
+
+**HexGrid methods:** all Grid methods + `hexDistance(r1, c1, r2, c2)`, `getRing(row, col, radius)`, `getArea(row, col, radius)`
+
+---
+
+### GestureDetector
+
+Touch gesture recognition for mobile games.
+
+```typescript
+import { GestureDetector } from 'gamebyte-framework';
+
+const gesture = new GestureDetector({ target: canvas, swipeThreshold: 50 });
+gesture.on('tap', (x, y) => shoot(x, y));
+gesture.on('swipe', (dir, velocity) => movePlayer(dir));
+gesture.on('long-press', (x, y) => openMenu(x, y));
+gesture.on('drag-move', (x, y, dx, dy) => panCamera(dx, dy));
+gesture.on('pinch', (scale, cx, cy) => zoom(scale));
+gesture.destroy(); // cleanup
+```
+
+**Constructor options:** `target` (HTMLElement), `swipeThreshold`, `longPressDelay`, `doubleTapDelay`
+
+**Events:** `'tap'`, `'double-tap'`, `'long-press'`, `'swipe'`, `'drag-start'`, `'drag-move'`, `'drag-end'`, `'pinch'`
+
+---
+
+### SaveSystem\<T\>
+
+Persistent save with versioned migrations and auto-save.
+
+```typescript
+import { SaveSystem } from 'gamebyte-framework';
+
+const save = new SaveSystem({
+  key: 'my-game',
+  version: 2,
+  defaults: { score: 0, level: 1, inventory: [] },
+  migrations: {
+    1: (old) => ({ ...old, inventory: old.items ?? [] }) // v1 -> v2
+  }
+});
+
+const data = save.load();
+save.set('score', 500); // auto-saves
+save.get('level'); // 1
+save.reset(); // clear save
+```
+
+**Constructor options:** `key` (localStorage key), `version`, `defaults`, `migrations`
+
+**Methods:** `load()`, `save()`, `get(key)`, `set(key, value)`, `reset()`, `export()`, `import(data)`
+
+---
+
+### EconomyManager
+
+Currency management and shop system with price scaling.
+
+```typescript
+import { EconomyManager } from 'gamebyte-framework';
+
+const economy = new EconomyManager([
+  { id: 'gold', name: 'Gold', initial: 100 },
+  { id: 'gems', name: 'Gems', initial: 0, max: 9999 }
+]);
+
+economy.add('gold', 50);
+economy.spend('gold', 30); // true
+economy.canAfford('gold', 200); // false
+economy.on('insufficient-funds', (curr, needed, have) => showWarning());
+
+// Shop items
+economy.registerItems([
+  { id: 'sword', name: 'Iron Sword', cost: { currency: 'gold', amount: 50 }, maxPurchases: 1 }
+]);
+economy.purchase('sword'); // true, deducts gold
+
+// Exponential upgrade cost
+EconomyManager.getUpgradeCost(100, 3, 1.15); // 100 * 1.15^3 = 152
+```
+
+**Constructor params:** array of `{ id, name, initial, max? }`
+
+**Methods:** `add(currency, amount)`, `spend(currency, amount)`, `canAfford(currency, amount)`, `getBalance(currency)`, `registerItems(items)`, `purchase(itemId)`
+
+**Static:** `EconomyManager.getUpgradeCost(baseCost, level, factor)`
+
+**Events:** `'balance-changed'`, `'insufficient-funds'`, `'item-purchased'`
+
+---
+
 ## Next Steps
 
 **Tier 2 Docs:** When you need advanced features:
@@ -642,6 +936,6 @@ class GameScene extends BaseScene {
 
 ---
 
-*Last updated: 2026-01-30*
+*Last updated: 2026-04-06*
 *Target audience: AI agents, autonomous game builders*
 *Estimated reading: 6-8 minutes*

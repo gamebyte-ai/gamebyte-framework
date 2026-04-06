@@ -45,3 +45,7 @@ export type { SafeAreaLayoutConfig, SafeAreaBounds } from './SafeAreaLayout.js';
 // Logger
 export { Logger } from './Logger.js';
 export type { LogLevel, LoggerConfig } from './Logger.js';
+
+// Screen Shake
+export { screenShake } from './screenShake.js';
+export type { ScreenShakeConfig } from './screenShake.js';

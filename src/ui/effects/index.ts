@@ -23,3 +23,6 @@ export type { CelebrationConfig, ICelebrationAudioManager } from './CelebrationM
 
 export { SunburstEffect } from './SunburstEffect.js';
 export type { SunburstConfig } from './SunburstEffect.js';
+
+export { FloatingText2D } from './FloatingText2D.js';
+export type { FloatingTextConfig } from './FloatingText2D.js';

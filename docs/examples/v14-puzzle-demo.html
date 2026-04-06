@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Grid Clicker — GameByte v1.4 Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            overflow: hidden;
+            background: #0d1117;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            touch-action: none;
+        }
+        #game-container {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            height: 100vh;
+        }
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #e6edf3;
+            font-size: 18px;
+            z-index: 100;
+            text-align: center;
+        }
+        #loading small {
+            display: block;
+            color: #8b949e;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        Loading Grid Clicker...
+        <small>GameByte Framework v1.4 Demo</small>
+    </div>
+    <div id="game-container"></div>
+
+    <!-- Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="../../dist/gamebyte.umd.js"></script>
+
+    <script>
+    (async () => {
+        try {
+            // ─────────────────────────────────────────────────────────────
+            // 1. Destructure framework modules
+            // ─────────────────────────────────────────────────────────────
+            const {
+                Grid,
+                GameConfigStore,
+                createGameConfig,
+                SaveSystem,
+                EconomyManager,
+                GestureDetector
+            } = GameByteFramework;
+
+            // ─────────────────────────────────────────────────────────────
+            // 2. Pixi application setup
+            // ─────────────────────────────────────────────────────────────
+            const BASE_W = 540;
+            const BASE_H = 960;
+
+            const app = new PIXI.Application();
+            await app.init({
+                width: BASE_W,
+                height: BASE_H,
+                backgroundColor: 0x0d1117,
+                antialias: true,
+                resolution: window.devicePixelRatio || 1,
+                autoDensity: true
+            });
+
+            // Responsive canvas scaling
+            function resizeCanvas() {
+                const scaleX = window.innerWidth / BASE_W;
+                const scaleY = window.innerHeight / BASE_H;
+                const scale = Math.min(scaleX, scaleY);
+                app.canvas.style.width  = Math.floor(BASE_W * scale) + 'px';
+                app.canvas.style.height = Math.floor(BASE_H * scale) + 'px';
+            }
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+
+            document.getElementById('game-container').appendChild(app.canvas);
+            document.getElementById('loading').style.display = 'none';
+
+            // ─────────────────────────────────────────────────────────────
+            // 3. Game config  (GameConfigStore)
+            // ─────────────────────────────────────────────────────────────
+            const config = createGameConfig({
+                clickValue:   1,      // gold per tap
+                regenDelay:   3000,   // ms before tile reappears
+                goldMultiplier: 1.0   // scales all gold earned
+            });
+
+            // ─────────────────────────────────────────────────────────────
+            // 4. Save system  (SaveSystem)
+            // ─────────────────────────────────────────────────────────────
+            const save = new SaveSystem({
+                key: 'grid-clicker-v14',
+                version: 1,
+                defaults: {
+                    gold: 0,
+                    gems: 5,
+                    clickLevel: 0,
+                    regenLevel: 0
+                }
+            });
+            const savedData = save.load();
+
+            // ─────────────────────────────────────────────────────────────
+            // 5. Economy  (EconomyManager)
+            // ─────────────────────────────────────────────────────────────
+            const economy = new EconomyManager([
+                { id: 'gold', name: 'Gold',  initial: savedData.gold },
+                { id: 'gems', name: 'Gems',  initial: savedData.gems, max: 100 }
+            ]);
+
+            // Derive upgrade costs from save levels
+            let clickLevel = savedData.clickLevel;
+            let regenLevel = savedData.regenLevel;
+
+            function getClickCost() { return EconomyManager.getUpgradeCost(50,  clickLevel, 1.5); }
+            function getRegenCost()  { return EconomyManager.getUpgradeCost(100, regenLevel, 1.6); }
+
+            // Apply saved upgrade levels to config
+            config.set('clickValue',  1 + clickLevel);
+            config.set('regenDelay',  Math.max(500, 3000 - regenLevel * 300));
+
+            economy.registerItems([
+                {
+                    id: 'click-upgrade',
+                    name: 'Click Power +1',
+                    cost: { currency: 'gold', amount: getClickCost() },
+                    onPurchase: () => {
+                        clickLevel++;
+                        config.set('clickValue', 1 + clickLevel);
+                        // Re-register with updated cost
+                        economy.registerItems([{
+                            id: 'click-upgrade',
+                            name: 'Click Power +1',
+                            cost: { currency: 'gold', amount: getClickCost() }
+                        }]);
+                        persistSave();
+                        updateShopButtons();
+                    }
+                },
+                {
+                    id: 'regen-upgrade',
+                    name: 'Faster Regen',
+                    cost: { currency: 'gold', amount: getRegenCost() },
+                    onPurchase: () => {
+                        regenLevel++;
+                        config.set('regenDelay', Math.max(500, 3000 - regenLevel * 300));
+                        economy.registerItems([{
+                            id: 'regen-upgrade',
+                            name: 'Faster Regen',
+                            cost: { currency: 'gold', amount: getRegenCost() }
+                        }]);
+                        persistSave();
+                        updateShopButtons();
+                    }
+                }
+            ]);
+
+            // ─────────────────────────────────────────────────────────────
+            // 6. Grid data  (Grid)
+            // ─────────────────────────────────────────────────────────────
+            const CELL_SIZE = 56;
+            const CELL_GAP  = 4;
+            const GRID_COLS = 8;
+            const GRID_ROWS = 8;
+            const GRID_X    = (BASE_W - (GRID_COLS * (CELL_SIZE + CELL_GAP) - CELL_GAP)) / 2;
+            const GRID_Y    = 200;
+
+            // Cell type: 0 = empty, 1-5 = colored tile types
+            const grid = new Grid({
+                rows: GRID_ROWS,
+                cols: GRID_COLS,
+                cellSize: CELL_SIZE,
+                gap: CELL_GAP,
+                x: GRID_X,
+                y: GRID_Y
+            });
+
+            // Fill grid with random tile types (1-5)
+            grid.forEach((_, row, col) => {
+                grid.setCell(row, col, Math.floor(Math.random() * 5) + 1);
+            });
+
+            // Regen timers: Map<"r,c", timestamp>
+            const regenTimers = new Map();
+
+            // ─────────────────────────────────────────────────────────────
+            // 7. Tile color palette
+            // ─────────────────────────────────────────────────────────────
+            const TILE_COLORS = [
+                null,       // 0 = empty (unused slot)
+                0x2ea043,   // 1 = green
+                0x1f6feb,   // 2 = blue
+                0x8957e5,   // 3 = purple
+                0xe3b341,   // 4 = gold/amber
+                0xf85149    // 5 = red
+            ];
+
+            const TILE_GOLD_VALUES = [0, 1, 2, 3, 5, 8]; // gold per tile type
+
+            // ─────────────────────────────────────────────────────────────
+            // 8. PIXI scene layers
+            // ─────────────────────────────────────────────────────────────
+            const bgLayer     = new PIXI.Container();
+            const gridLayer   = new PIXI.Container();
+            const fxLayer     = new PIXI.Container();
+            const uiLayer     = new PIXI.Container();
+            const shopLayer   = new PIXI.Container();
+
+            app.stage.addChild(bgLayer, gridLayer, fxLayer, uiLayer, shopLayer);
+
+            // ─────────────────────────────────────────────────────────────
+            // 9. Background
+            // ─────────────────────────────────────────────────────────────
+            const bgGfx = new PIXI.Graphics();
+            bgGfx.rect(0, 0, BASE_W, BASE_H);
+            bgGfx.fill({ color: 0x0d1117 });
+            bgLayer.addChild(bgGfx);
+
+            // Subtle grid backdrop
+            const gridBg = new PIXI.Graphics();
+            const gridW = GRID_COLS * (CELL_SIZE + CELL_GAP) - CELL_GAP;
+            const gridH = GRID_ROWS * (CELL_SIZE + CELL_GAP) - CELL_GAP;
+            gridBg.roundRect(GRID_X - 8, GRID_Y - 8, gridW + 16, gridH + 16, 12);
+            gridBg.fill({ color: 0x161b22 });
+            gridBg.roundRect(GRID_X - 8, GRID_Y - 8, gridW + 16, gridH + 16, 12);
+            gridBg.stroke({ color: 0x30363d, width: 1 });
+            bgLayer.addChild(gridBg);
+
+            // ─────────────────────────────────────────────────────────────
+            // 10. Top bar UI
+            // ─────────────────────────────────────────────────────────────
+            const topBar = new PIXI.Graphics();
+            topBar.rect(0, 0, BASE_W, 140);
+            topBar.fill({ color: 0x161b22 });
+            topBar.rect(0, 139, BASE_W, 1);
+            topBar.fill({ color: 0x30363d });
+            uiLayer.addChild(topBar);
+
+            // Title
+            const titleText = new PIXI.Text({
+                text: 'Grid Clicker',
+                style: {
+                    fontSize: 26,
+                    fill: 0xe6edf3,
+                    fontWeight: 'bold',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+                }
+            });
+            titleText.x = BASE_W / 2;
+            titleText.y = 22;
+            titleText.anchor.set(0.5, 0);
+            uiLayer.addChild(titleText);
+
+            const subtitleText = new PIXI.Text({
+                text: 'GameByte v1.4  •  Grid + Config + Save + Economy + Gesture',
+                style: {
+                    fontSize: 11,
+                    fill: 0x8b949e,
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+                }
+            });
+            subtitleText.x = BASE_W / 2;
+            subtitleText.y = 54;
+            subtitleText.anchor.set(0.5, 0);
+            uiLayer.addChild(subtitleText);
+
+            // Currency displays
+            function makeCurrencyBadge(icon, color, x, y) {
+                const badge = new PIXI.Container();
+
+                const bg = new PIXI.Graphics();
+                bg.roundRect(0, 0, 115, 36, 8);
+                bg.fill({ color: 0x21262d });
+                bg.roundRect(0, 0, 115, 36, 8);
+                bg.stroke({ color: color, width: 1, alpha: 0.5 });
+                badge.addChild(bg);
+
+                const dot = new PIXI.Graphics();
+                dot.circle(18, 18, 9);
+                dot.fill({ color: color });
+                badge.addChild(dot);
+
+                const lbl = new PIXI.Text({
+                    text: icon,
+                    style: { fontSize: 11, fill: 0x0d1117, fontWeight: 'bold',
+                             fontFamily: '-apple-system, sans-serif' }
+                });
+                lbl.x = 18;
+                lbl.y = 18;
+                lbl.anchor.set(0.5);
+                badge.addChild(lbl);
+
+                const val = new PIXI.Text({
+                    text: '0',
+                    style: { fontSize: 16, fill: 0xe6edf3, fontWeight: 'bold',
+                             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }
+                });
+                val.x = 36;
+                val.y = 18;
+                val.anchor.set(0, 0.5);
+                badge.addChild(val);
+
+                badge.x = x;
+                badge.y = y;
+
+                return { container: badge, valueText: val };
+            }
+
+            const goldBadge = makeCurrencyBadge('G', 0xe3b341, 36,  90);
+            const gemsBadge = makeCurrencyBadge('♦', 0x58a6ff, 166, 90);
+            uiLayer.addChild(goldBadge.container, gemsBadge.container);
+
+            // Config display (shows active config values)
+            const configInfoText = new PIXI.Text({
+                text: '',
+                style: {
+                    fontSize: 12,
+                    fill: 0x8b949e,
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+                }
+            });
+            configInfoText.x = BASE_W - 20;
+            configInfoText.y = 90;
+            configInfoText.anchor.set(1, 0);
+            uiLayer.addChild(configInfoText);
+
+            function updateConfigDisplay() {
+                const cv = config.get('clickValue');
+                const rd = (config.get('regenDelay') / 1000).toFixed(1);
+                configInfoText.text = `+${cv} gold/tap\n${rd}s regen`;
+            }
+            updateConfigDisplay();
+
+            // Listen for config changes to refresh display
+            config.on('changed', () => updateConfigDisplay());
+
+            // Instruction text
+            const instrText = new PIXI.Text({
+                text: 'Tap tiles to earn gold  •  Swipe down to open shop',
+                style: {
+                    fontSize: 13,
+                    fill: 0x8b949e,
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+                }
+            });
+            instrText.x = BASE_W / 2;
+            instrText.y = BASE_H - 52;
+            instrText.anchor.set(0.5, 0);
+            uiLayer.addChild(instrText);
+
+            // Saved indicator (hidden by default)
+            const savedText = new PIXI.Text({
+                text: 'Saved!',
+                style: { fontSize: 14, fill: 0x3fb950, fontWeight: 'bold',
+                         fontFamily: '-apple-system, sans-serif' }
+            });
+            savedText.x = BASE_W - 20;
+            savedText.y = 20;
+            savedText.anchor.set(1, 0);
+            savedText.alpha = 0;
+            uiLayer.addChild(savedText);
+
+            let savedTimer = 0;
+
+            function showSavedIndicator() {
+                savedText.alpha = 1;
+                savedTimer = 2000;
+            }
+
+            // ─────────────────────────────────────────────────────────────
+            // 11. Currency update helper
+            // ─────────────────────────────────────────────────────────────
+            function updateCurrencyDisplay() {
+                goldBadge.valueText.text = String(economy.getBalance('gold'));
+                gemsBadge.valueText.text = String(economy.getBalance('gems'));
+            }
+            updateCurrencyDisplay();
+
+            economy.on('balance-changed', () => updateCurrencyDisplay());
+
+            // ─────────────────────────────────────────────────────────────
+            // 12. Grid rendering
+            // ─────────────────────────────────────────────────────────────
+            // Pool of PIXI.Graphics objects — one per cell, reused on redraw
+            const cellGfxPool = [];
+            const cellHitAreas = []; // track animated cells
+
+            function buildGridGraphics() {
+                // Clear old graphics
+                for (const g of cellGfxPool) {
+                    gridLayer.removeChild(g);
+                }
+                cellGfxPool.length = 0;
+
+                grid.forEach((value, row, col) => {
+                    const px = grid.cellToPixel(row, col);
+                    const g = new PIXI.Graphics();
+                    g.x = px.x;
+                    g.y = px.y;
+                    g._row = row;
+                    g._col = col;
+                    drawCell(g, value);
+                    gridLayer.addChild(g);
+                    cellGfxPool.push(g);
+                });
+            }
+
+            function drawCell(g, value) {
+                g.clear();
+                const half = CELL_SIZE / 2;
+
+                if (!value) {
+                    // Empty cell — dim placeholder
+                    g.roundRect(-half, -half, CELL_SIZE, CELL_SIZE, 6);
+                    g.fill({ color: 0x161b22 });
+                    g.roundRect(-half, -half, CELL_SIZE, CELL_SIZE, 6);
+                    g.stroke({ color: 0x21262d, width: 1 });
+                    return;
+                }
+
+                const color = TILE_COLORS[value];
+
+                // Shadow layer (slightly offset dark bg)
+                g.roundRect(-half + 1, -half + 2, CELL_SIZE, CELL_SIZE, 6);
+                g.fill({ color: 0x000000, alpha: 0.3 });
+
+                // Main tile
+                g.roundRect(-half, -half, CELL_SIZE, CELL_SIZE, 6);
+                g.fill({ color: color, alpha: 0.85 });
+
+                // Highlight stripe (top 1/3)
+                g.roundRect(-half, -half, CELL_SIZE, CELL_SIZE / 3, 6);
+                g.fill({ color: 0xffffff, alpha: 0.12 });
+
+                // Border
+                g.roundRect(-half, -half, CELL_SIZE, CELL_SIZE, 6);
+                g.stroke({ color: 0xffffff, width: 1, alpha: 0.2 });
+
+                // Value dot
+                g.circle(half - 10, half - 10, 6);
+                g.fill({ color: 0xffffff, alpha: 0.4 });
+            }
+
+            function refreshCellAt(row, col) {
+                const idx = row * GRID_COLS + col;
+                const g = cellGfxPool[idx];
+                if (!g) return;
+                drawCell(g, grid.getCell(row, col));
+            }
+
+            buildGridGraphics();
+
+            // ─────────────────────────────────────────────────────────────
+            // 13. Floating gold text FX
+            // ─────────────────────────────────────────────────────────────
+            const fxPool = [];
+            const activeFx = [];
+
+            function spawnGoldFx(x, y, amount) {
+                let fx = fxPool.pop();
+                if (!fx) {
+                    fx = new PIXI.Text({
+                        text: '',
+                        style: {
+                            fontSize: 20,
+                            fill: 0xe3b341,
+                            fontWeight: 'bold',
+                            fontFamily: '-apple-system, sans-serif',
+                            dropShadow: {
+                                color: 0x000000,
+                                blur: 4,
+                                distance: 2,
+                                alpha: 0.7
+                            }
+                        }
+                    });
+                    fx.anchor.set(0.5, 1);
+                }
+                fx.text = `+${amount}`;
+                fx.x = x;
+                fx.y = y;
+                fx.alpha = 1;
+                fx._vy = -2.2;
+                fx._life = 1.0; // 0→1 normalized
+                fx._elapsed = 0;
+                fx._duration = 900; // ms
+                fxLayer.addChild(fx);
+                activeFx.push(fx);
+            }
+
+            // ─────────────────────────────────────────────────────────────
+            // 14. Cell click animation (scale pop)
+            // ─────────────────────────────────────────────────────────────
+            const animatingCells = []; // { gfx, scaleTimer }
+
+            function popCell(row, col) {
+                const idx = row * GRID_COLS + col;
+                const g = cellGfxPool[idx];
+                if (!g) return;
+                g.scale.set(1.18);
+                animatingCells.push({ g, elapsed: 0, duration: 160 });
+            }
+
+            // ─────────────────────────────────────────────────────────────
+            // 15. Shop panel (toggled by swipe-down)
+            // ─────────────────────────────────────────────────────────────
+            let shopOpen = false;
+            const SHOP_Y_HIDDEN = BASE_H + 10;
+            const SHOP_Y_VISIBLE = BASE_H - 260;
+
+            const shopPanel = new PIXI.Container();
+            shopPanel.y = SHOP_Y_HIDDEN;
+            shopLayer.addChild(shopPanel);
+
+            // Panel background
+            const shopBg = new PIXI.Graphics();
+            shopBg.roundRect(0, 0, BASE_W, 270, 16);
+            shopBg.fill({ color: 0x161b22 });
+            shopBg.moveTo(0, 16);
+            shopBg.lineTo(BASE_W, 16);
+            shopBg.stroke({ color: 0x30363d, width: 1 });
+            shopPanel.addChild(shopBg);
+
+            // Handle bar
+            const handleBar = new PIXI.Graphics();
+            handleBar.roundRect(BASE_W / 2 - 24, 10, 48, 4, 2);
+            handleBar.fill({ color: 0x30363d });
+            shopPanel.addChild(handleBar);
+
+            // Shop title
+            const shopTitle = new PIXI.Text({
+                text: 'SHOP',
+                style: {
+                    fontSize: 16,
+                    fill: 0xe6edf3,
+                    fontWeight: 'bold',
+                    letterSpacing: 3,
+                    fontFamily: '-apple-system, sans-serif'
+                }
+            });
+            shopTitle.x = BASE_W / 2;
+            shopTitle.y = 30;
+            shopTitle.anchor.set(0.5, 0);
+            shopPanel.addChild(shopTitle);
+
+            // Close hint
+            const closeHint = new PIXI.Text({
+                text: 'swipe up to close',
+                style: { fontSize: 11, fill: 0x8b949e,
+                         fontFamily: '-apple-system, sans-serif' }
+            });
+            closeHint.x = BASE_W / 2;
+            closeHint.y = 52;
+            closeHint.anchor.set(0.5, 0);
+            shopPanel.addChild(closeHint);
+
+            // Build shop upgrade buttons
+            const shopBtnContainers = {};
+
+            function makeShopButton(itemId, label, costLabel, px, py) {
+                const btn = new PIXI.Container();
+                btn.x = px;
+                btn.y = py;
+
+                const bg = new PIXI.Graphics();
+                btn._bg = bg;
+                bg.roundRect(0, 0, 222, 80, 10);
+                bg.fill({ color: 0x21262d });
+                bg.roundRect(0, 0, 222, 80, 10);
+                bg.stroke({ color: 0x30363d, width: 1 });
+                btn.addChild(bg);
+
+                const nameTxt = new PIXI.Text({
+                    text: label,
+                    style: { fontSize: 15, fill: 0xe6edf3, fontWeight: 'bold',
+                             fontFamily: '-apple-system, sans-serif' }
+                });
+                nameTxt.x = 14;
+                nameTxt.y = 14;
+                btn.addChild(nameTxt);
+
+                const costTxt = new PIXI.Text({
+                    text: costLabel,
+                    style: { fontSize: 13, fill: 0xe3b341,
+                             fontFamily: '-apple-system, sans-serif' }
+                });
+                costTxt.x = 14;
+                costTxt.y = 38;
+                btn._costTxt = costTxt;
+                btn.addChild(costTxt);
+
+                const buyBtn = new PIXI.Graphics();
+                buyBtn.roundRect(0, 0, 60, 28, 6);
+                buyBtn.fill({ color: 0x238636 });
+                buyBtn.x = 148;
+                buyBtn.y = 26;
+                btn.addChild(buyBtn);
+
+                const buyLabel = new PIXI.Text({
+                    text: 'BUY',
+                    style: { fontSize: 13, fill: 0xffffff, fontWeight: 'bold',
+                             fontFamily: '-apple-system, sans-serif' }
+                });
+                buyLabel.x = 30;
+                buyLabel.y = 14;
+                buyLabel.anchor.set(0.5);
+                buyBtn.addChild(buyLabel);
+                btn._buyBtn = buyBtn;
+
+                // Pointer interactivity
+                btn.eventMode = 'static';
+                btn.cursor = 'pointer';
+                btn.on('pointerdown', () => {
+                    const bought = economy.purchase(itemId);
+                    if (!bought) {
+                        // Flash red if can't afford
+                        flashNotAffordable(bg);
+                    }
+                });
+                btn.on('pointerover', () => {
+                    if (economy.canPurchase(itemId)) {
+                        buyBtn.tint = 0xaaffaa;
+                    }
+                });
+                btn.on('pointerout', () => {
+                    buyBtn.tint = 0xffffff;
+                });
+
+                shopPanel.addChild(btn);
+                shopBtnContainers[itemId] = btn;
+                return btn;
+            }
+
+            makeShopButton('click-upgrade', 'Click Power',
+                `Cost: ${getClickCost()} gold`, 20, 76);
+            makeShopButton('regen-upgrade', 'Faster Regen',
+                `Cost: ${getRegenCost()} gold`, 298, 76);
+
+            function flashNotAffordable(bg) {
+                bg.clear();
+                bg.roundRect(0, 0, 222, 80, 10);
+                bg.fill({ color: 0x3d1111 });
+                bg.roundRect(0, 0, 222, 80, 10);
+                bg.stroke({ color: 0xf85149, width: 1 });
+                setTimeout(() => {
+                    bg.clear();
+                    bg.roundRect(0, 0, 222, 80, 10);
+                    bg.fill({ color: 0x21262d });
+                    bg.roundRect(0, 0, 222, 80, 10);
+                    bg.stroke({ color: 0x30363d, width: 1 });
+                }, 300);
+            }
+
+            function updateShopButtons() {
+                const clickBtn = shopBtnContainers['click-upgrade'];
+                const regenBtn = shopBtnContainers['regen-upgrade'];
+
+                if (clickBtn) {
+                    clickBtn._costTxt.text = `Cost: ${getClickCost()} gold  (Lv${clickLevel})`;
+                    const canBuy = economy.canPurchase('click-upgrade');
+                    clickBtn._buyBtn.tint = canBuy ? 0xffffff : 0x555555;
+                }
+                if (regenBtn) {
+                    regenBtn._costTxt.text = `Cost: ${getRegenCost()} gold  (Lv${regenLevel})`;
+                    const canBuy = economy.canPurchase('regen-upgrade');
+                    regenBtn._buyBtn.tint = canBuy ? 0xffffff : 0x555555;
+                }
+            }
+            updateShopButtons();
+
+            // Update shop buttons when gold changes so affordability is reflected
+            economy.on('balance-changed', (currency) => {
+                if (currency === 'gold') updateShopButtons();
+            });
+
+            // Shop slide animation state
+            let shopTargetY = SHOP_Y_HIDDEN;
+            let shopAnimating = false;
+
+            function openShop() {
+                shopOpen = true;
+                shopTargetY = SHOP_Y_VISIBLE;
+                shopAnimating = true;
+                instrText.text = 'Swipe up to close shop';
+            }
+
+            function closeShop() {
+                shopOpen = false;
+                shopTargetY = SHOP_Y_HIDDEN;
+                shopAnimating = true;
+                instrText.text = 'Tap tiles to earn gold  •  Swipe down to open shop';
+            }
+
+            // ─────────────────────────────────────────────────────────────
+            // 16. Persist save helper
+            // ─────────────────────────────────────────────────────────────
+            function persistSave() {
+                save.save({
+                    gold: economy.getBalance('gold'),
+                    gems: economy.getBalance('gems'),
+                    clickLevel,
+                    regenLevel
+                });
+                showSavedIndicator();
+            }
+
+            // Auto-save every 10 seconds
+            setInterval(persistSave, 10000);
+
+            // ─────────────────────────────────────────────────────────────
+            // 17. GestureDetector — tap to collect, swipe to toggle shop
+            // ─────────────────────────────────────────────────────────────
+            const gesture = new GestureDetector({
+                target: app.canvas,
+                swipeThreshold: 60,
+                tapTimeout: 220
+            });
+
+            // Tap: determine cell under tap, collect gold
+            gesture.on('tap', (clientX, clientY) => {
+                // Convert client coords → canvas local coords
+                const rect = app.canvas.getBoundingClientRect();
+                const scaleX = BASE_W / rect.width;
+                const scaleY = BASE_H / rect.height;
+                const localX = (clientX - rect.left) * scaleX;
+                const localY = (clientY - rect.top) * scaleY;
+
+                const cell = grid.pixelToCell(localX, localY);
+                if (!cell) return;
+
+                const { row, col } = cell;
+                const value = grid.getCell(row, col);
+
+                if (!value) return; // empty cell — already harvested
+
+                // Calculate gold earned
+                const baseGold = TILE_GOLD_VALUES[value] || 1;
+                const earned = Math.floor(
+                    baseGold * config.get('clickValue') * config.get('goldMultiplier')
+                );
+
+                economy.add('gold', earned);
+
+                // Get pixel center for FX
+                const px = grid.cellToPixel(row, col);
+                spawnGoldFx(px.x, px.y, earned);
+                popCell(row, col);
+
+                // Clear cell, schedule regen
+                grid.setCell(row, col, 0);
+                refreshCellAt(row, col);
+
+                const key = `${row},${col}`;
+                const regenAt = Date.now() + config.get('regenDelay');
+                regenTimers.set(key, { row, col, value, regenAt });
+            });
+
+            // Swipe down → open shop; swipe up → close shop
+            gesture.on('swipe', (direction) => {
+                if (direction === 'down' && !shopOpen) {
+                    openShop();
+                } else if (direction === 'up' && shopOpen) {
+                    closeShop();
+                }
+            });
+
+            // ─────────────────────────────────────────────────────────────
+            // 18. Game loop
+            // ─────────────────────────────────────────────────────────────
+            app.ticker.add((ticker) => {
+                const dt = ticker.deltaMS;
+
+                // --- Regen check ---
+                const now = Date.now();
+                for (const [key, entry] of regenTimers) {
+                    if (now >= entry.regenAt) {
+                        regenTimers.delete(key);
+                        grid.setCell(entry.row, entry.col, entry.value);
+                        refreshCellAt(entry.row, entry.col);
+                    }
+                }
+
+                // --- Cell pop animation ---
+                for (let i = animatingCells.length - 1; i >= 0; i--) {
+                    const anim = animatingCells[i];
+                    anim.elapsed += dt;
+                    const t = Math.min(anim.elapsed / anim.duration, 1);
+                    // Ease back to 1.0
+                    const scale = 1 + (1.18 - 1) * (1 - t) * (1 - t);
+                    anim.g.scale.set(scale);
+                    if (t >= 1) {
+                        anim.g.scale.set(1);
+                        animatingCells.splice(i, 1);
+                    }
+                }
+
+                // --- FX particles ---
+                for (let i = activeFx.length - 1; i >= 0; i--) {
+                    const fx = activeFx[i];
+                    fx._elapsed += dt;
+                    const t = fx._elapsed / fx._duration;
+                    fx.y += fx._vy;
+                    fx.alpha = 1 - t;
+                    if (t >= 1) {
+                        fxLayer.removeChild(fx);
+                        fxPool.push(fx);
+                        activeFx.splice(i, 1);
+                    }
+                }
+
+                // --- Shop panel slide ---
+                if (shopAnimating) {
+                    const diff = shopTargetY - shopPanel.y;
+                    shopPanel.y += diff * 0.18;
+                    if (Math.abs(diff) < 0.5) {
+                        shopPanel.y = shopTargetY;
+                        shopAnimating = false;
+                    }
+                }
+
+                // --- Saved indicator fade ---
+                if (savedTimer > 0) {
+                    savedTimer -= dt;
+                    if (savedTimer <= 0) {
+                        savedText.alpha = 0;
+                        savedTimer = 0;
+                    } else if (savedTimer < 500) {
+                        savedText.alpha = savedTimer / 500;
+                    }
+                }
+            });
+
+            // ─────────────────────────────────────────────────────────────
+            // 19. Debug info strip (bottom)
+            // ─────────────────────────────────────────────────────────────
+            const debugBg = new PIXI.Graphics();
+            debugBg.rect(0, BASE_H - 30, BASE_W, 30);
+            debugBg.fill({ color: 0x0d1117, alpha: 0.9 });
+            uiLayer.addChild(debugBg);
+
+            const debugText = new PIXI.Text({
+                text: '',
+                style: {
+                    fontSize: 10,
+                    fill: 0x484f58,
+                    fontFamily: 'monospace'
+                }
+            });
+            debugText.x = 10;
+            debugText.y = BASE_H - 20;
+            debugText.anchor.set(0, 0.5);
+            uiLayer.addChild(debugText);
+
+            setInterval(() => {
+                const gold = economy.getBalance('gold');
+                const gems = economy.getBalance('gems');
+                const cv   = config.get('clickValue');
+                const rd   = (config.get('regenDelay') / 1000).toFixed(1);
+                const tiles = grid.findCells(v => !!v).length;
+                debugText.text =
+                    `Grid(${GRID_ROWS}×${GRID_COLS}) tiles:${tiles}/64` +
+                    `  gold:${gold}  gems:${gems}` +
+                    `  clickPow:${cv}  regen:${rd}s` +
+                    `  clickLv:${clickLevel}  regenLv:${regenLevel}`;
+            }, 500);
+
+            console.log('[GridClicker] Game ready. Systems active:',
+                { Grid, GameConfigStore, SaveSystem, EconomyManager, GestureDetector });
+
+        } catch (err) {
+            console.error('[GridClicker] Init error:', err);
+            const el = document.getElementById('loading');
+            el.style.display = 'block';
+            el.innerHTML = `<span style="color:#f85149">Error: ${err.message}</span>
+                <small style="color:#8b949e">${err.stack ? err.stack.split('\n')[1] : ''}</small>`;
+        }
+    })();
+    </script>
+</body>
+</html>

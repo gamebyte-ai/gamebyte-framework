@@ -164,8 +164,8 @@ export type {
   PerformanceWarning,
   DeviceCapabilities as PerformanceDeviceCapabilities,
   QualitySettings,
-  ObjectPool,
-  ObjectPoolConfig,
+  ObjectPool as IObjectPool,
+  ObjectPoolConfig as IObjectPoolConfig,
   FrameRateManager as PerformanceFrameRateManager,
   MemoryOptimizer as PerformanceMemoryOptimizer,
   MemoryInfo,
@@ -775,6 +775,48 @@ export type {
   Component,
   GameEvent
 } from './types';
+
+// ─── v1.4 New Primitives ───────────────────────────────────────────────────
+
+// Entity System
+export { GameEntity } from './entity/index';
+export type { GameEntityConfig, GameEntityEvents, CollisionRect } from './entity/index';
+
+// Object Pool
+export { ObjectPool } from './pool/index';
+export type { ObjectPoolConfig } from './pool/index';
+
+// Game Config Store
+export { GameConfigStore, createGameConfig } from './config/index';
+export type { GameConfigStoreEvents } from './config/index';
+
+// Screen Shake (also exported via ./utils)
+export { screenShake } from './utils/screenShake';
+export type { ScreenShakeConfig } from './utils/screenShake';
+
+// Floating Text 2D (also exported via ./ui/effects)
+export { FloatingText2D } from './ui/effects/FloatingText2D';
+export type { FloatingTextConfig } from './ui/effects/FloatingText2D';
+
+// Wave Manager
+export { WaveManager } from './waves/index';
+export type { WaveConfig, WaveData, EnemySpawnDef, WaveManagerEvents } from './waves/index';
+
+// Grid System
+export { Grid, HexGrid } from './grids/index';
+export type { GridConfig, CellResult } from './grids/index';
+
+// Gesture Detector
+export { GestureDetector } from './gesture/index';
+export type { GestureConfig, GestureDetectorEvents } from './gesture/index';
+
+// Save System
+export { SaveSystem } from './save/index';
+export type { SaveConfig, SaveSystemEvents } from './save/index';
+
+// Economy Manager
+export { EconomyManager } from './economy/index';
+export type { CurrencyDef, ShopItemDef, EconomyManagerEvents } from './economy/index';
 
 // Re-export for convenience
 import { GameByte } from './core/GameByte';

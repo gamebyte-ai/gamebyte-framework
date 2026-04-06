@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Wave Shooter — GameByte v1.4 Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #0a0a1a;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            overflow: hidden;
+            touch-action: none;
+            user-select: none;
+        }
+
+        #game-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #loading {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+            background: #0a0a1a;
+            color: #e0e0ff;
+            z-index: 100;
+        }
+
+        #loading h1 {
+            font-size: 22px;
+            color: #7b9fff;
+            letter-spacing: 1px;
+        }
+
+        #loading p {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #1a1a3a;
+            border-top-color: #7b9fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        #hud {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: min(540px, 100vw);
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        #title-bar {
+            background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, transparent 100%);
+            padding: 14px 20px 20px;
+            text-align: center;
+        }
+
+        #title-bar h1 {
+            font-size: 13px;
+            font-weight: 700;
+            color: #7b9fff;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+
+        #instructions {
+            font-size: 11px;
+            color: rgba(255,255,255,0.4);
+            letter-spacing: 1px;
+        }
+
+        #stats-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px 8px;
+        }
+
+        .stat-box {
+            background: rgba(0,0,0,0.6);
+            border: 1px solid rgba(123, 159, 255, 0.2);
+            border-radius: 8px;
+            padding: 6px 14px;
+            min-width: 90px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 9px;
+            color: rgba(255,255,255,0.35);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #e0e8ff;
+            line-height: 1.2;
+        }
+
+        #wave-label .stat-value { color: #ffd700; }
+        #score-label .stat-value { color: #7bffb9; }
+        #enemies-label .stat-value { color: #ff7b7b; }
+
+        #wave-banner {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+            z-index: 30;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #wave-banner.visible { opacity: 1; }
+
+        #wave-banner h2 {
+            font-size: 42px;
+            font-weight: 900;
+            color: #ffd700;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.6), 0 0 60px rgba(255, 215, 0, 0.3);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        #wave-banner p {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 4px;
+            letter-spacing: 2px;
+        }
+
+        #game-over {
+            position: fixed;
+            inset: 0;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
+            z-index: 50;
+        }
+
+        #game-over h1 {
+            font-size: 52px;
+            font-weight: 900;
+            color: #ff4444;
+            text-shadow: 0 0 40px rgba(255, 68, 68, 0.5);
+            letter-spacing: 4px;
+        }
+
+        #game-over .final-score {
+            font-size: 24px;
+            color: #7bffb9;
+        }
+
+        #game-over button {
+            margin-top: 10px;
+            padding: 14px 48px;
+            font-size: 16px;
+            font-weight: 700;
+            color: #0a0a1a;
+            background: #7b9fff;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            letter-spacing: 1px;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        #game-over button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(123, 159, 255, 0.5);
+        }
+
+        #victory {
+            position: fixed;
+            inset: 0;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
+            z-index: 50;
+        }
+
+        #victory h1 {
+            font-size: 48px;
+            font-weight: 900;
+            color: #ffd700;
+            text-shadow: 0 0 40px rgba(255, 215, 0, 0.5);
+            letter-spacing: 3px;
+        }
+
+        #victory .final-score {
+            font-size: 24px;
+            color: #7bffb9;
+        }
+
+        #victory button {
+            margin-top: 10px;
+            padding: 14px 48px;
+            font-size: 16px;
+            font-weight: 700;
+            color: #0a0a1a;
+            background: #ffd700;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            letter-spacing: 1px;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        #victory button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+
+        /* Mobile shoot button */
+        #mobile-controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: min(540px, 100vw);
+            display: flex;
+            justify-content: space-between;
+            padding: 0 24px;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        .mobile-btn {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.08);
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: all;
+            cursor: pointer;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            transition: background 0.1s, transform 0.1s;
+        }
+
+        .mobile-btn:active {
+            background: rgba(123, 159, 255, 0.3);
+            transform: scale(0.92);
+        }
+
+        #btn-left  { background: rgba(100, 100, 255, 0.12); }
+        #btn-right { background: rgba(100, 100, 255, 0.12); }
+        #btn-fire  {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 80, 80, 0.18);
+            border-color: rgba(255, 100, 100, 0.4);
+            color: #ff9999;
+            font-size: 22px;
+        }
+
+        /* Health bar */
+        #health-row {
+            padding: 0 20px 6px;
+        }
+        #health-bar-bg {
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        #health-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff4444, #ff8888);
+            border-radius: 3px;
+            transition: width 0.15s ease;
+            width: 100%;
+        }
+
+        /* Pool debug badge */
+        #pool-badge {
+            position: fixed;
+            bottom: 120px;
+            right: 16px;
+            background: rgba(0,0,0,0.7);
+            border: 1px solid rgba(123,159,255,0.2);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 10px;
+            color: rgba(200, 210, 255, 0.6);
+            pointer-events: none;
+            z-index: 20;
+            line-height: 1.6;
+        }
+        #pool-badge span { color: #7b9fff; font-weight: 700; }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        <div class="spinner"></div>
+        <h1>Wave Shooter</h1>
+        <p>GameByte v1.4 — Loading framework...</p>
+    </div>
+
+    <div id="game-container"></div>
+
+    <!-- HUD overlay -->
+    <div id="hud">
+        <div id="title-bar">
+            <h1>Wave Shooter — GameByte v1.4 Demo</h1>
+            <div id="instructions">Arrow keys / A D to move &nbsp;|&nbsp; Space to shoot</div>
+        </div>
+        <div id="stats-row">
+            <div class="stat-box" id="wave-label">
+                <div class="stat-label">Wave</div>
+                <div class="stat-value" id="wave-value">1</div>
+            </div>
+            <div class="stat-box" id="score-label">
+                <div class="stat-label">Score</div>
+                <div class="stat-value" id="score-value">0</div>
+            </div>
+            <div class="stat-box" id="enemies-label">
+                <div class="stat-label">Enemies</div>
+                <div class="stat-value" id="enemies-value">0</div>
+            </div>
+        </div>
+        <div id="health-row">
+            <div id="health-bar-bg">
+                <div id="health-bar-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wave announcement -->
+    <div id="wave-banner">
+        <h2 id="wave-banner-text">Wave 1</h2>
+        <p id="wave-banner-sub">Survive!</p>
+    </div>
+
+    <!-- Mobile D-pad + fire -->
+    <div id="mobile-controls">
+        <div style="display:flex;gap:10px;">
+            <div class="mobile-btn" id="btn-left">LEFT</div>
+            <div class="mobile-btn" id="btn-right">RIGHT</div>
+        </div>
+        <div class="mobile-btn" id="btn-fire">FIRE</div>
+    </div>
+
+    <!-- Pool debug info -->
+    <div id="pool-badge">
+        ObjectPool &mdash; Bullets<br>
+        Active: <span id="pool-active">0</span> &nbsp; Available: <span id="pool-avail">0</span><br>
+        Total created: <span id="pool-total">0</span>
+    </div>
+
+    <!-- Game over / Victory screens -->
+    <div id="game-over">
+        <h1>GAME OVER</h1>
+        <div class="final-score" id="go-score">Score: 0</div>
+        <button onclick="location.reload()">Play Again</button>
+    </div>
+    <div id="victory">
+        <h1>VICTORY!</h1>
+        <div class="final-score" id="v-score">Score: 0</div>
+        <button onclick="location.reload()">Play Again</button>
+    </div>
+
+    <!-- Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="../../dist/gamebyte.umd.js"></script>
+
+    <script>
+    (async () => {
+        // =====================================================================
+        // 1. Framework bootstrap — GameByte.quick2D initializes GraphicsEngine
+        //    so GameEntity, FloatingText2D, etc. can call graphics() internally.
+        // =====================================================================
+        const {
+            GameByte,
+            GameEntity,
+            ObjectPool,
+            WaveManager,
+            FloatingText2D,
+            screenShake,
+        } = GameByteFramework;
+
+        const BASE_W = 540;
+        const BASE_H = 960;
+
+        const game = await GameByte.quick2D('#game-container', BASE_W, BASE_H, {
+            backgroundColor: 0x08081a,
+        });
+
+        document.getElementById('loading').style.display = 'none';
+
+        // =====================================================================
+        // 2. Visual layers
+        // =====================================================================
+        const stage     = game.stage;          // root — screenShake shakes this
+        const worldLayer  = new PIXI.Container(); // game world
+        const fxLayer     = new PIXI.Container(); // floating text on top
+        stage.addChild(worldLayer);
+        stage.addChild(fxLayer);
+
+        // Stars background (pure PIXI, no framework needed)
+        const starGfx = new PIXI.Graphics();
+        for (let i = 0; i < 120; i++) {
+            const x = Math.random() * BASE_W;
+            const y = Math.random() * BASE_H;
+            const r = Math.random() * 1.5 + 0.3;
+            const a = Math.random() * 0.5 + 0.2;
+            starGfx.circle(x, y, r).fill({ color: 0xffffff, alpha: a });
+        }
+        worldLayer.addChild(starGfx);
+
+        // Ground line
+        const groundGfx = new PIXI.Graphics();
+        groundGfx.rect(0, BASE_H - 80, BASE_W, 2).fill({ color: 0x2a2a5a, alpha: 0.8 });
+        worldLayer.addChild(groundGfx);
+
+        // =====================================================================
+        // 3. Game state
+        // =====================================================================
+        let score         = 0;
+        let playerHealth  = 100;
+        const MAX_HEALTH  = 100;
+        let gameRunning   = true;
+        const enemies     = [];   // active GameEntity instances for enemies
+        let enemiesAlive  = 0;
+
+        // Input state
+        const keys = { left: false, right: false, fire: false };
+
+        // =====================================================================
+        // 4. PLAYER — GameEntity wraps a PIXI.Graphics display child
+        //    Entity position drives movement; velocity system used for physics.
+        // =====================================================================
+        const playerDisplay = new PIXI.Graphics();
+        // Glowing green circle — player body
+        playerDisplay.circle(0, 0, 18).fill({ color: 0x44ff88 });
+        playerDisplay.circle(0, 0, 22).fill({ color: 0x44ff88, alpha: 0.18 });
+        // Cannon nub
+        playerDisplay.rect(-4, -26, 8, 16).fill({ color: 0x88ffbb });
+
+        const player = new GameEntity({
+            display: playerDisplay,
+            x: BASE_W / 2,
+            y: BASE_H - 110,
+            health: MAX_HEALTH,
+            maxHealth: MAX_HEALTH,
+            collisionRadius: 18,
+            tags: ['player'],
+        });
+        worldLayer.addChild(player.getContainer());
+
+        // Player took damage
+        player.on('damaged', (amount) => {
+            playerHealth = player.health;
+            updateHealthBar();
+            // Show damage float on the fxLayer
+            FloatingText2D.spawn({
+                text: `-${amount}`,
+                x: player.x + (Math.random() * 30 - 15),
+                y: player.y - 20,
+                parent: fxLayer,
+                style: 'damage',
+                direction: 'up',
+                duration: 700,
+            });
+        });
+
+        player.on('died', () => {
+            if (!gameRunning) return;
+            gameRunning = false;
+            showGameOver();
+        });
+
+        // =====================================================================
+        // 5. OBJECT POOL — bullet pooling with GameByte ObjectPool
+        //    Each bullet is a plain object with { sprite, active, x, y, vy }
+        //    We maintain a separate activeBullets array for iteration, since
+        //    ObjectPool's internal _active Set is private by design.
+        // =====================================================================
+
+        const activeBullets = []; // mirrors what's active in the pool
+
+        // Each bullet gets its own PIXI.Graphics pre-added to the world layer
+        // with visibility toggled off until acquired.
+        function makeBulletSprite() {
+            const g = new PIXI.Graphics();
+            g.circle(0, 0, 5).fill({ color: 0xffee44 });
+            g.circle(0, 0, 7).fill({ color: 0xffee44, alpha: 0.25 });
+            g.visible = false;
+            worldLayer.addChild(g);
+            return g;
+        }
+
+        const bulletPool = new ObjectPool({
+            create: () => ({
+                sprite: makeBulletSprite(),
+                active: false,
+                x: 0,
+                y: 0,
+                vy: -600,    // pixels/second upward
+            }),
+            reset: (b) => {
+                b.active = false;
+                b.x = 0;
+                b.y = 0;
+                b.sprite.visible = false;
+            },
+            initialSize: 10,
+            maxSize: 40,
+        });
+
+        function fireBullet() {
+            const b = bulletPool.acquire();
+            b.x = player.x;
+            b.y = player.y - 30;
+            b.active = true;
+            b.sprite.x = b.x;
+            b.sprite.y = b.y;
+            b.sprite.visible = true;
+            activeBullets.push(b);
+        }
+
+        function releaseBullet(b) {
+            bulletPool.release(b);
+            const idx = activeBullets.indexOf(b);
+            if (idx !== -1) activeBullets.splice(idx, 1);
+        }
+
+        // =====================================================================
+        // 6. ENEMY factory — each enemy is a GameEntity with a red circle
+        // =====================================================================
+        function createEnemy(type, spawnX) {
+            let radius, color, glowColor, hp, speed, points;
+
+            switch (type) {
+                case 'scout':
+                    radius = 14; color = 0xff4444; glowColor = 0xff2222;
+                    hp = 30; speed = 90; points = 10; break;
+                case 'soldier':
+                    radius = 18; color = 0xff6600; glowColor = 0xff4400;
+                    hp = 60; speed = 65; points = 25; break;
+                case 'brute':
+                    radius = 24; color = 0xaa00ff; glowColor = 0x8800dd;
+                    hp = 120; speed = 45; points = 60; break;
+                default:
+                    radius = 14; color = 0xff4444; glowColor = 0xff2222;
+                    hp = 30; speed = 90; points = 10;
+            }
+
+            const gfx = new PIXI.Graphics();
+            gfx.circle(0, 0, radius).fill({ color });
+            gfx.circle(0, 0, radius + 5).fill({ color: glowColor, alpha: 0.15 });
+            // Evil "eye"
+            gfx.circle(-radius * 0.25, -radius * 0.15, radius * 0.18).fill({ color: 0xffffff });
+            gfx.circle( radius * 0.25, -radius * 0.15, radius * 0.18).fill({ color: 0xffffff });
+
+            const entity = new GameEntity({
+                display: gfx,
+                x: spawnX,
+                y: -radius - 10,
+                vy: speed,
+                health: hp,
+                maxHealth: hp,
+                collisionRadius: radius,
+                tags: ['enemy'],
+            });
+            entity._points = points;
+            entity._type   = type;
+
+            worldLayer.addChild(entity.getContainer());
+            enemies.push(entity);
+            enemiesAlive++;
+            updateEnemiesHUD();
+
+            entity.on('died', () => {
+                // Score
+                score += entity._points;
+                updateScoreHUD();
+
+                // screenShake — shake the stage for impact feedback
+                screenShake(stage, 8, 250);
+
+                // FloatingText2D — damage number floats up from enemy position
+                FloatingText2D.score(fxLayer, entity.x, entity.y, entity._points);
+
+                // Remove from world after brief flash
+                setTimeout(() => {
+                    const idx = enemies.indexOf(entity);
+                    if (idx !== -1) enemies.splice(idx, 1);
+                    try { worldLayer.removeChild(entity.getContainer()); } catch(_) {}
+                    enemiesAlive = Math.max(0, enemiesAlive - 1);
+                    updateEnemiesHUD();
+                }, 80);
+            });
+
+            return entity;
+        }
+
+        // =====================================================================
+        // 7. WAVE MANAGER — 3 waves of increasing difficulty
+        //    onSpawn callback creates enemies via createEnemy()
+        // =====================================================================
+        const waveManager = new WaveManager({
+            waves: [
+                {
+                    // Wave 1: scouts only
+                    enemies: [{ type: 'scout', count: 6, spawnInterval: 800 }],
+                    intermission: 3000,
+                },
+                {
+                    // Wave 2: scouts + soldiers
+                    enemies: [
+                        { type: 'scout',   count: 4, spawnInterval: 600 },
+                        { type: 'soldier', count: 4, spawnInterval: 900, delay: 500 },
+                    ],
+                    intermission: 3500,
+                },
+                {
+                    // Wave 3: mixed with a brute
+                    enemies: [
+                        { type: 'scout',   count: 5, spawnInterval: 500 },
+                        { type: 'soldier', count: 3, spawnInterval: 800, delay: 400 },
+                        { type: 'brute',   count: 2, spawnInterval: 2000, delay: 1500 },
+                    ],
+                },
+            ],
+            autoAdvance: true,
+
+            onSpawn: (type, waveIdx) => {
+                if (!gameRunning) return;
+                const margin = 40;
+                const x = margin + Math.random() * (BASE_W - margin * 2);
+                createEnemy(type, x);
+            },
+
+            onWaveStart: (waveIdx) => {
+                updateWaveHUD(waveIdx + 1);
+                showWaveBanner(waveIdx + 1);
+            },
+
+            onWaveEnd: (waveIdx) => {
+                if (waveIdx < 2) {
+                    showWaveBanner(waveIdx + 1, true); // "Wave clear!"
+                }
+            },
+
+            onAllWavesComplete: () => {
+                if (!gameRunning) return;
+                // Delay victory screen slightly to let last enemy death animations finish
+                setTimeout(() => {
+                    if (gameRunning) {
+                        gameRunning = false;
+                        showVictory();
+                    }
+                }, 1500);
+            },
+        });
+
+        waveManager.on('intermission-start', (duration) => {
+            // Nothing extra needed — onWaveEnd already shows banner
+        });
+
+        // Banner state (var to avoid TDZ — showWaveBanner is hoisted but called by start() below)
+        var bannerTimeout = null;
+
+        // Start waves immediately
+        waveManager.start();
+
+        // =====================================================================
+        // 8. INPUT
+        // =====================================================================
+        const FIRE_COOLDOWN = 200; // ms
+        let lastFireTime = 0;
+        let touchFireActive = false;
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft'  || e.key === 'a' || e.key === 'A') keys.left  = true;
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
+            if (e.key === ' ' || e.key === 'ArrowUp') { e.preventDefault(); keys.fire = true; }
+        });
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft'  || e.key === 'a' || e.key === 'A') keys.left  = false;
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
+            if (e.key === ' ' || e.key === 'ArrowUp') keys.fire = false;
+        });
+
+        // Mobile controls
+        const btnLeft  = document.getElementById('btn-left');
+        const btnRight = document.getElementById('btn-right');
+        const btnFire  = document.getElementById('btn-fire');
+
+        btnLeft.addEventListener('touchstart',  (e) => { e.preventDefault(); keys.left = true; },  { passive: false });
+        btnLeft.addEventListener('touchend',    ()  => { keys.left = false; });
+        btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); keys.right = true; }, { passive: false });
+        btnRight.addEventListener('touchend',   ()  => { keys.right = false; });
+        btnFire.addEventListener('touchstart',  (e) => { e.preventDefault(); touchFireActive = true; }, { passive: false });
+        btnFire.addEventListener('touchend',    ()  => { touchFireActive = false; });
+
+        // =====================================================================
+        // 9. MAIN GAME LOOP — game.onUpdate(dtMs)
+        //    game.onUpdate receives delta in milliseconds (from PixiRenderer tick).
+        // =====================================================================
+        const PLAYER_SPEED = 280; // px/sec
+        const BULLET_DAMAGE = 15;
+        const ENEMY_CONTACT_DAMAGE = 20;
+        const CONTACT_COOLDOWN = 800; // ms between contact damage hits
+        const contactTimers = new WeakMap();
+
+        game.onUpdate((dtMs) => {
+            if (!gameRunning) return;
+
+            const dt = dtMs / 1000; // convert ms → seconds for entity velocity math
+
+            // --- WaveManager update (expects ms) ---
+            waveManager.update(dtMs);
+
+            // --- Player movement ---
+            player.vx = 0;
+            if (keys.left)  player.vx = -PLAYER_SPEED;
+            if (keys.right) player.vx =  PLAYER_SPEED;
+            player.update(dt);
+
+            // Clamp player to screen
+            const pr = 20;
+            if (player.x < pr)          player.x = pr;
+            if (player.x > BASE_W - pr) player.x = BASE_W - pr;
+
+            // --- Auto-fire when key held (or touch fire) ---
+            const now = performance.now();
+            if ((keys.fire || touchFireActive) && now - lastFireTime >= FIRE_COOLDOWN) {
+                fireBullet();
+                lastFireTime = now;
+            }
+
+            // --- Update bullets (iterate activeBullets array, release to pool on exit) ---
+            for (let i = activeBullets.length - 1; i >= 0; i--) {
+                const b = activeBullets[i];
+                b.y += b.vy * dt;
+                b.sprite.x = b.x;
+                b.sprite.y = b.y;
+
+                // Off-screen — release back to pool
+                if (b.y < -20) {
+                    releaseBullet(b);
+                    continue;
+                }
+
+                // Bullet vs enemy collision
+                let hit = false;
+                for (let j = enemies.length - 1; j >= 0; j--) {
+                    const enemy = enemies[j];
+                    if (!enemy.isAlive) continue;
+
+                    const dx = b.x - enemy.x;
+                    const dy = b.y - enemy.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < enemy.collisionRadius + 5) {
+                        // Hit!
+                        enemy.damage(BULLET_DAMAGE);
+
+                        // FloatingText2D damage number floats up from impact point
+                        FloatingText2D.damage(fxLayer, enemy.x, enemy.y - 10, BULLET_DAMAGE);
+
+                        releaseBullet(b);
+                        hit = true;
+                        break;
+                    }
+                }
+                // (bullet already removed from activeBullets by releaseBullet if hit)
+            }
+
+            // --- Update enemies ---
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const enemy = enemies[i];
+                if (!enemy.isAlive) continue;
+
+                enemy.update(dt);
+
+                // Enemy reached bottom — remove and hurt player
+                if (enemy.y > BASE_H - 60) {
+                    enemies.splice(i, 1);
+                    try { worldLayer.removeChild(enemy.getContainer()); } catch(_) {}
+                    enemiesAlive = Math.max(0, enemiesAlive - 1);
+                    updateEnemiesHUD();
+
+                    if (player.isAlive) {
+                        player.damage(ENEMY_CONTACT_DAMAGE);
+                        screenShake(stage, 12, 300);
+                    }
+                    continue;
+                }
+
+                // Enemy-player contact damage
+                if (player.collidesWith(enemy)) {
+                    const lastHit = contactTimers.get(enemy) || 0;
+                    if (now - lastHit > CONTACT_COOLDOWN) {
+                        contactTimers.set(enemy, now);
+                        if (player.isAlive) {
+                            player.damage(ENEMY_CONTACT_DAMAGE);
+                            screenShake(stage, 14, 350);
+                        }
+                    }
+                }
+            }
+
+            // --- Update ObjectPool debug badge ---
+            document.getElementById('pool-active').textContent = bulletPool.activeCount;
+            document.getElementById('pool-avail').textContent  = bulletPool.availableCount;
+            document.getElementById('pool-total').textContent  = bulletPool.totalCreated;
+        });
+
+        // =====================================================================
+        // 10. HUD helpers
+        // =====================================================================
+        function updateScoreHUD() {
+            document.getElementById('score-value').textContent = score;
+        }
+
+        function updateWaveHUD(waveNum) {
+            document.getElementById('wave-value').textContent = waveNum;
+        }
+
+        function updateEnemiesHUD() {
+            document.getElementById('enemies-value').textContent = enemiesAlive;
+        }
+
+        function updateHealthBar() {
+            const pct = Math.max(0, playerHealth / MAX_HEALTH * 100);
+            document.getElementById('health-bar-fill').style.width = pct + '%';
+            if (pct < 30) {
+                document.getElementById('health-bar-fill').style.background =
+                    'linear-gradient(90deg, #ff2222, #ff6666)';
+            }
+        }
+
+        function showWaveBanner(waveNum, isClear = false) {
+            const banner = document.getElementById('wave-banner');
+            const text   = document.getElementById('wave-banner-text');
+            const sub    = document.getElementById('wave-banner-sub');
+
+            if (isClear) {
+                text.textContent = 'Wave Clear!';
+                text.style.color = '#7bffb9';
+                text.style.textShadow = '0 0 30px rgba(123, 255, 185, 0.6)';
+                sub.textContent  = 'Next wave incoming...';
+            } else {
+                text.textContent = `Wave ${waveNum}`;
+                text.style.color = '#ffd700';
+                text.style.textShadow = '0 0 30px rgba(255, 215, 0, 0.6), 0 0 60px rgba(255, 215, 0, 0.3)';
+                sub.textContent  = waveNum === 3 ? 'Final Wave — Survive!' : 'Survive!';
+            }
+
+            banner.classList.add('visible');
+            if (bannerTimeout) clearTimeout(bannerTimeout);
+            bannerTimeout = setTimeout(() => banner.classList.remove('visible'), 2200);
+        }
+
+        function showGameOver() {
+            waveManager.pause();
+            document.getElementById('go-score').textContent = `Score: ${score}`;
+            document.getElementById('game-over').style.display = 'flex';
+        }
+
+        function showVictory() {
+            waveManager.pause();
+            document.getElementById('v-score').textContent = `Score: ${score}`;
+            document.getElementById('victory').style.display = 'flex';
+        }
+
+        // =====================================================================
+        // Log feature usage to console for educational reference
+        // =====================================================================
+        console.groupCollapsed('%c GameByte v1.4 — Wave Shooter Demo', 'color:#7b9fff;font-weight:bold;');
+        console.log('%c GameEntity  ', 'color:#7bffb9',
+            '— player + enemies created with new GameEntity({ display, health, collisionRadius, tags })');
+        console.log('%c ObjectPool  ', 'color:#7bffb9',
+            '— 40-cap bullet pool: bulletPool.acquire() / bulletPool.release(b)');
+        console.log('%c screenShake ', 'color:#7bffb9',
+            '— screenShake(stage, intensity, duration) on hit or contact');
+        console.log('%c FloatingText2D ', 'color:#7bffb9',
+            '— FloatingText2D.damage(parent, x, y, n) / .score(parent, x, y, n)');
+        console.log('%c WaveManager ', 'color:#7bffb9',
+            '— 3 waves with autoAdvance, onSpawn/onWaveStart/onAllWavesComplete callbacks');
+        console.groupEnd();
+
+    })().catch((err) => {
+        console.error(err);
+        const el = document.getElementById('loading');
+        el.style.display = 'flex';
+        el.querySelector('h1').textContent = 'Error';
+        el.querySelector('p').textContent = err.message;
+        el.querySelector('p').style.color = '#ff6b6b';
+        el.querySelector('.spinner').style.display = 'none';
+    });
+    </script>
+</body>
+</html>

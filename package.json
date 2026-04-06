@@ -148,6 +148,38 @@
     "./assets/pipeline": {
       "import": "./dist/assets/pipeline-index.js",
       "types": "./dist/assets/pipeline-index.d.ts"
+    },
+    "./entity": {
+      "import": "./dist/entity/index.js",
+      "types": "./dist/entity/index.d.ts"
+    },
+    "./pool": {
+      "import": "./dist/pool/index.js",
+      "types": "./dist/pool/index.d.ts"
+    },
+    "./config": {
+      "import": "./dist/config/index.js",
+      "types": "./dist/config/index.d.ts"
+    },
+    "./waves": {
+      "import": "./dist/waves/index.js",
+      "types": "./dist/waves/index.d.ts"
+    },
+    "./grids": {
+      "import": "./dist/grids/index.js",
+      "types": "./dist/grids/index.d.ts"
+    },
+    "./gesture": {
+      "import": "./dist/gesture/index.js",
+      "types": "./dist/gesture/index.d.ts"
+    },
+    "./save": {
+      "import": "./dist/save/index.js",
+      "types": "./dist/save/index.d.ts"
+    },
+    "./economy": {
+      "import": "./dist/economy/index.js",
+      "types": "./dist/economy/index.d.ts"
     }
   },
   "scripts": {

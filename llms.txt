@@ -1,0 +1,643 @@
+# GameByte Framework
+
+> A mobile-first game development framework with Laravel-inspired architecture for 2D (Pixi.js v8) and 3D (Three.js) games. TypeScript-first with service container, facades, reactive state, and comprehensive UI components.
+
+## Core
+
+GameByte uses a Laravel-inspired service container with automatic provider registration.
+
+```typescript
+import { createGame, createMobileGame } from 'gamebyte-framework';
+
+const game = createGame();
+await game.initialize(canvas, '2d');  // or '3d'
+game.start();
+
+// Service container
+game.bind('my.service', () => new MyService());
+game.singleton('global.service', () => new GlobalService());
+const service = game.make('my.service');
+```
+
+Built-in services: `'renderer'`, `'scene.manager'`, `'ui.manager'`, `'assets'`, `'audio'`, `'input'`, `'physics'`, `'performance'`
+
+### Reactive State
+
+```typescript
+import { createState, computed } from 'gamebyte-framework';
+
+const state = createState({ score: 0, health: 100 });
+state.score += 100;
+state.on('score', (newVal, oldVal) => {});
+state.batch(s => { s.score++; s.health--; });
+state.reset();
+
+const total = computed(() => state.score * 2);
+total.value; // auto-updates
+```
+
+### Scenes
+
+```typescript
+import { BaseScene } from 'gamebyte-framework';
+
+class GameScene extends BaseScene {
+  async onEnter() { /* setup */ }
+  update(deltaTime: number) { /* game loop */ }
+  async onExit() { /* cleanup */ }
+}
+
+sceneManager.register('game', new GameScene());
+await sceneManager.load('game');
+```
+
+### UI Components
+
+Pre-built: `UIButton`, `UIPanel`, `UIText`, `UIProgressBar`, `UIContainer`, `GameTooltip`, `ArcheroMenu`, `SplashScreen`
+
+```typescript
+import { UIButton, ArcheroMenu, GameTooltip } from 'gamebyte-framework';
+
+const button = new UIButton({ text: 'PLAY', width: 200, height: 60, onClick: () => {} });
+const menu = new ArcheroMenu({ sections: [{ name: 'Play', icon: '...' }], activeSection: 0 });
+const tooltip = new GameTooltip({ text: 'Info', tailPosition: 'bottom-left' });
+```
+
+### Graphics Abstraction
+
+```typescript
+import { graphics } from 'gamebyte-framework';
+
+const factory = graphics();
+const container = factory.createContainer();
+const text = factory.createText('Hello', { fontSize: 24 });
+const gfx = factory.createGraphics();
+gfx.roundRect(0, 0, 100, 50, 10).fill({ color: 0x4CAF50 });
+```
+
+### Layout (Yoga Flexbox)
+
+```typescript
+import { LayoutPresets, GameLayoutPresets, createFlexRow, createFlexColumn } from 'gamebyte-framework';
+
+container.layout = LayoutPresets.center;
+container.layout = createFlexRow({ gap: 16, justify: 'space-between' });
+```
+
+## v1.4 Game Primitives
+
+### GameEntity
+
+Base class for all game objects with health, collision, velocity, and lifecycle events.
+
+**Constructor:**
+```typescript
+new GameEntity(options: {
+  x?: number;           // Initial X position (default: 0)
+  y?: number;           // Initial Y position (default: 0)
+  health?: number;      // Initial/max health (default: 100)
+  collisionRadius?: number;  // Circle collision radius
+  collisionRect?: { width: number; height: number };  // Rect collision
+  tags?: string[];      // Entity tags for filtering
+})
+```
+
+**Properties:**
+- `x: number` -- World X position
+- `y: number` -- World Y position
+- `vx: number` -- Velocity X (pixels/sec)
+- `vy: number` -- Velocity Y (pixels/sec)
+- `speed: number` -- Computed speed magnitude
+- `health: number` -- Current health
+- `maxHealth: number` -- Maximum health
+- `isAlive: boolean` -- health > 0
+- `active: boolean` -- Whether entity is active
+- `tags: string[]` -- Tags for identification/filtering
+- `collisionRadius: number` -- Circle collision radius
+- `collisionRect: { width, height } | null` -- Rectangle collision bounds
+
+**Methods:**
+- `update(dt: number): void` -- Update position from velocity; call each frame
+- `damage(amount: number): void` -- Reduce health, emits 'damaged'; emits 'died' at 0
+- `heal(amount: number): void` -- Restore health (capped at maxHealth), emits 'healed'
+- `collidesWith(other: GameEntity): boolean` -- Circle or AABB collision test
+- `distanceTo(other: GameEntity): number` -- Euclidean distance
+- `getContainer(): IContainer` -- Get the display container for rendering
+- `destroy(): void` -- Cleanup, emits 'destroyed'
+
+**Events:**
+- `'damaged'` -- `(amount: number, remaining: number)`
+- `'healed'` -- `(amount: number, current: number)`
+- `'died'` -- `()`
+- `'destroyed'` -- `()`
+
+**Example:**
+```typescript
+import { GameEntity } from 'gamebyte-framework';
+
+const player = new GameEntity({ x: 100, y: 200, health: 100, collisionRadius: 16, tags: ['player'] });
+player.on('died', () => console.log('Game over'));
+player.update(dt);
+scene.addChild(player.getContainer());
+
+class Enemy extends GameEntity {
+  constructor(x: number, y: number) {
+    super({ x, y, health: 30, collisionRadius: 12, tags: ['enemy'] });
+  }
+  update(dt: number) {
+    this.vx = -50;
+    super.update(dt);
+  }
+}
+
+if (player.collidesWith(enemy)) enemy.damage(25);
+```
+
+---
+
+### ObjectPool\<T\>
+
+Generic object recycling to avoid GC spikes.
+
+**Constructor:**
+```typescript
+new ObjectPool<T>(options: {
+  create: () => T;        // Factory function to create new objects
+  reset: (obj: T) => void; // Reset function when releasing back to pool
+  initialSize?: number;   // Pre-allocate this many (default: 0)
+  maxSize?: number;       // Maximum pool size (default: Infinity)
+})
+```
+
+**Methods:**
+- `acquire(): T` -- Get an object from pool (or create new)
+- `release(obj: T): void` -- Return object to pool (calls reset)
+- `releaseAll(): void` -- Release all active objects
+- `clear(): void` -- Destroy all objects in pool
+
+**Properties:**
+- `activeCount: number` -- Objects currently in use
+- `availableCount: number` -- Objects ready to acquire
+- `totalCreated: number` -- Total objects created lifetime
+
+**Example:**
+```typescript
+import { ObjectPool } from 'gamebyte-framework';
+
+const bulletPool = new ObjectPool({
+  create: () => ({ x: 0, y: 0, active: false }),
+  reset: (b) => { b.x = 0; b.y = 0; b.active = false; },
+  initialSize: 20,
+  maxSize: 100,
+});
+
+const bullet = bulletPool.acquire();
+bullet.x = player.x;
+bulletPool.release(bullet);
+```
+
+---
+
+### GameConfigStore\<T\>
+
+Typed game configuration with difficulty scaling and change events.
+
+**Factory:**
+```typescript
+createGameConfig<T extends Record<string, number>>(defaults: T): GameConfigStore<T>
+```
+
+**Methods:**
+- `get<K extends keyof T>(key: K): T[K]` -- Read config value
+- `set<K extends keyof T>(key: K, value: T[K]): void` -- Write config value, emits 'changed'
+- `applyDifficulty(level: number, factors: Partial<Record<keyof T, number>>): void` -- Scale values: default * factor^level
+- `reset(): void` -- Restore all values to defaults
+- `getAll(): T` -- Get all values as plain object
+
+**Events:**
+- `'changed'` -- `(key: keyof T, newValue: number, oldValue: number)`
+
+**Example:**
+```typescript
+import { createGameConfig } from 'gamebyte-framework';
+
+const config = createGameConfig({
+  playerSpeed: 200, enemySpeed: 80, spawnRate: 2.0, maxEnemies: 30
+});
+
+config.get('playerSpeed'); // 200
+config.set('playerSpeed', 250);
+config.on('changed', (key, newVal, oldVal) => {});
+config.applyDifficulty(3, { enemySpeed: 1.1, spawnRate: 0.95 });
+config.reset();
+```
+
+---
+
+### screenShake()
+
+Camera/container shake effect for impacts and explosions.
+
+**Signatures:**
+```typescript
+screenShake(target: IContainer, intensity: number, duration: number): void
+
+screenShake(options: {
+  target: IContainer;
+  intensity: number;         // Shake magnitude in pixels
+  duration: number;          // Duration in milliseconds
+  decay?: 'linear' | 'exponential';  // How shake fades (default: 'linear')
+  direction?: 'both' | 'horizontal' | 'vertical'; // Axis constraint (default: 'both')
+}): void
+```
+
+**Example:**
+```typescript
+import { screenShake } from 'gamebyte-framework';
+
+screenShake(gameContainer, 8, 300);
+screenShake({ target: gameContainer, intensity: 12, duration: 500, decay: 'exponential', direction: 'horizontal' });
+```
+
+---
+
+### FloatingText2D
+
+Animated damage numbers, score popups, and coin indicators that float and fade.
+
+**Static Methods:**
+- `FloatingText2D.damage(parent: IContainer, x: number, y: number, amount: number): void` -- Red damage number
+- `FloatingText2D.score(parent: IContainer, x: number, y: number, amount: number): void` -- Yellow score popup
+- `FloatingText2D.coin(parent: IContainer, x: number, y: number, amount: number): void` -- Orange coin text
+- `FloatingText2D.heal(parent: IContainer, x: number, y: number, amount: number): void` -- Green heal text
+- `FloatingText2D.spawn(options: FloatingTextOptions): void` -- Custom floating text
+
+**FloatingTextOptions:**
+```typescript
+{
+  text: string;
+  x: number;
+  y: number;
+  parent: IContainer;
+  style?: 'damage' | 'heal' | 'score' | 'coin';  // Color preset
+  direction?: 'up' | 'down' | 'left' | 'right';  // Float direction (default: 'up')
+  duration?: number;    // Animation duration ms (default: 800)
+  distance?: number;    // Float distance in pixels (default: 60)
+  fontSize?: number;
+  color?: number;
+}
+```
+
+**Example:**
+```typescript
+import { FloatingText2D } from 'gamebyte-framework';
+
+FloatingText2D.damage(container, enemy.x, enemy.y, 25);
+FloatingText2D.score(container, x, y, 100);
+FloatingText2D.spawn({ text: 'CRITICAL!', x: 200, y: 300, parent: container, style: 'damage', duration: 1200, distance: 80 });
+```
+
+---
+
+### WaveManager
+
+Wave/spawn system for tower defense, roguelike, and survival games.
+
+**Constructor:**
+```typescript
+new WaveManager(options: {
+  waves: WaveDefinition[];
+  onSpawn: (type: string, waveIndex: number) => void;
+  onWaveStart?: (waveIndex: number) => void;
+  onWaveEnd?: (waveIndex: number) => void;
+  onAllWavesComplete?: () => void;
+})
+
+interface WaveDefinition {
+  enemies: EnemyGroup[];
+  intermission?: number;    // Pause before next wave (ms)
+  isBoss?: boolean;         // Boss wave flag
+}
+
+interface EnemyGroup {
+  type: string;             // Enemy type identifier
+  count: number;            // How many to spawn
+  spawnInterval?: number;   // Delay between spawns (ms, default: 1000)
+  delay?: number;           // Delay before this group starts (ms)
+}
+```
+
+**Methods:**
+- `start(): void` -- Begin wave sequence
+- `pause(): void` -- Pause spawning
+- `resume(): void` -- Resume spawning
+- `skipToWave(n: number): void` -- Jump to wave N
+- `update(dt: number): void` -- Tick; call each frame with delta in ms
+- `destroy(): void` -- Cleanup
+
+**Properties:**
+- `currentWave: number` -- Current wave index (0-based)
+- `totalWaves: number` -- Total number of waves
+- `isActive: boolean` -- Whether wave system is running
+- `isIntermission: boolean` -- Whether in intermission period
+- `intermissionTimeLeft: number` -- Remaining intermission time (ms)
+
+**Example:**
+```typescript
+import { WaveManager } from 'gamebyte-framework';
+
+const wm = new WaveManager({
+  waves: [
+    { enemies: [{ type: 'zombie', count: 5, spawnInterval: 800 }], intermission: 3000 },
+    { enemies: [{ type: 'zombie', count: 3 }, { type: 'boss', count: 1, delay: 2000 }], isBoss: true }
+  ],
+  onSpawn: (type, waveIdx) => spawnEnemy(type),
+  onWaveStart: (idx) => showBanner(`Wave ${idx + 1}`),
+  onAllWavesComplete: () => showVictory(),
+});
+wm.start();
+// In game loop: wm.update(deltaMs);
+```
+
+---
+
+### Grid\<T\>
+
+2D grid data structure with cell-pixel coordinate conversion.
+
+**Constructor:**
+```typescript
+new Grid<T>(options: {
+  rows: number;
+  cols: number;
+  cellSize: number;     // Cell size in pixels
+  defaultValue?: T;     // Default cell value
+})
+```
+
+**Methods:**
+- `setCell(row: number, col: number, value: T): void`
+- `getCell(row: number, col: number): T | undefined`
+- `getNeighbors(row: number, col: number): Array<{ row: number; col: number; value: T }>`
+- `cellToPixel(row: number, col: number): { x: number; y: number }` -- Center of cell
+- `pixelToCell(x: number, y: number): { row: number; col: number } | null`
+- `forEach(callback: (row: number, col: number, value: T) => void): void`
+- `clear(): void`
+
+**Properties:**
+- `rows: number`, `cols: number`, `cellSize: number`
+
+### HexGrid\<T\>
+
+Hexagonal grid extending Grid with hex-specific operations.
+
+**Constructor:** Same as Grid.
+
+**Additional Methods:**
+- `hexDistance(r1: number, c1: number, r2: number, c2: number): number` -- Hex manhattan distance
+- `getRing(row: number, col: number, radius: number): Array<{ row: number; col: number; value: T }>` -- Ring of cells at distance
+- `getArea(row: number, col: number, radius: number): Array<{ row: number; col: number; value: T }>` -- All cells within distance
+
+**Example:**
+```typescript
+import { Grid, HexGrid } from 'gamebyte-framework';
+
+const grid = new Grid({ rows: 8, cols: 8, cellSize: 64 });
+grid.setCell(0, 0, 'player');
+grid.getNeighbors(2, 3);
+const px = grid.cellToPixel(2, 3);
+const cell = grid.pixelToCell(150, 200);
+
+const hex = new HexGrid({ rows: 10, cols: 10, cellSize: 48 });
+hex.hexDistance(0, 0, 3, 2);
+hex.getRing(5, 5, 2);
+```
+
+---
+
+### GestureDetector
+
+Touch gesture recognition for mobile games.
+
+**Constructor:**
+```typescript
+new GestureDetector(options: {
+  target: HTMLElement;          // Element to listen on
+  swipeThreshold?: number;     // Min distance for swipe (default: 50)
+  longPressDelay?: number;     // Long press timeout ms (default: 500)
+  doubleTapDelay?: number;     // Double tap window ms (default: 300)
+})
+```
+
+**Events:**
+- `'tap'` -- `(x: number, y: number)`
+- `'double-tap'` -- `(x: number, y: number)`
+- `'long-press'` -- `(x: number, y: number)`
+- `'swipe'` -- `(direction: 'left' | 'right' | 'up' | 'down', velocity: number)`
+- `'drag-start'` -- `(x: number, y: number)`
+- `'drag-move'` -- `(x: number, y: number, dx: number, dy: number)`
+- `'drag-end'` -- `(x: number, y: number)`
+- `'pinch'` -- `(scale: number, centerX: number, centerY: number)`
+
+**Methods:**
+- `on(event: string, callback: Function): void`
+- `off(event: string, callback: Function): void`
+- `destroy(): void` -- Remove all listeners
+
+**Example:**
+```typescript
+import { GestureDetector } from 'gamebyte-framework';
+
+const gesture = new GestureDetector({ target: canvas, swipeThreshold: 50 });
+gesture.on('tap', (x, y) => shoot(x, y));
+gesture.on('swipe', (dir, velocity) => movePlayer(dir));
+gesture.on('long-press', (x, y) => openMenu(x, y));
+gesture.on('drag-move', (x, y, dx, dy) => panCamera(dx, dy));
+gesture.on('pinch', (scale, cx, cy) => zoom(scale));
+gesture.destroy();
+```
+
+---
+
+### SaveSystem\<T\>
+
+Persistent save with versioned migrations and auto-save to localStorage.
+
+**Constructor:**
+```typescript
+new SaveSystem<T extends Record<string, any>>(options: {
+  key: string;               // localStorage key
+  version: number;           // Current save version
+  defaults: T;               // Default values for new saves
+  migrations?: Record<number, (old: any) => any>;  // version N -> N+1 transforms
+})
+```
+
+**Methods:**
+- `load(): T` -- Load save from localStorage; runs migrations if needed
+- `save(): void` -- Persist current state to localStorage
+- `get<K extends keyof T>(key: K): T[K]` -- Read a save value
+- `set<K extends keyof T>(key: K, value: T[K]): void` -- Write a value (auto-saves)
+- `reset(): void` -- Clear save, revert to defaults
+- `export(): string` -- Export save as JSON string
+- `import(data: string): void` -- Import save from JSON string
+
+**Example:**
+```typescript
+import { SaveSystem } from 'gamebyte-framework';
+
+const save = new SaveSystem({
+  key: 'my-game',
+  version: 2,
+  defaults: { score: 0, level: 1, inventory: [] },
+  migrations: {
+    1: (old) => ({ ...old, inventory: old.items ?? [] })
+  }
+});
+
+const data = save.load();
+save.set('score', 500);
+save.get('level'); // 1
+save.reset();
+```
+
+---
+
+### EconomyManager
+
+Currency management and shop system with exponential price scaling.
+
+**Constructor:**
+```typescript
+new EconomyManager(currencies: Array<{
+  id: string;
+  name: string;
+  initial?: number;    // Starting balance (default: 0)
+  max?: number;        // Maximum balance (default: Infinity)
+}>)
+```
+
+**Methods:**
+- `add(currency: string, amount: number): void` -- Add to balance (capped at max)
+- `spend(currency: string, amount: number): boolean` -- Deduct if affordable; returns success
+- `canAfford(currency: string, amount: number): boolean` -- Check if balance sufficient
+- `getBalance(currency: string): number` -- Current balance
+- `registerItems(items: ShopItem[]): void` -- Register purchasable items
+- `purchase(itemId: string): boolean` -- Buy item; deducts cost, returns success
+
+**Static Methods:**
+- `EconomyManager.getUpgradeCost(baseCost: number, level: number, factor: number): number` -- Returns `baseCost * factor^level`
+
+**ShopItem:**
+```typescript
+{
+  id: string;
+  name: string;
+  cost: { currency: string; amount: number };
+  maxPurchases?: number;   // Purchase limit (default: Infinity)
+}
+```
+
+**Events:**
+- `'balance-changed'` -- `(currency: string, newBalance: number, oldBalance: number)`
+- `'insufficient-funds'` -- `(currency: string, needed: number, have: number)`
+- `'item-purchased'` -- `(itemId: string, cost: { currency: string; amount: number })`
+
+**Example:**
+```typescript
+import { EconomyManager } from 'gamebyte-framework';
+
+const economy = new EconomyManager([
+  { id: 'gold', name: 'Gold', initial: 100 },
+  { id: 'gems', name: 'Gems', initial: 0, max: 9999 }
+]);
+
+economy.add('gold', 50);
+economy.spend('gold', 30);
+economy.canAfford('gold', 200);
+economy.on('insufficient-funds', (curr, needed, have) => showWarning());
+
+economy.registerItems([
+  { id: 'sword', name: 'Iron Sword', cost: { currency: 'gold', amount: 50 }, maxPurchases: 1 }
+]);
+economy.purchase('sword');
+EconomyManager.getUpgradeCost(100, 3, 1.15); // 152
+```
+
+## Import Paths
+
+All v1.4 primitives are available from the main package entry point:
+
+```typescript
+import {
+  GameEntity,
+  ObjectPool,
+  createGameConfig,
+  screenShake,
+  FloatingText2D,
+  WaveManager,
+  Grid,
+  HexGrid,
+  GestureDetector,
+  SaveSystem,
+  EconomyManager
+} from 'gamebyte-framework';
+```
+
+Sub-path imports for tree-shaking:
+
+| Feature | Sub-path Import |
+|---------|----------------|
+| Core (createGame, createMobileGame) | `@gamebyte/framework/core` |
+| Rendering (PixiRenderer, ThreeRenderer) | `@gamebyte/framework/rendering` |
+| UI (UIButton, UIPanel, ArcheroMenu, etc.) | `@gamebyte/framework/ui` |
+| UI Components | `@gamebyte/framework/ui/components` |
+| UI Screens | `@gamebyte/framework/ui/screens` |
+| UI Panels | `@gamebyte/framework/ui/panels` |
+| UI Effects (CelebrationManager, etc.) | `@gamebyte/framework/ui/effects` |
+| UI Themes | `@gamebyte/framework/ui/themes` |
+| UI Cards | `@gamebyte/framework/ui/components/cards` |
+| Audio | `@gamebyte/framework/audio` |
+| Input | `@gamebyte/framework/input` |
+| Physics | `@gamebyte/framework/physics` |
+| Physics 2D (Matter.js) | `@gamebyte/framework/physics/2d` |
+| Physics 3D (Cannon.js) | `@gamebyte/framework/physics/3d` |
+| Graphics | `@gamebyte/framework/graphics` |
+| Scenes | `@gamebyte/framework/scenes` |
+| Layout (Yoga flexbox) | `@gamebyte/framework/layout` |
+| Facades | `@gamebyte/framework/facades` |
+| Contracts (interfaces) | `@gamebyte/framework/contracts` |
+| Utils | `@gamebyte/framework/utils` |
+| Performance | `@gamebyte/framework/performance` |
+| Three.js Toolkit | `@gamebyte/framework/three-toolkit` |
+| Three.js Lights | `@gamebyte/framework/three/lights` |
+| Three.js Loaders | `@gamebyte/framework/three/loaders` |
+| Three.js Animation | `@gamebyte/framework/three/animation` |
+| Three.js Events | `@gamebyte/framework/three/events` |
+| Three.js Instancing | `@gamebyte/framework/three/instancing` |
+| Merge Games Toolkit | `@gamebyte/framework/merge` |
+| Tick System | `@gamebyte/framework/tick` |
+| Resources | `@gamebyte/framework/resources` |
+| Post-processing | `@gamebyte/framework/postprocessing` |
+
+## Pixi.js v8 API
+
+GameByte uses Pixi.js v8 (not legacy v7). Key patterns:
+
+```typescript
+// Graphics
+graphics.rect(0, 0, 100, 50);
+graphics.roundRect(0, 0, 100, 50, 10);
+graphics.circle(50, 50, 25);
+graphics.fill({ color: 0xFF0000, alpha: 0.8 });
+graphics.stroke({ color: 0x000000, width: 2 });
+
+// Gradients
+import { FillGradient } from 'pixi.js';
+const gradient = new FillGradient({
+  type: 'linear',
+  colorStops: [{ offset: 0, color: 'red' }, { offset: 1, color: 'blue' }],
+  textureSpace: 'local'
+});
+graphics.rect(0, 0, 100, 100).fill(gradient);
+```
