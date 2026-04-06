@@ -839,6 +839,23 @@ export type { CameraConfig, FollowConfig, CameraEvents } from './camera/index';
 export { Juice } from './juice/index';
 export type { JuiceConfig } from './juice/index';
 
+// Screen Transitions
+export { ScreenTransition } from './scenes/transitions/index';
+export type { TransitionType as SceneTransitionType, TransitionConfig } from './scenes/transitions/index';
+
+// 3D Camera Controllers
+export {
+  OrbitalController,
+  TopDownController,
+  IsometricController,
+  FrontController,
+} from './camera/controllers/index';
+export type { ICameraController3D, OrbitalConfig } from './camera/controllers/index';
+
+// Asset Fallback System
+export { AssetFallback } from './assets/AssetFallback';
+export type { FallbackConfig } from './assets/AssetFallback';
+
 // Re-export for convenience
 import { GameByte } from './core/GameByte';
 import { RenderingServiceProvider } from './services/RenderingServiceProvider';

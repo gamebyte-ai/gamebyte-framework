@@ -93,6 +93,8 @@ const esmConfig = {
     'particles/index': 'src/particles/index.ts',
     'camera/index': 'src/camera/index.ts',
     'juice/index': 'src/juice/index.ts',
+    'scenes/transitions/index': 'src/scenes/transitions/index.ts',
+    'camera/controllers/index': 'src/camera/controllers/index.ts',
     // Three.js toolkit (separate for 3D games)
     'three/index': 'src/three/index.ts',
   },
