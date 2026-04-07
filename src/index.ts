@@ -856,6 +856,15 @@ export type { ICameraController3D, OrbitalConfig } from './camera/controllers/in
 export { AssetFallback } from './assets/AssetFallback';
 export type { FallbackConfig } from './assets/AssetFallback';
 
+// 3D Camera Manager
+export { GameCameraManager } from './three/cameras/GameCameraManager';
+export type { GameCameraManagerConfig } from './three/cameras/GameCameraManager';
+
+// 3D Interactive Objects
+export { WorldObject3D } from './three/interaction/WorldObject3D';
+export type { WorldObject3DEvents } from './three/interaction/WorldObject3D';
+export { RaycastInputManager } from './three/interaction/RaycastInputManager';
+
 // Re-export for convenience
 import { GameByte } from './core/GameByte';
 import { RenderingServiceProvider } from './services/RenderingServiceProvider';

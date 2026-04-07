@@ -116,6 +116,7 @@ export class HybridRenderer extends EventEmitter implements Renderer {
   private enableFrustumCulling = true;
   private threeZIndex = 1;
   private pixiZIndex = 2;
+  private sharedContext = false;
 
   /**
    * Initialize the hybrid renderer with stacked canvas architecture.
@@ -137,6 +138,7 @@ export class HybridRenderer extends EventEmitter implements Renderer {
     this.enableFrustumCulling = options.enableFrustumCulling ?? true;
     this.threeZIndex = options.threeZIndex ?? 1;
     this.pixiZIndex = options.pixiZIndex ?? 2;
+    this.sharedContext = options.shareContext ?? false;
 
     // Get optimal settings for device
     const optimalPixelRatio = RenderingCompatibility.getOptimalPixelRatio();
@@ -164,14 +166,18 @@ export class HybridRenderer extends EventEmitter implements Renderer {
     });
 
     // Initialize Pixi.js (2D UI Overlay Layer)
-    await this.initializePixiLayer(width, height, {
-      antialias: options.antialias ?? recommendedAntialias,
-      backgroundAlpha: 0, // Transparent to show 3D layer below
-      preserveDrawingBuffer: options.preserveDrawingBuffer ?? false,
-      powerPreference: options.powerPreference || recommendedPower,
-      resolution: options.resolution || optimalPixelRatio,
-      preference: options.pixiPreference
-    });
+    if (this.sharedContext) {
+      await this.initializePixiLayerShared(width, height);
+    } else {
+      await this.initializePixiLayer(width, height, {
+        antialias: options.antialias ?? recommendedAntialias,
+        backgroundAlpha: 0, // Transparent to show 3D layer below
+        preserveDrawingBuffer: options.preserveDrawingBuffer ?? false,
+        powerPreference: options.powerPreference || recommendedPower,
+        resolution: options.resolution || optimalPixelRatio,
+        preference: options.pixiPreference
+      });
+    }
 
     // Set up synchronized resize handling
     this.setupResizeHandling();
@@ -309,6 +315,39 @@ export class HybridRenderer extends EventEmitter implements Renderer {
   }
 
   /**
+   * Initialize Pixi.js 2D UI layer sharing the Three.js WebGL context and canvas.
+   * Both renderers write to the same canvas — Three.js renders 3D first, then
+   * Pixi renders 2D UI on top without clearing.
+   */
+  private async initializePixiLayerShared(width: number, height: number): Promise<void> {
+    // Obtain the existing WebGL context from Three.js
+    const gl = this.threeRenderer.getContext();
+
+    const pixiOptions = {
+      canvas: this.threeCanvas!,
+      context: gl,
+      width,
+      height,
+      clearBeforeRender: false,
+      backgroundAlpha: 0,
+      autoStart: false,
+      resolution: this.threeRenderer.getPixelRatio?.() ?? window.devicePixelRatio ?? 1,
+    };
+
+    try {
+      this.pixiApp = await PixiCompatibility.createRenderer(pixiOptions);
+      this.pixiStage = PixiCompatibility.getStage(this.pixiApp);
+      this.pixiCanvas = this.threeCanvas; // Same canvas reference
+      Logger.info('Renderer', 'Pixi.js shared context layer initialized');
+    } catch (error) {
+      Logger.warn('Renderer', 'Shared context failed, falling back to separate canvases');
+      await this.initializePixiLayer(width, height, {
+        backgroundAlpha: 0,
+      });
+    }
+  }
+
+  /**
    * Setup synchronized resize handling for both layers
    */
   private setupResizeHandling(): void {
@@ -411,7 +450,15 @@ export class HybridRenderer extends EventEmitter implements Renderer {
     if (this.pixiApp && this.pixiStage) {
       const renderer = PixiCompatibility.getRenderer(this.pixiApp);
       if (renderer) {
-        renderer.render(this.pixiStage);
+        // In shared context mode, reset WebGL state after Three.js then render without clearing
+        if (this.sharedContext) {
+          if (typeof renderer.resetState === 'function') {
+            renderer.resetState();
+          }
+          renderer.render({ container: this.pixiStage, clear: false });
+        } else {
+          renderer.render(this.pixiStage);
+        }
       }
     }
 
@@ -650,16 +697,17 @@ export class HybridRenderer extends EventEmitter implements Renderer {
       this.pixiApp = null;
     }
 
-    // Remove canvases
+    // Remove canvases — in shared context mode pixi reuses the three canvas,
+    // so only remove the three canvas (which covers both).
     if (this.threeCanvas && this.threeCanvas.parentNode) {
       this.threeCanvas.parentNode.removeChild(this.threeCanvas);
       this.threeCanvas = null;
     }
 
-    if (this.pixiCanvas && this.pixiCanvas.parentNode) {
+    if (!this.sharedContext && this.pixiCanvas && this.pixiCanvas.parentNode) {
       this.pixiCanvas.parentNode.removeChild(this.pixiCanvas);
-      this.pixiCanvas = null;
     }
+    this.pixiCanvas = null;
 
     // Clear references
     this.container = null;

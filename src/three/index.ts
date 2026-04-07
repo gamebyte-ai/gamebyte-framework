@@ -11,6 +11,7 @@
 export { IsometricCamera, type IsometricCameraConfig } from './cameras/IsometricCamera.js';
 export { StrategyCamera, type StrategyCameraConfig } from './cameras/StrategyCamera.js';
 export { CameraController, type CameraControllerConfig } from './cameras/CameraController.js';
+export { GameCameraManager, type GameCameraManagerConfig } from './cameras/GameCameraManager.js';
 
 // Grids
 export {
@@ -27,6 +28,8 @@ export { GridRenderer, type GridRendererConfig } from './grids/GridRenderer.js';
 export { Object3DPicker, type Object3DPickerConfig, type PickResult } from './interaction/Object3DPicker.js';
 export { DragController, type DragControllerConfig } from './interaction/DragController.js';
 export { GestureHandler3D, type GestureHandler3DConfig } from './interaction/GestureHandler3D.js';
+export { WorldObject3D, type WorldObject3DEvents } from './interaction/WorldObject3D.js';
+export { RaycastInputManager } from './interaction/RaycastInputManager.js';
 
 // UI
 export { Billboard, type BillboardConfig } from './ui/Billboard.js';
