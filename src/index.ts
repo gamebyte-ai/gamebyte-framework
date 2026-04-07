@@ -913,6 +913,8 @@ export { Toast } from './boilerplate/index';
 export type { ToastConfig } from './boilerplate/index';
 export { RewardFly } from './boilerplate/index';
 export type { RewardFlyConfig } from './boilerplate/index';
+export { QuickGameSetup } from './boilerplate/index';
+export type { QuickGameSetupConfig, QuickGameSetupEvents } from './boilerplate/index';
 
 // 3D Camera Manager
 export { GameCameraManager } from './three/cameras/GameCameraManager';

@@ -8,3 +8,5 @@ export { Toast } from './Toast.js';
 export type { ToastConfig } from './Toast.js';
 export { RewardFly } from './RewardFly.js';
 export type { RewardFlyConfig } from './RewardFly.js';
+export { QuickGameSetup } from './QuickGameSetup.js';
+export type { QuickGameSetupConfig, QuickGameSetupEvents } from './QuickGameSetup.js';
