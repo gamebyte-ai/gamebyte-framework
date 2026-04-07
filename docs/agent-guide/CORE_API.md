@@ -15,6 +15,7 @@
 5. [Mobile-First Defaults](#mobile-first-defaults)
 6. [Anti-Patterns](#anti-patterns)
 7. [v1.4 Game Primitives](#v14-game-primitives)
+8. [v1.5 HybridGame (3D + 2D HUD)](#v15-hybridgame-3d--2d-hud)
 
 ---
 
@@ -918,6 +919,199 @@ EconomyManager.getUpgradeCost(100, 3, 1.15); // 100 * 1.15^3 = 152
 **Static:** `EconomyManager.getUpgradeCost(baseCost, level, factor)`
 
 **Events:** `'balance-changed'`, `'insufficient-funds'`, `'item-purchased'`
+
+---
+
+## v1.5 HybridGame (3D + 2D HUD)
+
+New in v1.5: one-call setup for 3D world + 2D HUD overlay games. Wraps GameByte hybrid mode, GameCameraManager, and RaycastInputManager into a single ergonomic API.
+
+---
+
+### HybridGame
+
+Creates a fully configured 3D game with a 2D HUD overlay in a single async call.
+
+```typescript
+import { HybridGame, HybridHUD } from '@gamebyte/framework/hybrid';
+
+// One call creates everything: 3D world + 2D HUD + camera + input
+const game = await HybridGame.create({
+  container: '#game',
+  width: 800,
+  height: 600,
+  cameraMode: 'isometric',
+  enableRaycast: true,
+  backgroundColor: 0x1a1a2e,
+});
+
+// 3D World
+game.addDefaultLighting();
+game.addToWorld(myMesh);
+
+// 2D HUD overlay
+const hud = new HybridHUD(game.hud, 800, 600);
+hud.addTopBar({ score: { initial: 0 }, lives: { initial: 3 } });
+hud.addBottomBar({ buttons: [
+  { id: 'attack', label: 'Attack' },
+  { id: 'skill', label: 'Skill' },
+]});
+
+// Update loop
+game.onUpdate((dt) => {
+  // game logic here
+});
+
+// Update HUD values
+hud.setValue('score', 1500);
+
+// Camera control
+game.followTarget(player);
+game.moveCameraTo(10, 0, 10);
+
+// 3D interaction
+const obj = new WorldObject3D();
+obj.on('pointerdown', (e, isHit) => {
+  if (isHit) console.log('Clicked!');
+});
+game.makeInteractive(obj);
+```
+
+**Properties:**
+- `world` — THREE.Scene, add 3D meshes/lights/groups here
+- `hud` — PIXI.Container (stage), add 2D UI elements here
+- `camera` — GameCameraManager controlling the 3D view
+- `input` — RaycastInputManager for 3D object interaction
+- `threeRenderer` — The underlying Three.js WebGLRenderer
+- `app` — The underlying GameByte instance
+- `width` / `height` — Viewport dimensions
+
+**HybridGameConfig options:**
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `container` | `string \| HTMLElement` | required | Container element or CSS selector |
+| `width` | `number` | `800` | Canvas width |
+| `height` | `number` | `600` | Canvas height |
+| `backgroundColor` | `number` | `0x1a1a2e` | Background color for the 3D scene |
+| `cameraMode` | `'orbital' \| 'topdown' \| 'isometric' \| 'front'` | `'orbital'` | Camera preset |
+| `orthoSize` | `number` | `10` | World units visible vertically (ortho cameras) |
+| `enableRaycast` | `boolean` | `true` | Enable 3D raycasting input |
+| `shadowQuality` | `'low' \| 'medium' \| 'high'` | `'medium'` | Shadow quality |
+| `autoStart` | `boolean` | `true` | Auto-start the render loop |
+
+**Methods:**
+- `onUpdate(fn: (dt: number) => void): void` — Register a per-frame callback
+- `addToWorld(object: Object3D): void` — Add a Three.js object to the world scene
+- `removeFromWorld(object: Object3D): void` — Remove a Three.js object from the world scene
+- `addToHUD(element: DisplayObject): void` — Add a Pixi.js display object to the HUD
+- `removeFromHUD(element: DisplayObject): void` — Remove a Pixi.js display object from the HUD
+- `makeInteractive(object: WorldObject3D): void` — Register a WorldObject3D for raycasting
+- `followTarget(target: {x, y, z}, easing?: number): void` — Smoothly follow a world position
+- `moveCameraTo(x, y, z): void` — Instantly move camera focus to a world position
+- `addDefaultLighting(): void` — Add ambient + directional lights (sensible defaults)
+- `destroy(): void` — Destroy the game and release all resources
+
+**Events:**
+- `'update'` — `(dt: number)` Fired every frame with delta time in seconds
+- `'ready'` — `()` Fired once after `create()` resolves
+
+**When to use:** 3D games with 2D UI overlays, isometric games, hybrid rendering
+
+---
+
+### HybridHUD
+
+Pre-built 2D HUD configurations for hybrid 3D+2D games. Renders on top of the 3D scene using the Pixi.js overlay layer.
+
+```typescript
+import { HybridHUD } from '@gamebyte/framework/hybrid';
+
+const hud = new HybridHUD(game.hud, game.width, game.height);
+
+// Top bar with score, lives, coins, timer
+hud.addTopBar({
+  score: { initial: 0 },
+  lives: { initial: 3, max: 5 },
+  coins: { initial: 0 },
+  timer: { seconds: 60, countDown: true },
+});
+
+// Bottom bar with action buttons
+hud.addBottomBar({
+  buttons: [
+    { id: 'pause', label: 'Pause', onClick: () => pauseGame() },
+    { id: 'attack', label: 'Attack' },
+  ],
+});
+
+// Update values at runtime
+hud.setValue('score', 1500);
+hud.setValue('lives', 2);
+
+// Show a temporary center message
+hud.showMessage('WAVE 1', { duration: 2000 });
+hud.showMessage('GAME OVER', { fontSize: 64, color: 0xff0000 });
+
+// Toggle visibility
+hud.setVisible(false);
+
+// Listen for button clicks
+hud.on('button:click', (id) => console.log(id + ' clicked'));
+
+// Cleanup
+hud.destroy();
+```
+
+**Constructor:** `new HybridHUD(hudContainer: Container, width: number, height: number)`
+
+**TopBarConfig fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `score` | `{ label?: string; initial?: number }` | Score display |
+| `lives` | `{ label?: string; initial?: number; max?: number }` | Lives/health display |
+| `coins` | `{ label?: string; initial?: number; icon?: string }` | Currency display |
+| `timer` | `{ label?: string; seconds?: number; countDown?: boolean }` | Timer display |
+| `custom` | `Array<{ key: string; label: string; value: string \| number }>` | Arbitrary text fields |
+
+**BottomBarConfig:** `{ buttons: Array<{ id: string; label: string; icon?: string; onClick?: () => void }> }`
+
+**Methods:**
+- `addTopBar(config: TopBarConfig): void` — Add a semi-transparent status bar at the top
+- `addBottomBar(config: BottomBarConfig): void` — Add a button bar anchored to the bottom
+- `setValue(key: string, value: string | number): void` — Update any labelled value in the top bar
+- `showMessage(text: string, config?: { duration?: number; fontSize?: number; color?: number }): void` — Display a centered message that auto-removes
+- `setVisible(visible: boolean): void` — Show or hide the entire HUD
+- `destroy(): void` — Remove all HUD elements and release resources
+
+**Events:**
+- `'button:click'` — `(id: string)` Emitted when a bottom bar button is clicked
+
+---
+
+### WorldObject3D
+
+Base class for interactive 3D objects. Event-emitting controller that composes with Three.js meshes/groups.
+
+```typescript
+import { WorldObject3D } from '@gamebyte/framework/three/interaction';
+
+const obj = new WorldObject3D();
+obj.on('pointerdown', (event, isRaycasted) => {
+  if (isRaycasted) console.log('directly hit!');
+});
+obj.on('pointerenter', () => console.log('hover'));
+obj.on('pointerleave', () => console.log('unhover'));
+
+game.makeInteractive(obj);
+```
+
+**Properties:** `interactive: boolean` (default: true), `isHovered: boolean` (read-only)
+
+**Events:** `'pointerdown'`, `'pointermove'`, `'pointerup'` — `(event, isRaycasted: boolean)`, `'pointerenter'`, `'pointerleave'` — `()`
+
+**Methods:** `destroy(): void`
 
 ---
 

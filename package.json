@@ -204,6 +204,10 @@
     "./camera/controllers": {
       "import": "./dist/camera/controllers/index.js",
       "types": "./dist/camera/controllers/index.d.ts"
+    },
+    "./hybrid": {
+      "import": "./dist/hybrid/index.js",
+      "types": "./dist/hybrid/index.d.ts"
     }
   },
   "scripts": {

@@ -97,6 +97,8 @@ const esmConfig = {
     'camera/controllers/index': 'src/camera/controllers/index.ts',
     // Three.js toolkit (separate for 3D games)
     'three/index': 'src/three/index.ts',
+    // Hybrid 3D+2D game convenience API
+    'hybrid/index': 'src/hybrid/index.ts',
   },
   output: {
     dir: 'dist',

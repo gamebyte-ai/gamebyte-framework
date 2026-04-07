@@ -865,6 +865,18 @@ export { WorldObject3D } from './three/interaction/WorldObject3D';
 export type { WorldObject3DEvents } from './three/interaction/WorldObject3D';
 export { RaycastInputManager } from './three/interaction/RaycastInputManager';
 
+// Hybrid 3D+2D Game API
+// NOTE: Imports Three.js — kept isolated under the hybrid sub-path to avoid
+// bundling Three.js into 2D-only games. Export from main index only for
+// convenience; tree-shaking still works via preserveModules ESM build.
+export { HybridGame } from './hybrid/HybridGame';
+export type { HybridGameConfig, HybridGameEvents } from './hybrid/HybridGame';
+export { HybridHUD } from './hybrid/HybridHUD';
+export type {
+  TopBarConfig as HybridTopBarConfig,
+  BottomBarConfig as HybridBottomBarConfig,
+} from './hybrid/HybridHUD';
+
 // Re-export for convenience
 import { GameByte } from './core/GameByte';
 import { RenderingServiceProvider } from './services/RenderingServiceProvider';

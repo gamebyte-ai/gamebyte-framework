@@ -305,6 +305,85 @@ EconomyManager.getUpgradeCost(100, 3, 1.15); // Exponential cost scaling
 
 ---
 
+## v1.5 HybridGame (3D + 2D HUD)
+
+### HybridGame
+
+```typescript
+import { HybridGame } from '@gamebyte/framework/hybrid';
+
+const game = await HybridGame.create({
+  container: '#game',                   // CSS selector or HTMLElement
+  width: 800, height: 600,             // Viewport size
+  cameraMode: 'isometric',             // 'orbital' | 'topdown' | 'isometric' | 'front'
+  enableRaycast: true,                 // 3D click detection (default: true)
+  backgroundColor: 0x1a1a2e,           // Scene background
+  shadowQuality: 'medium',             // 'low' | 'medium' | 'high'
+});
+
+game.world;                             // THREE.Scene — add 3D objects
+game.hud;                               // PIXI.Container — add 2D UI
+game.camera;                            // GameCameraManager
+game.input;                             // RaycastInputManager
+
+game.addDefaultLighting();              // Ambient + directional lights
+game.addToWorld(mesh);                  // Add 3D object to scene
+game.removeFromWorld(mesh);             // Remove 3D object
+game.addToHUD(pixiElement);             // Add 2D element to HUD
+game.removeFromHUD(pixiElement);        // Remove 2D element
+game.onUpdate((dt) => {});              // Per-frame callback (dt in seconds)
+game.followTarget(target);              // Smooth camera follow {x, y, z}
+game.moveCameraTo(x, y, z);            // Instant camera move
+game.makeInteractive(worldObj);         // Enable raycast on WorldObject3D
+game.destroy();                         // Cleanup everything
+```
+
+### HybridHUD
+
+```typescript
+import { HybridHUD } from '@gamebyte/framework/hybrid';
+
+const hud = new HybridHUD(game.hud, game.width, game.height);
+
+hud.addTopBar({                         // Semi-transparent top status bar
+  score: { initial: 0 },               // Score display
+  lives: { initial: 3, max: 5 },       // Lives with max
+  coins: { initial: 0 },               // Currency
+  timer: { seconds: 60, countDown: true }, // Timer
+  custom: [{ key: 'wave', label: 'WAVE', value: 1 }], // Custom fields
+});
+
+hud.addBottomBar({                      // Action button bar at bottom
+  buttons: [
+    { id: 'attack', label: 'Attack', onClick: () => {} },
+    { id: 'skill', label: 'Skill' },
+  ],
+});
+
+hud.setValue('score', 1500);            // Update top bar value by key
+hud.showMessage('WAVE 1', { duration: 2000, fontSize: 48, color: 0xffffff });
+hud.setVisible(false);                  // Show/hide entire HUD
+hud.on('button:click', (id) => {});    // Listen for button clicks
+hud.destroy();                          // Cleanup
+```
+
+### WorldObject3D
+
+```typescript
+import { WorldObject3D } from '@gamebyte/framework/three/interaction';
+
+const obj = new WorldObject3D();
+obj.on('pointerdown', (e, isHit) => { if (isHit) console.log('clicked'); });
+obj.on('pointerenter', () => {});       // Hover enter
+obj.on('pointerleave', () => {});       // Hover leave
+obj.interactive = true;                 // Enable/disable raycasting
+obj.isHovered;                          // Read-only hover state
+game.makeInteractive(obj);              // Register with input manager
+obj.destroy();                          // Cleanup
+```
+
+---
+
 ## Grep Patterns
 
 Search docs efficiently:
@@ -328,6 +407,9 @@ grep -r "CelebrationManager\|Confetti\|Shimmer\|StarBurst" docs/
 # Find v1.4 game primitives
 grep -r "GameEntity\|ObjectPool\|WaveManager\|Grid\|HexGrid" docs/
 grep -r "GestureDetector\|SaveSystem\|EconomyManager\|FloatingText2D\|screenShake" docs/
+
+# Find v1.5 hybrid game docs
+grep -r "HybridGame\|HybridHUD\|WorldObject3D" docs/
 ```
 
 ---

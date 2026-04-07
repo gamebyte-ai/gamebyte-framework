@@ -564,6 +564,174 @@ economy.purchase('sword');
 EconomyManager.getUpgradeCost(100, 3, 1.15); // 152
 ```
 
+## Hybrid 3D+2D Games
+
+One-call setup for 3D world + 2D HUD overlay. Wraps GameByte hybrid mode, GameCameraManager, and RaycastInputManager.
+
+### HybridGame
+
+**Factory:**
+```typescript
+static async HybridGame.create(config: HybridGameConfig): Promise<HybridGame>
+```
+
+**HybridGameConfig:**
+```typescript
+interface HybridGameConfig {
+  container: string | HTMLElement;         // Container element or CSS selector
+  width?: number;                          // Canvas width (default: 800)
+  height?: number;                         // Canvas height (default: 600)
+  backgroundColor?: number;                // 3D scene background (default: 0x1a1a2e)
+  cameraMode?: 'orbital' | 'topdown' | 'isometric' | 'front';  // Camera preset (default: 'orbital')
+  orthoSize?: number;                      // Ortho visible units vertically (default: 10)
+  enableRaycast?: boolean;                 // 3D raycasting input (default: true)
+  shadowQuality?: 'low' | 'medium' | 'high';  // Shadow quality (default: 'medium')
+  autoStart?: boolean;                     // Auto-start render loop (default: true)
+}
+```
+
+**Properties:**
+- `world: THREE.Scene` -- Add 3D meshes, lights, groups
+- `hud: PIXI.Container` -- Add 2D UI elements
+- `camera: GameCameraManager` -- Camera manager controlling the 3D view
+- `input: RaycastInputManager` -- Raycasting input for 3D object interaction
+- `threeRenderer: THREE.WebGLRenderer` -- Underlying Three.js renderer
+- `app: GameByte` -- Underlying GameByte instance
+- `width: number` -- Viewport width
+- `height: number` -- Viewport height
+
+**Methods:**
+- `onUpdate(fn: (dt: number) => void): void` -- Register per-frame callback
+- `addToWorld(object: Object3D): void` -- Add Three.js object to world scene
+- `removeFromWorld(object: Object3D): void` -- Remove Three.js object from world scene
+- `addToHUD(element: DisplayObject): void` -- Add Pixi.js display object to HUD
+- `removeFromHUD(element: DisplayObject): void` -- Remove Pixi.js display object from HUD
+- `makeInteractive(object: WorldObject3D): void` -- Register WorldObject3D for raycasting
+- `followTarget(target: {x: number; y: number; z: number}, easing?: number): void` -- Smooth camera follow
+- `moveCameraTo(x: number, y: number, z: number): void` -- Instant camera move
+- `addDefaultLighting(): void` -- Add ambient + directional lights
+- `destroy(): void` -- Destroy game and release resources
+
+**Events:**
+- `'update'` -- `(dt: number)` Fired every frame
+- `'ready'` -- `()` Fired once after create() resolves
+
+**Example:**
+```typescript
+import { HybridGame } from '@gamebyte/framework/hybrid';
+
+const game = await HybridGame.create({
+  container: '#game',
+  width: 800,
+  height: 600,
+  cameraMode: 'isometric',
+  enableRaycast: true,
+  backgroundColor: 0x1a1a2e,
+});
+
+game.addDefaultLighting();
+game.addToWorld(myMesh);
+game.onUpdate((dt) => { myMesh.rotation.y += dt; });
+game.followTarget(player);
+game.moveCameraTo(10, 0, 10);
+game.destroy();
+```
+
+---
+
+### HybridHUD
+
+Pre-built 2D HUD configurations for hybrid 3D+2D games. Renders on top of 3D scene via Pixi.js overlay.
+
+**Constructor:**
+```typescript
+new HybridHUD(hudContainer: PIXI.Container, width: number, height: number)
+```
+
+**TopBarConfig:**
+```typescript
+interface TopBarConfig {
+  score?: { label?: string; initial?: number };
+  lives?: { label?: string; initial?: number; max?: number };
+  coins?: { label?: string; initial?: number; icon?: string };
+  timer?: { label?: string; seconds?: number; countDown?: boolean };
+  custom?: Array<{ key: string; label: string; value: string | number }>;
+}
+```
+
+**BottomBarConfig:**
+```typescript
+interface BottomBarConfig {
+  buttons: Array<{
+    id: string;
+    label: string;
+    icon?: string;
+    onClick?: () => void;
+  }>;
+}
+```
+
+**Methods:**
+- `addTopBar(config: TopBarConfig): void` -- Add semi-transparent status bar at top
+- `addBottomBar(config: BottomBarConfig): void` -- Add button bar at bottom
+- `setValue(key: string, value: string | number): void` -- Update any labelled value in top bar
+- `showMessage(text: string, config?: { duration?: number; fontSize?: number; color?: number }): void` -- Centered auto-removing message
+- `setVisible(visible: boolean): void` -- Show/hide entire HUD
+- `destroy(): void` -- Remove all HUD elements and release resources
+
+**Events:**
+- `'button:click'` -- `(id: string)` Emitted when bottom bar button clicked
+
+**Example:**
+```typescript
+import { HybridHUD } from '@gamebyte/framework/hybrid';
+
+const hud = new HybridHUD(game.hud, game.width, game.height);
+hud.addTopBar({ score: { initial: 0 }, lives: { initial: 3, max: 5 }, coins: { initial: 0 } });
+hud.addBottomBar({ buttons: [{ id: 'attack', label: 'Attack' }, { id: 'skill', label: 'Skill' }] });
+hud.setValue('score', 1500);
+hud.showMessage('WAVE 1', { duration: 2000 });
+hud.on('button:click', (id) => console.log(id));
+hud.setVisible(false);
+hud.destroy();
+```
+
+---
+
+### WorldObject3D
+
+Base class for interactive 3D objects. Event-emitting controller, not a THREE.Group subclass.
+
+**Constructor:**
+```typescript
+new WorldObject3D()
+```
+
+**Properties:**
+- `interactive: boolean` -- Whether object participates in raycasting (default: true)
+- `isHovered: boolean` -- Read-only, true while pointer is over object
+
+**Events:**
+- `'pointerdown'` -- `(event: any, isRaycasted: boolean)`
+- `'pointermove'` -- `(event: any, isRaycasted: boolean)`
+- `'pointerup'` -- `(event: any, isRaycasted: boolean)`
+- `'pointerenter'` -- `()`
+- `'pointerleave'` -- `()`
+
+**Methods:**
+- `destroy(): void` -- Cleanup all listeners and reset state
+
+**Example:**
+```typescript
+import { WorldObject3D } from '@gamebyte/framework/three/interaction';
+
+const obj = new WorldObject3D();
+obj.on('pointerdown', (event, isRaycasted) => {
+  if (isRaycasted) console.log('directly hit!');
+});
+game.makeInteractive(obj);
+```
+
 ## Import Paths
 
 All v1.4 primitives are available from the main package entry point:
@@ -582,6 +750,10 @@ import {
   SaveSystem,
   EconomyManager
 } from 'gamebyte-framework';
+
+// Hybrid 3D+2D (tree-shakeable sub-path)
+import { HybridGame, HybridHUD } from '@gamebyte/framework/hybrid';
+import { WorldObject3D } from '@gamebyte/framework/three/interaction';
 ```
 
 Sub-path imports for tree-shaking:
@@ -615,6 +787,7 @@ Sub-path imports for tree-shaking:
 | Three.js Animation | `@gamebyte/framework/three/animation` |
 | Three.js Events | `@gamebyte/framework/three/events` |
 | Three.js Instancing | `@gamebyte/framework/three/instancing` |
+| Hybrid (HybridGame, HybridHUD) | `@gamebyte/framework/hybrid` |
 | Merge Games Toolkit | `@gamebyte/framework/merge` |
 | Tick System | `@gamebyte/framework/tick` |
 | Resources | `@gamebyte/framework/resources` |
