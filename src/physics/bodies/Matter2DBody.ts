@@ -376,7 +376,7 @@ export class Matter2DBody extends EventEmitter implements PhysicsBody {
     }
 
     const position = config.position as Point;
-    const options: Matter.IBodyDefinition = {
+    const options: Matter.IChamferableBodyDefinition = {
       isStatic: this.isStatic,
       isSensor: this.isSensor,
       angle: typeof config.rotation === 'number' ? config.rotation : 0,

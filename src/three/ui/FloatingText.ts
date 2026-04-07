@@ -177,7 +177,8 @@ export class FloatingText extends THREE.Group {
     instance.sprite.position.copy(instance.startPosition);
 
     // Calculate scale based on texture size
-    const aspectRatio = texture.image.width / texture.image.height;
+    const img = texture.image as { width: number; height: number };
+    const aspectRatio = img.width / img.height;
     const baseScale = 0.5; // Base world unit scale
     instance.startScale = baseScale * scale;
     instance.sprite.scale.set(
@@ -253,7 +254,8 @@ export class FloatingText extends THREE.Group {
           : 1.5 - ((progress - 0.3) / 0.7) * 0.5; // Shrink back to 1x
 
         const map = instance.sprite.material.map;
-        const aspectRatio = map?.image ? map.image.width / map.image.height : 1;
+        const mapImg = map?.image as { width: number; height: number } | undefined;
+        const aspectRatio = mapImg ? mapImg.width / mapImg.height : 1;
         instance.sprite.scale.set(
           instance.startScale * scale * aspectRatio,
           instance.startScale * scale,
