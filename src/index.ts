@@ -856,6 +856,64 @@ export type { ICameraController3D, OrbitalConfig } from './camera/controllers/in
 export { AssetFallback } from './assets/AssetFallback';
 export type { FallbackConfig } from './assets/AssetFallback';
 
+// ─── Genre Templates: Puzzle/Sorting ───────────────────────────────────────
+export { MatchDetector } from './genre/puzzle/index';
+export type { MatchRule, MatchResult, MatchDetectorConfig } from './genre/puzzle/index';
+export { BoardGravity } from './genre/puzzle/index';
+export type { GravityResult } from './genre/puzzle/index';
+
+// ─── Genre Templates: Survivors/Roguelike ──────────────────────────────────
+export { AutoAttack } from './genre/survivors/index';
+export type { AutoAttackConfig, AutoAttackEvents } from './genre/survivors/index';
+export { UpgradeSystem } from './genre/survivors/index';
+export type { UpgradeDef, UpgradeSystemEvents } from './genre/survivors/index';
+export { XPSystem } from './genre/survivors/index';
+export type { XPSystemEvents } from './genre/survivors/index';
+
+// ─── Genre Templates: Idle/Tycoon ──────────────────────────────────────────
+export { IdleEngine } from './genre/idle/index';
+export type { GeneratorDef, IdleEngineConfig, IdleEngineEvents } from './genre/idle/index';
+export { PrestigeSystem } from './genre/idle/index';
+export type { PrestigeConfig, PrestigeEvents } from './genre/idle/index';
+
+// ─── Genre Templates: Tower Defense ────────────────────────────────────────
+export { PathFollower } from './genre/td/index';
+export type { Waypoint, PathFollowerEvents } from './genre/td/index';
+export { TowerManager } from './genre/td/index';
+export type { TowerDef, PlacedTower, TowerManagerEvents } from './genre/td/index';
+
+// ─── Genre Templates: RPG ───────────────────────────────────────────────────
+export { StatsSystem } from './genre/rpg/index';
+export type { StatsDef, StatsSystemEvents } from './genre/rpg/index';
+export { InventorySystem } from './genre/rpg/index';
+export type { ItemDef, InventorySlot, InventoryEvents } from './genre/rpg/index';
+export { DialogueSystem } from './genre/rpg/index';
+export type { DialogueNode, DialogueEvents } from './genre/rpg/index';
+
+// ─── Genre Templates: Card/Deck ─────────────────────────────────────────────
+export { DeckManager } from './genre/card/index';
+export type { CardDef, DeckManagerEvents } from './genre/card/index';
+export { TurnEngine } from './genre/card/index';
+export type { TurnEngineEvents } from './genre/card/index';
+
+// ─── Genre Templates: Platformer ───────────────────────────────────────────
+export { PlatformerController } from './genre/platformer/index';
+export type { PlatformerConfig, PlatformerState, PlatformerEvents } from './genre/platformer/index';
+export { ObstaclePattern } from './genre/platformer/index';
+export type { ObstacleDef, PatternDef, ObstaclePatternEvents } from './genre/platformer/index';
+
+// ─── Boilerplate Orchestration ─────────────────────────────────────────────
+export { GameFlow } from './boilerplate/index';
+export type { GameFlowConfig, GameFlowEvents } from './boilerplate/index';
+export { SettingsPanel } from './boilerplate/index';
+export type { SettingsConfig, SettingsPanelEvents } from './boilerplate/index';
+export { TutorialOverlay } from './boilerplate/index';
+export type { TutorialStep, TutorialOptions, TutorialEvents } from './boilerplate/index';
+export { Toast } from './boilerplate/index';
+export type { ToastConfig } from './boilerplate/index';
+export { RewardFly } from './boilerplate/index';
+export type { RewardFlyConfig } from './boilerplate/index';
+
 // 3D Camera Manager
 export { GameCameraManager } from './three/cameras/GameCameraManager';
 export type { GameCameraManagerConfig } from './three/cameras/GameCameraManager';

@@ -99,6 +99,22 @@ const esmConfig = {
     'three/index': 'src/three/index.ts',
     // Hybrid 3D+2D game convenience API
     'hybrid/index': 'src/hybrid/index.ts',
+    // Boilerplate orchestration
+    'boilerplate/index': 'src/boilerplate/index.ts',
+    // Genre templates — puzzle/sorting
+    'genre/puzzle/index': 'src/genre/puzzle/index.ts',
+    // Genre templates — survivors/roguelike
+    'genre/survivors/index': 'src/genre/survivors/index.ts',
+    // Genre templates — idle/tycoon
+    'genre/idle/index': 'src/genre/idle/index.ts',
+    // Genre templates — tower defense
+    'genre/td/index': 'src/genre/td/index.ts',
+    // Genre templates — RPG
+    'genre/rpg/index': 'src/genre/rpg/index.ts',
+    // Genre templates — Card/Deck
+    'genre/card/index': 'src/genre/card/index.ts',
+    // Genre templates — Platformer
+    'genre/platformer/index': 'src/genre/platformer/index.ts',
   },
   output: {
     dir: 'dist',

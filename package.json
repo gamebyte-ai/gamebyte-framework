@@ -208,6 +208,38 @@
     "./hybrid": {
       "import": "./dist/hybrid/index.js",
       "types": "./dist/hybrid/index.d.ts"
+    },
+    "./boilerplate": {
+      "import": "./dist/boilerplate/index.js",
+      "types": "./dist/boilerplate/index.d.ts"
+    },
+    "./genre/puzzle": {
+      "import": "./dist/genre/puzzle/index.js",
+      "types": "./dist/genre/puzzle/index.d.ts"
+    },
+    "./genre/survivors": {
+      "import": "./dist/genre/survivors/index.js",
+      "types": "./dist/genre/survivors/index.d.ts"
+    },
+    "./genre/idle": {
+      "import": "./dist/genre/idle/index.js",
+      "types": "./dist/genre/idle/index.d.ts"
+    },
+    "./genre/td": {
+      "import": "./dist/genre/td/index.js",
+      "types": "./dist/genre/td/index.d.ts"
+    },
+    "./genre/rpg": {
+      "import": "./dist/genre/rpg/index.js",
+      "types": "./dist/genre/rpg/index.d.ts"
+    },
+    "./genre/card": {
+      "import": "./dist/genre/card/index.js",
+      "types": "./dist/genre/card/index.d.ts"
+    },
+    "./genre/platformer": {
+      "import": "./dist/genre/platformer/index.js",
+      "types": "./dist/genre/platformer/index.d.ts"
     }
   },
   "scripts": {
