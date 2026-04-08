@@ -514,7 +514,7 @@ upgrades.choose('atk');                 // Apply, emits 'upgrade-chosen'
 const xp = new XPSystem({ xpCurve: (l) => 100 * l });
 xp.addXP(150);                         // Auto level-ups
 xp.on('level-up', (lv, total) => {});
-xp.level;  xp.progress;                // Current level, 0-1 progress
+xp.level;  xp.currentXP;  xp.xpToNextLevel;  xp.progress;                // Current level, 0-1 progress
 ```
 
 ### Idle
@@ -555,7 +555,7 @@ const towers = new TowerManager([
   { id: 'archer', name: 'Archer', cost: 50, range: 150, damage: 10, fireRate: 2 },
 ]);
 const t = towers.place('archer', 200, 300, { spend: (a) => eco.spend('gold', a) });
-towers.upgrade(t.id, currency);
+towers.upgrade(t.id, { spend: (a) => eco.spend('gold', a) });
 towers.sell(t.id);                      // 50% refund
 towers.update(dt, enemies);             // Auto-fire each frame
 towers.on('tower-fire', (tower, target) => {});

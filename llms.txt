@@ -98,7 +98,7 @@ new GameEntity(options: {
   health?: number;      // Initial/max health (default: 100)
   collisionRadius?: number;  // Circle collision radius
   collisionRect?: { width: number; height: number };  // Rect collision
-  tags?: string[];      // Entity tags for filtering
+  tags?: string[];      // Entity tags (stored as Set<string> internally)
 })
 ```
 
@@ -107,14 +107,14 @@ new GameEntity(options: {
 - `y: number` -- World Y position
 - `vx: number` -- Velocity X (pixels/sec)
 - `vy: number` -- Velocity Y (pixels/sec)
-- `speed: number` -- Computed speed magnitude
+- `speed: number` -- Movement speed scalar (default: 1)
 - `health: number` -- Current health
 - `maxHealth: number` -- Maximum health
 - `isAlive: boolean` -- health > 0
 - `active: boolean` -- Whether entity is active
-- `tags: string[]` -- Tags for identification/filtering
+- `tags: Set<string>` -- Tags for identification/filtering
 - `collisionRadius: number` -- Circle collision radius
-- `collisionRect: { width, height } | null` -- Rectangle collision bounds
+- `collisionRect: { width, height } | undefined` -- Rectangle collision bounds
 
 **Methods:**
 - `update(dt: number): void` -- Update position from velocity; call each frame
@@ -164,7 +164,7 @@ Generic object recycling to avoid GC spikes.
 new ObjectPool<T>(options: {
   create: () => T;        // Factory function to create new objects
   reset: (obj: T) => void; // Reset function when releasing back to pool
-  initialSize?: number;   // Pre-allocate this many (default: 0)
+  initialSize?: number;   // Pre-allocate this many (default: 10)
   maxSize?: number;       // Maximum pool size (default: Infinity)
 })
 ```
@@ -173,7 +173,7 @@ new ObjectPool<T>(options: {
 - `acquire(): T` -- Get an object from pool (or create new)
 - `release(obj: T): void` -- Return object to pool (calls reset)
 - `releaseAll(): void` -- Release all active objects
-- `clear(): void` -- Destroy all objects in pool
+- `destroy(): void` -- Clear all items and release pool
 
 **Properties:**
 - `activeCount: number` -- Objects currently in use

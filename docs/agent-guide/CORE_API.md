@@ -702,7 +702,7 @@ console.log(bulletPool.activeCount, bulletPool.availableCount);
 
 **Constructor options:** `create` (factory fn), `reset` (reset fn), `initialSize`, `maxSize`
 
-**Methods:** `acquire()`, `release(obj)`, `releaseAll()`, `clear()`
+**Methods:** `acquire()`, `release(obj)`, `releaseAll()`, `destroy()`
 
 **Properties:** `activeCount`, `availableCount`, `totalCreated`
 
