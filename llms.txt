@@ -792,6 +792,810 @@ Sub-path imports for tree-shaking:
 | Tick System | `@gamebyte/framework/tick` |
 | Resources | `@gamebyte/framework/resources` |
 | Post-processing | `@gamebyte/framework/postprocessing` |
+| Boilerplate (QuickGameSetup, GameFlow, etc.) | `@gamebyte/framework/boilerplate` |
+| Genre: Puzzle (MatchDetector, BoardGravity) | `@gamebyte/framework/genre/puzzle` |
+| Genre: Survivors (AutoAttack, UpgradeSystem, XPSystem) | `@gamebyte/framework/genre/survivors` |
+| Genre: Idle (IdleEngine, PrestigeSystem) | `@gamebyte/framework/genre/idle` |
+| Genre: Tower Defense (PathFollower, TowerManager) | `@gamebyte/framework/genre/td` |
+| Genre: RPG (StatsSystem, InventorySystem, DialogueSystem) | `@gamebyte/framework/genre/rpg` |
+| Genre: Card (DeckManager, TurnEngine) | `@gamebyte/framework/genre/card` |
+| Genre: Platformer (PlatformerController, ObstaclePattern) | `@gamebyte/framework/genre/platformer` |
+
+## v1.7 Boilerplate
+
+Pre-built game scaffolding. Import from `@gamebyte/framework/boilerplate`.
+
+### QuickGameSetup
+
+Assembles Hub -> Game -> Result flow from a single config. Agents write ZERO screen-management code.
+
+**Constructor:**
+```typescript
+new QuickGameSetup(container: any, config: QuickGameSetupConfig)
+```
+
+**QuickGameSetupConfig:**
+```typescript
+interface QuickGameSetupConfig {
+  title?: string;
+  width: number;
+  height: number;
+  hub?: {
+    resources?: Array<{ type: string; value: number; showAddButton?: boolean }>;
+    tabs?: Array<{ id: string; label: string; type?: string; highlighted?: boolean }>;
+    defaultTab?: string;
+    tabContents?: Record<string, () => any>;
+  };
+  game?: {
+    showScore?: boolean;
+    showTimer?: boolean;
+    showLives?: boolean;
+    showPause?: boolean;
+    showProgress?: boolean;
+    onCreateGame?: (gameContainer: any) => void;
+    onUpdate?: (dt: number) => void;
+    onGameEnd?: () => { score: number; stars?: number; rewards?: any[] };
+  };
+  result?: {
+    actions?: Array<{ text: string; event: string; style?: 'primary' | 'secondary' }>;
+  };
+  settings?: { sound?: boolean; music?: boolean; vibration?: boolean };
+  onPlay?: () => void;
+  onRetry?: () => void;
+  onHome?: () => void;
+}
+```
+
+**Methods:**
+- `start(): void` -- Show hub screen, begin flow
+- `trigger(event: string, data?: any): void` -- Fire flow event ('play', 'retry', 'home', 'game-over')
+- `endGame(data?: { score?: number; stars?: number; type?: 'victory' | 'defeat' }): void` -- End game, transition to result
+- `showSettings(): void` -- Overlay settings panel
+- `destroy(): void` -- Cleanup
+
+**Properties:**
+- `gameContainer: any` -- Container for game objects
+- `settings: SettingsPanel` -- Settings panel instance
+- `currentScreen: string` -- 'hub' | 'game' | 'result'
+
+**Events:**
+- `'screen-changed'` -- `(screen: string)`
+- `'game-start'` -- `()`
+- `'game-end'` -- `(data: any)`
+- `'setting-changed'` -- `(key: string, value: boolean)`
+
+**Example:**
+```typescript
+import { QuickGameSetup } from '@gamebyte/framework/boilerplate';
+
+const setup = new QuickGameSetup(stage, {
+  title: 'My Game', width: 540, height: 960,
+  game: {
+    onCreateGame: (container) => { container.addChild(myGameView); },
+    onUpdate: (dt) => gameLoop(dt),
+  },
+  onRetry: () => resetState(),
+});
+setup.start();
+setup.endGame({ score: 1500, stars: 3, type: 'victory' });
+```
+
+---
+
+### GameFlow
+
+Event-to-screen flow mapping. Maps named events to screen transitions.
+
+**Constructor:**
+```typescript
+new GameFlow(container: any, config: GameFlowConfig)
+
+interface GameFlowConfig {
+  screens: Record<string, { create: () => any; transition?: string }>;
+  flow: Record<string, string | ((data?: any) => string)>;
+  start: string;
+}
+```
+
+**Methods:**
+- `start(): void` -- Navigate to start screen
+- `trigger(event: string, data?: any): void` -- Fire a flow event
+- `goTo(screenName: string, data?: any): void` -- Direct navigation
+- `getScreen(name: string): any` -- Get screen instance (null if not created)
+- `destroy(): void` -- Destroy all screens
+
+**Properties:**
+- `current: string` -- Current screen name
+
+**Events:**
+- `'navigate'` -- `(from: string, to: string)`
+
+---
+
+### SettingsPanel
+
+Modal with boolean toggles for sound/music/vibration.
+
+**Constructor:**
+```typescript
+new SettingsPanel(config?: SettingsConfig)
+
+interface SettingsConfig {
+  sound?: boolean;     // default: true
+  music?: boolean;     // default: true
+  vibration?: boolean; // default: true
+  custom?: Array<{ key: string; label: string; value: boolean }>;
+}
+```
+
+**Methods:**
+- `show(): void`
+- `hide(): void`
+- `get(key: string): boolean`
+- `set(key: string, value: boolean): void` -- Emits 'changed'
+- `getAll(): Record<string, boolean>`
+- `getContainer(): any`
+- `destroy(): void`
+
+**Events:**
+- `'changed'` -- `(key: string, value: boolean)`
+- `'close'` -- `()`
+
+---
+
+### TutorialOverlay
+
+Step-through tutorial with dim overlay and optional spotlight.
+
+**Constructor:**
+```typescript
+new TutorialOverlay(steps: TutorialStep[], options?: TutorialOptions)
+
+interface TutorialStep {
+  text: string;
+  x: number;
+  y: number;
+  spotlight?: { x: number; y: number; radius: number };
+  position?: 'above' | 'below';
+}
+
+interface TutorialOptions {
+  skipButton?: boolean;  // default: true
+  dimAlpha?: number;     // default: 0.7
+}
+```
+
+**Methods:**
+- `start(): void` -- Begin at step 0
+- `next(): void` -- Advance to next step
+- `skip(): void` -- Skip entire tutorial
+- `getContainer(): any`
+- `destroy(): void`
+
+**Properties:**
+- `currentStep: number`
+
+**Events:**
+- `'step'` -- `(index: number)`
+- `'complete'` -- `()`
+- `'skip'` -- `()`
+
+---
+
+### Toast
+
+Auto-dismissing notification. Static API.
+
+**Static Method:**
+```typescript
+Toast.show(parent: any, config: ToastConfig | string): void
+
+interface ToastConfig {
+  text: string;
+  duration?: number;   // ms, default: 2000
+  type?: 'info' | 'success' | 'warning' | 'error';  // default: 'info'
+  y?: number;          // vertical position, default: 80
+}
+```
+
+---
+
+### RewardFly
+
+Coin/gem fly-to-target animation with bezier arc. Static API.
+
+**Static Method:**
+```typescript
+RewardFly.play(config: RewardFlyConfig): void
+
+interface RewardFlyConfig {
+  parent: any;
+  from: { x: number; y: number };
+  to: { x: number; y: number };
+  count?: number;        // default: 8
+  duration?: number;     // ms, default: 600
+  stagger?: number;      // ms between particles, default: 50
+  size?: number;         // particle radius, default: 16
+  color?: number;        // default: 0xffd700 (gold)
+  onEachArrive?: () => void;
+  onComplete?: () => void;
+}
+```
+
+---
+
+## v1.7 Genre Templates
+
+Pure-logic game systems for common genres. No rendering dependencies.
+
+### Puzzle (`@gamebyte/framework/genre/puzzle`)
+
+#### MatchDetector
+
+Grid match finding for match-3/sorting games.
+
+**Constructor:**
+```typescript
+new MatchDetector(config: MatchDetectorConfig)
+
+type MatchRule = 'row-3' | 'col-3' | 'adjacent-group' | 'row-col-3' | 'custom';
+
+interface MatchDetectorConfig {
+  rule: MatchRule;
+  minGroupSize?: number;  // for 'adjacent-group', default: 3
+  customMatcher?: (grid: any[][], rows: number, cols: number) => MatchResult[];
+}
+
+interface MatchResult {
+  cells: Array<{ row: number; col: number }>;
+  value: any;
+  size: number;
+}
+```
+
+**Methods:**
+- `findMatches(grid: any[][], rows: number, cols: number): MatchResult[]`
+- `wouldMatch(grid: any[][], r1: number, c1: number, r2: number, c2: number): boolean`
+
+#### BoardGravity
+
+Drop pieces downward after matches are cleared. Static API, mutates grid in-place.
+
+**Static Method:**
+```typescript
+BoardGravity.apply(
+  grid: any[][],
+  rows: number,
+  cols: number,
+  emptyValue?: any  // default: null
+): GravityResult
+
+interface GravityResult {
+  moves: Array<{ fromRow: number; fromCol: number; toRow: number; toCol: number }>;
+  spawns: Array<{ row: number; col: number }>;
+}
+```
+
+---
+
+### Survivors (`@gamebyte/framework/genre/survivors`)
+
+#### AutoAttack
+
+Auto-targeting and fire rate management.
+
+**Constructor:**
+```typescript
+new AutoAttack(config: AutoAttackConfig)
+
+interface AutoAttackConfig {
+  range: number;            // Attack range in pixels
+  fireRate: number;         // Attacks per second
+  damage: number;           // Damage per hit
+  targeting?: 'nearest' | 'lowest-hp' | 'random';  // default: 'nearest'
+}
+```
+
+**Methods:**
+- `update(dt: number, owner: { x: number; y: number }, enemies: Array<{ x: number; y: number; health?: number }>): void`
+- `configure(config: Partial<AutoAttackConfig>): void` -- Reconfigure at runtime
+
+**Properties:**
+- `target: any | null`
+
+**Events:**
+- `'fire'` -- `(target: any, damage: number)`
+- `'target-changed'` -- `(target: any | null)`
+
+#### UpgradeSystem
+
+Weighted random upgrade choices with level tracking.
+
+**Constructor:**
+```typescript
+new UpgradeSystem(upgrades: UpgradeDef[])
+
+interface UpgradeDef {
+  id: string;
+  name: string;
+  description: string;
+  maxLevel: number;
+  effect: Record<string, number>;
+  weight?: number;  // rarity weight, default: 1
+}
+```
+
+**Methods:**
+- `getChoices(count?: number): UpgradeDef[]` -- N weighted random choices, excludes maxed (default: 3)
+- `choose(upgradeId: string): void` -- Apply upgrade, emits event
+- `getLevel(upgradeId: string): number`
+- `getAllLevels(): Record<string, number>`
+- `reset(): void`
+
+**Events:**
+- `'upgrade-chosen'` -- `(upgrade: UpgradeDef, newLevel: number)`
+
+#### XPSystem
+
+XP accumulation with configurable level curve.
+
+**Constructor:**
+```typescript
+new XPSystem(config?: {
+  xpCurve?: (level: number) => number;  // default: (level) => 100 * level
+  startLevel?: number;                   // default: 1
+})
+```
+
+**Methods:**
+- `addXP(amount: number): void` -- Add XP, auto level-ups
+- `reset(): void`
+
+**Properties:**
+- `level: number`
+- `currentXP: number`
+- `xpToNextLevel: number`
+- `progress: number` -- 0-1
+
+**Events:**
+- `'level-up'` -- `(newLevel: number, totalXP: number)`
+- `'xp-gained'` -- `(amount: number, current: number, needed: number)`
+
+---
+
+### Idle (`@gamebyte/framework/genre/idle`)
+
+#### IdleEngine
+
+Core idle/tycoon engine with generators, exponential cost scaling, offline earnings, save/load.
+
+**Constructor:**
+```typescript
+new IdleEngine(config: IdleEngineConfig)
+
+interface IdleEngineConfig {
+  resources: string[];
+  initialAmounts?: Record<string, number>;
+  generators: GeneratorDef[];
+}
+
+interface GeneratorDef {
+  id: string;
+  name: string;
+  baseCost: number;
+  costMultiplier?: number;       // default: 1.15
+  baseProduction: number;        // per second per owned
+  costCurrency?: string;         // default: first resource
+  producesCurrency?: string;     // default: first resource
+}
+```
+
+**Methods:**
+- `update(dt: number): void` -- Tick; call each frame
+- `getResource(id: string): number`
+- `addResource(id: string, amount: number): void`
+- `getCost(generatorId: string): number` -- Next purchase cost
+- `getOwned(generatorId: string): number`
+- `canBuy(generatorId: string): boolean`
+- `buy(generatorId: string): boolean` -- Returns success
+- `getProductionRate(resourceId: string): number` -- Total per second
+- `calculateOfflineEarnings(seconds: number): Record<string, number>`
+- `applyOfflineEarnings(seconds: number): Record<string, number>`
+- `getState(): { resources: Record<string, number>; owned: Record<string, number> }`
+- `loadState(state: { resources: Record<string, number>; owned: Record<string, number> }): void`
+- `reset(): void`
+
+**Events:**
+- `'tick'` -- `(production: Record<string, number>)`
+- `'purchase'` -- `(generatorId: string, count: number)`
+- `'resource-changed'` -- `(resourceId: string, amount: number)`
+
+#### PrestigeSystem
+
+Soft-reset mechanic for permanent multiplier.
+
+**Constructor:**
+```typescript
+new PrestigeSystem(config: PrestigeConfig)
+
+interface PrestigeConfig {
+  threshold: number;         // Minimum resource to prestige
+  resource: string;          // Which resource to check
+  multiplierFormula?: (amount: number) => number;  // default: 1 + log10(amount / threshold)
+  maxMultiplier?: number;    // default: 1000
+}
+```
+
+**Methods:**
+- `canPrestige(currentAmount: number): boolean`
+- `getMultiplierPreview(currentAmount: number): number`
+- `prestige(currentAmount: number): number` -- Execute, returns new multiplier
+- `getState(): { multiplier: number; count: number }`
+- `loadState(state: { multiplier: number; count: number }): void`
+
+**Properties:**
+- `multiplier: number`
+- `totalPrestiges: number`
+
+**Events:**
+- `'prestige'` -- `(newMultiplier: number, totalPrestiges: number)`
+
+---
+
+### Tower Defense (`@gamebyte/framework/genre/td`)
+
+#### PathFollower
+
+Waypoint path following with smooth interpolation.
+
+**Constructor:**
+```typescript
+new PathFollower(path: Waypoint[], speed?: number)  // speed default: 100
+
+interface Waypoint { x: number; y: number }
+```
+
+**Methods:**
+- `update(dt: number): { x: number; y: number }` -- Returns current position
+- `setSpeed(speed: number): void`
+- `pause(): void`
+- `resume(): void`
+- `reset(): void`
+
+**Properties:**
+- `x: number`, `y: number` -- Current position
+- `progress: number` -- 0-1 along entire path
+- `isComplete: boolean`
+
+**Events:**
+- `'waypoint-reached'` -- `(index: number)`
+- `'path-complete'` -- `()`
+
+#### TowerManager
+
+Tower placement, upgrades, targeting, and firing. Auto-targets nearest enemy in range.
+
+**Constructor:**
+```typescript
+new TowerManager(towerDefs: TowerDef[])
+
+interface TowerDef {
+  id: string;
+  name: string;
+  cost: number;
+  range: number;
+  damage: number;
+  fireRate: number;     // attacks per second
+  upgrades?: Array<{ cost: number; damage: number; range: number; fireRate: number }>;
+}
+
+interface PlacedTower {
+  id: string;
+  defId: string;
+  x: number;
+  y: number;
+  level: number;
+}
+```
+
+**Methods:**
+- `place(defId: string, x: number, y: number, currency: { spend: (amount: number) => boolean }): PlacedTower | null`
+- `upgrade(towerId: string, currency: { spend: (amount: number) => boolean }): boolean`
+- `sell(towerId: string): number` -- Returns 50% of total invested cost
+- `update(dt: number, enemies: Array<{ x: number; y: number; health?: number }>): void`
+- `getTowers(): PlacedTower[]`
+- `getDef(defId: string): TowerDef | undefined`
+- `getUpgradeCost(towerId: string): number | null` -- null if at max level
+- `destroy(): void`
+
+**Events:**
+- `'tower-placed'` -- `(tower: PlacedTower)`
+- `'tower-upgraded'` -- `(tower: PlacedTower)`
+- `'tower-sold'` -- `(tower: PlacedTower)`
+- `'tower-fire'` -- `(tower: PlacedTower, target: any)`
+
+---
+
+### RPG (`@gamebyte/framework/genre/rpg`)
+
+#### StatsSystem
+
+Character stats with base values + named bonuses.
+
+**Constructor:**
+```typescript
+new StatsSystem(baseStats: StatsDef)
+
+interface StatsDef { [key: string]: number }
+```
+
+**Methods:**
+- `get(stat: string): number` -- Effective value (base + bonuses)
+- `getBase(stat: string): number`
+- `setBase(stat: string, value: number): void`
+- `addBonus(id: string, stat: string, value: number): void`
+- `removeBonus(id: string): void`
+- `clearBonuses(stat: string): void`
+- `getStatNames(): string[]`
+- `getAll(): Record<string, number>`
+
+**Events:**
+- `'stat-changed'` -- `(stat: string, newValue: number, oldValue: number)`
+
+#### InventorySystem
+
+Slot-based inventory with equip/unequip.
+
+**Constructor:**
+```typescript
+new InventorySystem(config?: { maxSlots?: number; equipSlots?: string[] })
+// maxSlots default: 50
+// equipSlots default: ['weapon', 'armor', 'accessory']
+
+interface ItemDef {
+  id: string;
+  name: string;
+  type: string;
+  rarity?: string;
+  stackable?: boolean;
+  maxStack?: number;
+  stats?: Record<string, number>;
+  [key: string]: unknown;
+}
+
+interface InventorySlot { item: ItemDef; count: number }
+```
+
+**Methods:**
+- `add(item: ItemDef, count?: number): boolean` -- false if full
+- `remove(itemId: string, count?: number): boolean` -- false if not found
+- `has(itemId: string): boolean`
+- `getCount(itemId: string): number`
+- `equip(slot: string, itemId: string): boolean`
+- `unequip(slot: string): ItemDef | null`
+- `getEquipped(slot: string): ItemDef | null`
+- `getItems(): InventorySlot[]`
+
+**Properties:**
+- `isFull: boolean`
+- `slotCount: number`
+- `maxSlots: number`
+
+**Events:**
+- `'item-added'` -- `(item: ItemDef, count: number)`
+- `'item-removed'` -- `(item: ItemDef, count: number)`
+- `'item-equipped'` -- `(slot: string, item: ItemDef)`
+- `'item-unequipped'` -- `(slot: string, item: ItemDef)`
+
+#### DialogueSystem
+
+Branching dialogue tree with linear and choice-based nodes.
+
+**Constructor:**
+```typescript
+new DialogueSystem(nodes: DialogueNode[])
+
+interface DialogueNode {
+  id: string;
+  text: string;
+  speaker?: string;
+  choices?: Array<{ text: string; next: string; condition?: () => boolean }>;
+  next?: string;          // For linear nodes (no choices)
+  onEnter?: () => void;   // Called when this node is entered
+}
+```
+
+**Methods:**
+- `start(nodeId?: string): void` -- Defaults to first node
+- `choose(index: number): void` -- Pick a choice (filters by condition)
+- `advance(): void` -- Next node for linear nodes
+
+**Properties:**
+- `current: DialogueNode | null`
+- `isActive: boolean`
+
+**Events:**
+- `'node'` -- `(node: DialogueNode)`
+- `'choice-made'` -- `(choiceIndex: number, nextId: string)`
+- `'end'` -- `()`
+
+---
+
+### Card (`@gamebyte/framework/genre/card`)
+
+#### DeckManager
+
+Draw pile, hand, discard pile management with Fisher-Yates shuffle.
+
+**Constructor:**
+```typescript
+new DeckManager(config?: { maxHandSize?: number })  // default: 7
+
+interface CardDef {
+  id: string;
+  name: string;
+  type?: string;
+  cost?: number;
+  [key: string]: unknown;
+}
+```
+
+**Methods:**
+- `addToDeck(cards: CardDef[]): void`
+- `shuffle(): void` -- Fisher-Yates shuffle
+- `draw(count?: number): CardDef[]` -- Draw into hand (default: 1)
+- `play(cardId: string): CardDef | null` -- Remove from hand (does NOT discard)
+- `discard(cardId: string): CardDef | null` -- Hand -> discard pile
+- `discardHand(): void` -- Discard entire hand
+- `reshuffleDiscard(): void` -- Discard -> draw pile, then shuffle
+- `reset(): void`
+
+**Properties:**
+- `hand: CardDef[]` -- Read-only copy
+- `drawPileCount: number`
+- `discardPileCount: number`
+
+**Events:**
+- `'card-drawn'` -- `(card: CardDef)`
+- `'card-played'` -- `(card: CardDef)`
+- `'card-discarded'` -- `(card: CardDef)`
+- `'deck-empty'` -- `()`
+- `'hand-full'` -- `()`
+- `'shuffle'` -- `()`
+
+#### TurnEngine
+
+Round-based turn manager for card games.
+
+**Constructor:**
+```typescript
+new TurnEngine(participants: string[])  // At least one required
+```
+
+**Methods:**
+- `start(): void` -- Round 1, first participant
+- `endTurn(): void` -- Advance to next; increments round after last participant
+- `isTurn(participant: string): boolean`
+- `reset(): void`
+
+**Properties:**
+- `currentTurn: string`
+- `round: number` -- 0 if not started
+
+**Events:**
+- `'turn-start'` -- `(turnOwner: string)`
+- `'turn-end'` -- `(turnOwner: string)`
+- `'round-start'` -- `(roundNumber: number)`
+- `'round-end'` -- `(roundNumber: number)`
+
+---
+
+### Platformer (`@gamebyte/framework/genre/platformer`)
+
+#### PlatformerController
+
+2D platformer movement: run, jump, double jump, gravity, coyote time, ground detection.
+
+**Constructor:**
+```typescript
+new PlatformerController(config?: PlatformerConfig)
+
+interface PlatformerConfig {
+  moveSpeed?: number;     // px/sec, default: 200
+  jumpForce?: number;     // upward velocity (negative), default: -400
+  gravity?: number;       // px/sec^2, default: 800
+  maxFallSpeed?: number;  // terminal velocity, default: 600
+  doubleJump?: boolean;   // default: false
+  coyoteTime?: number;    // ms grace period, default: 100
+}
+
+interface PlatformerState {
+  x: number; y: number;
+  vx: number; vy: number;
+  isGrounded: boolean;
+  isJumping: boolean;
+  canDoubleJump: boolean;
+  facing: 'left' | 'right';
+}
+```
+
+**Methods:**
+- `update(dt: number, input: { left: boolean; right: boolean; jump: boolean }, groundY?: number): PlatformerState`
+- `setGrounded(grounded: boolean, groundY?: number): void`
+- `setPosition(x: number, y: number): void`
+- `reset(): void`
+
+**Properties:**
+- `state: PlatformerState`
+
+**Events:**
+- `'jump'` -- `()`
+- `'double-jump'` -- `()`
+- `'land'` -- `()`
+
+#### ObstaclePattern
+
+Repeatable obstacle patterns for infinite runners and level generators.
+
+**Constructor:**
+```typescript
+new ObstaclePattern(patterns: PatternDef[])
+
+interface PatternDef {
+  id: string;
+  width: number;           // Total width in world units
+  obstacles: ObstacleDef[];
+  difficulty?: number;     // 0-1 for filtering
+}
+
+interface ObstacleDef {
+  type: string;
+  x: number;
+  y: number;
+  width?: number;
+  height?: number;
+  [key: string]: unknown;
+}
+```
+
+**Methods:**
+- `getNext(maxDifficulty?: number): PatternDef` -- Random pattern, filtered by difficulty
+- `getPattern(id: string): PatternDef | undefined`
+- `getAll(): PatternDef[]`
+- `generate(count: number, startX?: number, maxDifficulty?: number): Array<ObstacleDef & { patternId: string }>` -- Sequenced patterns with absolute positions
+
+**Events:**
+- `'pattern-spawned'` -- `(pattern: PatternDef, offsetX: number)`
+
+---
+
+## v1.7 Import Paths
+
+```typescript
+// Boilerplate
+import { QuickGameSetup, GameFlow, SettingsPanel, TutorialOverlay, Toast, RewardFly } from '@gamebyte/framework/boilerplate';
+
+// Genre: Puzzle
+import { MatchDetector, BoardGravity } from '@gamebyte/framework/genre/puzzle';
+
+// Genre: Survivors
+import { AutoAttack, UpgradeSystem, XPSystem } from '@gamebyte/framework/genre/survivors';
+
+// Genre: Idle
+import { IdleEngine, PrestigeSystem } from '@gamebyte/framework/genre/idle';
+
+// Genre: Tower Defense
+import { PathFollower, TowerManager } from '@gamebyte/framework/genre/td';
+
+// Genre: RPG
+import { StatsSystem, InventorySystem, DialogueSystem } from '@gamebyte/framework/genre/rpg';
+
+// Genre: Card
+import { DeckManager, TurnEngine } from '@gamebyte/framework/genre/card';
+
+// Genre: Platformer
+import { PlatformerController, ObstaclePattern } from '@gamebyte/framework/genre/platformer';
+```
 
 ## Pixi.js v8 API
 

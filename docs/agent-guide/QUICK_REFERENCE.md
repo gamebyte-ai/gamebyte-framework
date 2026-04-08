@@ -384,6 +384,254 @@ obj.destroy();                          // Cleanup
 
 ---
 
+## v1.7 Boilerplate
+
+### QuickGameSetup (Hub -> Game -> Result in one config)
+
+```typescript
+import { QuickGameSetup } from '@gamebyte/framework/boilerplate';
+
+const setup = new QuickGameSetup(stage, {
+  title: 'My Game', width: 540, height: 960,
+  game: {
+    onCreateGame: (container) => { /* place game objects */ },
+    onUpdate: (dt) => { /* game loop */ },
+  },
+  onRetry: () => resetGameState(),
+});
+setup.start();                          // Hub screen, flow is automatic
+setup.endGame({ score: 100, stars: 3, type: 'victory' }); // -> Result screen
+setup.trigger('retry');                 // -> Game screen
+setup.showSettings();                   // Settings overlay
+setup.currentScreen;                    // 'hub' | 'game' | 'result'
+setup.on('screen-changed', (s) => {});
+setup.on('game-start', () => {});
+setup.on('game-end', (data) => {});
+setup.on('setting-changed', (k, v) => {});
+```
+
+### GameFlow
+
+```typescript
+import { GameFlow } from '@gamebyte/framework/boilerplate';
+
+const flow = new GameFlow(container, {
+  start: 'menu',
+  screens: { menu: { create: () => menuScreen }, game: { create: () => gameScreen } },
+  flow: { play: 'game', home: 'menu' },
+});
+flow.start();                           // Navigate to start screen
+flow.trigger('play');                   // Event -> screen
+flow.goTo('menu', data);               // Direct navigation
+flow.current;                           // Current screen name
+flow.on('navigate', (from, to) => {});
+```
+
+### SettingsPanel
+
+```typescript
+import { SettingsPanel } from '@gamebyte/framework/boilerplate';
+
+const settings = new SettingsPanel({ sound: true, music: true, vibration: true });
+settings.show();  settings.hide();
+settings.get('sound');  settings.set('sound', false);
+settings.getAll();                      // { sound, music, vibration }
+settings.on('changed', (key, val) => {});
+```
+
+### TutorialOverlay
+
+```typescript
+import { TutorialOverlay } from '@gamebyte/framework/boilerplate';
+
+const tut = new TutorialOverlay([
+  { text: 'Tap here', x: 270, y: 480, spotlight: { x: 270, y: 480, radius: 60 } },
+  { text: 'Swipe to move', x: 270, y: 300, position: 'below' },
+], { skipButton: true, dimAlpha: 0.7 });
+parent.addChild(tut.getContainer());
+tut.start();  tut.next();  tut.skip();
+tut.on('step', (i) => {});  tut.on('complete', () => {});
+```
+
+### Toast
+
+```typescript
+import { Toast } from '@gamebyte/framework/boilerplate';
+
+Toast.show(parent, 'Level complete!');  // Simple string
+Toast.show(parent, { text: 'Error', type: 'error', duration: 3000, y: 80 });
+// Types: 'info' | 'success' | 'warning' | 'error'
+```
+
+### RewardFly
+
+```typescript
+import { RewardFly } from '@gamebyte/framework/boilerplate';
+
+RewardFly.play({
+  parent: stage,
+  from: { x: 270, y: 400 }, to: { x: 50, y: 30 },
+  count: 8, duration: 600, stagger: 50, size: 16, color: 0xffd700,
+  onEachArrive: () => coinCount++,
+  onComplete: () => updateUI(),
+});
+```
+
+---
+
+## v1.7 Genre Templates
+
+### Puzzle
+
+```typescript
+import { MatchDetector, BoardGravity } from '@gamebyte/framework/genre/puzzle';
+
+const det = new MatchDetector({ rule: 'row-col-3' });
+const matches = det.findMatches(grid, rows, cols);  // [{cells, value, size}]
+det.wouldMatch(grid, r1, c1, r2, c2);              // Swap check
+
+const result = BoardGravity.apply(grid, rows, cols); // Mutates grid
+// result.moves: [{fromRow,fromCol,toRow,toCol}]
+// result.spawns: [{row,col}]  — top cells needing new pieces
+```
+
+### Survivors
+
+```typescript
+import { AutoAttack, UpgradeSystem, XPSystem } from '@gamebyte/framework/genre/survivors';
+
+const atk = new AutoAttack({ range: 200, fireRate: 3, damage: 25, targeting: 'nearest' });
+atk.update(dt, player, enemies);        // Call each frame
+atk.on('fire', (target, dmg) => {});
+atk.configure({ damage: 40 });          // Runtime reconfigure
+
+const upgrades = new UpgradeSystem([
+  { id: 'atk', name: 'ATK+', description: '+10', maxLevel: 5, effect: { damage: 10 }, weight: 1 },
+]);
+const choices = upgrades.getChoices(3); // Weighted random, no maxed
+upgrades.choose('atk');                 // Apply, emits 'upgrade-chosen'
+
+const xp = new XPSystem({ xpCurve: (l) => 100 * l });
+xp.addXP(150);                         // Auto level-ups
+xp.on('level-up', (lv, total) => {});
+xp.level;  xp.progress;                // Current level, 0-1 progress
+```
+
+### Idle
+
+```typescript
+import { IdleEngine, PrestigeSystem } from '@gamebyte/framework/genre/idle';
+
+const engine = new IdleEngine({
+  resources: ['gold'],
+  generators: [{ id: 'miner', name: 'Miner', baseCost: 10, baseProduction: 1 }],
+});
+engine.update(dt);                      // Tick each frame
+engine.buy('miner');                    // Purchase generator
+engine.getCost('miner');                // Next cost (exponential)
+engine.getProductionRate('gold');       // Total gold/sec
+engine.applyOfflineEarnings(3600);      // 1 hour offline
+engine.getState();  engine.loadState(s);  engine.reset();
+engine.on('tick', (prod) => {});
+engine.on('purchase', (id, count) => {});
+
+const prestige = new PrestigeSystem({ threshold: 1000, resource: 'gold' });
+prestige.prestige(5000);               // Execute, returns new multiplier
+prestige.multiplier;  prestige.totalPrestiges;
+prestige.on('prestige', (mult, count) => engine.reset());
+```
+
+### Tower Defense
+
+```typescript
+import { PathFollower, TowerManager } from '@gamebyte/framework/genre/td';
+
+const enemy = new PathFollower([{ x: 0, y: 300 }, { x: 400, y: 100 }], 100);
+const pos = enemy.update(dt);          // Returns {x, y}
+enemy.progress;  enemy.isComplete;      // 0-1 progress, path done?
+enemy.on('path-complete', () => {});
+
+const towers = new TowerManager([
+  { id: 'archer', name: 'Archer', cost: 50, range: 150, damage: 10, fireRate: 2 },
+]);
+const t = towers.place('archer', 200, 300, { spend: (a) => eco.spend('gold', a) });
+towers.upgrade(t.id, currency);
+towers.sell(t.id);                      // 50% refund
+towers.update(dt, enemies);             // Auto-fire each frame
+towers.on('tower-fire', (tower, target) => {});
+```
+
+### RPG
+
+```typescript
+import { StatsSystem, InventorySystem, DialogueSystem } from '@gamebyte/framework/genre/rpg';
+
+const stats = new StatsSystem({ hp: 100, attack: 20, defense: 10 });
+stats.get('attack');                    // base + bonuses
+stats.addBonus('sword', 'attack', 15); // Named bonus
+stats.removeBonus('sword');
+stats.on('stat-changed', (stat, nv, ov) => {});
+
+const inv = new InventorySystem({ maxSlots: 50, equipSlots: ['weapon', 'armor'] });
+inv.add({ id: 'sword', name: 'Sword', type: 'weapon', stats: { attack: 10 } });
+inv.equip('weapon', 'sword');           // Equip to slot
+inv.unequip('weapon');                  // Returns ItemDef | null
+inv.isFull;  inv.slotCount;  inv.maxSlots;
+
+const dlg = new DialogueSystem([
+  { id: 'start', text: 'Hello!', speaker: 'NPC', next: 'ask' },
+  { id: 'ask', text: 'Help?', choices: [{ text: 'Yes', next: 'yes' }, { text: 'No', next: 'no' }] },
+]);
+dlg.start('start');  dlg.advance();  dlg.choose(0);
+dlg.on('node', (n) => showUI(n));
+dlg.on('end', () => hideUI());
+```
+
+### Card
+
+```typescript
+import { DeckManager, TurnEngine } from '@gamebyte/framework/genre/card';
+
+const deck = new DeckManager({ maxHandSize: 7 });
+deck.addToDeck([{ id: 'fireball', name: 'Fireball', cost: 3 }]);
+deck.shuffle();
+deck.draw(5);                           // Draw into hand
+deck.play('fireball');                  // Remove from hand
+deck.discard('shield');                 // Hand -> discard
+deck.discardHand();                     // Discard all
+deck.hand;  deck.drawPileCount;  deck.discardPileCount;
+deck.on('card-drawn', (c) => {});  deck.on('deck-empty', () => {});
+
+const turns = new TurnEngine(['player', 'enemy']);
+turns.start();                          // Round 1
+turns.currentTurn;  turns.round;
+turns.endTurn();                        // Next participant
+turns.on('turn-start', (who) => {});
+turns.on('round-start', (n) => {});
+```
+
+### Platformer
+
+```typescript
+import { PlatformerController, ObstaclePattern } from '@gamebyte/framework/genre/platformer';
+
+const ctrl = new PlatformerController({
+  moveSpeed: 200, jumpForce: -400, gravity: 800, doubleJump: true, coyoteTime: 100,
+});
+ctrl.setPosition(100, 400);
+const state = ctrl.update(dt, { left, right, jump }, groundY);
+// state: { x, y, vx, vy, isGrounded, isJumping, canDoubleJump, facing }
+ctrl.on('jump', () => {});  ctrl.on('land', () => {});
+
+const patterns = new ObstaclePattern([
+  { id: 'gap', width: 300, difficulty: 0.2, obstacles: [{ type: 'platform', x: 0, y: 400 }] },
+]);
+const next = patterns.getNext(0.5);     // Random, difficulty <= 0.5
+const obs = patterns.generate(5, 0, 0.5); // 5 patterns, absolute positions
+```
+
+---
+
 ## Grep Patterns
 
 Search docs efficiently:
@@ -410,6 +658,15 @@ grep -r "GestureDetector\|SaveSystem\|EconomyManager\|FloatingText2D\|screenShak
 
 # Find v1.5 hybrid game docs
 grep -r "HybridGame\|HybridHUD\|WorldObject3D" docs/
+
+# Find v1.7 boilerplate docs
+grep -r "QuickGameSetup\|GameFlow\|SettingsPanel\|TutorialOverlay\|Toast\|RewardFly" docs/
+
+# Find v1.7 genre template docs
+grep -r "MatchDetector\|BoardGravity\|AutoAttack\|UpgradeSystem\|XPSystem" docs/
+grep -r "IdleEngine\|PrestigeSystem\|PathFollower\|TowerManager" docs/
+grep -r "StatsSystem\|InventorySystem\|DialogueSystem\|DeckManager\|TurnEngine" docs/
+grep -r "PlatformerController\|ObstaclePattern" docs/
 ```
 
 ---
