@@ -111,15 +111,17 @@ export class PixiCompatibility {
    * Get the canvas from Pixi v8 renderer
    */
   static getCanvas(renderer: any): HTMLCanvasElement {
-    if (renderer.view) {
-      return renderer.view.canvas || renderer.view;
-    }
-
+    // Pixi v8: use .canvas first (renderer.view is deprecated)
     if (renderer.canvas) {
       return renderer.canvas;
     }
 
-    throw new Error('Could not find canvas on Pixi v8 renderer');
+    // Pixi v7 fallback
+    if (renderer.view) {
+      return renderer.view.canvas || renderer.view;
+    }
+
+    throw new Error('Could not find canvas on renderer');
   }
 
   /**

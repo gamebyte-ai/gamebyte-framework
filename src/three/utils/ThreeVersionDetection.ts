@@ -140,8 +140,8 @@ export class ThreeVersionDetector {
       return false;
     }
     try {
-      // @ts-expect-error - WebGPURenderer is in examples/jsm, not in main type definitions
-      await import('three/examples/jsm/renderers/webgpu/WebGPURenderer.js');
+      // @ts-expect-error - Three.js 0.183+ exports WebGPURenderer from 'three/webgpu'
+      await import('three/webgpu');
       return true;
     } catch {
       return false;

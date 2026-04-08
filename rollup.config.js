@@ -14,8 +14,9 @@ const externalDeps = [
   'matter-js',
   'cannon-es',
   'eventemitter3',
-  // Three.js examples/jsm modules
-  /^three\/examples\/jsm\//
+  // Three.js sub-paths
+  /^three\/examples\/jsm\//,
+  'three/webgpu'
 ];
 
 // Common plugins

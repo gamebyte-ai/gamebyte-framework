@@ -20,7 +20,8 @@ const umdConfig = {
       'three': 'THREE',
       'matter-js': 'Matter',
       'cannon-es': 'CANNON',
-      'three/examples/jsm/renderers/CSS2DRenderer.js': 'THREE'
+      'three/examples/jsm/renderers/CSS2DRenderer.js': 'THREE',
+      'three/webgpu': 'THREE'
     },
     sourcemap: true,
     exports: 'named',
@@ -32,8 +33,9 @@ const umdConfig = {
     'three',
     'matter-js',
     'cannon-es',
-    // Three.js examples/jsm modules
-    /^three\/examples\/jsm\//
+    // Three.js sub-paths
+    /^three\/examples\/jsm\//,
+    'three/webgpu'
   ],
   plugins: [
     nodeResolve({
@@ -63,14 +65,17 @@ const threeToolkitConfig = {
     name: 'GameByteThree',
     globals: {
       'three': 'THREE',
+      'three/webgpu': 'THREE',
       'eventemitter3': 'EventEmitter3'
     },
     sourcemap: true,
-    exports: 'named'
+    exports: 'named',
+    inlineDynamicImports: true
   },
   external: [
     'three',
-    /^three\/examples\/jsm\//
+    /^three\/examples\/jsm\//,
+    'three/webgpu'
   ],
   plugins: [
     nodeResolve({

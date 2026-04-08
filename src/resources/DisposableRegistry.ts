@@ -89,7 +89,7 @@ export class DisposableRegistry {
         typeof obj.dispose !== 'function',
       disposer: (obj: any) => {
         try {
-          obj.destroy({ children: true, texture: true, baseTexture: true });
+          obj.destroy({ children: true, texture: true, textureSource: true });
         } catch {
           // Some Pixi objects don't accept options
           obj.destroy();

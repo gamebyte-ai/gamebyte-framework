@@ -692,7 +692,7 @@ export class HybridRenderer extends EventEmitter implements Renderer {
     // Destroy Pixi.js
     if (this.pixiApp) {
       if (this.pixiApp.destroy) {
-        this.pixiApp.destroy(true, { children: true, texture: true, baseTexture: true });
+        this.pixiApp.destroy(true, { children: true, texture: true, textureSource: true });
       }
       this.pixiApp = null;
     }

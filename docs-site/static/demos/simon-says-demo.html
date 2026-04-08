@@ -241,7 +241,7 @@
     function createColorButton(colorIndex, size) {
         const factory = graphics();
         const container = factory.createContainer();
-        container.interactive = true;
+        container.eventMode = 'static';
         container.cursor = 'pointer';
 
         const gfx = factory.createGraphics();

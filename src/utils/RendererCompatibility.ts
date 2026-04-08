@@ -125,15 +125,17 @@ export class PixiCompatibility {
    * Get the canvas from Pixi v8 renderer
    */
   static getCanvas(renderer: any): HTMLCanvasElement {
-    if (renderer.view) {
-      return renderer.view.canvas || renderer.view;
-    }
-
+    // Pixi v8: use .canvas first (renderer.view is deprecated)
     if (renderer.canvas) {
       return renderer.canvas;
     }
 
-    throw new Error('Could not find canvas on Pixi v8 renderer');
+    // Pixi v7 fallback
+    if (renderer.view) {
+      return renderer.view.canvas || renderer.view;
+    }
+
+    throw new Error('Could not find canvas on renderer');
   }
 
   /**
@@ -210,9 +212,9 @@ export class ThreeCompatibility {
    */
   private static async createWebGPURenderer(options: ThreeRendererOptions): Promise<any> {
     try {
-      // Dynamic import to avoid build-time resolution errors
-      // @ts-expect-error - WebGPURenderer is in examples/jsm, not in main type definitions
-      const { WebGPURenderer } = await import('three/examples/jsm/renderers/webgpu/WebGPURenderer.js');
+      // Dynamic import — Three.js 0.183+ exports WebGPURenderer from 'three/webgpu'
+      // @ts-expect-error - WebGPURenderer not in main type definitions
+      const { WebGPURenderer } = await import('three/webgpu');
 
       if (!WebGPURenderer) {
         throw new Error('WebGPURenderer not available after import');
