@@ -64,6 +64,8 @@ const esmConfig = {
     'ui/themes/index': 'src/ui/themes/index.ts',
     // Audio module
     'audio/index': 'src/audio/index.ts',
+    // Audio DSP module
+    'audio/dsp/index': 'src/audio/dsp/index.ts',
     // Input module
     'input/index': 'src/input/index.ts',
     // Physics module

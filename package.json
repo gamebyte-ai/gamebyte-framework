@@ -53,6 +53,10 @@
       "import": "./dist/audio/index.js",
       "types": "./dist/audio/index.d.ts"
     },
+    "./audio/dsp": {
+      "import": "./dist/audio/dsp/index.js",
+      "types": "./dist/audio/dsp/index.d.ts"
+    },
     "./input": {
       "import": "./dist/input/index.js",
       "types": "./dist/input/index.d.ts"

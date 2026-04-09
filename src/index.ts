@@ -226,6 +226,11 @@ export { GameByteAudioEffectsProcessor } from './audio/effects/GameByteAudioEffe
 export { GameByteProceduralAudioGenerator } from './audio/procedural/GameByteProceduralAudioGenerator';
 export { GameByteAudioAnalytics } from './audio/analytics/GameByteAudioAnalytics';
 
+// DSP Effects Chain
+export { DspEffect, DspChain, DspPresets } from './audio/dsp/index.js';
+export { FilterEffect, ReverbEffect, DelayEffect, DistortionEffect, CompressorEffect } from './audio/dsp/index.js';
+export type { FilterConfig, ReverbConfig, DelayConfig, DistortionConfig, CompressorConfig } from './audio/dsp/index.js';
+
 // Service Providers
 export { RenderingServiceProvider } from './services/RenderingServiceProvider';
 export { SceneServiceProvider } from './services/SceneServiceProvider';
