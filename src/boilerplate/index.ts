@@ -1,7 +1,7 @@
 export { GameFlow } from './GameFlow.js';
 export type { GameFlowConfig, GameFlowEvents } from './GameFlow.js';
 export { SettingsPanel } from './SettingsPanel.js';
-export type { SettingsConfig, SettingsPanelEvents } from './SettingsPanel.js';
+export type { SettingsConfig, SettingsPanelEvents, SettingsFieldDef, SettingsFieldType } from './SettingsPanel.js';
 export { TutorialOverlay } from './TutorialOverlay.js';
 export type { TutorialStep, TutorialOptions, TutorialEvents } from './TutorialOverlay.js';
 export { Toast } from './Toast.js';

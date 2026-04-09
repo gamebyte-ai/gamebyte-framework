@@ -1,6 +1,6 @@
 import { EventEmitter } from 'eventemitter3';
 import { Scene } from '../contracts/Scene';
-import * as PIXI from 'pixi.js';
+import { IContainer } from '../contracts/Graphics';
 import { graphics } from '../graphics/GraphicsEngine';
 
 /**
@@ -37,15 +37,14 @@ export class BaseScene extends EventEmitter implements Scene {
   public readonly id: string;
   public readonly name: string;
   protected _isActive: boolean = false;
-  protected container: PIXI.Container;
+  protected container: IContainer;
   protected initialized: boolean = false;
 
   constructor(id: string, name: string) {
     super();
     this.id = id;
     this.name = name;
-    // Use graphics abstraction but cast to PIXI.Container for type compatibility
-    this.container = graphics().createContainer() as unknown as PIXI.Container;
+    this.container = graphics().createContainer();
   }
 
   /**
@@ -56,9 +55,9 @@ export class BaseScene extends EventEmitter implements Scene {
   }
 
   /**
-   * Get the Pixi container for this scene
+   * Get the container for this scene
    */
-  getContainer(): PIXI.Container {
+  getContainer(): IContainer {
     return this.container;
   }
 

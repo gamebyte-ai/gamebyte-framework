@@ -271,26 +271,33 @@ export class Camera extends EventEmitter<CameraEvents> {
    * Must be called from the game loop with delta time in seconds.
    */
   update(dt: number): void {
-    // 1. Follow logic — lerp camera toward target
+    // 1. Follow logic — frame-rate-independent exponential lerp toward target
     if (this._followTarget !== null) {
       const desiredX = this._followTarget.x + this._followConfig.offsetX;
       const desiredY = this._followTarget.y + this._followConfig.offsetY;
+
+      // Exponential easing: k normalised so lerp=0.1 at 60fps behaves the same at any fps.
+      // Math.min(lerp, 0.999) prevents -log(0) when lerp approaches 1.
+      const k = -Math.log(1 - Math.min(this._followConfig.lerp, 0.999)) * 60;
+      const t = 1 - Math.exp(-k * dt);
 
       const dz = this._followConfig.deadZone;
       const halfDZW = dz.width * 0.5;
       const halfDZH = dz.height * 0.5;
 
       if (halfDZW <= 0 || Math.abs(this._x - desiredX) > halfDZW) {
-        this._x += (desiredX - this._x) * this._followConfig.lerp;
+        this._x += (desiredX - this._x) * t;
       }
 
       if (halfDZH <= 0 || Math.abs(this._y - desiredY) > halfDZH) {
-        this._y += (desiredY - this._y) * this._followConfig.lerp;
+        this._y += (desiredY - this._y) * t;
       }
     } else if (this._moveLerp > 0) {
-      // Standalone moveTo lerp
-      this._x += (this._targetX - this._x) * this._moveLerp;
-      this._y += (this._targetY - this._y) * this._moveLerp;
+      // Standalone moveTo lerp — same frame-rate-independent approach
+      const k = -Math.log(1 - Math.min(this._moveLerp, 0.999)) * 60;
+      const t = 1 - Math.exp(-k * dt);
+      this._x += (this._targetX - this._x) * t;
+      this._y += (this._targetY - this._y) * t;
     }
 
     // 2. Zoom lerp

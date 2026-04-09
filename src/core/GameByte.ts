@@ -300,7 +300,8 @@ export class GameByte extends EventEmitter {
 
     // Boot all providers
     const bootPromises: Promise<void>[] = [];
-    
+    const bootedProviders: Array<[string, ServiceProvider]> = [];
+
     for (const [name, provider] of this.providers) {
       if (provider.boot) {
         const result = provider.boot(this);
@@ -308,10 +309,15 @@ export class GameByte extends EventEmitter {
           bootPromises.push(result);
         }
       }
-      this.emit('provider:booted', name, provider);
+      bootedProviders.push([name, provider]);
     }
 
     await Promise.all(bootPromises);
+
+    // Emit provider:booted events after all async boots have resolved
+    for (const [name, provider] of bootedProviders) {
+      this.emit('provider:booted', name, provider);
+    }
     
     this.booted = true;
     this.emit('booted');
@@ -560,9 +566,6 @@ export class GameByte extends EventEmitter {
   destroy(): void {
     this.stop();
 
-    // Emit destroyed event before cleanup
-    this.emit('destroyed');
-
     if (this.container.bound('renderer')) {
       const renderer = this.make<Renderer>('renderer');
       renderer.destroy();
@@ -580,10 +583,19 @@ export class GameByte extends EventEmitter {
 
     this.container.flush();
     this.providers.clear();
-    this.removeAllListeners();
 
     this.booted = false;
     this.running = false;
     this.canvas = null;
+
+    // Emit destroyed after all cleanup, before removing listeners
+    this.emit('destroyed');
+
+    // Clear static singleton reference if this instance is the singleton
+    if ((GameByte as any).instance === this) {
+      (GameByte as any).instance = null;
+    }
+
+    this.removeAllListeners();
   }
 }

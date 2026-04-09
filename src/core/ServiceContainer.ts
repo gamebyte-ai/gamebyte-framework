@@ -9,11 +9,15 @@ export class ServiceContainer implements Container {
   private bindings = new Map<string, Binding>();
   private instances = new Map<string, any>();
   private aliases = new Map<string, string>();
+  private _creating = new Set<string>();
 
   /**
    * Register a binding in the container.
    */
   bind<T = any>(key: string, concrete: T | Factory<T>, singleton = false): void {
+    if (this.bindings.has(key)) {
+      Logger.warn('Core', `Service binding overwritten: ${key}`);
+    }
     Logger.debug('Core', `Service bound: ${key}`);
     this.bindings.set(key, {
       concrete,
@@ -56,12 +60,21 @@ export class ServiceContainer implements Container {
       throw new Error(`No binding found for '${key}'`);
     }
 
+    if (this._creating.has(resolvedKey)) {
+      throw new Error(`Circular dependency detected for '${key}'`);
+    }
+
     let instance: T;
 
-    if (typeof binding.concrete === 'function') {
-      instance = (binding.concrete as Factory<T>)();
-    } else {
-      instance = binding.concrete as T;
+    this._creating.add(resolvedKey);
+    try {
+      if (typeof binding.concrete === 'function') {
+        instance = (binding.concrete as Factory<T>)();
+      } else {
+        instance = binding.concrete as T;
+      }
+    } finally {
+      this._creating.delete(resolvedKey);
     }
 
     // Cache singleton instances
@@ -78,7 +91,7 @@ export class ServiceContainer implements Container {
    */
   bound(key: string): boolean {
     const resolvedKey = this.resolveAlias(key);
-    return this.bindings.has(resolvedKey);
+    return this.bindings.has(resolvedKey) || this.instances.has(resolvedKey);
   }
 
   /**
@@ -102,7 +115,7 @@ export class ServiceContainer implements Container {
    */
   instance<T = any>(key: string, instance: T): T {
     this.instances.set(key, instance);
-    this.singleton(key, () => instance);
+    // Don't call singleton() — instance is already stored directly in the instances map
     return instance;
   }
 

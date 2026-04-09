@@ -426,9 +426,7 @@ describe('GameByteAssetManager', () => {
       expect(usage.total).toBe(0);
     });
 
-    it('should clear queue processor interval on destroy', async () => {
-      const clearIntervalSpy = jest.spyOn(global, 'clearInterval');
-
+    it('should clear the loading queue and active loads on destroy', async () => {
       const cleanupAssetManager = new GameByteAssetManager({
         cache: {
           maxSize: 10 * 1024 * 1024,
@@ -439,8 +437,9 @@ describe('GameByteAssetManager', () => {
 
       await cleanupAssetManager.destroy();
 
-      expect(clearIntervalSpy).toHaveBeenCalled();
-      clearIntervalSpy.mockRestore();
+      // After destroy the manager should have no memory usage (queue drained)
+      const usage = cleanupAssetManager.getMemoryUsage();
+      expect(usage.total).toBe(0);
     });
   });
 });

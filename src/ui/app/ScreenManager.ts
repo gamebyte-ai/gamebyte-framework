@@ -60,6 +60,7 @@ export class ScreenManager extends EventEmitter {
 
   private config: Required<ScreenManagerConfig>;
   private isTransitioning: boolean = false;
+  private _destroyed: boolean = false;
 
   constructor(config: ScreenManagerConfig) {
     super();
@@ -104,13 +105,18 @@ export class ScreenManager extends EventEmitter {
     this.screenContainer.addChild(screen.getContainer());
 
     // Animate transition
-    if (currentScreen && transitionType !== 'none') {
-      await this.animateTransition(currentScreen, screen, transitionType, 'in', data);
-    } else {
-      await screen.show(data);
+    try {
+      if (currentScreen && transitionType !== 'none') {
+        await this.animateTransition(currentScreen, screen, transitionType, 'in', data);
+      } else {
+        await screen.show(data);
+      }
+    } catch (err) {
+      Logger.warn('UI', 'Screen transition failed:', err);
+    } finally {
+      this.isTransitioning = false;
     }
 
-    this.isTransitioning = false;
     this.emit('screen-pushed', screen);
   }
 
@@ -136,18 +142,23 @@ export class ScreenManager extends EventEmitter {
     const targetScreen = this.getCurrentScreen()!;
 
     // Animate transition
-    if (transitionType !== 'none') {
-      await this.animateTransition(poppedScreen, targetScreen, transitionType, 'out');
-    } else {
-      await poppedScreen.hide();
-      await targetScreen.show();
+    try {
+      if (transitionType !== 'none') {
+        await this.animateTransition(poppedScreen, targetScreen, transitionType, 'out');
+      } else {
+        await poppedScreen.hide();
+        await targetScreen.show();
+      }
+    } catch (err) {
+      Logger.warn('UI', 'Screen transition failed:', err);
+    } finally {
+      this.isTransitioning = false;
     }
 
     // Remove popped screen
     this.screenContainer.removeChild(poppedScreen.getContainer());
     poppedScreen.destroy();
 
-    this.isTransitioning = false;
     this.emit('screen-popped', poppedScreen);
 
     return poppedScreen;
@@ -184,18 +195,23 @@ export class ScreenManager extends EventEmitter {
     this.screenContainer.addChild(screen.getContainer());
 
     // Animate transition
-    if (transitionType !== 'none') {
-      await this.animateTransition(replacedScreen, screen, transitionType, 'in', data);
-    } else {
-      await replacedScreen.hide();
-      await screen.show(data);
+    try {
+      if (transitionType !== 'none') {
+        await this.animateTransition(replacedScreen, screen, transitionType, 'in', data);
+      } else {
+        await replacedScreen.hide();
+        await screen.show(data);
+      }
+    } catch (err) {
+      Logger.warn('UI', 'Screen transition failed:', err);
+    } finally {
+      this.isTransitioning = false;
     }
 
     // Remove replaced screen
     this.screenContainer.removeChild(replacedScreen.getContainer());
     replacedScreen.destroy();
 
-    this.isTransitioning = false;
     this.emit('screen-replaced', { old: replacedScreen, new: screen });
 
     return replacedScreen;
@@ -376,6 +392,7 @@ export class ScreenManager extends EventEmitter {
       duration,
       easing: Easing.easeOutCubic,
       onUpdate: (_, eased) => {
+        if (this._destroyed) return;
         container.x = lerp(from, to, eased);
       },
     });
@@ -395,6 +412,7 @@ export class ScreenManager extends EventEmitter {
       duration,
       easing: Easing.easeOutCubic,
       onUpdate: (_, eased) => {
+        if (this._destroyed) return;
         container.alpha = lerp(from, to, eased);
       },
     });
@@ -418,6 +436,8 @@ export class ScreenManager extends EventEmitter {
    * Destroy the screen manager
    */
   public destroy(): void {
+    this._destroyed = true;
+
     // Destroy all screens
     this.screenStack.forEach((screen) => {
       screen.destroy();

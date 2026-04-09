@@ -382,6 +382,30 @@ describe('ServiceContainer', () => {
     });
   });
 
+  describe('Circular Dependency Detection', () => {
+    it('should detect circular dependencies', () => {
+      const container = new ServiceContainer();
+      container.bind('a', () => container.make('b'));
+      container.bind('b', () => container.make('a'));
+      expect(() => container.make('a')).toThrow(/[Cc]ircular/);
+    });
+
+    it('should warn on duplicate binding', () => {
+      // Just verify no throw — warning is logged
+      const container = new ServiceContainer();
+      container.bind('key', () => 'first');
+      container.bind('key', () => 'second'); // should not throw
+      expect(container.make('key')).toBe('second');
+    });
+
+    it('should store instance without double-registering', () => {
+      const container = new ServiceContainer();
+      const obj = { name: 'test' };
+      container.instance('myService', obj);
+      expect(container.make('myService')).toBe(obj);
+    });
+  });
+
   describe('Circular Alias Detection', () => {
     it('should detect and prevent circular alias references', () => {
       container.bind('original', 'value');

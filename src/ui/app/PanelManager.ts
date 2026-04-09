@@ -76,8 +76,19 @@ export class PanelManager extends EventEmitter {
       this.removePanel(panel);
     });
 
+    // Block input during show animation
+    const container = panel.getContainer();
+    if (container && 'interactiveChildren' in container) {
+      (container as any).interactiveChildren = false;
+    }
+
     // Show with animation
     await panel.show();
+
+    // Re-enable input after show animation
+    if (container && 'interactiveChildren' in container) {
+      (container as any).interactiveChildren = true;
+    }
 
     this.emit('panel-shown', panel);
   }
@@ -91,6 +102,13 @@ export class PanelManager extends EventEmitter {
     }
 
     const topPanel = this.activePanels[this.activePanels.length - 1];
+
+    // Block input during close animation
+    const container = topPanel.getContainer();
+    if (container && 'interactiveChildren' in container) {
+      (container as any).interactiveChildren = false;
+    }
+
     await topPanel.close();
 
     return topPanel;
@@ -181,9 +199,13 @@ export class PanelManager extends EventEmitter {
     this.config.screenWidth = screenWidth;
     this.config.screenHeight = screenHeight;
 
-    // Re-initialize all active panels
     this.activePanels.forEach((panel) => {
-      panel.initialize(screenWidth, screenHeight);
+      if (typeof (panel as any).resize === 'function') {
+        (panel as any).resize(screenWidth, screenHeight);
+      } else {
+        // Fallback: re-initialize if no resize method
+        panel.initialize(screenWidth, screenHeight);
+      }
     });
 
     this.emit('resize', { width: screenWidth, height: screenHeight });

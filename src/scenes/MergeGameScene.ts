@@ -279,7 +279,8 @@ export class MergeGameScene extends BaseScene {
       this.backgroundGraphics
         .rect(0, 0, 2000, 2000)
         .fill({ color: this.sceneConfig.sceneBackgroundColor });
-      this.container.addChildAt(this.backgroundGraphics as any, 0);
+      // addChildAt is Pixi-specific (not in IContainer interface) — cast to any for z-ordering
+      (this.container as any).addChildAt(this.backgroundGraphics as any, 0);
     } catch {
       // Graphics engine might not be initialized
     }

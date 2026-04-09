@@ -595,6 +595,10 @@ export type { DesignScalerConfig, Point as DesignPoint } from './utils/DesignSca
 export { Logger } from './utils/Logger';
 export type { LogLevel, LoggerConfig } from './utils/Logger';
 
+// UnsubscribeBag - Memory-safe event listener cleanup utility
+export { UnsubscribeBag } from './utils/UnsubscribeBag';
+export type { Unsubscribe } from './utils/UnsubscribeBag';
+
 // Graphics Abstraction Layer
 export type {
   IDisplayObject,
@@ -911,7 +915,7 @@ export type { ObstacleDef, PatternDef, ObstaclePatternEvents } from './genre/pla
 export { GameFlow } from './boilerplate/index';
 export type { GameFlowConfig, GameFlowEvents } from './boilerplate/index';
 export { SettingsPanel } from './boilerplate/index';
-export type { SettingsConfig, SettingsPanelEvents } from './boilerplate/index';
+export type { SettingsConfig, SettingsPanelEvents, SettingsFieldDef, SettingsFieldType } from './boilerplate/index';
 export { TutorialOverlay } from './boilerplate/index';
 export type { TutorialStep, TutorialOptions, TutorialEvents } from './boilerplate/index';
 export { Toast } from './boilerplate/index';

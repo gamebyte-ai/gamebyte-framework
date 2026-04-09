@@ -74,8 +74,8 @@ export interface QuickGameSetupEvents {
   'game-start': () => void;
   /** Fired when endGame() is called */
   'game-end': (data: any) => void;
-  /** Fired when a settings toggle changes */
-  'setting-changed': (key: string, value: boolean) => void;
+  /** Fired when a settings field changes */
+  'setting-changed': (key: string, value: boolean | number) => void;
 }
 
 // ---- Implementation ---------------------------------------------------------
@@ -115,7 +115,7 @@ export class QuickGameSetup extends EventEmitter<QuickGameSetupEvents> {
 
     // Settings panel — displayed above all screens on demand
     this._settings = new SettingsPanel(config.settings ?? {});
-    this._settings.on('changed', (key: string, val: boolean) =>
+    this._settings.on('changed', (key: string, val: boolean | number) =>
       this.emit('setting-changed', key, val)
     );
 

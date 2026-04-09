@@ -275,6 +275,73 @@ describe('SettingsPanel', () => {
     panel.hide();
     expect(c.visible).toBe(false);
   });
+
+  it('should support number fields', () => {
+    const panel = new SettingsPanel({
+      fields: [
+        { key: 'volume', label: 'Volume', type: 'number', defaultValue: 0.8, min: 0, max: 1, step: 0.1 },
+      ],
+    });
+    expect(panel.get('volume')).toBeCloseTo(0.8);
+    panel.set('volume', 0.5);
+    expect(panel.get('volume')).toBeCloseTo(0.5);
+  });
+
+  it('should clamp number values to min/max', () => {
+    const panel = new SettingsPanel({
+      fields: [
+        { key: 'vol', label: 'Vol', type: 'number', defaultValue: 0.5, min: 0, max: 1, step: 0.1 },
+      ],
+    });
+    panel.set('vol', 1.5);
+    expect(panel.get('vol')).toBeCloseTo(1);
+    panel.set('vol', -0.5);
+    expect(panel.get('vol')).toBeCloseTo(0);
+  });
+
+  it('should snap number values to step', () => {
+    const panel = new SettingsPanel({
+      fields: [
+        { key: 'vol', label: 'Vol', type: 'number', defaultValue: 0.5, min: 0, max: 1, step: 0.25 },
+      ],
+    });
+    // 0.3 rounded to nearest 0.25 step = 0.25
+    panel.set('vol', 0.3);
+    expect(panel.get('vol')).toBeCloseTo(0.25);
+  });
+
+  it('should emit changed event for number fields', () => {
+    const panel = new SettingsPanel({
+      fields: [
+        { key: 'brightness', label: 'Brightness', type: 'number', defaultValue: 0.5, min: 0, max: 1, step: 0.1 },
+      ],
+    });
+    const handler = jest.fn();
+    panel.on('changed', handler);
+    panel.set('brightness', 0.7);
+    expect(handler).toHaveBeenCalledWith('brightness', expect.closeTo(0.7, 5));
+  });
+
+  it('should persist and load from localStorage', () => {
+    const store: Record<string, string> = {};
+    const mockStorage = {
+      getItem: (k: string) => store[k] ?? null,
+      setItem: (k: string, v: string) => { store[k] = v; },
+      removeItem: (k: string) => { delete store[k]; },
+      clear: () => { Object.keys(store).forEach(k => delete store[k]); },
+      length: 0,
+      key: () => null,
+    };
+    Object.defineProperty(globalThis, 'localStorage', { value: mockStorage, writable: true, configurable: true });
+
+    const panel = new SettingsPanel({ sound: true, persistKey: 'test-game' });
+    panel.set('sound', false);
+    expect(store['test-game:sound']).toBe('false');
+
+    // Second instance should load from persisted value
+    const panel2 = new SettingsPanel({ sound: true, persistKey: 'test-game' });
+    expect(panel2.get('sound')).toBe(false);
+  });
 });
 
 // =============================================================================

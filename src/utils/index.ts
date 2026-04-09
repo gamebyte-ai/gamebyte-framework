@@ -49,3 +49,7 @@ export type { LogLevel, LoggerConfig } from './Logger.js';
 // Screen Shake
 export { screenShake } from './screenShake.js';
 export type { ScreenShakeConfig } from './screenShake.js';
+
+// UnsubscribeBag - Memory-safe event listener cleanup utility
+export { UnsubscribeBag } from './UnsubscribeBag.js';
+export type { Unsubscribe } from './UnsubscribeBag.js';

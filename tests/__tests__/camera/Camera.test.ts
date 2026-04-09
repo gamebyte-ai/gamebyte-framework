@@ -154,6 +154,27 @@ describe('Camera', () => {
       expect(cam.x).toBe(xBefore);
     });
 
+    it('should follow at consistent speed regardless of frame rate', () => {
+      const cam = new Camera({ viewportWidth: 800, viewportHeight: 600 });
+      const container = { x: 0, y: 0, scale: { x: 1, y: 1 } };
+      cam.attach(container);
+      cam.follow({ x: 100, y: 0 }, { lerp: 0.1 });
+
+      // Simulate 60fps (60 frames of 1/60s)
+      cam.moveTo(0, 0, true);
+      for (let i = 0; i < 60; i++) cam.update(1 / 60);
+      const pos60fps = cam.x;
+
+      // Simulate 30fps (30 frames of 1/30s) — same total time (1 second)
+      cam.moveTo(0, 0, true);
+      cam.follow({ x: 100, y: 0 }, { lerp: 0.1 });
+      for (let i = 0; i < 30; i++) cam.update(1 / 30);
+      const pos30fps = cam.x;
+
+      // Both should reach approximately the same position
+      expect(Math.abs(pos60fps - pos30fps)).toBeLessThan(5); // within 5px
+    });
+
     it('moves camera when target exits dead zone', () => {
       const cam = makeCamera();
       cam.moveTo(100, 100, true);

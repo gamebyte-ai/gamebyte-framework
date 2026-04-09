@@ -121,7 +121,6 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
   private batchContext: BatchLoadingContext | null = null;
   private deviceCapabilities: DeviceCapabilities;
   private memoryUsage = { total: 0, cached: 0, active: 0 };
-  private queueProcessorInterval: NodeJS.Timeout | null = null;
   
   constructor(config: AssetManagerConfig) {
     super();
@@ -155,8 +154,8 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
     // Register default loaders
     this.registerDefaultLoaders();
     
-    // Start processing queue
-    this.startQueueProcessor();
+    // Kick off initial queue processing (new items self-trigger via processQueue at end of loadAssetEntry)
+    this.processQueue();
   }
   
   /**
@@ -491,12 +490,6 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
    * Destroy and cleanup all resources.
    */
   async destroy(): Promise<void> {
-    // Stop queue processor
-    if (this.queueProcessorInterval) {
-      clearInterval(this.queueProcessorInterval);
-      this.queueProcessorInterval = null;
-    }
-
     // Cancel all pending loads - wrap rejections to prevent unhandled promise rejections
     const rejectionPromises = [];
     for (const entry of this.loadingQueue) {
@@ -706,18 +699,6 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
   }
   
   /**
-   * Start queue processor.
-   */
-  private startQueueProcessor(): void {
-    if (this.queueProcessorInterval) {
-      clearInterval(this.queueProcessorInterval);
-    }
-    this.queueProcessorInterval = setInterval(() => {
-      this.processQueue();
-    }, 100); // Process every 100ms
-  }
-  
-  /**
    * Process loading queue.
    */
   private async processQueue(): Promise<void> {
@@ -728,7 +709,9 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
       const entry = this.loadingQueue.shift()!;
       this.activeLoads.add(entry.config.id);
       
-      this.loadAssetEntry(entry);
+      this.loadAssetEntry(entry).catch((err) => {
+        Logger.warn('Assets', `Failed to load asset ${entry.config.id}:`, err);
+      });
     }
   }
   
@@ -737,27 +720,35 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
    */
   private async loadAssetEntry(entry: LoadingQueueEntry): Promise<void> {
     const { config } = entry;
-    
+    let settled = false;
+
     try {
       this.emit('asset:loading', config.id, config);
-      
-      // Set timeout
+
+      // Set timeout — guarded by settled flag to prevent race with success path
       if (config.options?.timeout) {
         entry.timeout = setTimeout(() => {
+          if (settled) return;
+          settled = true;
           this.activeLoads.delete(config.id);
           entry.reject(new Error(`Asset loading timeout: ${config.id}`));
+          this.processQueue();
         }, config.options.timeout);
       }
-      
+
       // Get appropriate loader
       const loader = this.loaders.get(config.type);
       if (!loader) {
         throw new Error(`No loader available for asset type: ${config.type}`);
       }
-      
+
       // Load asset
       const data = await loader.load(config);
-      
+
+      // Timeout already fired — discard late result
+      if (settled) return;
+      settled = true;
+
       // Create loaded asset
       const asset: LoadedAsset = {
         config,
@@ -767,32 +758,38 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
         size: this.estimateAssetSize(data, config),
         progress: 1
       };
-      
+
       // Store in memory and cache
       this.loadedAssets.set(config.id, asset);
       if (config.options?.cache !== false) {
         await this.cache.set(config.id, asset);
       }
-      
+
       this.updateMemoryUsage();
-      
+
       // Clear timeout
       if (entry.timeout) {
         clearTimeout(entry.timeout);
       }
-      
+
       this.activeLoads.delete(config.id);
       this.emit('asset:loaded', asset);
       entry.resolve(asset);
-      
+      // Drain next items in queue
+      this.processQueue();
+
     } catch (error) {
+      if (!settled) {
+        settled = true;
+      }
+
       this.activeLoads.delete(config.id);
-      
+
       // Clear timeout
       if (entry.timeout) {
         clearTimeout(entry.timeout);
       }
-      
+
       // Retry if configured
       if (entry.retries < (config.options?.maxRetries || this.config.defaultRetries!)) {
         entry.retries++;
@@ -800,9 +797,11 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
         this.processQueue();
         return;
       }
-      
+
       this.emit('asset:failed', config.id, error);
       entry.reject(error as Error);
+      // Drain next items in queue
+      this.processQueue();
     }
   }
   
@@ -825,10 +824,9 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
   /**
    * Load bundle data from URL.
    */
-  private async loadBundleData(bundle: GameByteAssetBundle): Promise<void> {
-    // This would load the bundle manifest and data
-    // Implementation depends on bundle storage format
-    throw new Error('Bundle loading not implemented');
+  private async loadBundleData(_bundle: GameByteAssetBundle): Promise<void> {
+    // Bundle loading is not yet implemented — assets will be loaded individually
+    Logger.warn('Assets', 'Bundle loading is not yet implemented');
   }
   
   /**
