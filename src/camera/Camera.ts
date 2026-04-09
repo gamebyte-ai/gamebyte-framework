@@ -300,10 +300,12 @@ export class Camera extends EventEmitter<CameraEvents> {
       this._y += (this._targetY - this._y) * t;
     }
 
-    // 2. Zoom lerp
+    // 2. Zoom lerp (frame-rate-independent)
     if (this._zoomLerp > 0 && this._zoom !== this._targetZoom) {
       const prev = this._zoom;
-      this._zoom += (this._targetZoom - this._zoom) * this._zoomLerp;
+      const zk = -Math.log(1 - Math.min(this._zoomLerp, 0.999)) * 60;
+      const zt = 1 - Math.exp(-zk * dt);
+      this._zoom += (this._targetZoom - this._zoom) * zt;
 
       // Snap when close enough to avoid infinite convergence
       if (Math.abs(this._zoom - this._targetZoom) < 0.0001) {

@@ -109,7 +109,14 @@ export class PanelManager extends EventEmitter {
       (container as any).interactiveChildren = false;
     }
 
-    await topPanel.close();
+    try {
+      await topPanel.close();
+    } finally {
+      // Ensure input is restored even if close fails or doesn't emit 'close'
+      if (container && 'interactiveChildren' in container) {
+        (container as any).interactiveChildren = true;
+      }
+    }
 
     return topPanel;
   }

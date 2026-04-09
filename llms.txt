@@ -564,6 +564,70 @@ economy.purchase('sword');
 EconomyManager.getUpgradeCost(100, 3, 1.15); // 152
 ```
 
+## Camera (2D)
+
+2D camera system for scrolling games. Manipulates a world container's position and scale. Frame-rate-independent.
+
+**Constructor:**
+```typescript
+new Camera(config: CameraConfig)
+
+interface CameraConfig {
+  viewportWidth: number;
+  viewportHeight: number;
+  bounds?: { x: number; y: number; width: number; height: number };  // No clamping if omitted
+  minZoom?: number;   // default: 0.25
+  maxZoom?: number;   // default: 4
+}
+
+interface FollowConfig {
+  lerp?: number;       // 0 = instant, 1 = never moves (default: 0.1)
+  offsetX?: number;    // Pixel offset X
+  offsetY?: number;    // Pixel offset Y
+  deadZone?: { width: number; height: number };  // Camera stays still within this area
+}
+```
+
+**Properties:**
+- `x: number` -- World X position (read-only)
+- `y: number` -- World Y position (read-only)
+- `zoom: number` -- Current zoom level (read-only)
+
+**Methods:**
+- `attach(container: any): void` -- Attach a world container (sets x, y, scale each frame)
+- `follow(target: { x: number; y: number }, config?: FollowConfig): void` -- Track a target each frame
+- `unfollow(): void` -- Stop following
+- `moveTo(x: number, y: number, instant?: boolean): void` -- Move to world position
+- `setZoom(zoom: number, duration?: number): void` -- Set zoom level (duration in seconds, 0 = instant)
+- `zoomBy(delta: number, duration?: number): void` -- Add delta to current zoom
+- `shake(intensity?: number, duration?: number): void` -- Screen shake (intensity px, duration seconds; defaults: 8, 0.3)
+- `update(dt: number): void` -- Drive camera each frame (dt in seconds)
+- `screenToWorld(screenX: number, screenY: number): { x: number; y: number }` -- Convert screen to world coords
+- `worldToScreen(worldX: number, worldY: number): { x: number; y: number }` -- Convert world to screen coords
+- `destroy(): void` -- Release all references and listeners
+
+**Events:**
+- `'move'` -- `(x: number, y: number)`
+- `'zoom-change'` -- `(zoom: number)`
+- `'shake-start'` -- `()`
+- `'shake-end'` -- `()`
+
+**Example:**
+```typescript
+import { Camera } from 'gamebyte-framework';
+
+const camera = new Camera({ viewportWidth: 800, viewportHeight: 600, bounds: { x: 0, y: 0, width: 2000, height: 2000 } });
+camera.attach(worldContainer);
+camera.follow(player, { lerp: 0.1, offsetY: -100 });
+camera.setZoom(1.5, 0.5);
+camera.shake(8, 0.3);
+camera.update(dt);
+
+const worldPos = camera.screenToWorld(mouseX, mouseY);
+```
+
+---
+
 ## Hybrid 3D+2D Games
 
 One-call setup for 3D world + 2D HUD overlay. Wraps GameByte hybrid mode, GameCameraManager, and RaycastInputManager.
@@ -775,6 +839,7 @@ Sub-path imports for tree-shaking:
 | Physics 2D (Matter.js) | `@gamebyte/framework/physics/2d` |
 | Physics 3D (Cannon.js) | `@gamebyte/framework/physics/3d` |
 | Graphics | `@gamebyte/framework/graphics` |
+| Camera (2D) | `@gamebyte/framework/camera` |
 | Scenes | `@gamebyte/framework/scenes` |
 | Layout (Yoga flexbox) | `@gamebyte/framework/layout` |
 | Facades | `@gamebyte/framework/facades` |
@@ -914,7 +979,7 @@ interface GameFlowConfig {
 
 ### SettingsPanel
 
-Modal with boolean toggles for sound/music/vibration.
+Modal with boolean toggles and number sliders. Supports typed fields and auto-persistence via localStorage.
 
 **Constructor:**
 ```typescript
@@ -924,22 +989,50 @@ interface SettingsConfig {
   sound?: boolean;     // default: true
   music?: boolean;     // default: true
   vibration?: boolean; // default: true
-  custom?: Array<{ key: string; label: string; value: boolean }>;
+  fields?: SettingsFieldDef[];  // Custom typed fields (boolean or number)
+  persistKey?: string;          // Auto-persist to localStorage with this key prefix
+  custom?: Array<{ key: string; label: string; value: boolean }>;  // @deprecated -- use fields
+}
+
+type SettingsFieldType = 'boolean' | 'number';
+
+interface SettingsFieldDef {
+  key: string;
+  label: string;
+  type: SettingsFieldType;
+  defaultValue: boolean | number;
+  min?: number;   // For number fields (default: 0)
+  max?: number;   // For number fields (default: 1)
+  step?: number;  // For number fields (default: 0.1)
 }
 ```
 
 **Methods:**
 - `show(): void`
 - `hide(): void`
-- `get(key: string): boolean`
-- `set(key: string, value: boolean): void` -- Emits 'changed'
-- `getAll(): Record<string, boolean>`
+- `get(key: string): boolean | number`
+- `set(key: string, value: boolean | number): void` -- Emits 'changed', auto-persists if persistKey set
+- `getAll(): Record<string, boolean | number>`
 - `getContainer(): any`
 - `destroy(): void`
 
 **Events:**
-- `'changed'` -- `(key: string, value: boolean)`
+- `'changed'` -- `(key: string, value: boolean | number)`
 - `'close'` -- `()`
+
+**Example:**
+```typescript
+const settings = new SettingsPanel({
+  sound: true, music: true, vibration: true,
+  fields: [
+    { key: 'volume', label: 'Volume', type: 'number', defaultValue: 0.8, min: 0, max: 1, step: 0.1 },
+    { key: 'difficulty', label: 'Hard Mode', type: 'boolean', defaultValue: false },
+  ],
+  persistKey: 'my-game-settings',
+});
+settings.get('volume'); // 0.8
+settings.set('volume', 0.5); // auto-persists
+```
 
 ---
 
@@ -1596,6 +1689,46 @@ import { DeckManager, TurnEngine } from '@gamebyte/framework/genre/card';
 // Genre: Platformer
 import { PlatformerController, ObstaclePattern } from '@gamebyte/framework/genre/platformer';
 ```
+
+## Utilities
+
+### UnsubscribeBag
+
+Collects unsubscribe/cleanup functions and flushes them safely in LIFO order.
+
+**Constructor:**
+```typescript
+new UnsubscribeBag()
+```
+
+**Type:**
+```typescript
+type Unsubscribe = () => void;
+```
+
+**Methods:**
+- `add(unsub: Unsubscribe | null | undefined): Unsubscribe` -- Add a cleanup callback. Null/undefined inputs are ignored. Returns the callback.
+- `flush(): void` -- Execute all callbacks in LIFO order. Each callback is try/catch'd. Idempotent (clears before executing).
+
+**Properties:**
+- `count: number` -- Number of registered callbacks
+
+**Example:**
+```typescript
+import { UnsubscribeBag } from 'gamebyte-framework';
+
+const subs = new UnsubscribeBag();
+subs.add(emitter.on('event', handler));
+subs.add(otherEmitter.on('change', callback));
+subs.add(state.on('score', updateUI));
+subs.add(null); // safely ignored
+
+subs.count; // 3
+subs.flush(); // LIFO cleanup, safe (try/catch per callback)
+subs.count; // 0
+```
+
+---
 
 ## Pixi.js v8 API
 

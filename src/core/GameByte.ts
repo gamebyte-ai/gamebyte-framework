@@ -55,7 +55,7 @@ export interface QuickGameConfig {
  * Provides Laravel-inspired architecture for game development.
  */
 export class GameByte extends EventEmitter {
-  private static instance: GameByte;
+  private static instance: GameByte | null = null;
   private container: ServiceContainer;
   private providers: Map<string, ServiceProvider> = new Map();
   private booted = false;
@@ -592,8 +592,8 @@ export class GameByte extends EventEmitter {
     this.emit('destroyed');
 
     // Clear static singleton reference if this instance is the singleton
-    if ((GameByte as any).instance === this) {
-      (GameByte as any).instance = null;
+    if (GameByte.instance === this) {
+      GameByte.instance = null;
     }
 
     this.removeAllListeners();

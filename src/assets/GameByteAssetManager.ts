@@ -710,7 +710,10 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
       this.activeLoads.add(entry.config.id);
       
       this.loadAssetEntry(entry).catch((err) => {
-        Logger.warn('Assets', `Failed to load asset ${entry.config.id}:`, err);
+        this.activeLoads.delete(entry.config.id);
+        if (entry.reject) entry.reject(err instanceof Error ? err : new Error(String(err)));
+        Logger.warn('Assets', `Unhandled error for ${entry.config.id}:`, err);
+        this.processQueue();
       });
     }
   }

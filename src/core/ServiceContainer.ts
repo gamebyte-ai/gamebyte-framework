@@ -126,6 +126,7 @@ export class ServiceContainer implements Container {
     this.bindings.clear();
     this.instances.clear();
     this.aliases.clear();
+    this._creating.clear();
   }
 
   /**

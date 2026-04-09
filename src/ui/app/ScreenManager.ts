@@ -155,8 +155,10 @@ export class ScreenManager extends EventEmitter {
       this.isTransitioning = false;
     }
 
-    // Remove popped screen
-    this.screenContainer.removeChild(poppedScreen.getContainer());
+    // Remove popped screen (guard against destroyed manager)
+    if (!this._destroyed) {
+      this.screenContainer.removeChild(poppedScreen.getContainer());
+    }
     poppedScreen.destroy();
 
     this.emit('screen-popped', poppedScreen);

@@ -15,9 +15,11 @@
 5. [Mobile-First Defaults](#mobile-first-defaults)
 6. [Anti-Patterns](#anti-patterns)
 7. [v1.4 Game Primitives](#v14-game-primitives)
-8. [v1.5 HybridGame (3D + 2D HUD)](#v15-hybridgame-3d--2d-hud)
-9. [v1.7 Boilerplate](#v17-boilerplate)
-10. [v1.7 Genre Templates](#v17-genre-templates)
+8. [v1.5 Camera (2D)](#v15-camera-2d)
+9. [v1.5 HybridGame (3D + 2D HUD)](#v15-hybridgame-3d--2d-hud)
+10. [v1.7 Boilerplate](#v17-boilerplate)
+11. [v1.7 Genre Templates](#v17-genre-templates)
+12. [Utilities](#utilities)
 
 ---
 
@@ -924,6 +926,80 @@ EconomyManager.getUpgradeCost(100, 3, 1.15); // 100 * 1.15^3 = 152
 
 ---
 
+## v1.5 Camera (2D)
+
+2D camera system that manipulates a world container's position and scale to implement follow, zoom, bounds clamping, and screen shake. Frame-rate-independent via exponential lerp.
+
+```typescript
+import { Camera } from 'gamebyte-framework';
+
+const camera = new Camera({
+  viewportWidth: 800,
+  viewportHeight: 600,
+  bounds: { x: 0, y: 0, width: 2000, height: 2000 }, // optional
+  minZoom: 0.25,  // default: 0.25
+  maxZoom: 4,     // default: 4
+});
+
+camera.attach(worldContainer);
+
+// Follow a target with smooth lerp
+camera.follow(player, {
+  lerp: 0.1,           // 0 = instant snap, 1 = never moves (default: 0.1)
+  offsetX: 0,          // pixel offset from target X
+  offsetY: -100,       // pixel offset from target Y
+  deadZone: { width: 50, height: 50 }, // camera stays still while target is within this area
+});
+camera.unfollow();
+
+// Direct movement
+camera.moveTo(500, 300);          // smooth move to world position
+camera.moveTo(500, 300, true);    // instant snap
+
+// Zoom
+camera.setZoom(1.5, 0.5);        // zoom to 1.5x over 0.5 seconds
+camera.setZoom(2.0);             // instant zoom to 2x
+camera.zoomBy(0.5, 0.3);        // add 0.5 to current zoom over 0.3s
+camera.zoomBy(-0.5);            // instant zoom out
+
+// Screen shake
+camera.shake(8, 0.3);            // intensity 8px, duration 0.3s (exponential decay)
+
+// Each frame (dt in seconds)
+camera.update(dt);
+
+// Coordinate conversion
+const worldPos = camera.screenToWorld(mouseX, mouseY);
+const screenPos = camera.worldToScreen(entity.x, entity.y);
+
+// Read-only state
+camera.x;    // world X
+camera.y;    // world Y
+camera.zoom; // current zoom level
+
+camera.destroy(); // release references and listeners
+```
+
+**CameraConfig:**
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `viewportWidth` | `number` | required | Viewport width in pixels |
+| `viewportHeight` | `number` | required | Viewport height in pixels |
+| `bounds` | `{x, y, width, height}` | `undefined` | World bounds (no clamping if omitted) |
+| `minZoom` | `number` | `0.25` | Minimum zoom level |
+| `maxZoom` | `number` | `4` | Maximum zoom level |
+
+**Methods:** `attach(container)`, `follow(target, config?)`, `unfollow()`, `moveTo(x, y, instant?)`, `setZoom(zoom, duration?)`, `zoomBy(delta, duration?)`, `shake(intensity?, duration?)`, `update(dt)`, `screenToWorld(screenX, screenY)`, `worldToScreen(worldX, worldY)`, `destroy()`
+
+**Properties:** `x: number`, `y: number`, `zoom: number` (all read-only)
+
+**Events:** `'move'` -- `(x, y)`, `'zoom-change'` -- `(zoom)`, `'shake-start'` -- `()`, `'shake-end'` -- `()`
+
+**When to use:** Scrolling platformers, top-down RPGs, any game with a world larger than the viewport
+
+---
+
 ## v1.5 HybridGame (3D + 2D HUD)
 
 New in v1.5: one-call setup for 3D world + 2D HUD overlay games. Wraps GameByte hybrid mode, GameCameraManager, and RaycastInputManager into a single ergonomic API.
@@ -1262,7 +1338,7 @@ flow.destroy();                // Cleanup all screens
 
 ### SettingsPanel
 
-Modal with boolean toggles for sound/music/vibration. Self-contained -- no external UI dependencies.
+Modal with boolean toggles and number sliders. Self-contained -- no external UI dependencies. Supports typed fields (boolean toggles, number sliders) and auto-persistence via localStorage.
 
 ```typescript
 import { SettingsPanel } from '@gamebyte/framework/boilerplate';
@@ -1271,25 +1347,55 @@ const settings = new SettingsPanel({
   sound: true,
   music: true,
   vibration: true,
-  custom: [{ key: 'notifications', label: 'Notifications', value: true }],
+  fields: [
+    { key: 'volume', label: 'Volume', type: 'number', defaultValue: 0.8, min: 0, max: 1, step: 0.1 },
+    { key: 'difficulty', label: 'Hard Mode', type: 'boolean', defaultValue: false },
+  ],
+  persistKey: 'my-game-settings', // auto-saves to localStorage
 });
 
 parent.addChild(settings.getContainer());
 settings.show();
 settings.hide();
 settings.get('sound');         // true
-settings.set('sound', false);  // Emits 'changed'
-settings.getAll();             // { sound: false, music: true, vibration: true, notifications: true }
+settings.get('volume');        // 0.8
+settings.set('volume', 0.5);  // Emits 'changed', auto-persists
+settings.set('sound', false);  // Emits 'changed', auto-persists
+settings.getAll();             // { sound: false, music: true, vibration: true, volume: 0.5, difficulty: false }
 
 settings.on('changed', (key, value) => {
   if (key === 'sound') toggleSoundEffects(value);
+  if (key === 'volume') setMasterVolume(value as number);
 });
 settings.on('close', () => {});
 ```
 
-**Methods:** `show()`, `hide()`, `get(key)`, `set(key, value)`, `getAll()`, `getContainer()`, `destroy()`
+**SettingsConfig:**
 
-**Events:** `'changed'` -- `(key: string, value: boolean)`, `'close'` -- `()`
+| Option | Type | Description |
+|--------|------|-------------|
+| `sound` | `boolean` | Initial sound toggle (default: true) |
+| `music` | `boolean` | Initial music toggle (default: true) |
+| `vibration` | `boolean` | Initial vibration toggle (default: true) |
+| `fields` | `SettingsFieldDef[]` | Custom typed fields (boolean or number) |
+| `persistKey` | `string` | Auto-persist to localStorage with this key prefix |
+| `custom` | `Array<{key, label, value}>` | **Deprecated** -- use `fields` instead |
+
+**SettingsFieldDef:**
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `key` | `string` | Unique identifier |
+| `label` | `string` | Display label |
+| `type` | `'boolean' \| 'number'` | Field type |
+| `defaultValue` | `boolean \| number` | Default value |
+| `min` | `number` | For number fields (default: 0) |
+| `max` | `number` | For number fields (default: 1) |
+| `step` | `number` | For number fields (default: 0.1) |
+
+**Methods:** `show()`, `hide()`, `get(key): boolean | number`, `set(key, value)`, `getAll(): Record<string, boolean | number>`, `getContainer()`, `destroy()`
+
+**Events:** `'changed'` -- `(key: string, value: boolean | number)`, `'close'` -- `()`
 
 ---
 
@@ -1980,6 +2086,46 @@ patterns.on('pattern-spawned', (pattern, offsetX) => {});
 **Methods:** `getNext(maxDifficulty?)`, `getPattern(id)`, `getAll()`, `generate(count, startX?, maxDifficulty?)`
 
 **Events:** `'pattern-spawned'` -- `(pattern, offsetX)`
+
+---
+
+## Utilities
+
+### UnsubscribeBag
+
+Collects unsubscribe/cleanup functions and flushes them safely in LIFO order. Essential for scene/component cleanup to avoid memory leaks.
+
+```typescript
+import { UnsubscribeBag } from 'gamebyte-framework';
+
+const subs = new UnsubscribeBag();
+
+// Collect subscriptions
+subs.add(emitter.on('event', handler));          // Returns the callback
+subs.add(otherEmitter.on('change', callback));
+subs.add(state.on('score', updateUI));
+
+// Null/undefined inputs are safely ignored
+subs.add(null);
+subs.add(undefined);
+
+// Check count
+subs.count; // 3
+
+// Cleanup everything in LIFO order (last added = first flushed)
+// Each callback is try/catch'd — one failure won't stop the rest
+// Idempotent — safe to call multiple times
+subs.flush();
+subs.count; // 0
+```
+
+**Methods:**
+- `add(unsub: (() => void) | null | undefined): () => void` -- Add a cleanup callback (null/undefined ignored). Returns the callback.
+- `flush(): void` -- Execute all callbacks in LIFO order, each wrapped in try/catch. Clears the bag.
+
+**Properties:** `count: number` -- Number of registered callbacks
+
+**When to use:** Scene `onExit()`, component `destroy()`, anywhere you accumulate multiple subscriptions that need coordinated cleanup
 
 ---
 

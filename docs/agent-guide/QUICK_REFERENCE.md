@@ -305,6 +305,29 @@ EconomyManager.getUpgradeCost(100, 3, 1.15); // Exponential cost scaling
 
 ---
 
+## v1.5 Camera (2D)
+
+```typescript
+import { Camera } from 'gamebyte-framework';
+
+const camera = new Camera({ viewportWidth: 800, viewportHeight: 600, bounds: { x: 0, y: 0, width: 2000, height: 2000 } });
+camera.attach(worldContainer);
+camera.follow(player, { lerp: 0.1, offsetY: -100 });
+camera.unfollow();
+camera.moveTo(500, 300);                // smooth move
+camera.moveTo(500, 300, true);          // instant snap
+camera.setZoom(1.5, 0.5);              // zoom to 1.5x over 0.5s
+camera.zoomBy(0.5, 0.3);              // add 0.5 to zoom over 0.3s
+camera.shake(8, 0.3);                  // screen shake (intensity, duration)
+camera.update(dt);                      // call each frame (dt in seconds)
+const wp = camera.screenToWorld(mx, my); // screen -> world coords
+const sp = camera.worldToScreen(ex, ey); // world -> screen coords
+camera.x; camera.y; camera.zoom;        // read-only state
+camera.destroy();
+```
+
+---
+
 ## v1.5 HybridGame (3D + 2D HUD)
 
 ### HybridGame
@@ -432,10 +455,18 @@ flow.on('navigate', (from, to) => {});
 ```typescript
 import { SettingsPanel } from '@gamebyte/framework/boilerplate';
 
-const settings = new SettingsPanel({ sound: true, music: true, vibration: true });
+const settings = new SettingsPanel({
+  sound: true, music: true, vibration: true,
+  fields: [
+    { key: 'volume', label: 'Volume', type: 'number', defaultValue: 0.8, min: 0, max: 1, step: 0.1 },
+    { key: 'difficulty', label: 'Hard Mode', type: 'boolean', defaultValue: false },
+  ],
+  persistKey: 'my-game-settings', // auto-saves to localStorage
+});
 settings.show();  settings.hide();
-settings.get('sound');  settings.set('sound', false);
-settings.getAll();                      // { sound, music, vibration }
+settings.get('volume');                 // 0.8
+settings.set('volume', 0.5);           // auto-persists, emits 'changed'
+settings.getAll();                      // { sound, music, vibration, volume, difficulty }
 settings.on('changed', (key, val) => {});
 ```
 
@@ -632,6 +663,23 @@ const obs = patterns.generate(5, 0, 0.5); // 5 patterns, absolute positions
 
 ---
 
+## Utilities
+
+### UnsubscribeBag
+
+```typescript
+import { UnsubscribeBag } from 'gamebyte-framework';
+
+const subs = new UnsubscribeBag();
+subs.add(emitter.on('event', handler));
+subs.add(otherEmitter.on('change', callback));
+subs.count;                             // 2
+subs.flush();                           // LIFO cleanup, safe (try/catch per callback)
+subs.count;                             // 0 (idempotent)
+```
+
+---
+
 ## Grep Patterns
 
 Search docs efficiently:
@@ -656,7 +704,8 @@ grep -r "CelebrationManager\|Confetti\|Shimmer\|StarBurst" docs/
 grep -r "GameEntity\|ObjectPool\|WaveManager\|Grid\|HexGrid" docs/
 grep -r "GestureDetector\|SaveSystem\|EconomyManager\|FloatingText2D\|screenShake" docs/
 
-# Find v1.5 hybrid game docs
+# Find v1.5 camera and hybrid game docs
+grep -r "Camera\|UnsubscribeBag" docs/
 grep -r "HybridGame\|HybridHUD\|WorldObject3D" docs/
 
 # Find v1.7 boilerplate docs
