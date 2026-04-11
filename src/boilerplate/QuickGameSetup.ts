@@ -15,23 +15,16 @@ export interface QuickGameSetupConfig {
 
   /** Hub (main menu) screen options */
   hub?: {
-    /** Optional resource bar items (coins, gems, etc.) */
+    /** Optional resource bar items shown at the top of the hub (coins, gems, etc.) */
     resources?: Array<{ type: string; value: number; showAddButton?: boolean }>;
-    /** Bottom-nav tab definitions */
-    tabs?: Array<{ id: string; label: string; type?: string; highlighted?: boolean }>;
-    /** Which tab is selected by default */
-    defaultTab?: string;
-    /** Factory function per tab id — agent provides custom content containers */
-    tabContents?: Record<string, () => any>;
   };
 
   /** In-game HUD options */
   game?: {
-    showScore?: boolean;
-    showTimer?: boolean;
-    showLives?: boolean;
+    /**
+     * When false, the pause/home button in the HUD is hidden. Default: true.
+     */
     showPause?: boolean;
-    showProgress?: boolean;
     /**
      * Called once when the game screen is created.
      * The agent receives the game container and places their game objects here.
@@ -107,6 +100,10 @@ export class QuickGameSetup extends EventEmitter<QuickGameSetupEvents> {
   private _container: any;
   private _config: QuickGameSetupConfig;
   private _gameContainer: any = null;
+  /** requestAnimationFrame handle for the onUpdate game loop. 0 = not running. */
+  private _rafHandle: number = 0;
+  /** Timestamp of the previous RAF tick, used to calculate dt. */
+  private _lastTick: number = 0;
 
   constructor(container: any, config: QuickGameSetupConfig) {
     super();
@@ -141,8 +138,38 @@ export class QuickGameSetup extends EventEmitter<QuickGameSetupEvents> {
       if (to === 'game') {
         this.emit('game-start');
         config.onPlay?.();
+        // Start per-frame onUpdate loop when entering the game screen
+        if (config.game?.onUpdate) {
+          this._startUpdateLoop(config.game.onUpdate);
+        }
+      } else {
+        // Stop the update loop when leaving the game screen
+        this._stopUpdateLoop();
       }
     });
+  }
+
+  // ---- Private update loop -------------------------------------------------
+
+  private _startUpdateLoop(onUpdate: (dt: number) => void): void {
+    this._stopUpdateLoop();
+    this._lastTick = performance.now();
+
+    const tick = (now: number) => {
+      const dt = Math.min((now - this._lastTick) / 1000, 0.1); // cap at 100 ms
+      this._lastTick = now;
+      onUpdate(dt);
+      this._rafHandle = requestAnimationFrame(tick);
+    };
+
+    this._rafHandle = requestAnimationFrame(tick);
+  }
+
+  private _stopUpdateLoop(): void {
+    if (this._rafHandle !== 0) {
+      cancelAnimationFrame(this._rafHandle);
+      this._rafHandle = 0;
+    }
   }
 
   // ---- Public API -----------------------------------------------------------
@@ -192,6 +219,7 @@ export class QuickGameSetup extends EventEmitter<QuickGameSetupEvents> {
   }
 
   destroy(): void {
+    this._stopUpdateLoop();
     this._flow.destroy();
     this._settings.destroy();
     this.removeAllListeners();
@@ -208,6 +236,25 @@ export class QuickGameSetup extends EventEmitter<QuickGameSetupEvents> {
     const bg = f.createGraphics();
     bg.rect(0, 0, width, height).fill({ color: 0x1a1a2e });
     container.addChild(bg);
+
+    // Resource bar — coins, gems, etc. (optional)
+    const resources = this._config.hub?.resources;
+    if (resources && resources.length > 0) {
+      const barBg = f.createGraphics();
+      barBg.rect(0, 0, width, 44).fill({ color: 0x000000, alpha: 0.5 });
+      container.addChild(barBg);
+
+      resources.forEach((res, idx) => {
+        const label = f.createText(`${res.type}: ${res.value}`, {
+          fontSize: 15,
+          fill: 0xffd700,
+          fontWeight: 'bold',
+        });
+        label.x = 12 + idx * 130;
+        label.y = 12;
+        container.addChild(label);
+      });
+    }
 
     // Title
     if (title) {
@@ -270,18 +317,20 @@ export class QuickGameSetup extends EventEmitter<QuickGameSetupEvents> {
     this._gameContainer.y = 56;
     container.addChild(this._gameContainer);
 
-    // Pause / home button (≥60 px touch target)
-    const pauseBtn = f.createGraphics();
-    pauseBtn.roundRect(width - 58, 8, 50, 40, 8).fill({ color: 0x333333 });
-    pauseBtn.eventMode = 'static';
-    pauseBtn.cursor = 'pointer';
-    pauseBtn.on('pointerdown', () => this._flow.trigger('home'));
-    container.addChild(pauseBtn);
+    // Pause / home button — shown unless showPause is explicitly false (≥60 px touch target)
+    if (this._config.game?.showPause !== false) {
+      const pauseBtn = f.createGraphics();
+      pauseBtn.roundRect(width - 58, 8, 50, 40, 8).fill({ color: 0x333333 });
+      pauseBtn.eventMode = 'static';
+      pauseBtn.cursor = 'pointer';
+      pauseBtn.on('pointerdown', () => this._flow.trigger('home'));
+      container.addChild(pauseBtn);
 
-    const pauseLabel = f.createText('||', { fontSize: 18, fill: 0xffffff, fontWeight: 'bold' });
-    pauseLabel.x = width - 46;
-    pauseLabel.y = 16;
-    container.addChild(pauseLabel);
+      const pauseLabel = f.createText('||', { fontSize: 18, fill: 0xffffff, fontWeight: 'bold' });
+      pauseLabel.x = width - 46;
+      pauseLabel.y = 16;
+      container.addChild(pauseLabel);
+    }
 
     // Invoke agent's game setup callback
     this._config.game?.onCreateGame?.(this._gameContainer);

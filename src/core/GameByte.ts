@@ -72,7 +72,7 @@ export class GameByte extends EventEmitter {
   /**
    * Framework version.
    */
-  public static readonly VERSION = '1.0.0';
+  public static readonly VERSION = '1.8.1';
 
   constructor() {
     super();
@@ -361,8 +361,20 @@ export class GameByte extends EventEmitter {
       Logger.info('Core', `GraphicsEngine initialized with ${mode === RenderingMode.RENDERER_2D ? '2D (Pixi.js)' : '3D (Three.js)'} renderer`);
     }
 
-    // Initialize the renderer
-    const renderer = this.make<Renderer>('renderer');
+    // Create the renderer for the requested mode.
+    // When the RenderingServiceProvider is registered it provides 'renderer.create'
+    // which honours the mode. Fall back to 'renderer' for direct-binding scenarios
+    // (e.g. tests that bind a mock renderer directly).
+    let renderer: Renderer;
+    if (this.container.bound('renderer.create')) {
+      const createRenderer = this.make<(mode: RenderingMode) => Renderer>('renderer.create');
+      renderer = createRenderer(mode);
+      // Register the mode-correct instance so all subsequent make('renderer') calls
+      // return the same object regardless of any prior singleton stored in the container.
+      this.container.instance('renderer', renderer);
+    } else {
+      renderer = this.make<Renderer>('renderer');
+    }
     await renderer.initialize(canvas, options);
 
     // Store renderer reference in GraphicsEngine for effects that need it
@@ -581,15 +593,19 @@ export class GameByte extends EventEmitter {
     this.updateCallbacks.length = 0;
     this.renderCallbacks.length = 0;
 
+    // Emit 'destroyed' BEFORE flushing the container so that provider cleanup
+    // handlers (registered via app.on('destroyed', ...)) can still resolve
+    // services via app.make(). Flushing first would cause make() to throw,
+    // making those handlers dead code and leaking intervals / DOM listeners.
+    this.emit('destroyed');
+
+    // NOW flush the container and clear provider registry
     this.container.flush();
     this.providers.clear();
 
     this.booted = false;
     this.running = false;
     this.canvas = null;
-
-    // Emit destroyed after all cleanup, before removing listeners
-    this.emit('destroyed');
 
     // Clear static singleton reference if this instance is the singleton
     if (GameByte.instance === this) {

@@ -51,13 +51,20 @@ export class MatchDetector {
 
     const rows = grid.length;
     const cols = grid[0].length;
-    const matches = this.findMatches(grid, rows, cols);
 
-    // Revert swap
-    grid[r2][c2] = grid[r1][c1];
-    grid[r1][c1] = tmp;
+    // Use try/finally so the grid is always restored even if findMatches throws.
+    // Without this, any exception would leave the caller's grid permanently mutated.
+    let hasMatch = false;
+    try {
+      const matches = this.findMatches(grid, rows, cols);
+      hasMatch = matches.length > 0;
+    } finally {
+      // Always revert the swap
+      grid[r2][c2] = grid[r1][c1];
+      grid[r1][c1] = tmp;
+    }
 
-    return matches.length > 0;
+    return hasMatch;
   }
 
   // --- Row scanning: find 3+ consecutive same values in each row ---

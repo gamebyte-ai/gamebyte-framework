@@ -125,7 +125,7 @@ describe('GameByte', () => {
 
     it('should have correct version', () => {
       // Assert
-      expect(GameByte.VERSION).toBe('1.0.0');
+      expect(GameByte.VERSION).toBe('1.8.1');
     });
   });
 
@@ -490,6 +490,37 @@ describe('GameByte', () => {
 
       // Assert
       expect(app.getContainer().bound('test-service')).toBe(false);
+    });
+
+    it('should emit "destroyed" before flushing container so provider cleanup handlers can call make()', () => {
+      // Verifies the destroy order fix: emit('destroyed') must fire while the
+      // container is still populated so that provider-registered cleanup hooks
+      // (which call app.make() to resolve their service before destroying it)
+      // do not throw.
+      const mockRenderer = new MockRenderer();
+      app.bind('renderer', mockRenderer);
+
+      // Register a service that a cleanup hook will resolve
+      app.bind('cleanup-target', { destroyed: false });
+
+      let makeErrored = false;
+      let makeResult: any = null;
+
+      app.on('destroyed', () => {
+        try {
+          // At this point the container must still be populated
+          makeResult = app.make<{ destroyed: boolean }>('cleanup-target');
+          makeResult.destroyed = true;
+        } catch {
+          makeErrored = true;
+        }
+      });
+
+      app.destroy();
+
+      expect(makeErrored).toBe(false);
+      expect(makeResult).not.toBeNull();
+      expect(makeResult.destroyed).toBe(true);
     });
   });
 

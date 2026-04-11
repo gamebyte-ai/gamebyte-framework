@@ -520,11 +520,12 @@ class ThreeSpriteWrapper extends ThreeDisplayObjectBase implements ISprite {
   }
 
   get tint(): number | undefined {
-    return undefined; // TODO: Implement color filter
+    // Three.js HTML wrapper: tint not supported (no color filter API for DOM elements)
+    return undefined;
   }
 
   set tint(value: number | undefined) {
-    // TODO: Implement color filter
+    // Three.js HTML wrapper: tint not supported (no color filter API for DOM elements)
   }
 }
 

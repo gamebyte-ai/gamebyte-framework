@@ -271,6 +271,11 @@ export class Camera extends EventEmitter<CameraEvents> {
    * Must be called from the game loop with delta time in seconds.
    */
   update(dt: number): void {
+    // Capture position BEFORE any lerp/follow work so the 'move' event fires
+    // whenever the camera actually moved during this frame.
+    const prevX = this._x;
+    const prevY = this._y;
+
     // 1. Follow logic — frame-rate-independent exponential lerp toward target
     if (this._followTarget !== null) {
       const desiredX = this._followTarget.x + this._followConfig.offsetX;
@@ -344,11 +349,9 @@ export class Camera extends EventEmitter<CameraEvents> {
     }
 
     // 5. Apply final transform to the attached container
-    const prevX = this._x;
-    const prevY = this._y;
     this._applyTransform();
 
-    // Emit move only when position actually changed
+    // Emit move only when position actually changed during this update
     if (this._x !== prevX || this._y !== prevY) {
       this.emit('move', this._x, this._y);
     }

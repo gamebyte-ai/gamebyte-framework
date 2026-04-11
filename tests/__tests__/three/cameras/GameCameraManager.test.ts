@@ -267,6 +267,57 @@ describe('GameCameraManager', () => {
     expect(listenerFired).not.toHaveBeenCalled();
   });
 
+  // -------------------------------------------------------------------------
+  // Regression: setPosition immediately applies to camera (HIGH 3 - Issue A)
+  // -------------------------------------------------------------------------
+  it('setPosition() moves the camera immediately without requiring an update() call', () => {
+    const mgr  = new GameCameraManager(DEFAULT_VIEWPORT);
+
+    let lastAppliedFocus: FocusPoint | null = null;
+    const ctrl = makeMockController({
+      onApply: (_cam, focus) => { lastAppliedFocus = { ...focus }; }
+    });
+    mgr.setController(ctrl);
+
+    mgr.setPosition(5, 10, 15);
+
+    // The controller should have been called immediately by setPosition()
+    expect(lastAppliedFocus).not.toBeNull();
+    expect(lastAppliedFocus!.x).toBeCloseTo(5, 5);
+    expect(lastAppliedFocus!.y).toBeCloseTo(10, 5);
+    expect(lastAppliedFocus!.z).toBeCloseTo(15, 5);
+
+    // getCurrentPosition() should also reflect the new position
+    expect(mgr.getCurrentPosition()).toEqual({ x: 5, y: 10, z: 15 });
+  });
+
+  // -------------------------------------------------------------------------
+  // Regression: setController destroys previous controller (HIGH 3 - Issue B)
+  // -------------------------------------------------------------------------
+  it('setController() destroys the previous controller when swapping', () => {
+    const mgr   = new GameCameraManager(DEFAULT_VIEWPORT);
+    const ctrl1 = makeMockController();
+    const ctrl2 = makeMockController();
+
+    mgr.setController(ctrl1);
+    mgr.setController(ctrl2);
+
+    // ctrl1 should have been destroyed when ctrl2 replaced it
+    expect(ctrl1.destroy).toHaveBeenCalledTimes(1);
+    // ctrl2 should NOT have been destroyed
+    expect(ctrl2.destroy).not.toHaveBeenCalled();
+  });
+
+  it('setController() does not destroy the controller when setting the same instance again', () => {
+    const mgr  = new GameCameraManager(DEFAULT_VIEWPORT);
+    const ctrl = makeMockController();
+
+    mgr.setController(ctrl);
+    mgr.setController(ctrl); // same instance
+
+    expect(ctrl.destroy).not.toHaveBeenCalled();
+  });
+
 });
 
 // Needed for the THREE type assertion in test 7/8

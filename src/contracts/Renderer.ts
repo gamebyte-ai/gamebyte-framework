@@ -10,9 +10,11 @@ export interface Renderer extends EventEmitter {
   readonly mode: RenderingMode;
 
   /**
-   * Initialize the renderer with a canvas element.
+   * Initialize the renderer with a canvas element or container element.
+   * PixiRenderer and ThreeRenderer accept HTMLCanvasElement.
+   * HybridRenderer accepts either — when given a canvas it uses canvas.parentElement as container.
    */
-  initialize(canvas: HTMLCanvasElement, options?: RendererOptions): Promise<void>;
+  initialize(target: HTMLCanvasElement | HTMLElement, options?: RendererOptions): Promise<void>;
 
   /**
    * Start the render loop.

@@ -121,10 +121,16 @@ export class HybridRenderer extends EventEmitter implements Renderer {
   /**
    * Initialize the hybrid renderer with stacked canvas architecture.
    *
-   * @param container - Parent HTML element to contain both canvases
+   * @param target - Parent HTML element to contain both canvases, or an HTMLCanvasElement
+   *                 whose parentElement will be used as the container.
    * @param options - Configuration options
    */
-  async initialize(container: HTMLElement, options: HybridRendererConfig = {}): Promise<void> {
+  async initialize(target: HTMLCanvasElement | HTMLElement, options: HybridRendererConfig = {}): Promise<void> {
+    // Satisfy the Renderer contract which may pass a canvas; derive the container from it.
+    const container: HTMLElement =
+      target instanceof HTMLCanvasElement
+        ? (target.parentElement ?? document.body)
+        : target;
     Logger.info('Renderer', 'Initializing HybridRenderer (Three.js + Pixi.js)');
     Logger.info('Renderer', 'Three.js r' + ThreeVersionDetector.getRevision());
     Logger.info('Renderer', 'Pixi.js', PixiVersionDetector.getVersion().raw);

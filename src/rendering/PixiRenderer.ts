@@ -50,8 +50,19 @@ export class PixiRenderer extends EventEmitter implements Renderer {
 
   /**
    * Initialize the 2D renderer with WebGPU support and v7/v8 compatibility.
+   * Accepts HTMLCanvasElement or HTMLElement (contract requirement); always uses a canvas.
    */
-  async initialize(canvas: HTMLCanvasElement, options: PixiRendererConfig = {}): Promise<void> {
+  async initialize(target: HTMLCanvasElement | HTMLElement, options: PixiRendererConfig = {}): Promise<void> {
+    // Narrow to canvas — create one inside the container if an HTMLElement is given.
+    const canvas: HTMLCanvasElement =
+      target instanceof HTMLCanvasElement
+        ? target
+        : (() => {
+            const c = document.createElement('canvas');
+            target.appendChild(c);
+            return c;
+          })();
+
     // Log compatibility info
     Logger.info('Renderer', 'Initializing PixiRenderer with Pixi.js', PixiVersionDetector.getVersion().raw);
 

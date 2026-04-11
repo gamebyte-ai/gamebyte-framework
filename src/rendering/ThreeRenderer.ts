@@ -55,8 +55,19 @@ export class ThreeRenderer extends EventEmitter implements Renderer {
 
   /**
    * Initialize the 3D renderer with WebGPU support and r180 optimizations.
+   * Accepts HTMLCanvasElement or HTMLElement (contract requirement); always uses a canvas.
    */
-  async initialize(canvas: HTMLCanvasElement, options: ThreeRendererConfig = {}): Promise<void> {
+  async initialize(target: HTMLCanvasElement | HTMLElement, options: ThreeRendererConfig = {}): Promise<void> {
+    // Narrow to canvas — create one inside the container if an HTMLElement is given.
+    const canvas: HTMLCanvasElement =
+      target instanceof HTMLCanvasElement
+        ? target
+        : (() => {
+            const c = document.createElement('canvas');
+            target.appendChild(c);
+            return c;
+          })();
+
     // Log compatibility info
     Logger.info('Renderer', 'Initializing ThreeRenderer with Three.js r' + ThreeVersionDetector.getRevision());
 

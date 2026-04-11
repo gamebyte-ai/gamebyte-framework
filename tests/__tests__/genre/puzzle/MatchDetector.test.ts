@@ -133,6 +133,21 @@ describe('MatchDetector — wouldMatch', () => {
     detector.wouldMatch(grid, 0, 0, 0, 1);
     expect(grid[0]).toEqual(['R', 'G', 'R', 'R']);
   });
+
+  test('restores grid even when findMatches throws (exception safety)', () => {
+    // Use a 'custom' rule whose matcher throws to simulate a buggy/unexpected error.
+    const detector = new MatchDetector({
+      rule: 'custom',
+      customMatcher: () => { throw new Error('unexpected error'); },
+    });
+    const grid = makeGrid([['R', 'G', 'B']]);
+    const originalRow = [...grid[0]];
+
+    expect(() => detector.wouldMatch(grid, 0, 0, 0, 1)).toThrow('unexpected error');
+
+    // Grid must be identical to what it was before the call
+    expect(grid[0]).toEqual(originalRow);
+  });
 });
 
 describe('BoardGravity', () => {

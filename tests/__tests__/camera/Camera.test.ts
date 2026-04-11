@@ -349,6 +349,47 @@ describe('Camera', () => {
   });
 
   // ----------------------------------------------------------
+  // Regression: 'move' event emitted during follow lerp (HIGH 2)
+  // ----------------------------------------------------------
+  describe("'move' event during follow / moveTo", () => {
+    it("emits 'move' each frame when following a moving target", () => {
+      const cam = makeCamera({ viewportWidth: 800, viewportHeight: 600 });
+      const container = createMockContainer();
+      cam.attach(container);
+
+      const target = { x: 100, y: 50 };
+      cam.follow(target, { lerp: 0.5 });
+
+      const moveEvents: Array<[number, number]> = [];
+      cam.on('move', (x, y) => moveEvents.push([x, y]));
+
+      // Three update frames with a small dt
+      cam.update(1 / 60);
+      cam.update(1 / 60);
+      cam.update(1 / 60);
+
+      // Camera should have lerped toward (100, 50) and emitted move each frame
+      expect(moveEvents.length).toBeGreaterThan(0);
+      // Each event's x should be non-zero (camera moved from 0 toward 100)
+      expect(moveEvents[0][0]).toBeGreaterThan(0);
+    });
+
+    it("emits 'move' when using moveTo without instant flag (lerp-based)", () => {
+      const cam = makeCamera();
+      const container = createMockContainer();
+      cam.attach(container);
+
+      const moved = jest.fn();
+      cam.on('move', moved);
+
+      cam.moveTo(200, 300); // non-instant: update() lerps toward target
+      cam.update(1 / 60);
+
+      expect(moved).toHaveBeenCalled();
+    });
+  });
+
+  // ----------------------------------------------------------
   // 9. destroy()
   // ----------------------------------------------------------
   describe('destroy()', () => {

@@ -101,6 +101,13 @@ export class Tween extends EventEmitter<TweenEvents> {
   private readonly _containerMode: ContainerMode;
   /** Index of the currently active child in a sequence */
   private _seqIndex = 0;
+  /**
+   * Overflow time beyond this tween's duration on the frame it finished.
+   * Stored here so the parent sequence can read it without recomputing from
+   * a clamped _elapsed (which would always yield 0).
+   * Internal — accessed by _updateSequence on child instances.
+   */
+  _overflowMs = 0;
 
   // ---- Constructor (private — use static factories) ----------------------
 
@@ -337,6 +344,8 @@ export class Tween extends EventEmitter<TweenEvents> {
     }
 
     if (this._elapsed >= this._duration) {
+      // Capture overflow BEFORE clamping so parent sequences can propagate it.
+      this._overflowMs = this._elapsed - this._duration;
       this._elapsed = this._duration;
       // Apply final position
       this._applyProgress(this._direction === 1 ? 1 : 0);
@@ -348,6 +357,7 @@ export class Tween extends EventEmitter<TweenEvents> {
           this._direction *= -1;
         }
         this._elapsed = 0;
+        this._overflowMs = 0;
       } else {
         this._finish();
       }
@@ -366,12 +376,24 @@ export class Tween extends EventEmitter<TweenEvents> {
 
     while (remaining > 0 && this._seqIndex < children.length) {
       const child = children[this._seqIndex];
+
+      // Zero-duration child: consume no time — pass all remaining to the next.
+      if (child._duration === 0 && child._delay === 0) {
+        child._update(0);
+        remaining = remaining; // unchanged — all time passes through
+        this._seqIndex++;
+        if (this._seqIndex < children.length) {
+          children[this._seqIndex]._playing = true;
+        }
+        continue;
+      }
+
       child._update(remaining);
 
       if (child._isFinished) {
-        // Compute leftover time beyond child's completion
-        const overflow = child._elapsed - child._duration;
-        remaining = Math.max(0, overflow);
+        // Use the pre-computed overflow stored before _elapsed was clamped.
+        // This correctly propagates leftover time through long frames.
+        remaining = child._overflowMs;
         this._seqIndex++;
         if (this._seqIndex < children.length) {
           children[this._seqIndex]._playing = true;

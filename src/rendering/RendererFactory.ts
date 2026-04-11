@@ -1,6 +1,7 @@
 import { Renderer, RenderingMode } from '../contracts/Renderer';
 import { Logger } from '../utils/Logger.js';
 import { PixiRenderer } from './PixiRenderer';
+import { HybridRenderer } from './HybridRenderer';
 // ThreeRenderer NOT imported statically to avoid bundling in UMD
 // import { ThreeRenderer } from './ThreeRenderer';
 
@@ -19,18 +20,17 @@ export class RendererFactory {
         return new PixiRenderer();
 
       case RenderingMode.RENDERER_3D:
-        // ThreeRenderer not available in UMD builds
-        // Use dist/renderers/three3d.js for 3D rendering
+        // ThreeRenderer not statically imported to keep the main bundle lean.
+        // For pure 3D rendering use HybridGame.create() or import ThreeRenderer directly
+        // from @gamebyte/framework/three-toolkit.
         throw new Error(
-          '3D renderer not available in main bundle. ' +
-          'Please use dist/renderers/three3d.js for 3D rendering, ' +
-          'or import ThreeRenderer directly in ESM/CJS environments.'
+          'ThreeRenderer is not available in the main bundle. ' +
+          'Use HybridGame.create() for hybrid 3D/2D, or import ThreeRenderer directly ' +
+          'from @gamebyte/framework/three-toolkit.'
         );
 
       case RenderingMode.HYBRID:
-        // For hybrid mode, we'll default to 2D renderer and allow 3D overlay
-        // This can be extended later for more sophisticated hybrid rendering
-        return new PixiRenderer();
+        return new HybridRenderer();
 
       default:
         // Fallback to 2D renderer if mode is not recognized

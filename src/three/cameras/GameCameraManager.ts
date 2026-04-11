@@ -99,6 +99,9 @@ export class GameCameraManager extends EventEmitter<GameCameraManagerEvents> {
   /** Per-follow easing override. null = use manager default. */
   private _followEasingOverride: number | null = null;
 
+  // ---- Per-frame reusable focus point (avoids allocation every update) --------
+  private readonly _focusPoint: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 };
+
   // ---- Activity ----------------------------------------------------------------
   private _active: boolean = true;
 
@@ -171,8 +174,14 @@ export class GameCameraManager extends EventEmitter<GameCameraManagerEvents> {
   /**
    * Replace the active controller.
    * Auto-switches camera type if isOrthographic differs from current camera.
+   * Destroys the previous controller if one was set.
    */
   setController(ctrl: ICameraController3D): void {
+    // Destroy the outgoing controller to prevent resource leaks (listeners,
+    // timers, object references) when swapping controllers at runtime.
+    if (this._controller !== null && this._controller !== ctrl) {
+      this._controller.destroy();
+    }
     this._controller = ctrl;
 
     const wantsOrtho = ctrl.isOrthographic;
@@ -234,10 +243,26 @@ export class GameCameraManager extends EventEmitter<GameCameraManagerEvents> {
 
   /**
    * Instantly move the camera focus to (x, y, z) and stop any follow.
+   * Immediately applies the active controller so the camera position is visible
+   * without waiting for the next update() call.
    */
   setPosition(x: number, y: number, z: number): void {
     this._currentPos.set(x, y, z);
     this.stopFollow();
+    // Apply immediately so callers don't need to call update() to see the change.
+    this._applyController();
+  }
+
+  /**
+   * Push the current _currentPos through the active controller.
+   * Extracted so both update() and setPosition() share the same path.
+   */
+  private _applyController(): void {
+    if (this._controller === null) return;
+    this._focusPoint.x = this._currentPos.x;
+    this._focusPoint.y = this._currentPos.y;
+    this._focusPoint.z = this._currentPos.z;
+    this._controller.apply(this._camera, this._focusPoint, 0);
   }
 
   // ---------------------------------------------------------------------------
@@ -273,12 +298,11 @@ export class GameCameraManager extends EventEmitter<GameCameraManagerEvents> {
       this._currentPos.z += (this._targetPos.z - this._currentPos.z) * t;
     }
 
-    // Delegate to active controller
-    this._controller.apply(
-      this._camera,
-      { x: this._currentPos.x, y: this._currentPos.y, z: this._currentPos.z },
-      dt
-    );
+    // Delegate to active controller — reuse _focusPoint to avoid per-frame allocation.
+    this._focusPoint.x = this._currentPos.x;
+    this._focusPoint.y = this._currentPos.y;
+    this._focusPoint.z = this._currentPos.z;
+    this._controller.apply(this._camera, this._focusPoint, dt);
   }
 
   // ---------------------------------------------------------------------------

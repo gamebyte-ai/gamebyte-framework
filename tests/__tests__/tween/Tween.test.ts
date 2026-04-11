@@ -499,3 +499,50 @@ describe('TweenManager.activeCount', () => {
     expect(TweenManager.activeCount).toBe(0);
   });
 });
+
+// ==========================================================================
+// Regression: sequence overflow propagation (HIGH 1)
+// ==========================================================================
+describe('Tween.sequence() — overflow propagation', () => {
+  it('a single large frame still completes the entire sequence', () => {
+    // Two 100ms tweens in sequence — total 200ms.
+    // If we deliver one 300ms frame the sequence must still complete
+    // (overflow from t1 must propagate to t2).
+    const a = { x: 0 };
+    const b = { x: 0 };
+
+    const t1 = Tween.to(a, { x: 100 }, { duration: 100, ease: Ease.linear });
+    const t2 = Tween.to(b, { x: 100 }, { duration: 100, ease: Ease.linear });
+
+    const seq = Tween.sequence([t1, t2]);
+    const seqComplete = jest.fn();
+    seq.on('complete', seqComplete);
+
+    // Single frame larger than total sequence duration
+    tick(300);
+
+    expect(seqComplete).toHaveBeenCalledTimes(1);
+    expect(a.x).toBeCloseTo(100, 1);
+    expect(b.x).toBeCloseTo(100, 1);
+  });
+
+  it('zero-duration middle child in a sequence does not drop time for subsequent children', () => {
+    const a = { x: 0 };
+    const b = { x: 0 };
+
+    // Sequence: [100ms tween, 0ms delay link, 100ms tween]
+    const t1 = Tween.to(a, { x: 100 }, { duration: 100, ease: Ease.linear });
+    const link = Tween.delay(0); // zero-duration connector
+    const t2 = Tween.to(b, { x: 100 }, { duration: 100, ease: Ease.linear });
+
+    const seq = Tween.sequence([t1, link, t2]);
+    const seqComplete = jest.fn();
+    seq.on('complete', seqComplete);
+
+    // Advance exactly the total (200ms) in one big frame
+    tick(200);
+
+    expect(seqComplete).toHaveBeenCalledTimes(1);
+    expect(b.x).toBeCloseTo(100, 1);
+  });
+});

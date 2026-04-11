@@ -118,7 +118,9 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
   private loadedAssets = new Map<string, LoadedAsset>();
   private loadingQueue: LoadingQueueEntry[] = [];
   private activeLoads = new Set<string>();
-  private batchContext: BatchLoadingContext | null = null;
+  /** Map of batchId → context; replaces single shared field to support concurrent loadBatch() calls. */
+  private _batchContexts = new Map<string, BatchLoadingContext>();
+  private _destroyed = false;
   private deviceCapabilities: DeviceCapabilities;
   private memoryUsage = { total: 0, cached: 0, active: 0 };
   
@@ -163,6 +165,10 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Generic default allows flexible API
   async load<T = any>(config: AssetConfig): Promise<LoadedAsset<T>> {
+    if (this._destroyed) {
+      throw new Error('AssetManager is destroyed');
+    }
+
     // Check if already loaded
     const existing = this.loadedAssets.get(config.id);
     if (existing) {
@@ -172,6 +178,10 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
     
     // Check cache
     const cached = await this.cache.get(config.id);
+    // Re-check after async boundary — destroy() may have been called while awaiting cache
+    if (this._destroyed) {
+      throw new Error('AssetManager is destroyed');
+    }
     if (cached) {
       this.loadedAssets.set(config.id, cached);
       this.emit('cache:hit', config.id);
@@ -218,11 +228,16 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
   
   /**
    * Load multiple assets in batch.
+   * Supports concurrent calls — each call tracks its own context via a unique batchId.
    */
   async loadBatch(configs: AssetConfig[]): Promise<Map<string, LoadedAsset>> {
+    if (this._destroyed) {
+      throw new Error('AssetManager is destroyed');
+    }
+
     const batchId = `batch_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    this.batchContext = {
+
+    const context: BatchLoadingContext = {
       id: batchId,
       totalAssets: configs.length,
       loadedAssets: 0,
@@ -231,41 +246,42 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
       errors: new Map(),
       startTime: Date.now()
     };
-    
+
+    this._batchContexts.set(batchId, context);
     this.emit('batch:started', configs.length);
-    
+
     try {
-      // Load all assets
+      // Each asset promise closes over batchId; it looks up its own context in the Map.
       const loadPromises = configs.map(async (config) => {
         try {
           const asset = await this.load(config);
-          const ctx = this.batchContext; // Store local reference
+          const ctx = this._batchContexts.get(batchId);
           if (ctx) {
             ctx.results.set(config.id, asset);
             ctx.loadedAssets++;
           }
-          this.updateBatchProgress();
+          this.emitBatchProgress(batchId);
           return { id: config.id, asset, error: null };
         } catch (error) {
-          const ctx = this.batchContext; // Store local reference
+          const ctx = this._batchContexts.get(batchId);
           if (ctx) {
             ctx.errors.set(config.id, error as Error);
             ctx.failedAssets++;
           }
-          this.updateBatchProgress();
+          this.emitBatchProgress(batchId);
           return { id: config.id, asset: null, error: error as Error };
         }
       });
-      
+
       await Promise.allSettled(loadPromises);
-      
-      const results = this.batchContext.results;
+
+      const results = context.results;
       this.emit('batch:completed', results);
-      
+
       return results;
-      
+
     } finally {
-      this.batchContext = null;
+      this._batchContexts.delete(batchId);
     }
   }
   
@@ -384,18 +400,20 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
   
   /**
    * Get loading progress for batch operations.
+   * When multiple batches are running concurrently, returns the first active one.
    */
   getBatchProgress(): BatchLoadingProgress | null {
-    if (!this.batchContext) return null;
-    
-    const progress = this.batchContext.totalAssets > 0 
-      ? (this.batchContext.loadedAssets + this.batchContext.failedAssets) / this.batchContext.totalAssets 
+    const ctx = this._batchContexts.values().next().value;
+    if (!ctx) return null;
+
+    const progress = ctx.totalAssets > 0
+      ? (ctx.loadedAssets + ctx.failedAssets) / ctx.totalAssets
       : 0;
-    
+
     return {
-      totalAssets: this.batchContext.totalAssets,
-      loadedAssets: this.batchContext.loadedAssets,
-      failedAssets: this.batchContext.failedAssets,
+      totalAssets: ctx.totalAssets,
+      loadedAssets: ctx.loadedAssets,
+      failedAssets: ctx.failedAssets,
       progress,
       assetProgress: new Map() // Would need to track individual progress
     };
@@ -416,17 +434,31 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
   
   /**
    * Cancel asset loading.
+   * Rejects the pending promise so callers don't hang forever.
    */
   cancel(assetId: string): void {
-    // Remove from queue
-    this.loadingQueue = this.loadingQueue.filter(entry => entry.config.id !== assetId);
-    
-    // Cancel active loading
+    // Find and remove from queue, then reject the caller's promise
+    const queueIdx = this.loadingQueue.findIndex(e => e.config.id === assetId);
+    if (queueIdx >= 0) {
+      const entry = this.loadingQueue[queueIdx];
+      this.loadingQueue.splice(queueIdx, 1);
+      if (entry.timeout) {
+        clearTimeout(entry.timeout);
+      }
+      try {
+        entry.reject(new Error(`Asset loading cancelled: ${assetId}`));
+      } catch {
+        // ignore — promise may have already settled
+      }
+    }
+
+    // Cancel any in-flight work (note: network requests can't actually be aborted here)
     for (const loader of this.loaders.values()) {
       loader.cancel?.(assetId);
     }
-    
+
     this.activeLoads.delete(assetId);
+    this.emit('cancelled', assetId);
   }
   
   /**
@@ -488,8 +520,12 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
   
   /**
    * Destroy and cleanup all resources.
+   * Sets the destroyed flag first so any in-flight completions are discarded.
    */
   async destroy(): Promise<void> {
+    // Mark destroyed early so loadAssetEntry() completions that race with destroy are dropped
+    this._destroyed = true;
+
     // Cancel all pending loads - wrap rejections to prevent unhandled promise rejections
     const rejectionPromises = [];
     for (const entry of this.loadingQueue) {
@@ -509,6 +545,7 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
 
     this.loadingQueue = [];
     this.activeLoads.clear();
+    this._batchContexts.clear();
     
     // Destroy loaders
     for (const loader of this.loaders.values()) {
@@ -702,8 +739,10 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
    * Process loading queue.
    */
   private async processQueue(): Promise<void> {
+    if (this._destroyed) return;
+
     while (
-      this.loadingQueue.length > 0 && 
+      this.loadingQueue.length > 0 &&
       this.activeLoads.size < this.config.maxConcurrentLoads!
     ) {
       const entry = this.loadingQueue.shift()!;
@@ -750,6 +789,8 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
 
       // Timeout already fired — discard late result
       if (settled) return;
+      // Manager was destroyed while this load was in-flight — discard result silently
+      if (this._destroyed) return;
       settled = true;
 
       // Create loaded asset
@@ -828,8 +869,10 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
    * Load bundle data from URL.
    */
   private async loadBundleData(_bundle: GameByteAssetBundle): Promise<void> {
-    // Bundle loading is not yet implemented — assets will be loaded individually
-    Logger.warn('Assets', 'Bundle loading is not yet implemented');
+    throw new Error(
+      'Bundle loading is not yet implemented. ' +
+      'Track progress at https://github.com/gamebyte-ai/gamebyte-framework/issues'
+    );
   }
   
   /**
@@ -873,19 +916,23 @@ export class GameByteAssetManager extends EventEmitter implements AssetManager {
   }
   
   /**
-   * Update batch loading progress.
+   * Emit batch loading progress for the given batchId.
+   * Using a batchId parameter instead of shared state supports concurrent loadBatch() calls.
    */
-  private updateBatchProgress(): void {
-    if (!this.batchContext) return;
-    
+  private emitBatchProgress(batchId: string): void {
+    const ctx = this._batchContexts.get(batchId);
+    if (!ctx) return;
+
     const progress: BatchLoadingProgress = {
-      totalAssets: this.batchContext.totalAssets,
-      loadedAssets: this.batchContext.loadedAssets,
-      failedAssets: this.batchContext.failedAssets,
-      progress: (this.batchContext.loadedAssets + this.batchContext.failedAssets) / this.batchContext.totalAssets,
+      totalAssets: ctx.totalAssets,
+      loadedAssets: ctx.loadedAssets,
+      failedAssets: ctx.failedAssets,
+      progress: ctx.totalAssets > 0
+        ? (ctx.loadedAssets + ctx.failedAssets) / ctx.totalAssets
+        : 0,
       assetProgress: new Map() // Individual progress would need more tracking
     };
-    
+
     this.emit('batch:progress', progress);
   }
 }

@@ -442,4 +442,96 @@ describe('GameByteAssetManager', () => {
       expect(usage.total).toBe(0);
     });
   });
+
+  describe('race condition fixes', () => {
+    it('concurrent loadBatch() calls should not interfere with each other', async () => {
+      // Arrange — two batches with non-overlapping asset IDs
+      const batch1Configs = [
+        { id: 'batch-a-1', type: AssetType.TEXTURE, src: '/a1.jpg' },
+        { id: 'batch-a-2', type: AssetType.TEXTURE, src: '/a2.jpg' }
+      ];
+      const batch2Configs = [
+        { id: 'batch-b-1', type: AssetType.JSON, src: '/b1.json' },
+        { id: 'batch-b-2', type: AssetType.JSON, src: '/b2.json' }
+      ];
+
+      const progressCounts: Record<string, number> = {};
+      assetManager.on('batch:progress', (p: any) => {
+        // Each progress event should always reflect a sane completed count
+        const key = `${p.totalAssets}`;
+        progressCounts[key] = (progressCounts[key] || 0) + 1;
+      });
+
+      // Act — fire both batches concurrently without awaiting between them
+      const [results1, results2] = await Promise.all([
+        assetManager.loadBatch(batch1Configs),
+        assetManager.loadBatch(batch2Configs)
+      ]);
+
+      // Assert — each batch reports its own assets only
+      expect(results1.size).toBe(2);
+      expect(results1.has('batch-a-1')).toBe(true);
+      expect(results1.has('batch-a-2')).toBe(true);
+      expect(results1.has('batch-b-1')).toBe(false);
+
+      expect(results2.size).toBe(2);
+      expect(results2.has('batch-b-1')).toBe(true);
+      expect(results2.has('batch-b-2')).toBe(true);
+      expect(results2.has('batch-a-1')).toBe(false);
+    });
+
+    it('cancel() should reject the queued (not-yet-active) promise', async () => {
+      // Use a dedicated manager with maxConcurrentLoads=0 so every load goes to the queue.
+      // This avoids the need for blocking mocks or async yielding.
+      const cancelManager = new GameByteAssetManager({
+        cache: { maxSize: 1 * 1024 * 1024, maxItems: 10, evictionStrategy: CacheEvictionStrategy.LRU },
+        maxConcurrentLoads: 0, // No concurrent loads — everything stays queued
+        defaultRetries: 0
+      });
+
+      const mockLoader = (cancelManager as any).loaders.get(AssetType.TEXTURE);
+      mockLoader.load.mockResolvedValue({ data: 'd', size: 1 });
+
+      // Enqueue — stays in queue because maxConcurrentLoads=0
+      const cancelPromise = cancelManager.load({ id: 'cancel-queued', type: AssetType.TEXTURE, src: '/cancel.jpg' });
+
+      // Yield one microtask so load()'s internal await this.cache.get() completes
+      // and the entry is pushed into the queue before we cancel.
+      await Promise.resolve();
+
+      // Act — cancel while it is in the queue (never went active)
+      cancelManager.cancel('cancel-queued');
+
+      // Assert — the queued promise rejects with a cancellation error
+      await expect(cancelPromise).rejects.toThrow(/cancelled/i);
+
+      await cancelManager.destroy();
+    });
+
+    it('destroy() should reject all queued (not-yet-active) load promises', async () => {
+      // Use maxConcurrentLoads=0 so all loads stay in the queue — no async timing needed.
+      const blockingManager = new GameByteAssetManager({
+        cache: { maxSize: 1 * 1024 * 1024, maxItems: 10, evictionStrategy: CacheEvictionStrategy.LRU },
+        maxConcurrentLoads: 0, // Everything stays queued
+        defaultRetries: 0
+      });
+
+      const mockLoader = (blockingManager as any).loaders.get(AssetType.TEXTURE);
+      mockLoader.load.mockResolvedValue({ data: 'd', size: 1 });
+
+      // Both go into the queue
+      const first = blockingManager.load({ id: 'queued-1', type: AssetType.TEXTURE, src: '/q1.jpg' });
+      const second = blockingManager.load({ id: 'queued-2', type: AssetType.TEXTURE, src: '/q2.jpg' });
+
+      // Yield so load()'s internal cache.get() completes and entries land in the queue
+      await Promise.resolve();
+
+      // Act — destroy rejects all queued entries
+      await blockingManager.destroy();
+
+      // Assert — both queued promises reject
+      await expect(first).rejects.toThrow(/destroyed/i);
+      await expect(second).rejects.toThrow(/destroyed/i);
+    });
+  });
 });

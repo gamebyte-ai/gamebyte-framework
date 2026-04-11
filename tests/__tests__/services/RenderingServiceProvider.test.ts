@@ -206,10 +206,10 @@ describe.skip('RenderingServiceProvider', () => {
       await app.initialize(canvas, RenderingMode.RENDERER_3D);
       app.start();
 
-      // Assert
+      // Assert — renderer mode must match what was passed to initialize()
       const renderer = app.make('renderer');
       expect(renderer).toBeInstanceOf(MockRenderer);
-      expect(renderer.mode).toBe(RenderingMode.RENDERER_2D); // Still default from singleton
+      expect(renderer.mode).toBe(RenderingMode.RENDERER_3D);
     });
 
     it('should allow creating renderers with different modes', () => {
