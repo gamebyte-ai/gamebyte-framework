@@ -390,6 +390,68 @@ describe('Camera', () => {
   });
 
   // ----------------------------------------------------------
+  // 8b. kick()
+  // ----------------------------------------------------------
+  describe('kick()', () => {
+    it('offsets the container immediately after kick', () => {
+      const cam = makeCamera();
+      const container = createMockContainer();
+      cam.attach(container);
+
+      const baseX = container.x;
+
+      // Kick in the +X direction
+      cam.kick(1, 0, 20);
+
+      // Container should have shifted from base position (kick offset applied)
+      expect(container.x).not.toBe(baseX);
+    });
+
+    it('decays kick offset to zero after sufficient update() calls (no follow)', () => {
+      const cam = makeCamera();
+      const container = createMockContainer();
+      cam.attach(container);
+
+      cam.kick(1, 0, 20, 150);
+
+      // Advance well past decay duration (convert to seconds for camera.update)
+      // Camera update takes seconds — 500ms = 0.5s
+      for (let i = 0; i < 30; i++) cam.update(1 / 60);
+      // After ~500ms the kick should have fully expired
+      cam.update(0.5);
+
+      // Container X should be back near the base (no follow, camera at origin → container at viewportWidth/2)
+      const expectedX = 480 / 2;
+      expect(Math.abs(container.x - expectedX)).toBeLessThan(1);
+    });
+
+    it('does not permanently mutate camera position (kick is an offset only)', () => {
+      const cam = makeCamera();
+      cam.kick(1, 0, 20);
+
+      // Camera world position (_x/_y) must not change — only the rendered offset changes
+      expect(cam.x).toBe(0);
+      expect(cam.y).toBe(0);
+    });
+
+    it('decays kick even without a follow target', () => {
+      const cam = makeCamera();
+      const container = createMockContainer();
+      cam.attach(container);
+
+      cam.kick(0, 1, 30, 150); // kick downward
+
+      // After decay duration has elapsed the kick should be gone
+      cam.update(0.5); // 500ms >> 150ms decay
+
+      expect(cam.x).toBe(0);
+      expect(cam.y).toBe(0);
+      // Container Y should equal viewport center with no offset
+      expect(Math.abs(container.y - 852 / 2)).toBeLessThan(1);
+    });
+  });
+
+  // ----------------------------------------------------------
   // 9. destroy()
   // ----------------------------------------------------------
   describe('destroy()', () => {

@@ -283,14 +283,19 @@ describe('Juice.impact()', () => {
     expect(ParticleEmitter.explosion).not.toHaveBeenCalled();
   });
 
-  it('creates scale tween on the target scale', () => {
+  it('delegates scale animation to SquashStretch (no competing scale-pop tween)', () => {
     const target = makeMockTarget();
     Juice.impact(target);
-    expect(mockTweenTo).toHaveBeenCalledWith(
-      target.scale,
-      { x: expect.any(Number), y: expect.any(Number) },
-      expect.objectContaining({ duration: 80 })
+    // SquashStretch.squash() calls Tween.to with squash deformation (x wider, y shorter).
+    // Verify Tween.to was called on target.scale with asymmetric x/y values — not a uniform 1.3 pop.
+    const scaleCalls = mockTweenTo.mock.calls.filter(
+      (call) => call[0] === target.scale
     );
+    expect(scaleCalls.length).toBeGreaterThan(0);
+    // The squash tween should have x > 1 and y < 1 (wide and short), not the old 1.3 uniform pop
+    const squashCall = scaleCalls[0];
+    expect(squashCall[1].x).toBeGreaterThan(1);   // wider
+    expect(squashCall[1].y).toBeLessThan(1);       // shorter
   });
 });
 

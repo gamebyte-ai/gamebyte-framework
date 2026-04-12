@@ -1,7 +1,8 @@
 /**
  * TimeScale — Global time dilation system.
  * Enables slow-mo, speed-up, hitstop, and freeze effects.
- * Call `update(rawDt)` each frame with the unscaled delta, then
+ * Call `update(rawDtMs)` each frame with the unscaled delta in MILLISECONDS
+ * (matching the deltaTime emitted by PixiRenderer/ThreeRenderer), then
  * use `apply(dt)` to scale any per-frame value.
  */
 
@@ -67,20 +68,21 @@ export class TimeScale extends EventEmitter<TimeScaleEvents> {
 
   /**
    * Apply current time scale to a raw delta time value.
-   * @param dt - Raw (unscaled) delta time
-   * @returns Scaled delta time
+   * Input and output are in the same unit (milliseconds when called from the game loop).
+   * @param dt - Raw (unscaled) delta time in milliseconds
+   * @returns Scaled delta time in milliseconds
    */
   apply(dt: number): number {
     return dt * this._scale;
   }
 
   /**
-   * Must be called each frame with UNSCALED delta time (in seconds).
+   * Must be called each frame with UNSCALED delta time in MILLISECONDS.
    * Handles timer countdown, ease-back, and auto-restore.
-   * @param rawDt - Unscaled delta time in seconds
+   * @param rawDtMs - Unscaled delta time in milliseconds (matches renderer deltaTime output)
    */
-  update(rawDt: number): void {
-    let dtMs = rawDt * 1000;
+  update(rawDtMs: number): void {
+    let dtMs = rawDtMs;
 
     // --- Hold phase ---
     if (this._restoreTimer > 0) {

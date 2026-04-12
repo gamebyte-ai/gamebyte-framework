@@ -36,6 +36,7 @@
 
 import { Tween } from '../tween/Tween.js';
 import { Ease } from '../tween/Ease.js';
+import { TweenManager } from '../tween/TweenManager.js';
 import { ParticleEmitter } from '../particles/ParticleEmitter.js';
 import { screenShake } from '../utils/screenShake.js';
 import { FloatingText2D } from '../ui/effects/FloatingText2D.js';
@@ -72,6 +73,19 @@ export class Juice {
   };
 
   private static _timeScale = new TimeScale();
+  private static _wired = false;
+
+  /**
+   * Lazily wire the shared TimeScale into TweenManager so that hitstop /
+   * slow-mo effects automatically scale all tween playback speed.
+   * Called once on first use of any time-affecting method.
+   */
+  private static _ensureWired(): void {
+    if (!Juice._wired) {
+      TweenManager.timeScale = Juice._timeScale;
+      Juice._wired = true;
+    }
+  }
 
   /** Access the shared TimeScale instance for game loop integration. */
   static get timeScale(): TimeScale {
@@ -99,11 +113,13 @@ export class Juice {
 
   /** Freeze time for `ms` milliseconds (hitstop). Proxy to timeScale.freeze(). */
   static freeze(ms: number): void {
+    Juice._ensureWired();
     Juice._timeScale.freeze(ms);
   }
 
   /** Slow motion for `ms` milliseconds. Proxy to timeScale.slowMo(). */
   static slowMo(ms: number, scale?: number): void {
+    Juice._ensureWired();
     Juice._timeScale.slowMo(ms, scale);
   }
 
@@ -128,7 +144,8 @@ export class Juice {
       freezeMs?: number;
     }
   ): void {
-    // Hitstop
+    // Hitstop (also wires TweenManager.timeScale on first call)
+    Juice._ensureWired();
     Juice._timeScale.freeze(options?.freezeMs ?? 50);
 
     // Haptics
@@ -136,28 +153,8 @@ export class Juice {
       Haptics.heavy();
     }
 
-    // Scale pop: up to 1.3 then bounce back
-    if (target.scale) {
-      const origX: number = (target.scale.x as number) ?? 1;
-      const origY: number = (target.scale.y as number) ?? 1;
-      Tween.to(
-        target.scale,
-        { x: origX * 1.3, y: origY * 1.3 },
-        {
-          duration: 80,
-          ease: Ease.quadOut,
-          onComplete: () => {
-            Tween.to(
-              target.scale,
-              { x: origX, y: origY },
-              { duration: 180, ease: Ease.bounceOut }
-            );
-          },
-        }
-      );
-    }
-
-    // Squash on impact
+    // Squash on impact — handles all scale animation; no separate scale-pop
+    // tween to avoid competing writes to target.scale.x/y.
     SquashStretch.squash(target, 0.2);
 
     // Screen shake
@@ -320,7 +317,8 @@ export class Juice {
       freezeMs?: number;
     }
   ): void {
-    // Hitstop
+    // Hitstop (also wires TweenManager.timeScale on first call)
+    Juice._ensureWired();
     Juice._timeScale.freeze(options?.freezeMs ?? 30);
 
     // Haptics

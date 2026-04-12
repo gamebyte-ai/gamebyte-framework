@@ -117,6 +117,12 @@ export class Camera extends EventEmitter<CameraEvents> {
   private _shakeOffsetX: number = 0;
   private _shakeOffsetY: number = 0;
 
+  // ---- kick ----
+  private _kickX: number = 0;
+  private _kickY: number = 0;
+  private _kickDecay: number = 0;
+  private static readonly _KICK_DECAY_DURATION = 150; // ms
+
   // ---- look-ahead ----
   private _lookAheadX: number = 0;
   private _lookAheadY: number = 0;
@@ -187,19 +193,22 @@ export class Camera extends EventEmitter<CameraEvents> {
   // ============================================================
 
   /**
-   * Apply a brief directional impulse to the camera position.
-   * The existing follow/moveTo lerp naturally pulls the camera back,
-   * creating a quick kick-and-return feel.
+   * Apply a brief directional impulse offset to the camera.
+   * The kick is stored as a temporary offset that decays exponentially over
+   * `durationMs` milliseconds — it never permanently mutates the camera position,
+   * so it works correctly whether or not a follow target is active.
+   *
+   * The offset is composited alongside the shake offset in `_applyTransform()`.
    *
    * @param directionX - Normalized X direction of the kick
    * @param directionY - Normalized Y direction of the kick
-   * @param intensity  - Pixel displacement (default: 15)
-   * @param durationMs - Unused — restoration happens via normal lerp (kept for API symmetry)
+   * @param intensity  - Peak pixel displacement (default: 15)
+   * @param durationMs - Decay duration in milliseconds (default: 150)
    */
-  kick(directionX: number, directionY: number, intensity: number = 15, _durationMs: number = 150): void {
-    this._x += directionX * intensity;
-    this._y += directionY * intensity;
-    // The follow/moveTo lerp in update() will smoothly restore the position.
+  kick(directionX: number, directionY: number, intensity: number = 15, durationMs: number = 150): void {
+    this._kickX = directionX * intensity;
+    this._kickY = directionY * intensity;
+    this._kickDecay = durationMs;
     this._applyTransform();
   }
 
@@ -389,7 +398,22 @@ export class Camera extends EventEmitter<CameraEvents> {
       }
     }
 
-    // 5. Apply final transform to the attached container
+    // 5. Kick decay — exponential fade over _kickDecay remaining ms
+    if (this._kickDecay > 0) {
+      this._kickDecay -= dt * 1000;
+      if (this._kickDecay <= 0) {
+        this._kickX = 0;
+        this._kickY = 0;
+        this._kickDecay = 0;
+      } else {
+        // Exponential decay: ~0.9^(dt*60) per frame ≈ smooth fade at any frame rate
+        const decayFactor = Math.pow(0.9, dt * 60);
+        this._kickX *= decayFactor;
+        this._kickY *= decayFactor;
+      }
+    }
+
+    // 6. Apply final transform to the attached container
     this._applyTransform();
 
     // Emit move only when position actually changed during this update
@@ -474,10 +498,13 @@ export class Camera extends EventEmitter<CameraEvents> {
   private _applyTransform(): void {
     if (!this._container) return;
 
+    const offsetX = this._shakeOffsetX + this._kickX;
+    const offsetY = this._shakeOffsetY + this._kickY;
+
     this._container.x =
-      this._viewportWidth * 0.5 - (this._x + this._shakeOffsetX) * this._zoom;
+      this._viewportWidth * 0.5 - (this._x + offsetX) * this._zoom;
     this._container.y =
-      this._viewportHeight * 0.5 - (this._y + this._shakeOffsetY) * this._zoom;
+      this._viewportHeight * 0.5 - (this._y + offsetY) * this._zoom;
 
     if (this._container.scale) {
       this._container.scale.x = this._zoom;

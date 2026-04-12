@@ -27,7 +27,7 @@ describe('TimeScale', () => {
     ts.setTemporary(0.5, 500);
     ts.set(2);
     // After set(), update should not trigger restore
-    ts.update(1); // 1 second = 1000ms, far past 500ms
+    ts.update(1000); // 1000ms, far past 500ms
     expect(ts.scale).toBe(2); // should remain at 2, no restore
   });
 
@@ -39,11 +39,11 @@ describe('TimeScale', () => {
     expect(ts.scale).toBe(0.1);
 
     // Advance 50ms — should still be 0.1
-    ts.update(0.05);
+    ts.update(50);
     expect(ts.scale).toBe(0.1);
 
     // Advance another 60ms (total 110ms) — should be restored
-    ts.update(0.06);
+    ts.update(60);
     expect(ts.scale).toBe(1);
     expect(restoredSpy).toHaveBeenCalled();
   });
@@ -56,7 +56,7 @@ describe('TimeScale', () => {
 
   test('freeze() restores to 1 after duration', () => {
     ts.freeze(50);
-    ts.update(0.1); // 100ms > 50ms freeze
+    ts.update(100); // 100ms > 50ms freeze
     expect(ts.scale).toBe(1);
   });
 
@@ -72,18 +72,19 @@ describe('TimeScale', () => {
 
   test('apply() multiplies dt by current scale', () => {
     ts.set(0.5);
-    expect(ts.apply(1 / 60)).toBeCloseTo(0.5 / 60);
+    // Input in ms (16ms frame), expect half that
+    expect(ts.apply(16)).toBeCloseTo(8);
   });
 
   test('apply() returns dt unchanged when scale is 1', () => {
-    const dt = 1 / 60;
-    expect(ts.apply(dt)).toBeCloseTo(dt);
+    const dtMs = 16;
+    expect(ts.apply(dtMs)).toBeCloseTo(dtMs);
   });
 
   test('update() decrements restore timer', () => {
     // setTemporary with 300ms, advance 100ms — timer not yet expired
     ts.setTemporary(0.2, 300);
-    ts.update(0.1); // 100ms
+    ts.update(100); // 100ms
     expect(ts.scale).toBeCloseTo(0.2); // still in slow-mo
   });
 
@@ -91,7 +92,7 @@ describe('TimeScale', () => {
     ts.setTemporary(0.2, 100, true);
 
     // Exhaust the hold phase
-    ts.update(0.11); // 110ms > 100ms hold
+    ts.update(110); // 110ms > 100ms hold
 
     // Scale should now be easing back (between 0.2 and 1)
     expect(ts.scale).toBeGreaterThan(0.2);
@@ -103,8 +104,8 @@ describe('TimeScale', () => {
     ts.on('restored', restoredSpy);
 
     ts.setTemporary(0.2, 50, true);
-    ts.update(0.06);   // exhaust hold (60ms > 50ms)
-    ts.update(0.25);   // exhaust ease-back (250ms > 200ms ease duration)
+    ts.update(60);    // exhaust hold (60ms > 50ms)
+    ts.update(250);   // exhaust ease-back (250ms > 200ms ease duration)
 
     expect(ts.scale).toBe(1);
     expect(restoredSpy).toHaveBeenCalled();
@@ -126,7 +127,7 @@ describe('TimeScale', () => {
 
   test('update() is a no-op when no temporary scale is active', () => {
     ts.set(0.5);
-    ts.update(10); // large dt, no restore timer
+    ts.update(10000); // large dt in ms, no restore timer
     expect(ts.scale).toBe(0.5); // unchanged
   });
 });

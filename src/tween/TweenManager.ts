@@ -27,6 +27,13 @@ export class TweenManager {
   private static _entries: TweenEntry[] = [];
   private static _needsCompact = false;
 
+  /**
+   * Optional time scale applied to all tween updates.
+   * Set by Juice._ensureWired() when the Juice system is first used.
+   * The object must expose an `apply(dt: number): number` method.
+   */
+  static timeScale: { apply: (dt: number) => number } | null = null;
+
   // ---- Registration API ------------------------------------------------
 
   /** Add a tween to the managed list. Called internally by Tween factory methods. */
@@ -59,11 +66,16 @@ export class TweenManager {
   /**
    * Advance all active tweens.
    * Call once per frame from the game loop — dt in milliseconds.
+   * If `TweenManager.timeScale` is set, dt is scaled before being applied
+   * to each tween so that hitstop / slow-mo affects all animations.
    */
   static update(dt: number): void {
     if (TweenManager._needsCompact) {
       TweenManager._compact();
     }
+
+    // Apply time scale (e.g. freeze / slowMo from Juice) when available
+    const scaledDt = TweenManager.timeScale ? TweenManager.timeScale.apply(dt) : dt;
 
     const entries = TweenManager._entries;
     const len = entries.length;
@@ -72,7 +84,7 @@ export class TweenManager {
       const entry = entries[i];
       if (entry.removed) continue;
 
-      entry.tween._update(dt);
+      entry.tween._update(scaledDt);
 
       // If the tween marked itself finished during _update, flag for removal
       if (entry.tween._isFinished) {
@@ -145,5 +157,6 @@ export class TweenManager {
   static _reset(): void {
     TweenManager._entries.length = 0;
     TweenManager._needsCompact = false;
+    TweenManager.timeScale = null;
   }
 }
