@@ -847,6 +847,13 @@ export type { CameraConfig, FollowConfig, CameraEvents } from './camera/index';
 // Juice/Effects Manager
 export { Juice } from './juice/index';
 export type { JuiceConfig } from './juice/index';
+export { TimeScale } from './juice/index';
+export type { TimeScaleEvents } from './juice/index';
+export { Haptics } from './juice/index';
+export { ScreenEffects } from './juice/index';
+export { SquashStretch } from './juice/index';
+export { ComboTracker } from './juice/index';
+export type { ComboTrackerEvents } from './juice/index';
 
 // Screen Transitions
 export { ScreenTransition } from './scenes/transitions/index';

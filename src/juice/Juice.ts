@@ -39,6 +39,10 @@ import { Ease } from '../tween/Ease.js';
 import { ParticleEmitter } from '../particles/ParticleEmitter.js';
 import { screenShake } from '../utils/screenShake.js';
 import { FloatingText2D } from '../ui/effects/FloatingText2D.js';
+import { TimeScale } from './TimeScale.js';
+import { Haptics } from './Haptics.js';
+import { SquashStretch } from './SquashStretch.js';
+import { ScreenEffects } from './ScreenEffects.js';
 
 // ---------------------------------------------------------------------------
 // Config
@@ -51,6 +55,8 @@ export interface JuiceConfig {
   shakeEnabled?: boolean;
   /** Whether to use particles. Default: true */
   particlesEnabled?: boolean;
+  /** Whether to trigger haptic feedback. Default: true */
+  hapticsEnabled?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -62,7 +68,15 @@ export class Juice {
     intensity: 1,
     shakeEnabled: true,
     particlesEnabled: true,
+    hapticsEnabled: true,
   };
+
+  private static _timeScale = new TimeScale();
+
+  /** Access the shared TimeScale instance for game loop integration. */
+  static get timeScale(): TimeScale {
+    return Juice._timeScale;
+  }
 
   // -------------------------------------------------------------------------
   // Configuration
@@ -76,6 +90,21 @@ export class Juice {
     if (config.intensity !== undefined) Juice._config.intensity = config.intensity;
     if (config.shakeEnabled !== undefined) Juice._config.shakeEnabled = config.shakeEnabled;
     if (config.particlesEnabled !== undefined) Juice._config.particlesEnabled = config.particlesEnabled;
+    if (config.hapticsEnabled !== undefined) Juice._config.hapticsEnabled = config.hapticsEnabled;
+  }
+
+  // -------------------------------------------------------------------------
+  // Time scale shortcuts
+  // -------------------------------------------------------------------------
+
+  /** Freeze time for `ms` milliseconds (hitstop). Proxy to timeScale.freeze(). */
+  static freeze(ms: number): void {
+    Juice._timeScale.freeze(ms);
+  }
+
+  /** Slow motion for `ms` milliseconds. Proxy to timeScale.slowMo(). */
+  static slowMo(ms: number, scale?: number): void {
+    Juice._timeScale.slowMo(ms, scale);
   }
 
   // -------------------------------------------------------------------------
@@ -96,8 +125,17 @@ export class Juice {
       shakeDuration?: number;
       particles?: boolean;
       particleParent?: any;
+      freezeMs?: number;
     }
   ): void {
+    // Hitstop
+    Juice._timeScale.freeze(options?.freezeMs ?? 50);
+
+    // Haptics
+    if (Juice._config.hapticsEnabled !== false) {
+      Haptics.heavy();
+    }
+
     // Scale pop: up to 1.3 then bounce back
     if (target.scale) {
       const origX: number = (target.scale.x as number) ?? 1;
@@ -118,6 +156,9 @@ export class Juice {
         }
       );
     }
+
+    // Squash on impact
+    SquashStretch.squash(target, 0.2);
 
     // Screen shake
     if (Juice._config.shakeEnabled && options?.shakeIntensity !== 0) {
@@ -164,6 +205,10 @@ export class Juice {
       amount?: number;
     }
   ): void {
+    if (Juice._config.hapticsEnabled !== false) {
+      Haptics.light();
+    }
+
     const text = options?.text ?? (options?.amount !== undefined ? `+${options.amount}` : '+1');
     const style = options?.style ?? 'coin';
 
@@ -193,6 +238,10 @@ export class Juice {
    * @param comboCount - Current combo multiplier (1+)
    */
   static combo(parent: any, x: number, y: number, comboCount: number): void {
+    if (Juice._config.hapticsEnabled !== false) {
+      Haptics.medium();
+    }
+
     const intensity = Math.min(comboCount * 0.5, 5) * Juice._config.intensity;
     const fontSize = 24 + comboCount * 2;
     const duration = 1000 + comboCount * 100;
@@ -226,6 +275,10 @@ export class Juice {
    * @param scale - Peak scale multiplier (default: 1.2)
    */
   static pop(target: any, scale?: number): Tween | undefined {
+    if (Juice._config.hapticsEnabled !== false) {
+      Haptics.light();
+    }
+
     const s = scale ?? 1.2;
     if (!target.scale) return undefined;
 
@@ -264,8 +317,17 @@ export class Juice {
     amount: number,
     options?: {
       shake?: boolean;
+      freezeMs?: number;
     }
   ): void {
+    // Hitstop
+    Juice._timeScale.freeze(options?.freezeMs ?? 30);
+
+    // Haptics
+    if (Juice._config.hapticsEnabled !== false) {
+      Haptics.medium();
+    }
+
     const x: number = target.x ?? 0;
     const y: number = target.y ?? 0;
 
@@ -282,6 +344,9 @@ export class Juice {
         },
       });
     }
+
+    // Red flash overlay if ScreenEffects has a parent
+    ScreenEffects.flash(0xFF0000, 0.3, 150);
 
     // Screen shake
     if (options?.shake !== false && Juice._config.shakeEnabled) {
@@ -307,6 +372,10 @@ export class Juice {
       score?: number;
     }
   ): void {
+    if (Juice._config.hapticsEnabled !== false) {
+      Haptics.success();
+    }
+
     if (options?.text) {
       FloatingText2D.spawn({
         text: options.text,
@@ -327,6 +396,9 @@ export class Juice {
     if (options?.score !== undefined) {
       FloatingText2D.score(parent, x, y + 30, options.score);
     }
+
+    // Power flash overlay
+    ScreenEffects.powerFlash(300);
 
     if (Juice._config.particlesEnabled) {
       const emitter = ParticleEmitter.confetti(x, y);
@@ -378,5 +450,34 @@ export class Juice {
       repeat: -1,
       yoyo: true,
     });
+  }
+
+  // ---- SquashStretch proxies ----------------------------------------------
+
+  /** Squash the target (compress wide, short). Proxy to SquashStretch.squash(). */
+  static squash(target: any, intensity?: number, duration?: number): void {
+    SquashStretch.squash(target, intensity, duration);
+  }
+
+  /** Stretch the target (elongate tall, thin). Proxy to SquashStretch.stretch(). */
+  static stretch(target: any, intensity?: number, duration?: number): void {
+    SquashStretch.stretch(target, intensity, duration);
+  }
+
+  /** Landing squash effect. Proxy to SquashStretch.land(). */
+  static land(target: any, intensity?: number): void {
+    SquashStretch.land(target, intensity);
+  }
+
+  // ---- ScreenEffects proxies ----------------------------------------------
+
+  /** Full-screen color flash. Proxy to ScreenEffects.flash(). */
+  static flash(color?: number, alpha?: number, duration?: number): void {
+    ScreenEffects.flash(color, alpha, duration);
+  }
+
+  /** Red damage vignette flash. Proxy to ScreenEffects.damageVignette(). */
+  static damageFlash(durationMs?: number): void {
+    ScreenEffects.damageVignette(durationMs);
   }
 }

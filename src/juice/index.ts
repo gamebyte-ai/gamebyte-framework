@@ -17,3 +17,10 @@
 
 export { Juice } from './Juice.js';
 export type { JuiceConfig } from './Juice.js';
+export { TimeScale } from './TimeScale.js';
+export type { TimeScaleEvents } from './TimeScale.js';
+export { Haptics } from './Haptics.js';
+export { ScreenEffects } from './ScreenEffects.js';
+export { SquashStretch } from './SquashStretch.js';
+export { ComboTracker } from './ComboTracker.js';
+export type { ComboTrackerEvents } from './ComboTracker.js';

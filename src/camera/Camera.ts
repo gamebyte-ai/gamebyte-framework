@@ -117,6 +117,10 @@ export class Camera extends EventEmitter<CameraEvents> {
   private _shakeOffsetX: number = 0;
   private _shakeOffsetY: number = 0;
 
+  // ---- look-ahead ----
+  private _lookAheadX: number = 0;
+  private _lookAheadY: number = 0;
+
   constructor(config: CameraConfig) {
     super();
 
@@ -176,6 +180,43 @@ export class Camera extends EventEmitter<CameraEvents> {
   /** Stop following the current target. */
   unfollow(): void {
     this._followTarget = null;
+  }
+
+  // ============================================================
+  // kick()
+  // ============================================================
+
+  /**
+   * Apply a brief directional impulse to the camera position.
+   * The existing follow/moveTo lerp naturally pulls the camera back,
+   * creating a quick kick-and-return feel.
+   *
+   * @param directionX - Normalized X direction of the kick
+   * @param directionY - Normalized Y direction of the kick
+   * @param intensity  - Pixel displacement (default: 15)
+   * @param durationMs - Unused — restoration happens via normal lerp (kept for API symmetry)
+   */
+  kick(directionX: number, directionY: number, intensity: number = 15, _durationMs: number = 150): void {
+    this._x += directionX * intensity;
+    this._y += directionY * intensity;
+    // The follow/moveTo lerp in update() will smoothly restore the position.
+    this._applyTransform();
+  }
+
+  // ============================================================
+  // setLookAhead()
+  // ============================================================
+
+  /**
+   * Set a persistent look-ahead offset added to the follow target position.
+   * Use to shift the camera ahead of the player's movement direction.
+   *
+   * @param offsetX - World-space X offset
+   * @param offsetY - World-space Y offset
+   */
+  setLookAhead(offsetX: number, offsetY: number): void {
+    this._lookAheadX = offsetX;
+    this._lookAheadY = offsetY;
   }
 
   // ============================================================
@@ -278,8 +319,8 @@ export class Camera extends EventEmitter<CameraEvents> {
 
     // 1. Follow logic — frame-rate-independent exponential lerp toward target
     if (this._followTarget !== null) {
-      const desiredX = this._followTarget.x + this._followConfig.offsetX;
-      const desiredY = this._followTarget.y + this._followConfig.offsetY;
+      const desiredX = this._followTarget.x + this._followConfig.offsetX + this._lookAheadX;
+      const desiredY = this._followTarget.y + this._followConfig.offsetY + this._lookAheadY;
 
       // Exponential easing: k normalised so lerp=0.1 at 60fps behaves the same at any fps.
       // Math.min(lerp, 0.999) prevents -log(0) when lerp approaches 1.
