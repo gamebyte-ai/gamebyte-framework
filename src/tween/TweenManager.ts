@@ -74,7 +74,13 @@ export class TweenManager {
       TweenManager._compact();
     }
 
-    // Apply time scale (e.g. freeze / slowMo from Juice) when available
+    // Advance the time scale timer (e.g. freeze / slowMo from Juice)
+    // so temporary effects auto-restore after their duration expires.
+    if (TweenManager.timeScale && typeof (TweenManager.timeScale as any).update === 'function') {
+      (TweenManager.timeScale as any).update(dt);
+    }
+
+    // Apply time scale to dt for all tweens
     const scaledDt = TweenManager.timeScale ? TweenManager.timeScale.apply(dt) : dt;
 
     const entries = TweenManager._entries;

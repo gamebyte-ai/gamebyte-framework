@@ -120,6 +120,9 @@ export class Camera extends EventEmitter<CameraEvents> {
   // ---- kick ----
   private _kickX: number = 0;
   private _kickY: number = 0;
+  private _kickStartX: number = 0;
+  private _kickStartY: number = 0;
+  private _kickDuration: number = 0;
   private _kickDecay: number = 0;
   private static readonly _KICK_DECAY_DURATION = 150; // ms
 
@@ -206,8 +209,11 @@ export class Camera extends EventEmitter<CameraEvents> {
    * @param durationMs - Decay duration in milliseconds (default: 150)
    */
   kick(directionX: number, directionY: number, intensity: number = 15, durationMs: number = 150): void {
-    this._kickX = directionX * intensity;
-    this._kickY = directionY * intensity;
+    this._kickStartX = directionX * intensity;
+    this._kickStartY = directionY * intensity;
+    this._kickX = this._kickStartX;
+    this._kickY = this._kickStartY;
+    this._kickDuration = durationMs;
     this._kickDecay = durationMs;
     this._applyTransform();
   }
@@ -398,7 +404,7 @@ export class Camera extends EventEmitter<CameraEvents> {
       }
     }
 
-    // 5. Kick decay — exponential fade over _kickDecay remaining ms
+    // 5. Kick decay — duration-aware exponential fade
     if (this._kickDecay > 0) {
       this._kickDecay -= dt * 1000;
       if (this._kickDecay <= 0) {
@@ -406,10 +412,12 @@ export class Camera extends EventEmitter<CameraEvents> {
         this._kickY = 0;
         this._kickDecay = 0;
       } else {
-        // Exponential decay: ~0.9^(dt*60) per frame ≈ smooth fade at any frame rate
-        const decayFactor = Math.pow(0.9, dt * 60);
-        this._kickX *= decayFactor;
-        this._kickY *= decayFactor;
+        // Decay factor derived from duration: reaches ~5% at end of kick duration
+        // -3 / duration gives ln(0.05)/duration, so e^(-3*dtMs/duration) ≈ 0.05 at t=duration
+        const progress = 1 - (this._kickDecay / this._kickDuration);
+        const factor = Math.exp(-3 * progress / (1 - progress + 0.001));
+        this._kickX = this._kickStartX * factor;
+        this._kickY = this._kickStartY * factor;
       }
     }
 
