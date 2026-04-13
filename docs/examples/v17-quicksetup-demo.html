@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Quick Clicker RPG — GameByte QuickGameSetup Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            overflow: hidden;
+            background: #0d1117;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            touch-action: none;
+        }
+        #game-container {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            height: 100vh;
+        }
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #e6edf3;
+            font-size: 18px;
+            z-index: 100;
+            text-align: center;
+        }
+        #loading small {
+            display: block;
+            color: #8b949e;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        Loading Quick Clicker RPG...
+        <small>GameByte Framework — QuickGameSetup Demo</small>
+    </div>
+    <div id="game-container"></div>
+
+    <!-- Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="../../dist/gamebyte.umd.js"></script>
+
+    <script>
+    (async () => {
+        try {
+            // ─────────────────────────────────────────────────────────────
+            // 1. Destructure framework modules
+            // ─────────────────────────────────────────────────────────────
+            const {
+                QuickGameSetup,
+                GameConfigStore,
+                createGameConfig,
+                EconomyManager,
+                StatsSystem,
+                ComboTracker,
+                Juice,
+                FloatingText2D,
+                Toast,
+                TweenManager,
+            } = GameByteFramework;
+
+            // ─────────────────────────────────────────────────────────────
+            // 2. Canvas / Pixi setup
+            // ─────────────────────────────────────────────────────────────
+            const BASE_W = 540;
+            const BASE_H = 960;
+
+            const app = new PIXI.Application();
+            await app.init({
+                width: BASE_W,
+                height: BASE_H,
+                backgroundColor: 0x0d1117,
+                antialias: true,
+                resolution: window.devicePixelRatio || 1,
+                autoDensity: true,
+            });
+
+            // Responsive canvas scaling
+            const canvas = app.canvas;
+            canvas.style.position = 'absolute';
+            document.getElementById('game-container').appendChild(canvas);
+
+            function resize() {
+                const vw = window.innerWidth;
+                const vh = window.innerHeight;
+                const scale = Math.min(vw / BASE_W, vh / BASE_H);
+                canvas.style.width  = `${BASE_W * scale}px`;
+                canvas.style.height = `${BASE_H * scale}px`;
+                canvas.style.left   = `${(vw - BASE_W * scale) / 2}px`;
+                canvas.style.top    = `${(vh - BASE_H * scale) / 2}px`;
+            }
+            resize();
+            window.addEventListener('resize', resize);
+            document.getElementById('loading').style.display = 'none';
+
+            // ─────────────────────────────────────────────────────────────
+            // 3. Game systems — created ONCE, reused across rounds
+            // ─────────────────────────────────────────────────────────────
+
+            // Difficulty config: each round enemy HP scales up
+            const config = createGameConfig({
+                monsterHp: 100,
+                goldPerKill: 20,
+                round: 1,
+            });
+
+            // Gold currency
+            const economy = new EconomyManager([
+                { id: 'gold', name: 'Gold', initial: 0 },
+            ]);
+
+            // Player stats: attack power
+            const stats = new StatsSystem();
+            stats.set('attack', 10);
+
+            // Combo tracker — 2 s window, milestones at 5, 10, 20
+            const combo = new ComboTracker({ timeout: 2000, milestones: [5, 10, 20] });
+
+            // ─────────────────────────────────────────────────────────────
+            // 4. Monster state — reset each round
+            // ─────────────────────────────────────────────────────────────
+            let monsterMaxHp   = config.get('monsterHp');
+            let monsterHp      = monsterMaxHp;
+            let monsterGfx     = null;   // PIXI.Graphics — created in onCreateGame
+            let hpBarFill      = null;   // PIXI.Graphics — HP bar fill
+            let hpBarBg        = null;   // PIXI.Graphics — HP bar background
+            let roundLabel     = null;   // PIXI.Text
+            let comboLabel     = null;   // PIXI.Text
+            let goldLabel      = null;   // PIXI.Text
+            let gameContainer  = null;   // container passed by QuickGameSetup
+            let tickerFn       = null;   // stored to remove on cleanup
+            let scoreAccum     = 0;      // total damage dealt this round
+
+            // Monster colour cycles by round
+            const MONSTER_COLOURS = [0xE74C3C, 0x9B59B6, 0x1ABC9C, 0xE67E22, 0x3498DB];
+
+            function monsterColour() {
+                return MONSTER_COLOURS[(config.get('round') - 1) % MONSTER_COLOURS.length];
+            }
+
+            function resetMonster() {
+                monsterMaxHp = config.get('monsterHp');
+                monsterHp    = monsterMaxHp;
+                scoreAccum   = 0;
+                combo.reset?.(); // reset combo if method exists
+                redrawMonster();
+                updateHpBar();
+            }
+
+            function redrawMonster() {
+                if (!monsterGfx) return;
+                monsterGfx.clear();
+                // Shadow
+                monsterGfx.ellipse(0, 95, 70, 18);
+                monsterGfx.fill({ color: 0x000000, alpha: 0.25 });
+                // Body
+                monsterGfx.circle(0, 0, 80);
+                monsterGfx.fill({ color: monsterColour() });
+                // Eye whites
+                monsterGfx.circle(-28, -20, 20);
+                monsterGfx.fill({ color: 0xFFFFFF });
+                monsterGfx.circle(28, -20, 20);
+                monsterGfx.fill({ color: 0xFFFFFF });
+                // Pupils
+                monsterGfx.circle(-26, -18, 10);
+                monsterGfx.fill({ color: 0x1a1a2e });
+                monsterGfx.circle(30, -18, 10);
+                monsterGfx.fill({ color: 0x1a1a2e });
+                // Mouth
+                monsterGfx.rect(-30, 22, 60, 10);
+                monsterGfx.fill({ color: 0x1a1a2e });
+                // Teeth
+                for (let i = 0; i < 4; i++) {
+                    monsterGfx.rect(-22 + i * 14, 22, 10, 14);
+                    monsterGfx.fill({ color: 0xFFFFFF });
+                }
+            }
+
+            function updateHpBar() {
+                if (!hpBarFill || !hpBarBg) return;
+                const BAR_W = 260;
+                const BAR_H = 18;
+                const ratio = Math.max(0, monsterHp / monsterMaxHp);
+                const fillW = Math.max(0, (BAR_W - 4) * ratio);
+
+                hpBarBg.clear();
+                hpBarBg.roundRect(0, 0, BAR_W, BAR_H, BAR_H / 2);
+                hpBarBg.fill({ color: 0x1a1a2e });
+                hpBarBg.roundRect(0, 0, BAR_W, BAR_H, BAR_H / 2);
+                hpBarBg.stroke({ color: 0x333355, width: 2 });
+
+                hpBarFill.clear();
+                if (fillW > 0) {
+                    // Colour shifts red as HP drops
+                    const hpColour = ratio > 0.5 ? 0x27AE60 : ratio > 0.25 ? 0xF39C12 : 0xE74C3C;
+                    hpBarFill.roundRect(2, 2, fillW, BAR_H - 4, (BAR_H - 4) / 2);
+                    hpBarFill.fill({ color: hpColour });
+                }
+            }
+
+            // ─────────────────────────────────────────────────────────────
+            // 5. QuickGameSetup — Hub → Game → Result, no screen code needed
+            //
+            //    Agent writes ONLY this game logic — screens are automatic
+            // ─────────────────────────────────────────────────────────────
+            const setup = new QuickGameSetup(app.stage, {
+                title: 'Click RPG',
+                width: BASE_W,
+                height: BASE_H,
+
+                game: {
+                    showPause: true,
+
+                    onCreateGame: (container) => {
+                        // Store reference so resetMonster() can update graphics
+                        gameContainer = container;
+
+                        const CX = BASE_W / 2;
+                        const CY = BASE_H / 2 - 30;
+
+                        // ── Round label ──────────────────────────────────
+                        roundLabel = new PIXI.Text({
+                            text: `Round ${config.get('round')}`,
+                            style: {
+                                fontSize: 22,
+                                fill: 0x8b949e,
+                                fontWeight: 'bold',
+                                fontFamily: 'system-ui, sans-serif',
+                            },
+                        });
+                        roundLabel.anchor.set(0.5, 0);
+                        roundLabel.position.set(CX, 30);
+                        container.addChild(roundLabel);
+
+                        // ── Gold label ───────────────────────────────────
+                        goldLabel = new PIXI.Text({
+                            text: `Gold: ${economy.getBalance('gold')}`,
+                            style: {
+                                fontSize: 20,
+                                fill: 0xF1C40F,
+                                fontWeight: 'bold',
+                                fontFamily: 'system-ui, sans-serif',
+                            },
+                        });
+                        goldLabel.anchor.set(1, 0);
+                        goldLabel.position.set(BASE_W - 24, 30);
+                        container.addChild(goldLabel);
+
+                        // ── HP bar container ─────────────────────────────
+                        const BAR_W = 260;
+                        const barHolder = new PIXI.Container();
+                        barHolder.position.set(CX - BAR_W / 2, CY - 130);
+                        container.addChild(barHolder);
+
+                        hpBarBg   = new PIXI.Graphics();
+                        hpBarFill = new PIXI.Graphics();
+                        barHolder.addChild(hpBarBg);
+                        barHolder.addChild(hpBarFill);
+
+                        const hpText = new PIXI.Text({
+                            text: 'HP',
+                            style: {
+                                fontSize: 12,
+                                fill: 0x8b949e,
+                                fontFamily: 'system-ui, sans-serif',
+                            },
+                        });
+                        hpText.position.set(0, -18);
+                        barHolder.addChild(hpText);
+
+                        // ── Monster graphics ─────────────────────────────
+                        monsterGfx = new PIXI.Graphics();
+                        monsterGfx.position.set(CX, CY);
+                        monsterGfx.eventMode = 'static';
+                        monsterGfx.cursor = 'pointer';
+                        monsterGfx.hitArea = new PIXI.Circle(0, 0, 90);
+                        container.addChild(monsterGfx);
+
+                        // ── Combo label ──────────────────────────────────
+                        comboLabel = new PIXI.Text({
+                            text: '',
+                            style: {
+                                fontSize: 28,
+                                fill: 0xF39C12,
+                                fontWeight: 'bold',
+                                fontFamily: 'system-ui, sans-serif',
+                                dropShadow: true,
+                                dropShadowDistance: 2,
+                                dropShadowAlpha: 0.5,
+                            },
+                        });
+                        comboLabel.anchor.set(0.5, 0);
+                        comboLabel.position.set(CX, CY + 100);
+                        comboLabel.alpha = 0;
+                        container.addChild(comboLabel);
+
+                        // ── Tap-to-attack instruction ────────────────────
+                        const tapHint = new PIXI.Text({
+                            text: 'Tap the monster to attack!',
+                            style: {
+                                fontSize: 16,
+                                fill: 0x586070,
+                                fontFamily: 'system-ui, sans-serif',
+                            },
+                        });
+                        tapHint.anchor.set(0.5, 0);
+                        tapHint.position.set(CX, BASE_H - 120);
+                        container.addChild(tapHint);
+
+                        // ── Draw initial state ───────────────────────────
+                        redrawMonster();
+                        updateHpBar();
+
+                        // ── Combo event listeners ────────────────────────
+                        combo.on('hit', (count, mult) => {
+                            if (count >= 2) {
+                                comboLabel.text  = `${count}x COMBO! ×${mult.toFixed(1)}`;
+                                comboLabel.alpha = 1;
+                                Juice.pop(comboLabel, 1.15);
+                            }
+                        });
+
+                        combo.on('break', () => {
+                            comboLabel.alpha = 0;
+                        });
+
+                        combo.on('milestone', (count) => {
+                            Toast.show(container, {
+                                text: `${count}x COMBO! Incredible!`,
+                                duration: 1500,
+                                y: BASE_H / 2 - 200,
+                            });
+                        });
+
+                        // ── Gold update listener ─────────────────────────
+                        economy.on('balance', ({ currency, newBalance }) => {
+                            if (currency === 'gold' && goldLabel) {
+                                goldLabel.text = `Gold: ${newBalance}`;
+                            }
+                        });
+
+                        // ── Tap / click handler ──────────────────────────
+                        function handleAttack(e) {
+                            if (monsterHp <= 0) return;
+
+                            // Calculate damage: base attack * combo multiplier
+                            const hitCount  = combo.hit();
+                            const mult      = combo.multiplier;
+                            const baseDmg   = stats.get('attack');
+                            const damage    = Math.round(baseDmg * mult);
+                            monsterHp       = Math.max(0, monsterHp - damage);
+                            scoreAccum     += damage;
+
+                            // Floating damage number at tap position
+                            const localPos = e?.data?.global
+                                ? container.toLocal(e.data.global)
+                                : { x: CX, y: CY };
+                            FloatingText2D.damage(container, localPos.x, localPos.y - 20, damage);
+
+                            // Juice: quick squash + scale pop on monster
+                            Juice.impact(monsterGfx, { particleParent: container });
+
+                            // Update HP bar
+                            updateHpBar();
+
+                            // Monster defeated
+                            if (monsterHp <= 0) {
+                                const goldEarned = config.get('goldPerKill');
+                                economy.add('gold', goldEarned);
+
+                                // Celebrate then end round
+                                Juice.celebrate(container, CX, CY);
+
+                                setTimeout(() => {
+                                    setup.endGame({
+                                        score: scoreAccum,
+                                        stars: scoreAccum > monsterMaxHp * 2 ? 3 : scoreAccum > monsterMaxHp ? 2 : 1,
+                                        type: 'victory',
+                                    });
+                                }, 800);
+                            }
+                        }
+
+                        // Pointer events (touch + mouse)
+                        monsterGfx.on('pointertap', handleAttack);
+
+                        // Also allow tapping empty space to attack (mobile UX)
+                        const bgHitArea = new PIXI.Graphics();
+                        bgHitArea.rect(0, 0, BASE_W, BASE_H);
+                        bgHitArea.fill({ color: 0x000000, alpha: 0 });
+                        bgHitArea.eventMode = 'static';
+                        bgHitArea.zIndex = -1;
+                        bgHitArea.on('pointertap', handleAttack);
+                        container.addChild(bgHitArea);
+
+                        // ── Ticker: advance ComboTracker each frame ──────
+                        tickerFn = (ticker) => {
+                            combo.update(ticker.deltaMS);
+                        };
+                        app.ticker.add(tickerFn);
+                    },
+                },
+
+                // ── onRetry: same round, reset monster ──────────────────
+                onRetry: () => {
+                    if (tickerFn) {
+                        app.ticker.remove(tickerFn);
+                        tickerFn = null;
+                    }
+                    // Advance difficulty for next round
+                    const nextRound = config.get('round') + 1;
+                    config.set('round', nextRound);
+                    config.applyDifficulty(1.25, ['monsterHp']);
+                    resetMonster();
+                },
+            });
+
+            // ─────────────────────────────────────────────────────────────
+            // 6. Start! QuickGameSetup manages all screen transitions.
+            // ─────────────────────────────────────────────────────────────
+            setup.start();
+
+            // Enable pointer events on stage
+            app.stage.eventMode = 'static';
+            app.stage.hitArea   = new PIXI.Rectangle(0, 0, BASE_W, BASE_H);
+
+        } catch (err) {
+            console.error('Demo init failed:', err);
+            document.getElementById('loading').textContent = 'Error: ' + err.message;
+        }
+    })();
+    </script>
+</body>
+</html>

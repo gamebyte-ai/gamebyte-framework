@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Game Feel Playground — GameByte v1.9</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #0a0a1a;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            overflow: hidden;
+            touch-action: none;
+            user-select: none;
+            color: #e0e0ff;
+        }
+
+        #loading {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+            background: #0a0a1a;
+            color: #e0e0ff;
+            z-index: 100;
+        }
+
+        #loading h1 { font-size: 22px; color: #7b9fff; letter-spacing: 1px; }
+        #loading p  { font-size: 14px; color: #666; }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #1a1a3a;
+            border-top-color: #7b9fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ------------------------------------------------------------------ */
+        /* Layout: 3-column grid over the canvas                               */
+        /* ------------------------------------------------------------------ */
+        #overlay {
+            position: fixed;
+            inset: 0;
+            display: grid;
+            grid-template-columns: 180px 1fr 180px;
+            grid-template-rows: auto 1fr auto;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* Title bar — spans all 3 columns */
+        #title-bar {
+            grid-column: 1 / -1;
+            background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, transparent 100%);
+            padding: 14px 20px 18px;
+            text-align: center;
+        }
+        #title-bar h1 {
+            font-size: 13px;
+            font-weight: 700;
+            color: #7b9fff;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+        #title-bar p {
+            font-size: 11px;
+            color: rgba(255,255,255,0.35);
+            letter-spacing: 1px;
+        }
+
+        /* Left panel — effect buttons */
+        #left-panel {
+            grid-column: 1;
+            grid-row: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 16px 12px;
+            pointer-events: all;
+            overflow-y: auto;
+        }
+
+        .panel-label {
+            font-size: 9px;
+            font-weight: 700;
+            color: rgba(255,255,255,0.3);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 2px;
+            padding-left: 2px;
+        }
+
+        .effect-btn {
+            padding: 10px 12px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: #c8d4ff;
+            background: rgba(123, 159, 255, 0.08);
+            border: 1px solid rgba(123, 159, 255, 0.18);
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+            transition: background 0.1s, border-color 0.1s, transform 0.08s;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        .effect-btn:hover {
+            background: rgba(123, 159, 255, 0.16);
+            border-color: rgba(123, 159, 255, 0.35);
+        }
+        .effect-btn:active { transform: scale(0.94); }
+
+        .effect-btn.red   { border-color: rgba(255, 80, 80, 0.25); color: #ffaaaa; }
+        .effect-btn.red:hover   { background: rgba(255, 80, 80, 0.12); border-color: rgba(255, 80, 80, 0.45); }
+        .effect-btn.gold  { border-color: rgba(255, 215, 0, 0.25);  color: #ffe88a; }
+        .effect-btn.gold:hover  { background: rgba(255, 215, 0, 0.10); border-color: rgba(255, 215, 0, 0.45); }
+        .effect-btn.green { border-color: rgba(80, 255, 140, 0.25); color: #80ffaa; }
+        .effect-btn.green:hover { background: rgba(80, 255, 140, 0.10); border-color: rgba(80, 255, 140, 0.40); }
+        .effect-btn.white { border-color: rgba(255, 255, 255, 0.25); color: #ffffff; }
+        .effect-btn.white:hover { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.45); }
+
+        /* Center — game-container (PIXI canvas) */
+        #game-container {
+            grid-column: 2;
+            grid-row: 2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Right panel — live stats */
+        #right-panel {
+            grid-column: 3;
+            grid-row: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 16px 12px;
+        }
+
+        .stat-card {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(123, 159, 255, 0.15);
+            border-radius: 10px;
+            padding: 10px 12px;
+        }
+        .stat-card .label {
+            font-size: 9px;
+            font-weight: 700;
+            color: rgba(255,255,255,0.3);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 4px;
+        }
+        .stat-card .value {
+            font-size: 20px;
+            font-weight: 800;
+            color: #e0e8ff;
+            line-height: 1.1;
+        }
+        .stat-card .sub {
+            font-size: 10px;
+            color: rgba(255,255,255,0.3);
+            margin-top: 2px;
+        }
+
+        #stat-timescale .value { color: #7bf7ff; }
+        #stat-combo .value     { color: #ffd700; }
+        #stat-fps .value       { color: #7bffb9; }
+        #stat-haptics .value   { font-size: 12px; color: #aaa; }
+
+        /* Combo milestone banner */
+        #combo-banner {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -60%);
+            pointer-events: none;
+            z-index: 30;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+        #combo-banner.show { opacity: 1; }
+        #combo-banner h2 {
+            font-size: 48px;
+            font-weight: 900;
+            color: #ffd700;
+            text-shadow: 0 0 40px rgba(255, 215, 0, 0.7), 0 0 80px rgba(255, 215, 0, 0.3);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+        #combo-banner p {
+            font-size: 14px;
+            color: rgba(255,255,255,0.5);
+            letter-spacing: 2px;
+            margin-top: 4px;
+        }
+
+        /* Bottom instructions bar — spans all 3 columns */
+        #bottom-bar {
+            grid-column: 1 / -1;
+            grid-row: 3;
+            background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, transparent 100%);
+            padding: 18px 20px 14px;
+            text-align: center;
+        }
+        #bottom-bar p {
+            font-size: 11px;
+            color: rgba(255,255,255,0.3);
+            letter-spacing: 1px;
+        }
+        #bottom-bar span { color: rgba(123, 159, 255, 0.7); }
+
+        /* Responsive: hide panels on very small screens, show as bottom strip */
+        @media (max-width: 600px) {
+            #overlay {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr auto auto;
+            }
+            #left-panel  { grid-column: 1; grid-row: 3; flex-direction: row; flex-wrap: wrap; padding: 8px; overflow-x: auto; }
+            #right-panel { grid-column: 1; grid-row: 4; flex-direction: row; flex-wrap: wrap; padding: 8px; }
+            #game-container { grid-column: 1; grid-row: 2; }
+            .stat-card { min-width: 100px; flex: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loading">
+        <div class="spinner"></div>
+        <h1>Game Feel Playground</h1>
+        <p>GameByte v1.9 — Loading effects engine...</p>
+    </div>
+
+    <!-- The PIXI canvas lives here -->
+    <div id="game-container"></div>
+
+    <!-- Full-screen overlay for UI panels -->
+    <div id="overlay" style="display:none;">
+
+        <!-- Title -->
+        <div id="title-bar">
+            <h1>Game Feel Playground — GameByte v1.9</h1>
+            <p>Click the ball to trigger impact — use buttons for individual effects</p>
+        </div>
+
+        <!-- Left: Effect buttons -->
+        <div id="left-panel">
+            <div class="panel-label">Time</div>
+            <button class="effect-btn white" id="btn-slowmo">Slow-Mo (1s)</button>
+            <button class="effect-btn white" id="btn-freeze">Freeze (200ms)</button>
+
+            <div class="panel-label" style="margin-top:8px;">Screen</div>
+            <button class="effect-btn red"   id="btn-dmgflash">Damage Flash</button>
+            <button class="effect-btn white" id="btn-powerflash">Power Flash</button>
+
+            <div class="panel-label" style="margin-top:8px;">Ball</div>
+            <button class="effect-btn green" id="btn-squash">Squash</button>
+            <button class="effect-btn green" id="btn-stretch">Stretch</button>
+
+            <div class="panel-label" style="margin-top:8px;">Camera</div>
+            <button class="effect-btn"       id="btn-shake">Screen Shake</button>
+            <button class="effect-btn"       id="btn-kick">Camera Kick</button>
+
+            <div class="panel-label" style="margin-top:8px;">Big</div>
+            <button class="effect-btn gold"  id="btn-celebrate">Celebrate!</button>
+        </div>
+
+        <!-- Right: Live stats -->
+        <div id="right-panel">
+            <div class="stat-card" id="stat-timescale">
+                <div class="label">Time Scale</div>
+                <div class="value" id="val-timescale">1.00</div>
+                <div class="sub">normal speed</div>
+            </div>
+            <div class="stat-card" id="stat-combo">
+                <div class="label">Combo</div>
+                <div class="value" id="val-combo">0</div>
+                <div class="sub" id="sub-combo">hit the ball!</div>
+            </div>
+            <div class="stat-card" id="stat-fps">
+                <div class="label">FPS</div>
+                <div class="value" id="val-fps">--</div>
+                <div class="sub">frames / sec</div>
+            </div>
+            <div class="stat-card" id="stat-haptics">
+                <div class="label">Haptics</div>
+                <div class="value" id="val-haptics">--</div>
+                <div class="sub">vibration API</div>
+            </div>
+        </div>
+
+        <!-- Bottom instructions -->
+        <div id="bottom-bar">
+            <p>
+                <span>Click / tap the ball</span> to trigger a full impact combo &nbsp;|&nbsp;
+                <span>Left panel</span> for individual effects &nbsp;|&nbsp;
+                <span>Right panel</span> shows live state
+            </p>
+        </div>
+    </div>
+
+    <!-- Combo milestone banner -->
+    <div id="combo-banner">
+        <h2 id="combo-banner-text">5x COMBO!</h2>
+        <p id="combo-banner-sub">Keep hitting!</p>
+    </div>
+
+    <!-- Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+    <script src="../../dist/gamebyte.umd.js"></script>
+
+    <script>
+    (async () => {
+        // =====================================================================
+        // 1. Destructure v1.9 game feel APIs from the UMD bundle
+        // =====================================================================
+        const {
+            GameByte,
+            Juice,
+            ScreenEffects,
+            SquashStretch,
+            ComboTracker,
+            Haptics,
+            TimeScale,
+            FloatingText2D,
+            screenShake,
+            ParticleEmitter,
+            TweenManager,
+        } = GameByteFramework;
+
+        const BASE_W = 600;
+        const BASE_H = 700;
+
+        // =====================================================================
+        // 2. Bootstrap — quick2D sets up the Pixi renderer + GraphicsEngine
+        //    so FloatingText2D, ScreenEffects, and Juice can call graphics()
+        // =====================================================================
+        const game = await GameByte.quick2D('#game-container', BASE_W, BASE_H, {
+            backgroundColor: 0x08081a,
+        });
+
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('overlay').style.display = 'grid';
+
+        // =====================================================================
+        // 3. Scene layers
+        //    stage  → shake target (screenShake shakes this)
+        //    world  → ball, particles, floating text
+        //    hud    → ScreenEffects flash overlays
+        // =====================================================================
+        const stage = game.stage;
+        const world = new PIXI.Container();
+        const hud   = new PIXI.Container();
+        stage.addChild(world);
+        stage.addChild(hud);
+
+        // Wire ScreenEffects so flash/vignette calls have a parent container
+        ScreenEffects.init(hud);
+
+        // =====================================================================
+        // 4. Starfield background
+        // =====================================================================
+        const starGfx = new PIXI.Graphics();
+        for (let i = 0; i < 100; i++) {
+            const x = Math.random() * BASE_W;
+            const y = Math.random() * BASE_H;
+            const r = Math.random() * 1.4 + 0.3;
+            const a = Math.random() * 0.45 + 0.15;
+            starGfx.circle(x, y, r).fill({ color: 0xffffff, alpha: a });
+        }
+        world.addChild(starGfx);
+
+        // =====================================================================
+        // 5. The ball — interactive target
+        //    60-pixel radius, drawn with concentric circles to simulate depth.
+        // =====================================================================
+        const BALL_RADIUS = 60;
+        const ballContainer = new PIXI.Container();
+        ballContainer.x = BASE_W / 2;
+        ballContainer.y = BASE_H / 2;
+        ballContainer.eventMode = 'static';
+        ballContainer.cursor = 'pointer';
+
+        const ballGfx = new PIXI.Graphics();
+        // Outer glow ring
+        ballGfx.circle(0, 0, BALL_RADIUS + 18).fill({ color: 0x4466ff, alpha: 0.08 });
+        // Main body
+        ballGfx.circle(0, 0, BALL_RADIUS).fill({ color: 0x3355ee });
+        // Mid highlight
+        ballGfx.circle(0, 0, BALL_RADIUS - 10).fill({ color: 0x4477ff, alpha: 0.5 });
+        // Inner shine
+        ballGfx.circle(-16, -18, 18).fill({ color: 0x99bbff, alpha: 0.35 });
+        // Hit zone ring
+        ballGfx.circle(0, 0, BALL_RADIUS).stroke({ color: 0x6699ff, width: 2, alpha: 0.6 });
+
+        ballContainer.addChild(ballGfx);
+        world.addChild(ballContainer);
+
+        // "Tap me" label underneath the ball
+        const tapLabel = new PIXI.Text({ text: 'TAP ME', style: {
+            fontSize: 11,
+            fontWeight: '700',
+            fill: 0x4466ff,
+            letterSpacing: 3,
+        }});
+        tapLabel.anchor.set(0.5, 0);
+        tapLabel.x = BASE_W / 2;
+        tapLabel.y = BASE_H / 2 + BALL_RADIUS + 14;
+        world.addChild(tapLabel);
+
+        // =====================================================================
+        // 6. Ball bounce animation — simple sine wave
+        // =====================================================================
+        let bounceTime = 0;
+        const BOUNCE_AMP   = 28;    // pixels
+        const BOUNCE_SPEED = 1.4;   // radians/sec
+        const BALL_BASE_Y  = BASE_H / 2;
+
+        // Shadow ellipse that mirrors the bounce
+        const shadowGfx = new PIXI.Graphics();
+        shadowGfx.ellipse(0, 0, BALL_RADIUS * 0.9, 10).fill({ color: 0x000000, alpha: 0.3 });
+        shadowGfx.x = BASE_W / 2;
+        shadowGfx.y = BALL_BASE_Y + BALL_RADIUS + 12;
+        world.addChildAt(shadowGfx, 1); // behind stars
+
+        // =====================================================================
+        // 7. ComboTracker — 2s timeout, milestones at 5 and 10
+        // =====================================================================
+        const combo = new ComboTracker({ timeout: 2000, milestones: [5, 10] });
+
+        combo.on('hit', (count, mult) => {
+            document.getElementById('val-combo').textContent = count;
+            document.getElementById('sub-combo').textContent =
+                `x${mult.toFixed(1)} multiplier`;
+        });
+
+        combo.on('break', () => {
+            document.getElementById('val-combo').textContent = '0';
+            document.getElementById('sub-combo').textContent = 'hit the ball!';
+        });
+
+        combo.on('milestone', (count) => {
+            const banner = document.getElementById('combo-banner');
+            const bannerText = document.getElementById('combo-banner-text');
+            const bannerSub  = document.getElementById('combo-banner-sub');
+
+            if (count >= 10) {
+                bannerText.textContent = '10x INSANE!';
+                bannerText.style.color = '#ff4dff';
+                bannerText.style.textShadow = '0 0 40px rgba(255,77,255,0.7)';
+                bannerSub.textContent = 'Unbelievable!';
+                Juice.celebrate(world, BASE_W / 2, BASE_H / 2, { text: 'LEGENDARY!' });
+            } else {
+                bannerText.textContent = `${count}x COMBO!`;
+                bannerText.style.color = '#ffd700';
+                bannerText.style.textShadow = '0 0 40px rgba(255,215,0,0.7)';
+                bannerSub.textContent = 'Keep it up!';
+                // Particle burst from ball position
+                const emitter = ParticleEmitter.confetti(ballContainer.x, ballContainer.y);
+                world.addChild(emitter.getContainer());
+                emitter.once('complete', () => {
+                    world.removeChild(emitter.getContainer());
+                    emitter.destroy();
+                });
+            }
+
+            banner.classList.add('show');
+            setTimeout(() => banner.classList.remove('show'), 1600);
+        });
+
+        // =====================================================================
+        // 8. Ball click — full impact combo
+        // =====================================================================
+        ballContainer.on('pointerdown', () => {
+            // Register combo hit
+            combo.hit();
+
+            // Full Juice.impact on the ball — squash + shake + particles + hitstop
+            Juice.impact(ballContainer, {
+                particleParent: world,
+                shakeIntensity: 10,
+                shakeDuration: 220,
+                freezeMs: 50,
+            });
+
+            // Floating damage number
+            const dmg = 10 + Math.floor(combo.count * 1.5);
+            FloatingText2D.damage(world, ballContainer.x, ballContainer.y - BALL_RADIUS, dmg);
+
+            // Escalating combo floater from hit 3+
+            if (combo.count >= 3) {
+                Juice.combo(world, ballContainer.x, ballContainer.y, combo.count);
+            }
+        });
+
+        // =====================================================================
+        // 9. Effect panel button handlers
+        // =====================================================================
+
+        // -- Time --
+        document.getElementById('btn-slowmo').addEventListener('click', () => {
+            Juice.slowMo(1000, 0.2);
+            FloatingText2D.spawn({
+                text: 'SLOW-MO',
+                x: BASE_W / 2,
+                y: 120,
+                parent: world,
+                style: { fontSize: 22, fontWeight: 'bold', fill: 0x7bf7ff, stroke: { color: 0x000000, width: 3 } },
+                duration: 900,
+                distance: 40,
+            });
+        });
+
+        document.getElementById('btn-freeze').addEventListener('click', () => {
+            Juice.freeze(200);
+            FloatingText2D.spawn({
+                text: 'FREEZE!',
+                x: BASE_W / 2,
+                y: 120,
+                parent: world,
+                style: { fontSize: 22, fontWeight: 'bold', fill: 0xaaddff, stroke: { color: 0x000000, width: 3 } },
+                duration: 700,
+                distance: 30,
+            });
+        });
+
+        // -- Screen --
+        document.getElementById('btn-dmgflash').addEventListener('click', () => {
+            ScreenEffects.damageVignette(400);
+            screenShake(stage, 6, 180);
+            Haptics.heavy();
+        });
+
+        document.getElementById('btn-powerflash').addEventListener('click', () => {
+            ScreenEffects.powerFlash(280);
+            Haptics.success();
+            FloatingText2D.spawn({
+                text: 'POWER UP!',
+                x: BASE_W / 2,
+                y: BASE_H / 2 - 80,
+                parent: world,
+                style: { fontSize: 28, fontWeight: 'bold', fill: 0xffffff, stroke: { color: 0x444444, width: 3 } },
+                duration: 900,
+                distance: 60,
+            });
+        });
+
+        // -- Ball deformation --
+        document.getElementById('btn-squash').addEventListener('click', () => {
+            SquashStretch.squash(ballContainer, 0.4, 140);
+            Haptics.medium();
+        });
+
+        document.getElementById('btn-stretch').addEventListener('click', () => {
+            SquashStretch.stretch(ballContainer, 0.4, 140);
+            Haptics.medium();
+        });
+
+        // -- Camera --
+        document.getElementById('btn-shake').addEventListener('click', () => {
+            screenShake(stage, 14, 350);
+            Haptics.heavy();
+        });
+
+        document.getElementById('btn-kick').addEventListener('click', () => {
+            // Directional kick — snap left then bounce back via screenShake
+            screenShake(stage, 18, 180);
+            Haptics.double();
+        });
+
+        // -- Celebrate --
+        document.getElementById('btn-celebrate').addEventListener('click', () => {
+            Juice.celebrate(world, BASE_W / 2, BASE_H / 2 - 40, {
+                text: 'CELEBRATE!',
+                score: 1000,
+            });
+            screenShake(stage, 12, 300);
+        });
+
+        // =====================================================================
+        // 10. FPS counter
+        // =====================================================================
+        let frameCount = 0;
+        let fpsTimer   = 0;
+        let displayFps = 0;
+
+        // =====================================================================
+        // 11. Haptics support display
+        // =====================================================================
+        document.getElementById('val-haptics').textContent = Haptics.supported ? 'yes' : 'no';
+        document.getElementById('val-haptics').style.color = Haptics.supported ? '#7bffb9' : '#ff7b7b';
+
+        // =====================================================================
+        // 12. Main game loop
+        // =====================================================================
+        game.onUpdate((dtMs) => {
+            // Clamp dt to avoid huge jumps on tab resume
+            const dt = Math.min(dtMs, 50);
+
+            // --- TweenManager (drives all squash, stretch, pop, floating text) ---
+            TweenManager.update(dt);
+
+            // --- ComboTracker countdown ---
+            combo.update(dt);
+
+            // --- TimeScale update (drives slow-mo / freeze countdowns) ---
+            Juice.timeScale.update(dt);
+
+            // --- Bouncing ball using scaled dt so slow-mo affects it ---
+            const scaledDt = Juice.timeScale.apply(dt) / 1000; // seconds
+            bounceTime += BOUNCE_SPEED * scaledDt;
+            const offsetY = Math.sin(bounceTime) * BOUNCE_AMP;
+            ballContainer.y = BALL_BASE_Y + offsetY;
+
+            // Shadow scales inversely: smaller when ball is higher
+            const shadowFrac = 1 - (offsetY + BOUNCE_AMP) / (BOUNCE_AMP * 2);
+            shadowGfx.scale.x = 0.6 + shadowFrac * 0.4;
+            shadowGfx.scale.y = 0.6 + shadowFrac * 0.4;
+            shadowGfx.alpha   = 0.15 + shadowFrac * 0.2;
+
+            // --- FPS counter ---
+            frameCount++;
+            fpsTimer += dt;
+            if (fpsTimer >= 500) {
+                displayFps = Math.round(frameCount / (fpsTimer / 1000));
+                document.getElementById('val-fps').textContent = displayFps;
+                frameCount = 0;
+                fpsTimer   = 0;
+            }
+
+            // --- Time scale display ---
+            const ts = Juice.timeScale.scale;
+            const tsEl  = document.getElementById('val-timescale');
+            const tsSub = document.getElementById('stat-timescale').querySelector('.sub');
+            tsEl.textContent = ts.toFixed(2);
+            if (ts < 0.05) {
+                tsEl.style.color = '#ff7b7b';
+                tsSub.textContent = 'FROZEN';
+            } else if (ts < 0.5) {
+                tsEl.style.color = '#ffe066';
+                tsSub.textContent = 'slow motion';
+            } else {
+                tsEl.style.color = '#7bf7ff';
+                tsSub.textContent = 'normal speed';
+            }
+        });
+
+        // =====================================================================
+        // Log feature summary for educational reference
+        // =====================================================================
+        console.groupCollapsed('%c GameByte v1.9 — Game Feel Playground', 'color:#7b9fff;font-weight:bold;');
+        console.log('%c Juice        ', 'color:#7bffb9', '— .impact() .slowMo() .freeze() .celebrate() .combo() .squash() .stretch()');
+        console.log('%c TimeScale    ', 'color:#7bffb9', '— .freeze(ms) .slowMo(ms, scale) — wired into TweenManager automatically');
+        console.log('%c SquashStretch', 'color:#7bffb9', '— .squash(target) .stretch(target) .land(target)');
+        console.log('%c ScreenEffects', 'color:#7bffb9', '— .flash(color, alpha, ms) .damageVignette() .powerFlash()');
+        console.log('%c ComboTracker ', 'color:#7bffb9', '— .hit() .update(dt) — events: hit / break / milestone');
+        console.log('%c Haptics      ', 'color:#7bffb9', '— .light() .medium() .heavy() .success() .error() .double()');
+        console.log('%c FloatingText2D', 'color:#7bffb9', '— .damage() .score() .spawn({ text, x, y, parent, style })');
+        console.log('%c ParticleEmitter', 'color:#7bffb9', '— .explosion(x,y) .sparkle(x,y) .confetti(x,y)');
+        console.groupEnd();
+
+    })().catch((err) => {
+        console.error(err);
+        const el = document.getElementById('loading');
+        el.style.display = 'flex';
+        el.querySelector('h1').textContent = 'Error';
+        el.querySelector('p').textContent = err.message;
+        el.querySelector('p').style.color = '#ff6b6b';
+        el.querySelector('.spinner').style.display = 'none';
+    });
+    </script>
+</body>
+</html>

@@ -19,7 +19,8 @@
 9. [v1.5 HybridGame (3D + 2D HUD)](#v15-hybridgame-3d--2d-hud)
 10. [v1.7 Boilerplate](#v17-boilerplate)
 11. [v1.7 Genre Templates](#v17-genre-templates)
-12. [Utilities](#utilities)
+12. [v1.9 Game Feel Systems](#v19-game-feel-systems)
+13. [Utilities](#utilities)
 
 ---
 
@@ -2086,6 +2087,323 @@ patterns.on('pattern-spawned', (pattern, offsetX) => {});
 **Methods:** `getNext(maxDifficulty?)`, `getPattern(id)`, `getAll()`, `generate(count, startX?, maxDifficulty?)`
 
 **Events:** `'pattern-spawned'` -- `(pattern, offsetX)`
+
+---
+
+## v1.9 Game Feel Systems
+
+v1.9 adds a suite of "game juice" systems: time manipulation, haptic feedback, squash & stretch, screen overlay effects, combo tracking, and camera enhancements. All are designed as fire-and-forget static utilities with automatic lifecycle management.
+
+### TimeScale
+
+Global time dilation system for hitstop, slow-mo, and speed-up effects. Extends `EventEmitter`.
+
+```typescript
+import { Juice } from 'gamebyte-framework';
+import { TimeScale } from 'gamebyte-framework';
+
+// Via Juice proxy (recommended — auto-wires TweenManager)
+Juice.freeze(50);                 // 50ms hitstop (scale ≈ 0.01)
+Juice.slowMo(500, 0.2);          // 500ms at 20% speed, eases back to 1.0
+
+// Direct TimeScale access
+Juice.timeScale.scale;            // Current scale (0.001 to any)
+Juice.timeScale.set(0.5);        // Set scale permanently (no auto-restore)
+Juice.timeScale.setTemporary(0.3, 400, true); // 0.3x for 400ms, ease back
+Juice.timeScale.freeze(80);      // 80ms near-zero (0.01)
+Juice.timeScale.slowMo(600);     // 600ms at 0.2x, ease back
+Juice.timeScale.slowMo(600, 0.5); // 600ms at 0.5x, ease back
+Juice.timeScale.apply(dt);       // Scale a raw dt value: returns dt * scale
+Juice.timeScale.update(rawDtMs); // Must call each frame with unscaled dt (ms)
+Juice.timeScale.reset();         // Snap to 1.0 immediately
+
+// Standalone (for custom time channels)
+const ts = new TimeScale();
+ts.freeze(50);
+ts.update(rawDtMs);              // Tick each frame
+const scaledDt = ts.apply(dt);   // Use scaled dt in your systems
+```
+
+**Class:** `TimeScale extends EventEmitter<TimeScaleEvents>`
+
+**Properties:**
+- `scale: number` (readonly) -- Current time scale (0.001 minimum, 1 = normal, 2 = double speed)
+
+**Methods:**
+- `set(scale: number): void` -- Set scale permanently, no auto-restore. Minimum 0.001.
+- `setTemporary(scale: number, durationMs: number, easeBack?: boolean): void` -- Set scale for a duration, then restore to 1.0. If `easeBack` is true, smoothly lerps back over 200ms.
+- `freeze(durationMs: number): void` -- Set scale to 0.01 for `durationMs`. Uses 0.01 (not 0) to avoid divide-by-zero.
+- `slowMo(durationMs: number, scale?: number): void` -- Slow motion at `scale` (default: 0.2) for `durationMs`, then ease back to 1.0.
+- `apply(dt: number): number` -- Multiply raw delta time by current scale. Returns scaled dt.
+- `update(rawDtMs: number): void` -- **Must call each frame** with unscaled delta in milliseconds. Handles timer countdown, ease-back, and auto-restore.
+- `reset(): void` -- Snap to scale=1.0 immediately, cancelling any active effect.
+
+**Events:**
+- `'changed'` -- `(scale: number)` -- Fired when scale changes
+- `'restored'` -- `()` -- Fired when scale returns to 1.0
+
+---
+
+### Haptics
+
+`navigator.vibrate()` wrapper with semantic game feel patterns. All methods are no-ops when vibration is unsupported or disabled.
+
+```typescript
+import { Haptics } from 'gamebyte-framework';
+
+Haptics.light();                  // 15ms — button press, UI interaction
+Haptics.medium();                 // 40ms — collect item, score point
+Haptics.heavy();                  // 70ms — impact, explosion, damage
+Haptics.double();                 // [30, 50, 30] — notification, alert
+Haptics.success();                // [20, 40, 40, 40, 80] — level complete, achievement
+Haptics.error();                  // [100, 30, 100] — fail, insufficient funds
+Haptics.pattern(200);             // Custom single vibration (ms)
+Haptics.pattern([50, 30, 50]);    // Custom pattern (ms on, ms off, ms on, ...)
+
+Haptics.setEnabled(false);        // Disable globally (e.g. from settings)
+Haptics.enabled;                  // Whether haptics are enabled (read-only)
+Haptics.supported;                // Whether browser supports vibration (read-only)
+```
+
+**Class:** `Haptics` (static utility, no instantiation)
+
+**Static Methods:**
+- `light(): void` -- 15ms vibration
+- `medium(): void` -- 40ms vibration
+- `heavy(): void` -- 70ms vibration
+- `double(): void` -- Double-tap pattern `[30, 50, 30]`
+- `success(): void` -- Success pattern `[20, 40, 40, 40, 80]`
+- `error(): void` -- Error pattern `[100, 30, 100]`
+- `pattern(pattern: number | number[]): void` -- Custom vibration (ms on, ms off, ...)
+- `setEnabled(enabled: boolean): void` -- Enable/disable globally
+
+**Static Properties:**
+- `enabled: boolean` (readonly) -- Current enabled state
+- `supported: boolean` (readonly) -- Whether `navigator.vibrate` exists
+
+---
+
+### SquashStretch
+
+Squash and stretch animation helpers for impact deformation. Fire-and-forget; animations self-clean via Tween lifecycle. Requires target to have `scale.x` / `scale.y`.
+
+```typescript
+import { Juice } from 'gamebyte-framework';
+import { SquashStretch } from 'gamebyte-framework';
+
+// Via Juice proxy (recommended)
+Juice.squash(target, 0.3);       // Compress wide + short on impact
+Juice.stretch(target, 0.25);     // Elongate tall + thin on jump
+Juice.land(target);               // Landing compression (stronger squash)
+
+// Direct access
+SquashStretch.squash(target, 0.3, 100);  // intensity=0.3, duration=100ms
+SquashStretch.stretch(target, 0.25, 120); // intensity=0.25, duration=120ms
+SquashStretch.land(target, 0.35);         // intensity=0.35, fixed 150ms
+```
+
+**Class:** `SquashStretch` (static utility, no instantiation)
+
+**Static Methods:**
+- `squash(target: any, intensity?: number, durationMs?: number): void` -- Compress wide and short (1+intensity on X, 1-intensity on Y), then bounce back. Defaults: intensity=0.3, duration=100ms.
+- `stretch(target: any, intensity?: number, durationMs?: number): void` -- Elongate tall and thin (1-intensity*0.5 on X, 1+intensity on Y), then elastic bounce back. Defaults: intensity=0.25, duration=120ms.
+- `land(target: any, intensity?: number): void` -- Convenience wrapper for squash with stronger defaults: intensity=0.35, duration=150ms.
+
+**Target requirement:** Must have `target.scale.x` and `target.scale.y` (any Pixi/Three display object).
+
+---
+
+### ScreenEffects
+
+Full-screen overlay effects for damage flashes, power-up flashes, and vignettes. Uses the graphics abstraction so it works with any renderer.
+
+```typescript
+import { Juice } from 'gamebyte-framework';
+import { ScreenEffects } from 'gamebyte-framework';
+
+// Must initialize once with a parent container (root stage or HUD layer)
+ScreenEffects.init(stage);
+
+// Via Juice proxy (recommended)
+Juice.flash(0xFF0000, 0.3, 200);   // Red flash, 30% alpha, 200ms fade
+Juice.flash();                       // White flash, 50% alpha, 200ms (defaults)
+Juice.damageFlash();                 // Red vignette, 35% alpha, 400ms
+Juice.damageFlash(600);              // Red vignette, custom duration
+
+// Direct access
+ScreenEffects.flash(0xFFFFFF, 0.5, 200);  // White flash overlay
+ScreenEffects.damageVignette(400);          // Red vignette pulse
+ScreenEffects.powerFlash(250);              // White power-up flash (60% alpha)
+```
+
+**Class:** `ScreenEffects` (static utility, no instantiation)
+
+**Static Methods:**
+- `init(parent: any): void` -- **Must call once** with the parent container (root stage or HUD layer) before any effect methods.
+- `flash(color?: number, alpha?: number, durationMs?: number): void` -- Fullscreen color overlay that fades out. Defaults: color=0xFFFFFF, alpha=0.5, duration=200ms.
+- `damageVignette(durationMs?: number): void` -- Red flash overlay (0xFF0000, alpha=0.35). Default duration: 400ms.
+- `powerFlash(durationMs?: number): void` -- White flash overlay (0xFFFFFF, alpha=0.6). Default duration: 250ms.
+
+---
+
+### ComboTracker
+
+Tracks consecutive hit combos with a configurable timeout. Extends `EventEmitter`. Must call `update(dt)` each frame.
+
+```typescript
+import { ComboTracker } from 'gamebyte-framework';
+
+const combo = new ComboTracker({
+  timeout: 2000,                   // ms before combo expires (default: 2000)
+  milestones: [5, 10, 25],         // Counts that trigger 'milestone' event
+});                                 // Default milestones: [5, 10, 25, 50, 100]
+
+// In hit handler:
+combo.hit();                        // Increment count, reset timer. Returns new count.
+
+// In game loop (dt in ms):
+combo.update(dt);                   // Tick timer, fires 'break' on expiry
+
+// Read state:
+combo.count;                        // Current combo hit count
+combo.multiplier;                   // Score multiplier: 1 + floor(count/10) * 0.5
+combo.isActive;                     // True while count > 0
+
+// Reset without firing 'break':
+combo.reset();
+
+// Events:
+combo.on('hit', (count, multiplier) => {
+  showComboUI(count, multiplier);
+});
+combo.on('milestone', (count) => {
+  Juice.combo(parent, x, y, count); // Escalating combo feedback
+});
+combo.on('break', (finalCount) => {
+  hideComboUI();
+});
+```
+
+**Class:** `ComboTracker extends EventEmitter<ComboTrackerEvents>`
+
+**Constructor:** `new ComboTracker(config?: { timeout?: number; milestones?: number[] })`
+- `timeout` -- ms before combo expires if no new hit. Default: 2000.
+- `milestones` -- Counts that trigger `'milestone'` event. Default: `[5, 10, 25, 50, 100]`.
+
+**Methods:**
+- `hit(): number` -- Increment counter, reset timer, emit `'hit'`, check milestones. Returns new count.
+- `update(dt: number): void` -- **Must call each frame** with delta in ms. Fires `'break'` when timer expires.
+- `reset(): void` -- Reset count and timer immediately without firing `'break'`.
+
+**Properties:**
+- `count: number` (readonly) -- Current combo hit count
+- `multiplier: number` (readonly) -- Score multiplier: `1 + Math.floor(count / 10) * 0.5`
+- `isActive: boolean` (readonly) -- True while `count > 0`
+
+**Events:**
+- `'hit'` -- `(count: number, multiplier: number)` -- On each successful hit
+- `'break'` -- `(finalCount: number)` -- When combo timer expires
+- `'milestone'` -- `(count: number)` -- When count crosses a milestone threshold
+
+---
+
+### Camera Enhancements (v1.9)
+
+Two new methods on the existing `Camera` class: directional kick and look-ahead offset.
+
+```typescript
+import { Camera } from 'gamebyte-framework';
+
+const camera = new Camera({ viewportWidth: 480, viewportHeight: 852 });
+camera.attach(worldContainer);
+camera.follow(player, { lerp: 0.08 });
+
+// Directional kick — brief impulse that decays over time
+camera.kick(-1, 0, 15, 200);     // Kick left: dirX=-1, dirY=0, 15px, 200ms decay
+camera.kick(0, 1, 10, 150);      // Kick down: dirX=0, dirY=1, 10px, 150ms decay
+camera.kick(0.7, -0.7, 20, 250); // Kick diagonal, 20px, 250ms decay
+
+// Look-ahead — persistent offset added to follow target position
+camera.setLookAhead(50, 0);       // Look 50px ahead horizontally
+camera.setLookAhead(0, -30);      // Look 30px up
+camera.setLookAhead(0, 0);        // Remove look-ahead
+```
+
+**New Methods:**
+- `kick(directionX: number, directionY: number, intensity?: number, durationMs?: number): void` -- Apply a brief directional impulse offset that decays exponentially. Does not permanently mutate camera position. Composited with shake offset. Defaults: intensity=15, durationMs=150.
+- `setLookAhead(offsetX: number, offsetY: number): void` -- Set a persistent world-space offset added to the follow target position. Use to shift the camera ahead of the player's movement direction. Set to (0, 0) to remove.
+
+---
+
+### Juice Class (Updated in v1.9)
+
+The `Juice` static class now integrates all v1.9 systems. High-level methods auto-trigger hitstop, haptics, squash, and screen flashes.
+
+```typescript
+import { Juice } from 'gamebyte-framework';
+
+// Configuration
+Juice.configure({
+  intensity: 1,            // Scale particle/text effects (default: 1)
+  shakeEnabled: true,      // Enable screen shake (default: true)
+  particlesEnabled: true,  // Enable particles (default: true)
+  hapticsEnabled: true,    // Enable haptic feedback (default: true)
+});
+
+// Time scale shortcuts
+Juice.freeze(50);                  // Hitstop: 50ms at scale ≈ 0.01
+Juice.slowMo(500, 0.2);           // 500ms at 20% speed
+Juice.timeScale;                   // Access the shared TimeScale instance
+
+// SquashStretch proxies
+Juice.squash(target, 0.3);        // Compress on impact
+Juice.stretch(target, 0.25);      // Elongate on jump
+Juice.land(target);                // Landing compression
+
+// ScreenEffects proxies
+Juice.flash(0xFF0000, 0.3, 200);  // Color flash overlay
+Juice.damageFlash(400);            // Red vignette
+
+// High-level composites (auto-trigger multiple systems):
+
+// Juice.impact() — hitstop + haptic(heavy) + squash + shake + particles
+Juice.impact(target, {
+  shakeIntensity: 8,       // Pixel offset (default: 8)
+  shakeDuration: 200,      // ms (default: 200)
+  particles: true,         // Enable particles (default: true)
+  particleParent: scene,   // Container for particles (required for particles)
+  freezeMs: 50,            // Hitstop duration (default: 50)
+});
+
+// Juice.damage() — hitstop + haptic(medium) + float text + alpha blink + red flash + shake
+Juice.damage(target, parent, 25, {
+  shake: true,             // Enable shake (default: true)
+  freezeMs: 30,            // Hitstop duration (default: 30)
+});
+
+// Juice.collect() — haptic(light) + float text + sparkle particles
+Juice.collect(parent, x, y, { text: '+10', style: 'coin', amount: 10 });
+
+// Juice.combo() — haptic(medium) + escalating text + shake
+Juice.combo(parent, x, y, comboCount);
+
+// Juice.celebrate() — haptic(success) + text + score popup + power flash + confetti
+Juice.celebrate(parent, x, y, { text: 'LEVEL COMPLETE!', score: 500 });
+
+// Juice.pop() — haptic(light) + scale bounce
+Juice.pop(button, 1.2);           // Returns Tween | undefined
+
+// Juice.pulse() — infinite scale oscillation
+const tween = Juice.pulse(glowSprite, { min: 0.95, max: 1.05, duration: 800 });
+tween.stop();                      // Stop when done
+```
+
+**v1.9 behavior changes:**
+- `Juice.impact()` now auto-triggers: hitstop (freeze) + haptic (heavy) + squash + shake + particles
+- `Juice.damage()` now auto-triggers: hitstop (freeze) + haptic (medium) + float text + alpha blink + red flash (ScreenEffects) + shake
+- `Juice.collect()` now auto-triggers: haptic (light) + float text + sparkle particles
+- `Juice.combo()` now auto-triggers: haptic (medium) + escalating text + shake
+- `Juice.celebrate()` now auto-triggers: haptic (success) + text + score + power flash + confetti
 
 ---
 

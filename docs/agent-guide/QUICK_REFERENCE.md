@@ -663,6 +663,115 @@ const obs = patterns.generate(5, 0, 0.5); // 5 patterns, absolute positions
 
 ---
 
+## v1.9 Game Feel
+
+### TimeScale (Hitstop & Slow-Mo)
+
+```typescript
+import { Juice, TimeScale } from 'gamebyte-framework';
+
+Juice.freeze(50);                          // 50ms hitstop (scale ≈ 0.01)
+Juice.slowMo(500, 0.2);                   // 500ms at 20% speed, ease back
+Juice.timeScale.scale;                     // Current scale value
+Juice.timeScale.set(0.5);                 // Permanent scale
+Juice.timeScale.setTemporary(0.3, 400, true); // Temporary with ease-back
+Juice.timeScale.apply(dt);                // Returns dt * scale
+Juice.timeScale.update(rawDtMs);           // Call each frame (unscaled ms)
+Juice.timeScale.reset();                   // Snap to 1.0
+```
+
+### Haptics
+
+```typescript
+import { Haptics } from 'gamebyte-framework';
+
+Haptics.light();                           // 15ms — button press
+Haptics.medium();                          // 40ms — collect item
+Haptics.heavy();                           // 70ms — explosion
+Haptics.double();                          // Double tap pattern
+Haptics.success();                         // Level complete pattern
+Haptics.error();                           // Fail pattern
+Haptics.pattern([50, 30, 50]);             // Custom pattern
+Haptics.setEnabled(false);                 // Disable globally
+Haptics.enabled;  Haptics.supported;       // Read-only state
+```
+
+### SquashStretch
+
+```typescript
+import { Juice, SquashStretch } from 'gamebyte-framework';
+
+Juice.squash(target, 0.3);                // Compress on impact (100ms)
+Juice.stretch(target, 0.25);              // Elongate on jump (120ms)
+Juice.land(target);                        // Landing compression (150ms)
+SquashStretch.squash(target, 0.3, 100);   // Direct: intensity, duration(ms)
+SquashStretch.stretch(target, 0.25, 120);
+SquashStretch.land(target, 0.35);
+```
+
+### ScreenEffects
+
+```typescript
+import { Juice, ScreenEffects } from 'gamebyte-framework';
+
+ScreenEffects.init(stage);                 // Must call once with parent container
+Juice.flash(0xFF0000, 0.3, 200);          // Red flash, 30% alpha, 200ms
+Juice.flash();                              // White flash (defaults)
+Juice.damageFlash();                        // Red vignette (400ms)
+ScreenEffects.damageVignette(400);          // Direct: red pulse
+ScreenEffects.powerFlash(250);              // Direct: white power flash
+```
+
+### ComboTracker
+
+```typescript
+import { ComboTracker } from 'gamebyte-framework';
+
+const combo = new ComboTracker({ timeout: 2000, milestones: [5, 10, 25] });
+combo.hit();                               // Increment + reset timer
+combo.update(dt);                          // Call each frame (ms)
+combo.count;                               // Current count
+combo.multiplier;                          // 1 + floor(count/10) * 0.5
+combo.isActive;                            // True while count > 0
+combo.reset();                             // Reset without 'break' event
+combo.on('hit', (count, mult) => {});
+combo.on('milestone', (count) => {});
+combo.on('break', (finalCount) => {});
+```
+
+### Camera Kick & Look-Ahead
+
+```typescript
+camera.kick(-1, 0, 15, 200);              // Kick left: dir, intensity, decay(ms)
+camera.kick(0, 1, 10, 150);               // Kick down
+camera.setLookAhead(50, 0);               // Look 50px ahead horizontally
+camera.setLookAhead(0, 0);                // Remove look-ahead
+```
+
+### Juice Composites (v1.9 auto-triggers)
+
+```typescript
+// impact: hitstop + haptic(heavy) + squash + shake + particles
+Juice.impact(target, { particleParent: scene, freezeMs: 50 });
+
+// damage: hitstop + haptic(medium) + float text + blink + red flash + shake
+Juice.damage(target, parent, 25, { freezeMs: 30 });
+
+// collect: haptic(light) + float text + sparkles
+Juice.collect(parent, x, y, { text: '+10', style: 'coin' });
+
+// combo: haptic(medium) + escalating text + shake
+Juice.combo(parent, x, y, comboCount);
+
+// celebrate: haptic(success) + text + score + power flash + confetti
+Juice.celebrate(parent, x, y, { text: 'VICTORY!', score: 500 });
+
+// configure globally
+Juice.configure({ intensity: 1, shakeEnabled: true, particlesEnabled: true, hapticsEnabled: true });
+```
+
+---
+
 ## Utilities
 
 ### UnsubscribeBag
@@ -716,6 +825,10 @@ grep -r "MatchDetector\|BoardGravity\|AutoAttack\|UpgradeSystem\|XPSystem" docs/
 grep -r "IdleEngine\|PrestigeSystem\|PathFollower\|TowerManager" docs/
 grep -r "StatsSystem\|InventorySystem\|DialogueSystem\|DeckManager\|TurnEngine" docs/
 grep -r "PlatformerController\|ObstaclePattern" docs/
+
+# Find v1.9 game feel docs
+grep -r "TimeScale\|Haptics\|SquashStretch\|ScreenEffects\|ComboTracker" docs/
+grep -r "Juice\.freeze\|Juice\.slowMo\|Juice\.squash\|Juice\.flash\|camera\.kick" docs/
 ```
 
 ---
