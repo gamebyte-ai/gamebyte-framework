@@ -1941,6 +1941,34 @@ Juice.celebrate(scene, cx, cy, { text: 'VICTORY!', score: 500 });
 
 ---
 
+## SFXHelper
+
+Minimal Web Audio one-shot player with pitch variation.
+
+```typescript
+await SFXHelper.load('hit', 'sounds/hit.wav');
+SFXHelper.play('hit', { volume: 0.8, pitchMin: 0.9, pitchMax: 1.1 });
+SFXHelper.has('hit');   // true
+SFXHelper.unload('hit');
+```
+
+---
+
+## InputBuffer
+
+Smart input buffering with coyote time for platformers and action games.
+
+```typescript
+const input = new InputBuffer({ bufferWindow: 120, coyoteTime: 80 });
+input.buffer('jump');           // buffer a jump press
+input.update(dt);               // call each frame (ms)
+input.consume('jump');          // true if still valid
+input.setGrounded(true/false);  // for coyote time
+input.canJump;                  // grounded OR coyote active
+```
+
+---
+
 ## Utilities
 
 ### UnsubscribeBag

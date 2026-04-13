@@ -17,6 +17,10 @@ export { GameByteVirtualControlsManager } from './VirtualControlsManager.js';
 export { GameByteInputMappingManager } from './InputMappingManager.js';
 export { GameByteInputPerformanceManager } from './InputPerformanceManager.js';
 
+// Input Buffering with Coyote Time
+export { InputBuffer } from './InputBuffer.js';
+export type { InputBufferConfig, InputBufferEvents } from './InputBuffer.js';
+
 // Game-Specific Handlers
 export { GameBytePlatformerInputHandler } from './handlers/PlatformerInputHandler.js';
 export { GameByteCameraInputHandler } from './handlers/CameraInputHandler.js';

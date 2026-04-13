@@ -2447,6 +2447,22 @@ subs.count; // 0
 
 ---
 
+## Game Feel Decision Guide
+
+For every player interaction, ask: what should the player FEEL?
+
+| Interaction | Recommended | Feedback Channels |
+|-------------|-------------|-------------------|
+| Touch/tap | `Juice.pop()` + `Haptics.light()` | Visual + Haptic |
+| Hit/attack | `Juice.impact()` + `SFXHelper.play()` | Visual + Audio |
+| Take damage | `Juice.damage()` + `ScreenEffects.flash()` | Visual + Screen |
+| Earn/collect | `Juice.collect()` + `RewardFly` | Visual + Animation |
+| Complete level | `Juice.celebrate()` + `Haptics.success()` | Visual + Haptic |
+
+**Rule:** Every action needs 2+ feedback channels. See `docs/agent-guide/GAME_FEEL_RECIPES.md` for genre-specific combinations.
+
+---
+
 ## Next Steps
 
 **Tier 2 Docs:** When you need advanced features:

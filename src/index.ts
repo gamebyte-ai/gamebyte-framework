@@ -231,6 +231,9 @@ export { DspEffect, DspChain, DspPresets } from './audio/dsp/index.js';
 export { FilterEffect, ReverbEffect, DelayEffect, DistortionEffect, CompressorEffect } from './audio/dsp/index.js';
 export type { FilterConfig, ReverbConfig, DelayConfig, DistortionConfig, CompressorConfig } from './audio/dsp/index.js';
 
+// Lightweight SFX Helper (Web Audio API, no framework dependencies)
+export { SFXHelper } from './audio/SFXHelper';
+
 // Service Providers
 export { RenderingServiceProvider } from './services/RenderingServiceProvider';
 export { SceneServiceProvider } from './services/SceneServiceProvider';
@@ -517,6 +520,10 @@ export type {
   JoystickStyle,
   ActivationZone
 } from './ui/components/VirtualJoystick';
+
+// Input Buffering with Coyote Time
+export { InputBuffer } from './input/InputBuffer';
+export type { InputBufferConfig, InputBufferEvents } from './input/InputBuffer';
 
 // Game-Specific Input Handlers
 export { GameBytePlatformerInputHandler } from './input/handlers/PlatformerInputHandler';

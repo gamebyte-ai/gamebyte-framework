@@ -24,6 +24,9 @@ export { GameByteProceduralAudioGenerator } from './procedural/GameByteProcedura
 // Analytics
 export { GameByteAudioAnalytics } from './analytics/GameByteAudioAnalytics.js';
 
+// Lightweight SFX Helper (Web Audio API, no framework dependencies)
+export { SFXHelper } from './SFXHelper.js';
+
 // DSP Effects Chain
 export { DspEffect, DspChain, DspPresets } from './dsp/index.js';
 export { FilterEffect } from './dsp/index.js';
